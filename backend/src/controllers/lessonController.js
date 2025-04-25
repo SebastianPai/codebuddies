@@ -1,5 +1,6 @@
 import Lesson from "../models/LessonModel.js";
 import Course from "../models/CourseModel.js";
+import { JSDOM } from "jsdom";
 
 // Obtener todas las lecciones de un curso
 export const getLessonsByCourse = async (req, res) => {
@@ -150,40 +151,55 @@ export const updateExercise = async (req, res) => {
     const { lessonId, order } = req.params;
     const { title, content, instructions, language, expectedOutput } = req.body;
 
-    // Validate required fields
-    if (!title || !content || !language) {
-      return res
-        .status(400)
-        .json({ message: "Título, contenido y lenguaje son obligatorios" });
-    }
-
+    // Find the lesson
     const lesson = await Lesson.findById(lessonId);
     if (!lesson) {
-      return res.status(404).json({ message: "Lección no encontrada" });
+      return res.status(404).json({ message: "Lección no encontrada." });
     }
 
+    // Find the exercise by order
+    const exerciseOrder = parseInt(order); // Ensure order is an integer
     const exerciseIndex = lesson.exercises.findIndex(
-      (ex) => ex.order === parseInt(order)
+      (ex) => ex.order === exerciseOrder
     );
     if (exerciseIndex === -1) {
-      return res.status(404).json({ message: "Ejercicio no encontrado" });
+      return res.status(404).json({ message: "Ejercicio no encontrado." });
     }
 
-    // Update exercise fields
-    lesson.exercises[exerciseIndex] = {
+    // Update the exercise with only the provided fields
+    const updatedExercise = {
       ...lesson.exercises[exerciseIndex],
-      title,
-      content,
-      instructions: instructions || "",
-      language,
-      expectedOutput: expectedOutput || "",
+      order: exerciseOrder,
+      title: title ?? lesson.exercises[exerciseIndex].title,
+      content: content ?? lesson.exercises[exerciseIndex].content,
+      instructions:
+        instructions ?? lesson.exercises[exerciseIndex].instructions,
+      language: language ?? lesson.exercises[exerciseIndex].language,
+      expectedOutput:
+        expectedOutput ?? lesson.exercises[exerciseIndex].expectedOutput,
     };
 
+    lesson.exercises[exerciseIndex] = updatedExercise;
+
+    // Mark the exercises array as modified
+    lesson.markModified("exercises");
+
     await lesson.save();
-    res.json(lesson.exercises[exerciseIndex]);
+
+    res
+      .status(200)
+      .json({
+        message: "Ejercicio actualizado exitosamente.",
+        exercise: updatedExercise,
+      });
   } catch (error) {
-    console.error("Error en updateExercise:", error.message);
-    res.status(500).json({ message: "Error al actualizar el ejercicio" });
+    console.error(error);
+    res
+      .status(500)
+      .json({
+        message: "Error al actualizar el ejercicio.",
+        error: error.message,
+      });
   }
 };
 
@@ -223,55 +239,176 @@ export const createExercise = async (req, res) => {
     const { order, title, content, instructions, language, expectedOutput } =
       req.body;
 
-    // Validate required fields
-    if (!order || !title || !content || !language) {
-      return res.status(400).json({
-        message: "Orden, título, contenido y lenguaje son obligatorios",
-      });
-    }
+    console.log("Creating exercise for lessonId:", lessonId);
+    console.log("Request body:", req.body);
 
+    // Find the lesson
     const lesson = await Lesson.findById(lessonId);
     if (!lesson) {
-      return res.status(404).json({ message: "Lección no encontrada" });
+      console.log("Lesson not found for lessonId:", lessonId);
+      return res.status(404).json({ message: "Lección no encontrada." });
     }
 
-    // Check if order is unique
-    const existingExercise = lesson.exercises.find((ex) => ex.order === order);
-    if (existingExercise) {
-      return res
-        .status(400)
-        .json({ message: "Ya existe un ejercicio con este orden" });
-    }
+    console.log("Lesson found:", lesson);
 
-    // Validate language
-    const validLanguages = [
-      "javascript",
-      "python",
-      "css",
-      "html",
-      "c",
-      "java",
-      "markup",
-    ];
-    if (!validLanguages.includes(language)) {
-      return res.status(400).json({ message: "Lenguaje no válido" });
-    }
-
+    // Create the new exercise
     const newExercise = {
       order,
       title,
       content,
-      instructions: instructions || "",
+      instructions,
       language,
-      expectedOutput: expectedOutput || "",
+      expectedOutput,
     };
 
     lesson.exercises.push(newExercise);
     await lesson.save();
 
-    res.status(201).json(newExercise);
+    res
+      .status(201)
+      .json({
+        message: "Ejercicio creado exitosamente.",
+        exercise: newExercise,
+      });
   } catch (error) {
-    console.error("Error en createExercise:", error.message);
-    res.status(500).json({ message: "Error al crear el ejercicio" });
+    console.error("Error in createExercise:", error);
+    res
+      .status(500)
+      .json({ message: "Error al crear el ejercicio.", error: error.message });
+  }
+};
+
+// Validar el HTML del usuario
+
+export const validateHtml = async (req, res) => {
+  try {
+    const { userCode, expectedOutput } = req.body;
+
+    // Validar que se hayan enviado los datos necesarios
+    if (!userCode || !expectedOutput) {
+      return res.status(400).json({
+        isCorrect: false,
+        message: "⚠️ Código o salida esperada no proporcionados.",
+      });
+    }
+
+    // Función para eliminar comentarios del código HTML
+    const stripComments = (code) => code.replace(/<!--[\s\S]*?-->/g, "").trim();
+
+    // Limpiar el código del usuario y la salida esperada
+    const cleanUserCode = stripComments(userCode);
+    const cleanExpectedOutput = stripComments(expectedOutput);
+
+    // Parsear el código del usuario y la salida esperada con JSDOM
+    const userDom = new JSDOM(cleanUserCode);
+    const expectedDom = new JSDOM(cleanExpectedOutput);
+
+    const userDoc = userDom.window.document;
+    const expectedDoc = expectedDom.window.document;
+
+    // Validar el DOCTYPE
+    if (!cleanUserCode.toLowerCase().startsWith("<!doctype html>")) {
+      throw new Error("Falta el <!DOCTYPE html>");
+    }
+
+    // Validar la estructura básica del HTML
+    const userHtml = userDoc.querySelector("html");
+    const userHead = userDoc.querySelector("head");
+    const userBody = userDoc.querySelector("body");
+
+    if (!userHtml || !userHead || !userBody) {
+      throw new Error(
+        "Falta la estructura básica de HTML (<html>, <head>, <body>)"
+      );
+    }
+
+    const expectedBody = expectedDoc.querySelector("body");
+    if (!expectedBody) {
+      throw new Error("La salida esperada debe tener un elemento <body>");
+    }
+
+    // Función para obtener un mapa de elementos y sus cantidades, incluyendo anidamiento
+    const getElementStructure = (element, parentPath = "") => {
+      const structure = {};
+      const children = Array.from(element.children);
+      children.forEach((child, index) => {
+        const tagName = child.tagName.toLowerCase();
+        const currentPath = parentPath
+          ? `${parentPath}.${tagName}[${index}]`
+          : tagName;
+
+        // Contar el elemento actual
+        structure[tagName] = (structure[tagName] || 0) + 1;
+
+        // Recursivamente contar los elementos hijos
+        const childStructure = getElementStructure(child, currentPath);
+        for (const [childTag, count] of Object.entries(childStructure)) {
+          structure[childTag] = (structure[childTag] || 0) + count;
+        }
+      });
+      return structure;
+    };
+
+    // Obtener la estructura de elementos en el expectedOutput y userCode
+    const expectedStructure = getElementStructure(expectedBody);
+    const userStructure = getElementStructure(userBody);
+
+    // Comparar la estructura de elementos
+    for (const [tagName, expectedCount] of Object.entries(expectedStructure)) {
+      const userCount = userStructure[tagName] || 0;
+      if (userCount !== expectedCount) {
+        throw new Error(
+          `Se esperaban exactamente ${expectedCount} elemento(s) <${tagName}>, pero se encontraron ${userCount}`
+        );
+      }
+    }
+
+    // Asegurarnos de que no haya elementos adicionales en el userCode
+    for (const [tagName, userCount] of Object.entries(userStructure)) {
+      const expectedCount = expectedStructure[tagName] || 0;
+      if (userCount !== expectedCount) {
+        throw new Error(
+          `Se encontraron ${userCount} elemento(s) <${tagName}>, pero se esperaban ${expectedCount}`
+        );
+      }
+    }
+
+    // Validar que los elementos que normalmente contienen texto no estén vacíos
+    const textContainingTags = [
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "h5",
+      "h6",
+      "p",
+      "span",
+      "div",
+    ];
+    const validateTextContent = (element, tagName, path) => {
+      if (textContainingTags.includes(tagName) && !element.textContent.trim()) {
+        throw new Error(
+          `El elemento <${tagName}> en ${path} no puede estar vacío`
+        );
+      }
+      Array.from(element.children).forEach((child, index) => {
+        const childTag = child.tagName.toLowerCase();
+        const childPath = path ? `${path}.${childTag}[${index}]` : childTag;
+        validateTextContent(child, childTag, childPath);
+      });
+    };
+
+    validateTextContent(userBody, "body", "body");
+
+    // Si todas las validaciones pasan
+    res.json({ isCorrect: true, message: "✅ ¡Respuesta correcta!" });
+  } catch (error) {
+    res.json({
+      isCorrect: false,
+      message: `❌ ${
+        error.message ||
+        "Intenta de nuevo. Verifica la sintaxis y el contenido del código."
+      }`,
+    });
   }
 };

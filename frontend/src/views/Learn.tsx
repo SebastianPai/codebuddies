@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
 import { Code, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useTheme } from "@/context/ThemeContext";
 
 interface Module {
   _id: string;
@@ -26,6 +27,7 @@ interface ModuleWithCourses extends Module {
 }
 
 export default function Learn() {
+  const { theme } = useTheme();
   const [modules, setModules] = useState<ModuleWithCourses[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -35,15 +37,33 @@ export default function Learn() {
     const fetchModulesAndCourses = async () => {
       try {
         setLoading(true);
-        const resModules = await fetch("http://localhost:5000/api/modules");
+        const resModules = await fetch("http://localhost:5000/api/modules", {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include", // Si usas cookies o autenticación
+        });
+        if (!resModules.ok) {
+          throw new Error(`Error al cargar módulos: ${resModules.statusText}`);
+        }
         const modulesData: Module[] = await resModules.json();
-        if (!resModules.ok) throw new Error("Error al cargar módulos");
 
         const modulesWithCourses: ModuleWithCourses[] = await Promise.all(
           modulesData.map(async (mod) => {
             const resCourses = await fetch(
-              `http://localhost:5000/api/modules/${mod._id}/courses`
+              `http://localhost:5000/api/modules/${mod._id}/courses`,
+              {
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                credentials: "include",
+              }
             );
+            if (!resCourses.ok) {
+              throw new Error(
+                `Error al cargar cursos para el módulo ${mod._id}: ${resCourses.statusText}`
+              );
+            }
             const coursesData: Course[] = await resCourses.json();
             return {
               ...mod,
@@ -54,6 +74,7 @@ export default function Learn() {
 
         setModules(modulesWithCourses);
       } catch (err: any) {
+        console.error("Error en fetchModulesAndCourses:", err);
         setError(err.message || "Error general al cargar los datos");
       } finally {
         setLoading(false);
@@ -67,24 +88,74 @@ export default function Learn() {
     navigate(`/learn/course/${courseId}`);
   };
 
+  // Función para construir la URL completa de la imagen
+  const getImageUrl = (imagePath: string) => {
+    if (!imagePath) {
+      return "/images/default-course.jpg"; // Imagen por defecto si no hay imagen
+    }
+    // Si la imagen ya es una URL completa, devolverla tal cual
+    if (imagePath.startsWith("http")) {
+      return imagePath;
+    }
+    // Si la imagen es una ruta relativa, añadir el prefijo del backend
+    const fullUrl = `http://localhost:5000${imagePath}`;
+    console.log("Generated image URL:", fullUrl); // Depuración
+    return fullUrl;
+  };
+
   return (
-    <main className="min-h-screen bg-[#0a0e1a] text-white">
+    <main
+      style={{ background: theme.colors.background, color: theme.colors.text }}
+    >
       <Navbar />
 
-      {/* Hero Section */}
-      <section className="py-20 px-4 text-center bg-[#0a0e1a]">
-        <h1 className="text-4xl md:text-5xl font-mono mb-4">
-          Explora el mundo de <br />
-          <span className="text-5xl md:text-6xl font-bold mt-2 inline-block">
-            Código
-          </span>
-        </h1>
+      {/* Hero Section with Centered Background Image */}
+      <section
+        className="py-20 px-4 text-center relative overflow-hidden min-h-[550px] flex items-center"
+        style={{ background: theme.colors.background }}
+      >
+        {/* Background Image with 16:9 Aspect Ratio */}
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-60"
+          style={{
+            backgroundImage: "url('/images/fondo7.jpeg')",
+            backgroundPosition: "center center",
+            backgroundSize: "cover",
+            minHeight: "550px",
+            width: "100%",
+            filter: "blur(1px)",
+          }}
+        />
+        {/* Overlay for Text Legibility */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              theme.name === "light"
+                ? "rgba(255, 255, 255, 0.5)"
+                : "rgba(0, 0, 0, 0.5)",
+          }}
+        />
+        <div className="relative z-10 max-w-5xl mx-auto">
+          <h1 className="text-4xl md:text-5xl font-mono mb-4">
+            Explora el mundo de <br />
+            <span
+              className="text-5xl md:text-6xl font-bold mt-2 inline-block"
+              style={{ color: theme.colors.accent }}
+            >
+              Código
+            </span>
+          </h1>
 
-        <p className="max-w-2xl mx-auto text-lg text-gray-300 mt-6">
-          Empieza tu aventura en la programación con más de 200 horas de
-          ejercicios interactivos de programación, combinados con proyectos
-          reales. ¡Explora gratis! ✨
-        </p>
+          <p
+            className="max-w-2xl mx-auto text-lg mt-6"
+            style={{ color: theme.colors.secondary }}
+          >
+            Empieza tu aventura en la programación con más de 200 horas de
+            ejercicios interactivos de programación, combinados con proyectos
+            reales. ¡Explora gratis! ✨
+          </p>
+        </div>
       </section>
 
       {/* Módulos + Cursos */}
@@ -96,7 +167,8 @@ export default function Learn() {
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="bg-[#151a2d] rounded-lg h-80 animate-pulse"
+                className="rounded-lg h-80 animate-pulse"
+                style={{ background: theme.colors.card }}
               ></div>
             ))}
           </div>
@@ -104,10 +176,17 @@ export default function Learn() {
           modules.map((mod) => (
             <div key={mod._id} className="mb-20 text-center">
               <div className="flex flex-col items-center mb-4">
-                <Code className="text-green-400 mb-2" size={28} />
+                <Code
+                  style={{ color: theme.colors.accent }}
+                  className="mb-2"
+                  size={28}
+                />
                 <h2 className="text-3xl font-mono">{mod.title}</h2>
               </div>
-              <p className="text-gray-300 mb-8 max-w-3xl mx-auto text-center">
+              <p
+                className="mb-8 max-w-3xl mx-auto text-center"
+                style={{ color: theme.colors.secondary }}
+              >
                 {mod.description}
               </p>
 
@@ -115,31 +194,51 @@ export default function Learn() {
                 {mod.courses.map((course) => (
                   <div
                     key={course._id}
-                    className="bg-[#151a2d] rounded-lg overflow-hidden w-full max-w-sm hover:shadow-lg transition-all hover:translate-y-[-4px] cursor-pointer"
+                    className="rounded-lg overflow-hidden w-full max-w-sm hover:shadow-lg transition-all hover:translate-y-[-4px] cursor-pointer"
+                    style={{ background: theme.colors.card }}
                     onClick={() => handleCourseClick(course._id)}
                   >
-                    <div className="h-40 bg-gradient-to-r from-purple-900 to-blue-900 relative overflow-hidden">
+                    <div className="h-40 relative overflow-hidden">
                       <div
                         className="absolute inset-0 bg-cover bg-center"
-                        style={{ backgroundImage: `url(${course.image})` }}
+                        style={{
+                          backgroundImage: getImageUrl(course.image)
+                            ? `url(${getImageUrl(course.image)})`
+                            : `linear-gradient(to right, ${theme.colors.primary}, ${theme.colors.accent})`,
+                        }}
                       ></div>
                     </div>
 
                     <div className="p-5">
-                      <div className="text-xs text-gray-400 mb-1">CURSO</div>
+                      <div
+                        className="text-xs mb-1"
+                        style={{ color: theme.colors.secondary }}
+                      >
+                        CURSO
+                      </div>
                       <h3 className="text-xl font-bold mb-2">{course.title}</h3>
-                      <p className="text-gray-400 text-sm mb-4 line-clamp-2">
+                      <p
+                        className="text-sm mb-4 line-clamp-2"
+                        style={{ color: theme.colors.secondary }}
+                      >
                         {course.description}
                       </p>
 
                       <div className="flex items-center justify-between mt-4">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-opacity-10 bg-gray-700 text-gray-300">
+                        <span
+                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                          style={{
+                            background: theme.colors.button,
+                            color: theme.colors.buttonText,
+                          }}
+                        >
                           {course.level}
                         </span>
 
                         <button
                           onClick={() => handleCourseClick(course._id)}
-                          className="text-sm text-purple-400 hover:text-purple-300 flex items-center"
+                          className="text-sm flex items-center"
+                          style={{ color: theme.colors.accent }}
                         >
                           Ver lecciones
                           <ChevronRight size={16} className="ml-1" />

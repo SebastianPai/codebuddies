@@ -1,16 +1,58 @@
 import Course from "../models/CourseModel.js";
 import Lesson from "../models/LessonModel.js";
 
+const BASE_URL = "http://localhost:5000"; // Replace with environment variable in production
+
 export const createCourse = async (req, res) => {
   try {
-    const newCourse = new Course(req.body);
-    const saved = await newCourse.save();
-    res.status(201).json(saved);
+    const { title, description, level, module } = req.body;
+    const image = req.file
+      ? `${BASE_URL}/uploads/${req.file.filename}`
+      : undefined;
+
+    const newCourse = new Course({
+      title,
+      description,
+      image, // Save the absolute URL
+      level,
+      module,
+      lessons: [],
+    });
+
+    const savedCourse = await newCourse.save();
+    res.status(201).json(savedCourse);
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
 };
 
+export const updateCourse = async (req, res) => {
+  try {
+    const { title, description, level, module } = req.body;
+    const image = req.file
+      ? `${BASE_URL}/uploads/${req.file.filename}`
+      : undefined;
+
+    const updateData = { title, description, level, module };
+    if (image) {
+      updateData.image = image; // Update with absolute URL if a new image is uploaded
+    }
+
+    const updatedCourse = await Course.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true }
+    );
+    if (!updatedCourse) {
+      return res.status(404).json({ message: "Curso no encontrado" });
+    }
+    res.status(200).json(updatedCourse);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Other functions remain unchanged
 export const getAllCourses = async (req, res) => {
   try {
     const courses = await Course.find().populate("module");
@@ -54,7 +96,6 @@ export const updateCourseLessons = async (req, res) => {
   }
 };
 
-// controllers/lessonController.js
 export const getLessonsByCourseId = async (req, res) => {
   try {
     const { id } = req.params;
@@ -65,22 +106,6 @@ export const getLessonsByCourseId = async (req, res) => {
   } catch (error) {
     console.error("Error al obtener lecciones por ID de curso:", error);
     res.status(500).json({ message: "Error al obtener las lecciones." });
-  }
-};
-
-export const updateCourse = async (req, res) => {
-  try {
-    const updatedCourse = await Course.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    );
-    if (!updatedCourse) {
-      return res.status(404).json({ message: "Curso no encontrado" });
-    }
-    res.status(200).json(updatedCourse);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
   }
 };
 

@@ -61,7 +61,7 @@ export default function App() {
         />
         <Route path="/learn/course/:id" element={<CourseLessons />} />
         <Route
-          path="/solve-exercise/:lessonId/:order"
+          path="/courses/:courseId/lessons/:lessonId/exercises/:exerciseOrder"
           element={<SolveExercise />}
         />{" "}
         {/* Ajustada para consistencia */}

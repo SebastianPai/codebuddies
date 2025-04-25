@@ -3,7 +3,15 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { Trash2, Save, RefreshCw, Plus, ArrowLeft } from "lucide-react";
+import {
+  Trash2,
+  Save,
+  RefreshCw,
+  Plus,
+  ArrowLeft,
+  Copy,
+  Image as ImageIcon,
+} from "lucide-react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { Highlight, themes } from "prism-react-renderer";
@@ -20,7 +28,13 @@ interface Exercise {
 interface Lesson {
   _id: string;
   title: string;
+  exercises: Exercise[];
 }
+
+type InstructionElement =
+  | { type: "text"; value: string }
+  | { type: "code"; language: string; value: string }
+  | { type: "image"; value: string };
 
 const AdminExercise = () => {
   const { lessonId, order } = useParams<{ lessonId: string; order?: string }>();
@@ -37,20 +51,42 @@ const AdminExercise = () => {
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [instructionElements, setInstructionElements] = useState<
+    InstructionElement[]
+  >([{ type: "text", value: "" }]);
   const isCreating = !order;
+
+  // Configura Axios con el token JWT
+  const axiosInstance = axios.create({
+    baseURL: "http://localhost:5000/api",
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
+    },
+  });
 
   const fetchExerciseAndLesson = useCallback(async () => {
     try {
       setLoading(true);
-      const lessonRes = await axios.get(
-        `http://localhost:5000/api/lessons/${lessonId}`
-      );
-      setLesson(lessonRes.data);
-      if (order && !isCreating) {
-        const exerciseRes = await axios.get(
-          `http://localhost:5000/api/lessons/${lessonId}/exercises/${order}`
+      const lessonRes = await axiosInstance.get(`/lessons/${lessonId}`);
+      const lessonData = lessonRes.data;
+      setLesson(lessonData);
+
+      if (isCreating) {
+        const maxOrder = lessonData.exercises.length
+          ? Math.max(...lessonData.exercises.map((ex: Exercise) => ex.order))
+          : 0;
+        setNewExercise((prev) => ({ ...prev, order: maxOrder + 1 }));
+      } else if (order) {
+        const exerciseRes = await axiosInstance.get(
+          `/lessons/${lessonId}/exercises/${order}`
         );
-        setExercise(exerciseRes.data);
+        const fetchedExercise = exerciseRes.data;
+        setExercise(fetchedExercise);
+        if (fetchedExercise.instructions) {
+          parseInstructions(fetchedExercise.instructions);
+        } else {
+          setInstructionElements([{ type: "text", value: "" }]);
+        }
       }
     } catch (error: any) {
       toast.error(
@@ -69,37 +105,167 @@ const AdminExercise = () => {
     }
   }, [lessonId, fetchExerciseAndLesson]);
 
+  // Parse instructions to extract elements
+  const parseInstructions = (instructions: string) => {
+    const lines = instructions.split("\n");
+    const elements: InstructionElement[] = [];
+    let currentText = "";
+    let inCodeBlock = false;
+    let currentCode = "";
+    let currentCodeLang = "";
+
+    lines.forEach((line) => {
+      // Image markdown: ![alt](url)
+      if (line.match(/!\[.*\]\(.*\)/)) {
+        const urlMatch = line.match(/!\[.*\]\((.*)\)/);
+        if (urlMatch) {
+          if (currentText.trim()) {
+            elements.push({ type: "text", value: currentText.trim() });
+            currentText = "";
+          }
+          elements.push({ type: "image", value: urlMatch[1] });
+        }
+        return;
+      }
+      // Code block start/end: ```language
+      if (line.startsWith("```")) {
+        if (inCodeBlock) {
+          if (currentText.trim()) {
+            elements.push({ type: "text", value: currentText.trim() });
+            currentText = "";
+          }
+          elements.push({
+            type: "code" as const,
+            language: currentCodeLang || "javascript",
+            value: currentCode.trim(),
+          });
+          currentCode = "";
+          currentCodeLang = "";
+          inCodeBlock = false;
+        } else {
+          currentCodeLang = line.slice(3).trim() || "javascript";
+          inCodeBlock = true;
+        }
+        return;
+      }
+      // Code block content
+      if (inCodeBlock) {
+        currentCode += line + "\n";
+        return;
+      }
+      // Text
+      currentText += line + "\n";
+    });
+
+    // Add any remaining text
+    if (currentText.trim()) {
+      elements.push({ type: "text", value: currentText.trim() });
+    }
+
+    setInstructionElements(
+      elements.length ? elements : [{ type: "text", value: "" }]
+    );
+  };
+
+  // Add a new instruction element
+  const addInstructionElement = (
+    type: InstructionElement["type"],
+    index: number
+  ) => {
+    const newElement: InstructionElement =
+      type === "text"
+        ? { type: "text", value: "" }
+        : type === "code"
+        ? { type: "code", language: "javascript", value: "" }
+        : { type: "image", value: "" };
+    const newElements = [
+      ...instructionElements.slice(0, index + 1),
+      newElement,
+      ...instructionElements.slice(index + 1),
+    ];
+    setInstructionElements(newElements);
+    // Depuración para verificar el orden
+    console.log(
+      "Añadiendo elemento:",
+      type,
+      "en índice:",
+      index,
+      "Resultado:",
+      newElements
+    );
+  };
+
+  // Update instruction element
+  const updateInstructionElement = (
+    index: number,
+    field: "value" | "language",
+    value: string
+  ) => {
+    const updatedElements = [...instructionElements];
+    if (field === "language" && updatedElements[index].type === "code") {
+      updatedElements[index] = { ...updatedElements[index], language: value };
+    } else if (field === "value") {
+      updatedElements[index] = { ...updatedElements[index], value };
+    }
+    setInstructionElements(updatedElements);
+  };
+
+  // Remove instruction element
+  const removeInstructionElement = (index: number) => {
+    if (instructionElements.length === 1) {
+      setInstructionElements([{ type: "text", value: "" }]);
+    } else {
+      setInstructionElements(instructionElements.filter((_, i) => i !== index));
+    }
+  };
+
+  // Generate instructions string
+  const generateInstructions = () => {
+    return instructionElements
+      .filter((el) => el.value.trim())
+      .map((el) => {
+        if (el.type === "text") return el.value.trim();
+        if (el.type === "code")
+          return `\`\`\`${el.language}\n${el.value.trim()}\n\`\`\``;
+        if (el.type === "image") return `![Imagen](${el.value.trim()})`;
+        return "";
+      })
+      .join("\n\n");
+  };
+
   const handleCreateExercise = async () => {
-    if (
-      !newExercise.order ||
-      !newExercise.title ||
-      !newExercise.content ||
-      !newExercise.language
-    ) {
-      toast.error("Orden, título, contenido y lenguaje son obligatorios.");
+    if (!newExercise.title || !newExercise.content || !newExercise.language) {
+      toast.error("Título, contenido y lenguaje son obligatorios.");
       return;
     }
     try {
       setActionLoading(true);
-      await axios.post(
-        `http://localhost:5000/api/lessons/${lessonId}/exercises`,
-        newExercise
-      );
+      const exerciseData = {
+        order: newExercise.order,
+        title: newExercise.title,
+        content: newExercise.content,
+        instructions: generateInstructions(),
+        language: newExercise.language,
+        expectedOutput: newExercise.expectedOutput,
+      };
+      await axiosInstance.post(`/lessons/${lessonId}/exercises`, exerciseData);
       toast.success("Ejercicio creado exitosamente.");
       setNewExercise({
-        order: 0,
+        order: lesson?.exercises.length
+          ? Math.max(...lesson.exercises.map((ex) => ex.order)) + 1
+          : 1,
         title: "",
         content: "",
         instructions: "",
         language: "javascript",
         expectedOutput: "",
       });
+      setInstructionElements([{ type: "text", value: "" }]);
       navigate(`/admin/lessons/${lessonId}`);
     } catch (error: any) {
       toast.error(
         error.response?.data?.message || "Error al crear el ejercicio."
       );
-      console.error("Error al crear ejercicio:", error);
     } finally {
       setActionLoading(false);
     }
@@ -118,9 +284,17 @@ const AdminExercise = () => {
     }
     try {
       setActionLoading(true);
-      await axios.put(
-        `http://localhost:5000/api/lessons/${lessonId}/exercises/${order}`,
-        exercise
+      const exerciseData = {
+        order: exercise.order,
+        title: exercise.title,
+        content: exercise.content,
+        instructions: generateInstructions(),
+        language: exercise.language,
+        expectedOutput: exercise.expectedOutput,
+      };
+      await axiosInstance.put(
+        `/lessons/${lessonId}/exercises/${order}`,
+        exerciseData
       );
       toast.success("Ejercicio actualizado exitosamente.");
       fetchExerciseAndLesson();
@@ -128,7 +302,6 @@ const AdminExercise = () => {
       toast.error(
         error.response?.data?.message || "Error al actualizar el ejercicio."
       );
-      console.error("Error al actualizar ejercicio:", error);
     } finally {
       setActionLoading(false);
     }
@@ -139,42 +312,57 @@ const AdminExercise = () => {
       return;
     try {
       setActionLoading(true);
-      await axios.delete(
-        `http://localhost:5000/api/lessons/${lessonId}/exercises/${order}`
-      );
+      await axiosInstance.delete(`/lessons/${lessonId}/exercises/${order}`);
       toast.success("Ejercicio eliminado exitosamente.");
       navigate(`/admin/lessons/${lessonId}`);
     } catch (error: any) {
       toast.error(
         error.response?.data?.message || "Error al eliminar el ejercicio."
       );
-      console.error("Error al eliminar ejercicio:", error);
     } finally {
       setActionLoading(false);
     }
   };
 
-  const renderCodeBlock = (code: string, language: string) => (
-    <Highlight theme={themes.vsDark} code={code} language={language}>
-      {({ className, style, tokens, getLineProps, getTokenProps }) => (
-        <pre className={`${className} p-4 rounded-md`} style={style}>
-          {tokens.map((line, i) => {
-            const { key, ...lineProps } = getLineProps({ line, key: i }); // Extraer key explícitamente
-            return (
-              <div key={i} {...lineProps}>
-                {line.map((token, index) => {
-                  const { key: tokenKey, ...tokenProps } = getTokenProps({
-                    token,
-                    key: index,
-                  }); // Extraer key explícitamente
-                  return <span key={index} {...tokenProps} />;
-                })}
-              </div>
-            );
-          })}
-        </pre>
+  const renderCodeBlock = (
+    code: string,
+    language: string,
+    showCopyButton: boolean = false
+  ) => (
+    <div className="relative">
+      <Highlight theme={themes.vsDark} code={code} language={language}>
+        {({ className, style, tokens, getLineProps, getTokenProps }) => (
+          <pre className={`${className} p-4 rounded-md`} style={style}>
+            {tokens.map((line, i) => {
+              const { key, ...lineProps } = getLineProps({ line, key: i });
+              return (
+                <div key={i} {...lineProps}>
+                  {line.map((token, index) => {
+                    const { key: tokenKey, ...tokenProps } = getTokenProps({
+                      token,
+                      key: index,
+                    });
+                    return <span key={index} {...tokenProps} />;
+                  })}
+                </div>
+              );
+            })}
+          </pre>
+        )}
+      </Highlight>
+      {showCopyButton && (
+        <button
+          onClick={() => {
+            navigator.clipboard.writeText(code);
+            toast.success("Código copiado al portapapeles.");
+          }}
+          className="absolute top-2 right-2 bg-gray-700 text-white p-1 rounded-md hover:bg-gray-600 transition-colors"
+          aria-label="Copiar código"
+        >
+          <Copy className="w-4 h-4" />
+        </button>
       )}
-    </Highlight>
+    </div>
   );
 
   if (loading) {
@@ -251,152 +439,311 @@ const AdminExercise = () => {
           <h2 className="text-lg font-semibold mb-4 text-white">
             {isCreating ? "Crear Nuevo Ejercicio" : "Editar Ejercicio"}
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label htmlFor="exercise-order" className="text-sm text-gray-400">
-                Orden
-              </label>
-              <input
-                id="exercise-order"
-                type="number"
-                value={isCreating ? newExercise.order : exercise?.order ?? 0}
-                onChange={(e) =>
-                  isCreating
-                    ? setNewExercise({
-                        ...newExercise,
-                        order: parseInt(e.target.value) || 0,
-                      })
-                    : setExercise({
-                        ...exercise!,
-                        order: parseInt(e.target.value) || 0,
-                      })
-                }
-                className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                aria-required="true"
-                aria-label="Orden del ejercicio"
-              />
+          <div className="space-y-4">
+            {/* Order (only for editing) */}
+            {!isCreating && (
+              <div className="space-y-2">
+                <label
+                  htmlFor="exercise-order"
+                  className="text-sm text-gray-400"
+                >
+                  Orden
+                </label>
+                <input
+                  id="exercise-order"
+                  type="number"
+                  value={exercise?.order ?? 0}
+                  onChange={(e) =>
+                    setExercise({
+                      ...exercise!,
+                      order: parseInt(e.target.value) || 0,
+                    })
+                  }
+                  className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  aria-required="true"
+                  aria-label="Orden del ejercicio"
+                />
+              </div>
+            )}
+
+            {/* Title and Language Side by Side */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label
+                  htmlFor="exercise-title"
+                  className="text-sm text-gray-400"
+                >
+                  Título
+                </label>
+                <input
+                  id="exercise-title"
+                  type="text"
+                  value={isCreating ? newExercise.title : exercise?.title ?? ""}
+                  onChange={(e) =>
+                    isCreating
+                      ? setNewExercise({
+                          ...newExercise,
+                          title: e.target.value,
+                        })
+                      : setExercise({ ...exercise!, title: e.target.value })
+                  }
+                  className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  aria-required="true"
+                  aria-label="Título del ejercicio"
+                />
+              </div>
+              <div className="space-y-2">
+                <label
+                  htmlFor="exercise-language"
+                  className="text-sm text-gray-400"
+                >
+                  Lenguaje
+                </label>
+                <select
+                  id="exercise-language"
+                  value={
+                    isCreating
+                      ? newExercise.language
+                      : exercise?.language ?? "javascript"
+                  }
+                  onChange={(e) =>
+                    isCreating
+                      ? setNewExercise({
+                          ...newExercise,
+                          language: e.target.value as Exercise["language"],
+                        })
+                      : setExercise({
+                          ...exercise!,
+                          language: e.target.value as Exercise["language"],
+                        })
+                  }
+                  className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  aria-required="true"
+                  aria-label="Lenguaje del ejercicio"
+                >
+                  <option value="javascript">JavaScript</option>
+                  <option value="python">Python</option>
+                  <option value="html">HTML</option>
+                  <option value="css">CSS</option>
+                  <option value="c">C</option>
+                  <option value="java">Java</option>
+                  <option value="markup">Markup</option>
+                </select>
+              </div>
             </div>
+
+            {/* Instructions */}
             <div className="space-y-2">
-              <label htmlFor="exercise-title" className="text-sm text-gray-400">
-                Título
+              <label className="text-sm text-gray-400">
+                Instrucciones (Opcional)
               </label>
-              <input
-                id="exercise-title"
-                type="text"
-                value={isCreating ? newExercise.title : exercise?.title ?? ""}
-                onChange={(e) =>
-                  isCreating
-                    ? setNewExercise({ ...newExercise, title: e.target.value })
-                    : setExercise({ ...exercise!, title: e.target.value })
-                }
-                className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                aria-required="true"
-                aria-label="Título del ejercicio"
-              />
+              <div className="space-y-4">
+                {instructionElements.map((element, index) => (
+                  <div
+                    key={index}
+                    className="space-y-2 mb-4 border-b border-gray-700 pb-4"
+                  >
+                    <div className="flex justify-between items-center">
+                      <h4 className="text-sm text-gray-400">
+                        {element.type === "text"
+                          ? "Texto"
+                          : element.type === "code"
+                          ? "Código"
+                          : "Imagen"}{" "}
+                        {index + 1}
+                      </h4>
+                      <button
+                        onClick={() => removeInstructionElement(index)}
+                        className="bg-red-600 text-white px-2 py-1 rounded-md hover:bg-red-700 transition-colors"
+                        aria-label={`Eliminar ${element.type} ${index + 1}`}
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                    {element.type === "text" && (
+                      <textarea
+                        value={element.value}
+                        onChange={(e) =>
+                          updateInstructionElement(
+                            index,
+                            "value",
+                            e.target.value
+                          )
+                        }
+                        className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        rows={4}
+                        aria-label={`Texto de instrucción ${index + 1}`}
+                      />
+                    )}
+                    {element.type === "code" && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label
+                            htmlFor={`code-language-${index}`}
+                            className="text-sm text-gray-400"
+                          >
+                            Lenguaje
+                          </label>
+                          <select
+                            id={`code-language-${index}`}
+                            value={element.language}
+                            onChange={(e) =>
+                              updateInstructionElement(
+                                index,
+                                "language",
+                                e.target.value
+                              )
+                            }
+                            className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value="javascript">JavaScript</option>
+                            <option value="python">Python</option>
+                            <option value="html">HTML</option>
+                            <option value="css">CSS</option>
+                            <option value="c">C</option>
+                            <option value="java">Java</option>
+                            <option value="markup">Markup</option>
+                          </select>
+                          <label
+                            htmlFor={`code-value-${index}`}
+                            className="text-sm text-gray-400"
+                          >
+                            Código
+                          </label>
+                          <textarea
+                            id={`code-value-${index}`}
+                            value={element.value}
+                            onChange={(e) =>
+                              updateInstructionElement(
+                                index,
+                                "value",
+                                e.target.value
+                              )
+                            }
+                            className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                            rows={4}
+                            aria-label={`Código de instrucción ${index + 1}`}
+                          />
+                        </div>
+                        {element.value && (
+                          <div className="space-y-2">
+                            <p className="text-sm text-gray-400">
+                              Vista Previa:
+                            </p>
+                            {renderCodeBlock(
+                              element.value,
+                              element.language,
+                              true
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {element.type === "image" && (
+                      <div className="space-y-2">
+                        <label
+                          htmlFor={`image-url-${index}`}
+                          className="text-sm text-gray-400"
+                        >
+                          URL de la Imagen
+                        </label>
+                        <input
+                          id={`image-url-${index}`}
+                          type="url"
+                          value={element.value}
+                          onChange={(e) =>
+                            updateInstructionElement(
+                              index,
+                              "value",
+                              e.target.value
+                            )
+                          }
+                          className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="https://example.com/image.jpg"
+                          aria-label={`URL de imagen ${index + 1}`}
+                        />
+                        {element.value && (
+                          <img
+                            src={element.value}
+                            alt={`Imagen ${index + 1}`}
+                            className="w-48 h-48 object-cover rounded-md mt-2"
+                            onError={() =>
+                              toast.error(
+                                `No se pudo cargar la imagen ${index + 1}.`
+                              )
+                            }
+                          />
+                        )}
+                      </div>
+                    )}
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => addInstructionElement("text", index)}
+                        className="bg-blue-600 text-white px-2 py-1 rounded-md hover:bg-blue-700 transition-colors"
+                        aria-label="Agregar texto después"
+                      >
+                        + Texto
+                      </button>
+                      <button
+                        onClick={() => addInstructionElement("code", index)}
+                        className="bg-blue-600 text-white px-2 py-1 rounded-md hover:bg-blue-700 transition-colors"
+                        aria-label="Agregar código después"
+                      >
+                        + Código
+                      </button>
+                      <button
+                        onClick={() => addInstructionElement("image", index)}
+                        className="bg-blue-600 text-white px-2 py-1 rounded-md hover:bg-blue-700 transition-colors"
+                        aria-label="Agregar imagen después"
+                      >
+                        + Imagen
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="space-y-2 md:col-span-2">
+
+            {/* Content with Preview Side by Side */}
+            <div className="space-y-2">
               <label
                 htmlFor="exercise-content"
                 className="text-sm text-gray-400"
               >
                 Contenido (Código Inicial)
               </label>
-              <textarea
-                id="exercise-content"
-                value={
-                  isCreating ? newExercise.content : exercise?.content ?? ""
-                }
-                onChange={(e) =>
-                  isCreating
-                    ? setNewExercise({
-                        ...newExercise,
-                        content: e.target.value,
-                      })
-                    : setExercise({ ...exercise!, content: e.target.value })
-                }
-                className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-                rows={6}
-                aria-required="true"
-                aria-label="Contenido del ejercicio"
-              />
-              {(isCreating ? newExercise.content : exercise?.content) && (
-                <div className="mt-2">
-                  <p className="text-sm text-gray-400 mb-1">Vista Previa:</p>
-                  {renderCodeBlock(
-                    isCreating ? newExercise.content : exercise!.content,
-                    isCreating ? newExercise.language : exercise!.language
-                  )}
-                </div>
-              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <textarea
+                  id="exercise-content"
+                  value={
+                    isCreating ? newExercise.content : exercise?.content ?? ""
+                  }
+                  onChange={(e) =>
+                    isCreating
+                      ? setNewExercise({
+                          ...newExercise,
+                          content: e.target.value,
+                        })
+                      : setExercise({ ...exercise!, content: e.target.value })
+                  }
+                  className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                  rows={10}
+                  aria-required="true"
+                  aria-label="Contenido del ejercicio"
+                />
+                {(isCreating ? newExercise.content : exercise?.content) && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-400">Vista Previa:</p>
+                    {renderCodeBlock(
+                      isCreating ? newExercise.content : exercise!.content,
+                      isCreating ? newExercise.language : exercise!.language
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="space-y-2 md:col-span-2">
-              <label
-                htmlFor="exercise-instructions"
-                className="text-sm text-gray-400"
-              >
-                Instrucciones (Opcional)
-              </label>
-              <textarea
-                id="exercise-instructions"
-                value={
-                  isCreating
-                    ? newExercise.instructions ?? ""
-                    : exercise?.instructions ?? ""
-                }
-                onChange={(e) =>
-                  isCreating
-                    ? setNewExercise({
-                        ...newExercise,
-                        instructions: e.target.value,
-                      })
-                    : setExercise({
-                        ...exercise!,
-                        instructions: e.target.value,
-                      })
-                }
-                className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                rows={4}
-                aria-label="Instrucciones del ejercicio"
-              />
-            </div>
-            <div className="space-y-2">
-              <label
-                htmlFor="exercise-language"
-                className="text-sm text-gray-400"
-              >
-                Lenguaje
-              </label>
-              <select
-                id="exercise-language"
-                value={
-                  isCreating
-                    ? newExercise.language
-                    : exercise?.language ?? "javascript"
-                }
-                onChange={(e) =>
-                  isCreating
-                    ? setNewExercise({
-                        ...newExercise,
-                        language: e.target.value as Exercise["language"],
-                      })
-                    : setExercise({
-                        ...exercise!,
-                        language: e.target.value as Exercise["language"],
-                      })
-                }
-                className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                aria-required="true"
-                aria-label="Lenguaje del ejercicio"
-              >
-                <option value="javascript">JavaScript</option>
-                <option value="python">Python</option>
-                <option value="html">HTML</option>
-                <option value="css">CSS</option>
-                <option value="c">C</option>
-                <option value="java">Java</option>
-                <option value="markup">Markup</option>
-              </select>
-            </div>
+
+            {/* Expected Output with Preview Side by Side */}
             <div className="space-y-2">
               <label
                 htmlFor="exercise-expectedOutput"
@@ -404,43 +751,46 @@ const AdminExercise = () => {
               >
                 Salida Esperada (Opcional)
               </label>
-              <textarea
-                id="exercise-expectedOutput"
-                value={
-                  isCreating
-                    ? newExercise.expectedOutput ?? ""
-                    : exercise?.expectedOutput ?? ""
-                }
-                onChange={(e) =>
-                  isCreating
-                    ? setNewExercise({
-                        ...newExercise,
-                        expectedOutput: e.target.value,
-                      })
-                    : setExercise({
-                        ...exercise!,
-                        expectedOutput: e.target.value,
-                      })
-                }
-                className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-                rows={4}
-                aria-label="Salida esperada del ejercicio"
-              />
-              {(isCreating
-                ? newExercise.expectedOutput
-                : exercise?.expectedOutput) && (
-                <div className="mt-2">
-                  <p className="text-sm text-gray-400 mb-1">Vista Previa:</p>
-                  {renderCodeBlock(
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <textarea
+                  id="exercise-expectedOutput"
+                  value={
                     isCreating
-                      ? newExercise.expectedOutput!
-                      : exercise!.expectedOutput!,
-                    isCreating ? newExercise.language : exercise!.language
-                  )}
-                </div>
-              )}
+                      ? newExercise.expectedOutput ?? ""
+                      : exercise?.expectedOutput ?? ""
+                  }
+                  onChange={(e) =>
+                    isCreating
+                      ? setNewExercise({
+                          ...newExercise,
+                          expectedOutput: e.target.value,
+                        })
+                      : setExercise({
+                          ...exercise!,
+                          expectedOutput: e.target.value,
+                        })
+                  }
+                  className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                  rows={6}
+                  aria-label="Salida esperada del ejercicio"
+                />
+                {(isCreating
+                  ? newExercise.expectedOutput
+                  : exercise?.expectedOutput) && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-400">Vista Previa:</p>
+                    {renderCodeBlock(
+                      isCreating
+                        ? newExercise.expectedOutput!
+                        : exercise!.expectedOutput!,
+                      isCreating ? newExercise.language : exercise!.language
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
+
           <div className="flex flex-wrap gap-2 mt-4">
             {isCreating ? (
               <button

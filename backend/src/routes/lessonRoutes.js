@@ -10,6 +10,7 @@ import {
   updateExercise,
   deleteExercise,
   createExercise, // Add new import
+  validateHtml,
 } from "../controllers/lessonController.js";
 
 const router = express.Router();
@@ -27,5 +28,8 @@ router.post("/:lessonId/exercises", createExercise); // New route
 router.get("/:lessonId/exercises/:order", getExerciseByOrder);
 router.put("/:lessonId/exercises/:order", updateExercise);
 router.delete("/:lessonId/exercises/:order", deleteExercise);
+
+// Nueva ruta para validar HTML
+router.post("/validate-html", validateHtml);
 
 export default router;
