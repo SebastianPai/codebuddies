@@ -67,7 +67,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
       setUser(data.user);
-      navigate("/dashboard");
+      navigate("/learn");
     } catch (error: any) {
       toast.error(error.message || "Error al iniciar sesión");
       throw error;
