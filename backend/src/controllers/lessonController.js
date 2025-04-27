@@ -1,20 +1,56 @@
 import Lesson from "../models/LessonModel.js";
 import Course from "../models/CourseModel.js";
+import * as progressService from "../services/progressService.js";
 import { JSDOM } from "jsdom";
 
 // Obtener todas las lecciones de un curso
 export const getLessonsByCourse = async (req, res) => {
   try {
     const { courseId } = req.params;
-    // Verify course exists
+    const userId = req.user.userId; // Obtenido del token JWT
+
+    // Verificar que el curso existe
     const course = await Course.findById(courseId);
     if (!course) {
       return res.status(404).json({ message: "Curso no encontrado" });
     }
-    const lessons = await Lesson.find({ course: courseId }).sort({
-      createdAt: 1,
+
+    // Obtener lecciones ordenadas por createdAt o un campo order si lo tienes
+    const lessons = await Lesson.find({ course: courseId })
+      .sort({
+        createdAt: 1, // O usa un campo order si lo agregas al modelo
+      })
+      .lean();
+
+    // Obtener progreso del usuario para el curso
+    const progress = await UserExerciseProgress.find({
+      userId,
+      courseId,
+    }).lean();
+
+    // Mapear lecciones con isAccessible
+    const lessonsWithAccess = lessons.map((lesson, index) => {
+      // La primera lección siempre es accesible
+      if (index === 0) {
+        return { ...lesson, isAccessible: true };
+      }
+
+      // Verificar si todos los ejercicios de la lección anterior están completados
+      const previousLesson = lessons[index - 1];
+      const previousLessonCompleted = previousLesson.exercises.every(
+        (exercise) =>
+          progress.some(
+            (p) =>
+              p.lessonId.toString() === previousLesson._id.toString() &&
+              p.exerciseOrder === exercise.order &&
+              p.completed
+          )
+      );
+
+      return { ...lesson, isAccessible: previousLessonCompleted };
     });
-    res.json(lessons);
+
+    res.json(lessonsWithAccess);
   } catch (error) {
     console.error("Error en getLessonsByCourse:", error.message);
     res.status(500).json({ message: "Error al obtener lecciones" });
@@ -24,10 +60,14 @@ export const getLessonsByCourse = async (req, res) => {
 // Obtener una lección por ID
 export const getLessonById = async (req, res) => {
   try {
-    const lesson = await Lesson.findById(req.params.id);
+    const lessonId = req.params.id;
+    console.log("Buscando lección con ID:", lessonId);
+    const lesson = await Lesson.findById(lessonId);
     if (!lesson) {
+      console.log("Lección no encontrada para ID:", lessonId);
       return res.status(404).json({ message: "Lección no encontrada" });
     }
+    console.log("Lección encontrada:", lesson);
     res.json(lesson);
   } catch (error) {
     console.error("Error en getLessonById:", error.message);
@@ -125,9 +165,30 @@ export const getAllLessons = async (req, res) => {
 // Obtener un ejercicio por lessonId y order
 export const getExerciseByOrder = async (req, res) => {
   try {
-    const { lessonId, order } = req.params;
+    const { courseId, lessonId, order } = req.params;
+    const userId = req.user.userId;
+
+    console.log("Buscando ejercicio:", { courseId, lessonId, order, userId });
+
+    // Si courseId no está presente, omitir verificación de progreso
+    if (courseId) {
+      const canAccess = await progressService.canAccessExercise(
+        userId,
+        courseId,
+        lessonId,
+        parseInt(order)
+      );
+      if (!canAccess) {
+        console.log("Acceso denegado: ejercicios anteriores incompletos");
+        return res.status(403).json({
+          message: "Debes completar los ejercicios anteriores primero.",
+        });
+      }
+    }
+
     const lesson = await Lesson.findById(lessonId);
     if (!lesson) {
+      console.log("Lección no encontrada:", lessonId);
       return res.status(404).json({ message: "Lección no encontrada" });
     }
 
@@ -135,9 +196,11 @@ export const getExerciseByOrder = async (req, res) => {
       (ex) => ex.order === parseInt(order)
     );
     if (!exercise) {
+      console.log("Ejercicio no encontrado, orden:", order);
       return res.status(404).json({ message: "Ejercicio no encontrado" });
     }
 
+    console.log("Ejercicio encontrado:", exercise);
     res.json(exercise);
   } catch (error) {
     console.error("Error en getExerciseByOrder:", error.message);
@@ -186,20 +249,16 @@ export const updateExercise = async (req, res) => {
 
     await lesson.save();
 
-    res
-      .status(200)
-      .json({
-        message: "Ejercicio actualizado exitosamente.",
-        exercise: updatedExercise,
-      });
+    res.status(200).json({
+      message: "Ejercicio actualizado exitosamente.",
+      exercise: updatedExercise,
+    });
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({
-        message: "Error al actualizar el ejercicio.",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Error al actualizar el ejercicio.",
+      error: error.message,
+    });
   }
 };
 
@@ -264,12 +323,10 @@ export const createExercise = async (req, res) => {
     lesson.exercises.push(newExercise);
     await lesson.save();
 
-    res
-      .status(201)
-      .json({
-        message: "Ejercicio creado exitosamente.",
-        exercise: newExercise,
-      });
+    res.status(201).json({
+      message: "Ejercicio creado exitosamente.",
+      exercise: newExercise,
+    });
   } catch (error) {
     console.error("Error in createExercise:", error);
     res
@@ -279,7 +336,6 @@ export const createExercise = async (req, res) => {
 };
 
 // Validar el HTML del usuario
-
 export const validateHtml = async (req, res) => {
   try {
     const { userCode, expectedOutput } = req.body;
@@ -410,5 +466,30 @@ export const validateHtml = async (req, res) => {
         "Intenta de nuevo. Verifica la sintaxis y el contenido del código."
       }`,
     });
+  }
+};
+
+// controllers/lessonController.js
+export const getAllProgressByCourse = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const userId = req.user.userId; // Obtained from JWT
+
+    // Verify that the course exists
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({ message: "Curso no encontrado" });
+    }
+
+    // Fetch all progress for the user and course
+    const progress = await UserExerciseProgress.find({
+      userId,
+      courseId,
+    }).lean();
+
+    res.json(progress);
+  } catch (error) {
+    console.error("Error en getAllProgressByCourse:", error.message);
+    res.status(500).json({ message: "Error al obtener el progreso" });
   }
 };

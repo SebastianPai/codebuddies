@@ -1,3 +1,4 @@
+// routes/friendRoutes.js
 import express from "express";
 import { verifyToken } from "../middleware/verifyToken.js";
 import {
@@ -7,8 +8,6 @@ import {
   respondToRequest,
   removeFriend,
 } from "../controllers/friendController.js";
-
-import auth from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -24,6 +23,7 @@ router.get("/requests", verifyToken, getPendingRequests);
 // Aceptar o rechazar solicitud
 router.post("/respond", verifyToken, respondToRequest);
 
-router.delete("/:friendId", auth, removeFriend);
+// Eliminar amigo
+router.delete("/:friendId", verifyToken, removeFriend);
 
 export default router;

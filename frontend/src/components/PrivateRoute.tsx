@@ -1,17 +1,18 @@
+// frontend/src/components/PrivateRoute.tsx
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { ReactNode } from "react";
-import type { JSX } from "react";
 
 interface PrivateRouteProps {
-  children: ReactNode; // Define que `children` puede ser cualquier nodo React
+  children: ReactNode;
 }
 
-export default function PrivateRoute({
-  children,
-}: PrivateRouteProps): JSX.Element {
-  // Extrae el contexto de autenticación
-  const { user } = useAuth();
+export default function PrivateRoute({ children }: PrivateRouteProps) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <div>Cargando...</div>;
+  }
 
   if (!user) {
     return <Navigate to="/login" replace />;

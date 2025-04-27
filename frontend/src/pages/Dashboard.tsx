@@ -17,6 +17,10 @@ export default function Dashboard(): JSX.Element {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#0a0e1a] text-white px-4">
+      <div className="font-jersey text-white">
+        ¡Bienvenido a CodeBuddies con la fuente Jersey 10!
+      </div>
+
       <h1 className="text-4xl font-bold mb-8">
         Bienvenido, {user?.email || "usuario"} 👋
       </h1>

@@ -1,17 +1,35 @@
+// routes/userRoutes.js
 import express from "express";
 import bcrypt from "bcryptjs";
 import User from "../models/User.js";
 import jwt from "jsonwebtoken";
-import auth from "../middleware/auth.js";
+import { verifyToken } from "../middleware/verifyToken.js"; // Cambiar a verifyToken
 
 const router = express.Router();
 
 // Ruta protegida para obtener info del usuario logueado
-router.get("/me", auth, async (req, res) => {
+router.get("/me", verifyToken, async (req, res) => {
   try {
+    // Buscar el usuario en la base de datos por ID, excluyendo la contraseña
+    const user = await User.findById(req.user.userId).select("-password");
+    if (!user) {
+      return res.status(404).json({ message: "Usuario no encontrado" });
+    }
     res.status(200).json({
       message: "Ruta protegida accedida correctamente",
-      user: req.user,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        profilePicture: user.profilePicture || "",
+        university: user.university || "",
+        isUniversityStudent: user.isUniversityStudent || false,
+        level: user.level || 1,
+        xp: user.xp || 0,
+        maxXp: user.maxXp || 100,
+        powers: user.powers || [],
+        achievements: user.achievements || [],
+      },
     });
   } catch (error) {
     console.error("❌ Error en /me:", error);
@@ -24,23 +42,19 @@ router.post("/register", async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    // Validación rápida
     if (!name || !email || !password) {
       return res
         .status(400)
         .json({ message: "Todos los campos son obligatorios." });
     }
 
-    // Verificar si el usuario ya existe
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(409).json({ message: "El correo ya está registrado." });
     }
 
-    // Encriptar la contraseña
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Crear usuario
     const newUser = new User({
       name,
       email,
@@ -61,26 +75,22 @@ router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Validar campos
     if (!email || !password) {
       return res
         .status(400)
         .json({ message: "Todos los campos son obligatorios." });
     }
 
-    // Buscar usuario
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({ message: "Usuario no encontrado." });
     }
 
-    // Comparar contraseñas
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ message: "Contraseña incorrecta." });
     }
 
-    // Crear token
     const token = jwt.sign(
       { userId: user._id, email: user.email },
       process.env.JWT_SECRET,
@@ -98,6 +108,42 @@ router.post("/login", async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Error en login:", error);
+    res.status(500).json({ message: "Error del servidor" });
+  }
+});
+
+// Update user profile
+router.put("/update", verifyToken, async (req, res) => {
+  try {
+    const { name, profilePicture, university, isUniversityStudent } = req.body;
+
+    // Validate required fields
+    if (!name) {
+      return res.status(400).json({ message: "El nombre es obligatorio." });
+    }
+
+    // Update user
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.userId,
+      {
+        name,
+        profilePicture,
+        university,
+        isUniversityStudent,
+      },
+      { new: true, select: "-password" } // Exclude password from response
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "Usuario no encontrado." });
+    }
+
+    res.status(200).json({
+      message: "Perfil actualizado correctamente",
+      user: updatedUser,
+    });
+  } catch (error) {
+    console.error("❌ Error al actualizar perfil:", error);
     res.status(500).json({ message: "Error del servidor" });
   }
 });

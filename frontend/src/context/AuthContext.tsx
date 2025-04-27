@@ -1,82 +1,111 @@
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  ReactNode,
-} from "react";
+// frontend/src/context/AuthContext.tsx
+import { createContext, useContext, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
-// 👉 Definimos cómo luce el usuario
-interface User {
-  email: string;
-  userId: string;
-}
-
-// 👉 Definimos el shape del contexto
 interface AuthContextType {
-  user: User | null;
+  user: { id: string; name: string; email: string } | null;
+  loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  fetchWithAuth: (url: string, options?: RequestInit) => Promise<Response>;
 }
 
-// 👉 Creamos el contexto con valor inicial null (lo vamos a validar luego)
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// 👉 Props para el Provider
-interface AuthProviderProps {
-  children: ReactNode;
-}
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [user, setUser] = useState<{
+    id: string;
+    name: string;
+    email: string;
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
-// 👉 El provider en sí
-export function AuthProvider({ children }: AuthProviderProps) {
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
+  const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
     const token = localStorage.getItem("token");
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split(".")[1]));
-        setUser({ email: payload.email, userId: payload.userId });
-      } catch (e) {
-        console.error("Token inválido", e);
-        setUser(null);
+    const headers = {
+      ...options.headers,
+      Authorization: token ? `Bearer ${token}` : "",
+      "Content-Type": "application/json",
+    };
+    try {
+      const response = await fetch(url, { ...options, headers });
+      if (response.status === 401) {
+        logout();
+        navigate("/login");
+        toast.error("Sesión expirada. Por favor, inicia sesión de nuevo.");
       }
+      return response;
+    } catch (error) {
+      console.error("Fetch error:", error);
+      throw error;
     }
-  }, []);
+  };
 
   const login = async (email: string, password: string) => {
-    const res = await fetch("http://localhost:5000/api/users/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email, password }),
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || "Error al iniciar sesión");
-
-    const payload = JSON.parse(atob(data.token.split(".")[1]));
-    localStorage.setItem("token", data.token);
-    setUser({ email: payload.email, userId: payload.userId });
+    try {
+      const response = await fetch("http://localhost:5000/api/users/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Login failed");
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      setUser(data.user);
+      navigate("/dashboard");
+    } catch (error: any) {
+      toast.error(error.message || "Error al iniciar sesión");
+      throw error;
+    }
   };
 
   const logout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
     setUser(null);
+    navigate("/login");
   };
 
+  useEffect(() => {
+    const initializeAuth = async () => {
+      const token = localStorage.getItem("token");
+      const user = localStorage.getItem("user");
+      if (token && user) {
+        try {
+          const response = await fetchWithAuth(
+            "http://localhost:5000/api/users/me"
+          );
+          const data = await response.json();
+          if (response.ok) {
+            setUser(data);
+          } else {
+            logout();
+          }
+        } catch (error) {
+          logout();
+        }
+      }
+      setLoading(false);
+    };
+    initializeAuth();
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider
+      value={{ user, loading, login, logout, fetchWithAuth }}
+    >
       {children}
     </AuthContext.Provider>
   );
-}
+};
 
-// 👉 Hook personalizado, con validación de contexto
-export function useAuth(): AuthContextType {
+export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context)
-    throw new Error("useAuth debe usarse dentro de un AuthProvider");
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
   return context;
-}
+};

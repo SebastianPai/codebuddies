@@ -1,3 +1,4 @@
+// models/User.js
 import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema(
@@ -20,9 +21,45 @@ const userSchema = new mongoose.Schema(
       required: true,
       minlength: 6,
     },
+    profilePicture: {
+      type: String,
+      default: "", // URL or path to profile picture
+    },
+    university: {
+      type: String,
+      default: "",
+    },
+    isUniversityStudent: {
+      type: Boolean,
+      default: false,
+    },
+    level: {
+      type: Number,
+      default: 1,
+    },
+    xp: {
+      type: Number,
+      default: 0,
+    },
+    maxXp: {
+      type: Number,
+      default: 100,
+    },
+    powers: [
+      {
+        name: String,
+        icon: String, // Store icon name or color for frontend rendering
+      },
+    ],
+    achievements: [
+      {
+        name: String,
+        description: String,
+      },
+    ],
   },
   {
-    timestamps: true, // Esto agrega automáticamente createdAt y updatedAt
+    timestamps: true,
   }
 );
 

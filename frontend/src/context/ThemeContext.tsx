@@ -5,6 +5,7 @@ import { createContext, useContext, useState, ReactNode } from "react";
 interface ThemeColors {
   background: string;
   text: string;
+  secondaryText: string;
   primary: string;
   secondary: string;
   accent: string;
@@ -14,6 +15,9 @@ interface ThemeColors {
   buttonText: string;
   codeBackground: string;
   codeText: string;
+  success: string;
+  error: string;
+  accenttwo: string;
 }
 
 interface Theme {
@@ -34,15 +38,19 @@ const themes: Record<"dark" | "light" | "pink", Theme> = {
     colors: {
       background: "#0a0e1a",
       text: "#ffffff",
-      primary: "#1e40af",
-      secondary: "#6b7280",
-      accent: "#a855f7",
+      secondaryText: "#d1d5db",
+      primary: "#facc15",
+      secondary: "#9ca3af",
+      accent: "#facc15",
+      accenttwo: "#7c3aed",
       card: "#151a2d",
       border: "#374151",
-      button: "#3b82f6",
-      buttonText: "#ffffff",
+      button: "#facc15",
+      buttonText: "#000000",
       codeBackground: "#1e1e1e",
       codeText: "#d1d5db",
+      success: "#4CAF50",
+      error: "#f87171",
     },
   },
   light: {
@@ -52,13 +60,17 @@ const themes: Record<"dark" | "light" | "pink", Theme> = {
       text: "#111827",
       primary: "#2563eb",
       secondary: "#6b7280",
+      secondaryText: "#374151",
       accent: "#7c3aed",
+      accenttwo: "#2563eb",
       card: "#ffffff",
       border: "#d1d5db",
       button: "#2563eb",
       buttonText: "#ffffff",
       codeBackground: "#f1f5f9",
       codeText: "#1f2937",
+      success: "#4CAF50",
+      error: "#f87171",
     },
   },
   pink: {
@@ -66,15 +78,19 @@ const themes: Record<"dark" | "light" | "pink", Theme> = {
     colors: {
       background: "#fff1f2",
       text: "#4b1c46",
+      secondaryText: "#6b7280",
       primary: "#db2777",
       secondary: "#9d174d",
       accent: "#ec4899",
+      accenttwo: "#db2777",
       card: "#fce7f3",
       border: "#f9a8d4",
       button: "#ec4899",
       buttonText: "#ffffff",
       codeBackground: "#fdf2f8",
       codeText: "#831843",
+      success: "#4CAF50",
+      error: "#f87171",
     },
   },
 };

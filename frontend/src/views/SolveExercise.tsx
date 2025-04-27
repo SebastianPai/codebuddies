@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, JSX } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
+import axios, { AxiosError } from "axios";
 import {
   Code,
   Play,
@@ -52,6 +52,10 @@ type InstructionElement =
   | { type: "highlight-secondary"; value: string }
   | { type: "paragraph-break" };
 
+interface ErrorResponse {
+  message?: string;
+}
+
 export default function SolveExercise() {
   const { theme } = useTheme();
   const { courseId, lessonId, exerciseOrder } = useParams<{
@@ -78,6 +82,10 @@ export default function SolveExercise() {
   const [instructionElements, setInstructionElements] = useState<
     InstructionElement[]
   >([]);
+  const [isExerciseCompleted, setIsExerciseCompleted] = useState(false);
+  const [showFeedbackScreen, setShowFeedbackScreen] = useState<
+    "correct" | "incorrect" | null
+  >(null);
 
   const axiosInstance = axios.create({
     baseURL: "http://localhost:5000/api",
@@ -89,13 +97,28 @@ export default function SolveExercise() {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
+      if (!courseId || !lessonId || !exerciseOrder) {
+        throw new Error(
+          `Parámetros inválidos: courseId=${courseId}, lessonId=${lessonId}, exerciseOrder=${exerciseOrder}`
+        );
+      }
+
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error(
+          "No se encontró un token de autenticación. Por favor, inicia sesión."
+        );
+      }
+
       const lessonRes = await axiosInstance.get(`/lessons/${lessonId}`);
       setLesson(lessonRes.data);
+
       const exerciseRes = await axiosInstance.get(
         `/lessons/${lessonId}/exercises/${exerciseOrder}`
       );
       const fetchedExercise = exerciseRes.data;
       setExercise(fetchedExercise);
+
       if (fetchedExercise.language === "html") {
         setHtmlCode(
           fetchedExercise.content || "<!-- Escribe tu código aquí ❤️ -->\n\n"
@@ -110,24 +133,51 @@ export default function SolveExercise() {
         setJsCode(fetchedExercise.content || "// Escribe tu código aquí\n\n");
         setHtmlCode("");
       }
+
       if (fetchedExercise.instructions) {
         parseInstructions(fetchedExercise.instructions);
       }
-    } catch (error: any) {
-      toast.error(
-        error.response?.data?.message || "No se pudo cargar el ejercicio."
-      );
-      console.error("Error al cargar datos:", error);
+
+      try {
+        const progressRes = await axiosInstance.get(
+          `/progress/courses/${courseId}/lessons/${lessonId}/exercises/${exerciseOrder}/progress`
+        );
+        setIsExerciseCompleted(progressRes.data.completed || false);
+      } catch (progressError: unknown) {
+        setIsExerciseCompleted(false);
+        if (axios.isAxiosError(progressError)) {
+          const errorMessage =
+            (progressError as AxiosError<ErrorResponse>).response?.data
+              ?.message || "No se pudo cargar el progreso del ejercicio.";
+          toast.warn(errorMessage, { toastId: "progress-error" });
+        } else {
+          toast.warn(
+            "No se pudo cargar el progreso del ejercicio. Continúa con el ejercicio.",
+            { toastId: "progress-error" }
+          );
+        }
+      }
+    } catch (error: unknown) {
+      let errorMessage = "No se pudo cargar el ejercicio.";
+      if (axios.isAxiosError(error)) {
+        errorMessage =
+          (error as AxiosError<ErrorResponse>).response?.data?.message ||
+          errorMessage;
+      }
+      toast.error(errorMessage, { toastId: "fetch-error" });
     } finally {
       setLoading(false);
     }
-  }, [lessonId, exerciseOrder]);
+  }, [courseId, lessonId, exerciseOrder]);
 
   useEffect(() => {
-    if (lessonId && exerciseOrder) {
+    if (courseId && lessonId && exerciseOrder) {
       fetchData();
+    } else {
+      toast.error("Faltan parámetros en la URL.", { toastId: "url-error" });
+      setLoading(false);
     }
-  }, [lessonId, exerciseOrder, fetchData]);
+  }, [courseId, lessonId, exerciseOrder, fetchData]);
 
   const parseInstructions = (instructions: string) => {
     const elements: InstructionElement[] = [];
@@ -135,11 +185,9 @@ export default function SolveExercise() {
     let codeBlockLanguage = "";
     let codeBlockContent: string[] = [];
 
-    // Dividir por saltos de línea reales
     const lines = instructions.split("\n");
 
     lines.forEach((line, index) => {
-      // Manejar bloques de código
       if (line.trim().startsWith("```")) {
         if (inCodeBlock) {
           elements.push({
@@ -162,17 +210,14 @@ export default function SolveExercise() {
         return;
       }
 
-      // Manejar líneas vacías
       if (!line.trim()) {
         elements.push({ type: "paragraph-break" });
         return;
       }
 
-      // Dividir la línea por \n literal (como texto)
       const subLines = line.split("\\n").filter((subLine) => subLine.trim());
 
       subLines.forEach((subLine, subIndex) => {
-        // Manejar imágenes
         const imageMatch =
           subLine.match(/!\[.*?\]\((.*?)\)/) ||
           subLine.match(/(https?:\/\/.*\.(?:png|jpg|jpeg|gif))/i);
@@ -187,7 +232,6 @@ export default function SolveExercise() {
           return;
         }
 
-        // Manejar listas
         if (
           subLine.trim().startsWith("- ") ||
           subLine.trim().startsWith("* ")
@@ -278,7 +322,6 @@ export default function SolveExercise() {
           return;
         }
 
-        // Manejar texto normal y formatos
         let currentText = "";
         const regex =
           /(\*\*[^\*]+\*\*)|(__[^_]+__)|(_[^_]+_)|(`[^`]+`)|(##[^#]+##)|(<[a-zA-Z0-9]+>)/g;
@@ -345,7 +388,6 @@ export default function SolveExercise() {
           }
         }
 
-        // Añadir paragraph-break después de cada subLine, excepto la última
         if (subIndex < subLines.length - 1) {
           elements.push({ type: "paragraph-break" });
         }
@@ -404,6 +446,8 @@ export default function SolveExercise() {
         message: "⚠️ No hay salida esperada definida.",
       });
       setIsModalOpen(true);
+      setShowFeedbackScreen("incorrect");
+      setTimeout(() => setShowFeedbackScreen(null), 2000);
       return;
     }
 
@@ -439,13 +483,44 @@ export default function SolveExercise() {
             isCorrect: response.data.isCorrect,
             message: response.data.message,
           });
-        } catch (error: any) {
+
+          setShowFeedbackScreen(
+            response.data.isCorrect ? "correct" : "incorrect"
+          );
+          setTimeout(() => setShowFeedbackScreen(null), 2000);
+
+          if (response.data.isCorrect) {
+            setIsExerciseCompleted(true);
+            try {
+              const progressResponse = await axiosInstance.post(
+                `/progress/courses/${courseId}/lessons/${lessonId}/exercises/${exerciseOrder}/complete`
+              );
+              toast.success(`🎉 Ejercicio número ${exercise.order} superado.`, {
+                toastId: "progress-success",
+              });
+            } catch (progressError: unknown) {
+              let errorMessage = "Error al guardar el progreso.";
+              if (axios.isAxiosError(progressError)) {
+                errorMessage =
+                  (progressError as AxiosError<ErrorResponse>).response?.data
+                    ?.message || errorMessage;
+              }
+              toast.error(errorMessage, { toastId: "progress-error" });
+            }
+          }
+        } catch (error: unknown) {
+          let errorMessage = "❌ Error al validar el código. Intenta de nuevo.";
+          if (axios.isAxiosError(error)) {
+            errorMessage =
+              (error as AxiosError<ErrorResponse>).response?.data?.message ||
+              errorMessage;
+          }
           setModalContent({
             isCorrect: false,
-            message:
-              error.response?.data?.message ||
-              "❌ Error al validar el código. Intenta de nuevo.",
+            message: errorMessage,
           });
+          setShowFeedbackScreen("incorrect");
+          setTimeout(() => setShowFeedbackScreen(null), 2000);
         }
         break;
 
@@ -465,6 +540,8 @@ export default function SolveExercise() {
           message: "⚠️ Lenguaje no soportado.",
         });
         setIsModalOpen(true);
+        setShowFeedbackScreen("incorrect");
+        setTimeout(() => setShowFeedbackScreen(null), 2000);
         return;
     }
 
@@ -476,6 +553,28 @@ export default function SolveExercise() {
           ? "✅ ¡Respuesta correcta!"
           : "❌ Intenta de nuevo. Verifica la sintaxis y el contenido del código.",
       });
+      setShowFeedbackScreen(isCorrect ? "correct" : "incorrect");
+      setTimeout(() => setShowFeedbackScreen(null), 2000);
+
+      if (isCorrect) {
+        setIsExerciseCompleted(true);
+        try {
+          const progressResponse = await axiosInstance.post(
+            `/progress/courses/${courseId}/lessons/${lessonId}/exercises/${exerciseOrder}/complete`
+          );
+          toast.success(`🎉 Ejercicio número ${exercise.order} superado.`, {
+            toastId: "progress-success",
+          });
+        } catch (progressError: unknown) {
+          let errorMessage = "Error al guardar el progreso.";
+          if (axios.isAxiosError(progressError)) {
+            errorMessage =
+              (progressError as AxiosError<ErrorResponse>).response?.data
+                ?.message || errorMessage;
+          }
+          toast.error(errorMessage, { toastId: "progress-error" });
+        }
+      }
     }
 
     setIsModalOpen(true);
@@ -539,7 +638,9 @@ export default function SolveExercise() {
       <button
         onClick={() => {
           navigator.clipboard.writeText(code);
-          toast.success("Código copiado al portapapeles.");
+          toast.success("Código copiado al portapapeles.", {
+            toastId: "copy-success",
+          });
         }}
         className="absolute top-2 right-2 p-2 rounded-md transition-colors"
         style={{
@@ -888,7 +989,9 @@ export default function SolveExercise() {
                 alt={`Imagen ${index + 1}`}
                 className="w-full max-w-md rounded-md object-contain"
                 onError={() =>
-                  toast.error(`No se pudo cargar la imagen ${index + 1}.`)
+                  toast.error(`No se pudo cargar la imagen ${index + 1}.`, {
+                    toastId: "image-error",
+                  })
                 }
                 style={{ border: `1px solid ${theme.colors.border}` }}
               />
@@ -1089,16 +1192,21 @@ export default function SolveExercise() {
                             boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
                           }}
                         >
-                          {tokens.map((line, i) => (
-                            <div key={i} {...getLineProps({ line, key: i })}>
-                              {line.map((token, key) => (
-                                <span
-                                  key={key}
-                                  {...getTokenProps({ token, key })}
-                                />
-                              ))}
-                            </div>
-                          ))}
+                          {tokens.map((line, i) => {
+                            const { key, ...lineProps } = getLineProps({
+                              line,
+                              key: i,
+                            });
+                            return (
+                              <div key={i} {...lineProps}>
+                                {line.map((token, index) => {
+                                  const { key: tokenKey, ...tokenProps } =
+                                    getTokenProps({ token, key: index });
+                                  return <span key={index} {...tokenProps} />;
+                                })}
+                              </div>
+                            );
+                          })}
                         </pre>
                       )}
                     </Highlight>
@@ -1139,7 +1247,9 @@ export default function SolveExercise() {
                           ? htmlCode
                           : cssCode
                       );
-                      toast.success("Código copiado al portapapeles.");
+                      toast.success("Código copiado al portapapeles.", {
+                        toastId: "copy-success",
+                      });
                     }}
                     className="p-2 rounded-md"
                     style={{ color: theme.colors.text }}
@@ -1252,7 +1362,8 @@ export default function SolveExercise() {
                   lesson.exercises.findIndex(
                     (ex) => ex.order === exercise.order
                   ) ===
-                    lesson.exercises.length - 1
+                    lesson.exercises.length - 1 ||
+                  !isExerciseCompleted
                 }
                 className="px-4 py-2 rounded-md flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{
@@ -1399,16 +1510,21 @@ export default function SolveExercise() {
                           boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
                         }}
                       >
-                        {tokens.map((line, i) => (
-                          <div key={i} {...getLineProps({ line, key: i })}>
-                            {line.map((token, key) => (
-                              <span
-                                key={key}
-                                {...getTokenProps({ token, key })}
-                              />
-                            ))}
-                          </div>
-                        ))}
+                        {tokens.map((line, i) => {
+                          const { key, ...lineProps } = getLineProps({
+                            line,
+                            key: i,
+                          });
+                          return (
+                            <div key={i} {...lineProps}>
+                              {line.map((token, index) => {
+                                const { key: tokenKey, ...tokenProps } =
+                                  getTokenProps({ token, key: index });
+                                return <span key={index} {...tokenProps} />;
+                              })}
+                            </div>
+                          );
+                        })}
                       </pre>
                     )}
                   </Highlight>
@@ -1444,7 +1560,9 @@ export default function SolveExercise() {
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(jsCode);
-                    toast.success("Código copiado al portapapeles.");
+                    toast.success("Código copiado al portapapeles.", {
+                      toastId: "copy-success",
+                    });
                   }}
                   className="p-2 rounded-md"
                   style={{ color: theme.colors.text }}
@@ -1510,7 +1628,11 @@ export default function SolveExercise() {
               background: theme.colors.accent,
               color: theme.colors.buttonText,
             }}
-            disabled={!jsCode.trim()}
+            disabled={
+              exercise.language === "html" || exercise.language === "css"
+                ? !htmlCode.trim() && !cssCode.trim()
+                : !jsCode.trim()
+            }
           >
             Comprobar respuesta
           </button>
@@ -1523,7 +1645,8 @@ export default function SolveExercise() {
               lesson.exercises.findIndex(
                 (ex) => ex.order === exercise.order
               ) ===
-                lesson.exercises.length - 1
+                lesson.exercises.length - 1 ||
+              !isExerciseCompleted
             }
             className="px-4 py-2 rounded flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
             style={{
@@ -1545,24 +1668,35 @@ export default function SolveExercise() {
 
   return (
     <div
-      className="flex flex-col h-screen"
+      className="flex flex-col h-screen relative"
       style={{
         background: theme.colors.background,
         color: theme.colors.text,
       }}
     >
+      {showFeedbackScreen && (
+        <div
+          className={`absolute inset-0 z-50 transition-opacity duration-500 ${
+            showFeedbackScreen === "correct"
+              ? "bg-green-500 opacity-50"
+              : "bg-red-500 opacity-50"
+          }`}
+        ></div>
+      )}
       <Navbar />
       <ToastContainer
         position="top-right"
         autoClose={3000}
         hideProgressBar={false}
         newestOnTop
-        closeOnClick
+        closeOnClick={false}
+        closeButton={true}
         rtl={false}
         pauseOnFocusLoss
         draggable
         pauseOnHover
         theme={theme.name}
+        limit={3}
       />
       <Modal
         isOpen={isModalOpen}
@@ -1582,9 +1716,11 @@ export default function SolveExercise() {
             border: `2px solid ${theme.colors.border}`,
             width: "400px",
             textAlign: "center",
+            zIndex: 1000,
           },
           overlay: {
             backgroundColor: "rgba(0, 0, 0, 0.5)",
+            zIndex: 1000,
           },
         }}
       >

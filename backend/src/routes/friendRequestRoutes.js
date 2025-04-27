@@ -1,13 +1,12 @@
+// routes/friendRoutes.js
 import express from "express";
 import { verifyToken } from "../middleware/verifyToken.js";
 import {
   getPendingRequests,
   respondToRequest,
   getSentRequests,
-  deleteRequest, // 👈 Agregá esta línea
+  deleteRequest,
 } from "../controllers/friendController.js";
-
-import auth from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -17,9 +16,11 @@ router.get("/requests", verifyToken, getPendingRequests);
 // Aceptar o rechazar solicitud
 router.post("/respond", verifyToken, respondToRequest);
 
-router.get("/sent", auth, getSentRequests);
+// Obtener solicitudes enviadas
+router.get("/sent", verifyToken, getSentRequests);
 
-router.delete("/:id", auth, deleteRequest);
+// Eliminar solicitud
+router.delete("/:id", verifyToken, deleteRequest);
 
 // Ruta de prueba
 router.get("/ping", (req, res) => {
