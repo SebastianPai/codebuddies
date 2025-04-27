@@ -1,3 +1,5 @@
+// frontend/src/pages/UserProfile.tsx
+
 "use client";
 
 import { useState, useEffect, JSX } from "react";
@@ -16,13 +18,64 @@ import {
 import { useTheme } from "@/context/ThemeContext";
 import Navbar from "../components/Navbar";
 import { useAuth } from "../context/AuthContext";
+import { apiGet, apiPost } from "../api";
+
+// Definir tipos para los datos
+interface UserData {
+  name: string;
+  email: string;
+  profilePicture: string;
+  university: string;
+  isUniversityStudent: boolean;
+  level: number;
+  xp: number;
+  maxXp: number;
+  powers: { name: string; icon: string }[];
+  achievements: { name: string; description: string }[];
+}
+
+interface EditForm {
+  name: string;
+  profilePicture: string;
+  university: string;
+  isUniversityStudent: boolean;
+}
+
+interface ApiResponse {
+  user: UserData;
+  message?: string;
+}
+
+interface Ranking {
+  rank: number;
+  name: string;
+  points: number;
+  isCurrentUser?: boolean;
+}
+
+interface ThemeColors {
+  background: string;
+  text: string;
+  card: string;
+  border: string;
+  accent: string;
+  secondaryText: string;
+  primary: string;
+  success: string;
+  error: string;
+  buttonText: string;
+}
+
+interface ThemeContext {
+  theme: { colors: ThemeColors };
+}
 
 export default function UserProfile() {
-  const { theme } = useTheme();
+  const { theme } = useTheme() as ThemeContext;
   const navigate = useNavigate();
   const { logout } = useAuth();
 
-  const [user, setUser] = useState({
+  const [user, setUser] = useState<UserData>({
     name: "",
     email: "",
     profilePicture: "",
@@ -35,17 +88,16 @@ export default function UserProfile() {
     achievements: [],
   });
   const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState({
+  const [editForm, setEditForm] = useState<EditForm>({
     name: "",
     profilePicture: "",
     university: "",
     isUniversityStudent: false,
   });
   const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(true); // Add loading state
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Mock rankings
-  const rankings = [
+  const rankings: Ranking[] = [
     { rank: 1, name: "MEGA_GAMER", points: 9800 },
     {
       rank: 2,
@@ -65,16 +117,9 @@ export default function UserProfile() {
         setIsLoading(true);
         const token = localStorage.getItem("token");
         if (!token) throw new Error("No se encontró el token de autenticación");
-        const response = await fetch("http://localhost:5000/api/users/me", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        const data = await response.json();
-        if (!response.ok)
-          throw new Error(data.message || "Error al obtener usuario");
 
-        // Normalize API response
+        const data = await apiGet<ApiResponse>("/api/users/me", token);
+
         setUser({
           name: data.user.name || "",
           email: data.user.email || "",
@@ -111,17 +156,14 @@ export default function UserProfile() {
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("No se encontró el token de autenticación");
-      const response = await fetch("http://localhost:5000/api/users/update", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(editForm),
-      });
-      const data = await response.json();
-      if (!response.ok)
-        throw new Error(data.message || "Error al actualizar perfil");
+
+      const data = await apiPost<ApiResponse>(
+        "/api/users/update",
+        editForm,
+        "PUT",
+        token
+      );
+
       setUser((prev) => ({
         ...prev,
         ...data.user,
@@ -143,7 +185,6 @@ export default function UserProfile() {
 
   const xpPercentage = user.maxXp ? (user.xp / user.maxXp) * 100 : 0;
 
-  // Map icon names to Lucide components
   const iconMap: { [key: string]: JSX.Element } = {
     Flame: <Flame className="w-6 h-6" style={{ color: theme.colors.accent }} />,
     Wind: <Wind className="w-6 h-6" style={{ color: theme.colors.primary }} />,
@@ -153,7 +194,6 @@ export default function UserProfile() {
     ),
   };
 
-  // Loading state
   if (isLoading) {
     return (
       <div
@@ -199,7 +239,6 @@ export default function UserProfile() {
             </div>
           )}
 
-          {/* Header with Avatar and User Info */}
           <div className="flex flex-col md:flex-row items-center gap-6 mb-8">
             <div className="relative">
               <div
@@ -264,7 +303,6 @@ export default function UserProfile() {
                 </div>
               )}
 
-              {/* XP Bar */}
               <div className="w-full mt-3">
                 <div
                   className="flex justify-between text-sm mb-1"
@@ -319,7 +357,6 @@ export default function UserProfile() {
             </div>
           </div>
 
-          {/* Edit Profile Form */}
           {isEditing && (
             <div
               className="mb-8 p-4 rounded-md"
@@ -472,7 +509,6 @@ export default function UserProfile() {
             </div>
           )}
 
-          {/* Powers Section */}
           <div className="mb-8">
             <h2
               className="text-xl font-bold mb-4 pb-2"
@@ -485,7 +521,7 @@ export default function UserProfile() {
             </h2>
             {user.powers.length > 0 ? (
               <div className="flex flex-wrap gap-3">
-                {user.powers.map((power: any, index: number) => (
+                {user.powers.map((power, index) => (
                   <div
                     key={index}
                     className="rounded-md p-3 flex items-center gap-2"
@@ -519,7 +555,6 @@ export default function UserProfile() {
             )}
           </div>
 
-          {/* Weekly Rankings */}
           <div className="mb-8">
             <h2
               className="text-xl font-bold mb-4 pb-2"
@@ -587,7 +622,6 @@ export default function UserProfile() {
             </div>
           </div>
 
-          {/* Achievements Section */}
           <div>
             <h2
               className="text-xl font-bold mb-4 pb-2"
@@ -600,7 +634,7 @@ export default function UserProfile() {
             </h2>
             {user.achievements.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                {user.achievements.map((achievement: any, index: number) => (
+                {user.achievements.map((achievement, index) => (
                   <div
                     key={index}
                     className="rounded-md p-4"

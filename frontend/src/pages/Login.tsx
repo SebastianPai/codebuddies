@@ -1,16 +1,34 @@
+// frontend/src/pages/Login.tsx
+
 "use client";
 
 import { useState, FormEvent, JSX } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
 import { useTheme } from "@/context/ThemeContext";
 import Navbar from "../components/Navbar";
+
+interface ThemeColors {
+  background: string;
+  text: string;
+  card: string;
+  border: string;
+  accent: string;
+  secondaryText: string;
+  button: string;
+  buttonText: string;
+  error: string;
+  success: string;
+}
+
+interface ThemeContext {
+  theme: { colors: ThemeColors };
+}
 
 export default function Login(): JSX.Element {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const { theme } = useTheme();
+  const { theme } = useTheme() as ThemeContext;
 
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -22,10 +40,10 @@ export default function Login(): JSX.Element {
 
     try {
       await login(email, password);
-      navigate("/dashboard");
-    } catch (err) {
+      // No necesitas navigate("/dashboard") aquí porque AuthContext.tsx ya lo hace
+    } catch (err: any) {
       console.error(err);
-      setError("Credenciales inválidas");
+      setError(err.message || "Credenciales inválidas");
     }
   };
 
@@ -146,6 +164,7 @@ export default function Login(): JSX.Element {
                   background: theme.colors.button,
                   color: theme.colors.buttonText,
                 }}
+                aria-label="Iniciar sesión"
               >
                 INICIAR SESIÓN
               </button>

@@ -1,3 +1,5 @@
+// frontend/src/pages/Home.tsx
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -12,6 +14,7 @@ import {
 } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
 import Navbar from "../components/Navbar";
+import { apiGet } from "../api"; // Importamos apiGet para las solicitudes
 
 interface Module {
   _id: string;
@@ -44,34 +47,17 @@ export default function Home() {
         setLoading(true);
         setError("");
 
-        // Obtener módulos
-        const resModules = await fetch("http://localhost:5000/api/modules", {
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-        });
-        if (!resModules.ok) {
-          throw new Error(`Error al cargar módulos: ${resModules.statusText}`);
-        }
-        const modulesData: Module[] = await resModules.json();
+        // Obtener módulos usando apiGet
+        const modulesData = await apiGet<Module[]>("/api/modules");
         setModules(modulesData);
 
         // Si hay módulos, seleccionar el primero y cargar sus cursos
         if (modulesData.length > 0) {
           const firstModuleId = modulesData[0]._id;
           setSelectedModule(firstModuleId);
-          const resCourses = await fetch(
-            `http://localhost:5000/api/modules/${firstModuleId}/courses`,
-            {
-              headers: { "Content-Type": "application/json" },
-              credentials: "include",
-            }
+          const coursesData = await apiGet<Course[]>(
+            `/api/modules/${firstModuleId}/courses`
           );
-          if (!resCourses.ok) {
-            throw new Error(
-              `Error al cargar cursos para el módulo ${firstModuleId}: ${resCourses.statusText}`
-            );
-          }
-          const coursesData: Course[] = await resCourses.json();
           setCourses(coursesData);
         }
       } catch (err: any) {
@@ -91,19 +77,9 @@ export default function Home() {
       setSelectedModule(moduleId);
       setLoading(true);
       setError("");
-      const resCourses = await fetch(
-        `http://localhost:5000/api/modules/${moduleId}/courses`,
-        {
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-        }
+      const coursesData = await apiGet<Course[]>(
+        `/api/modules/${moduleId}/courses`
       );
-      if (!resCourses.ok) {
-        throw new Error(
-          `Error al cargar cursos para el módulo ${moduleId}: ${resCourses.statusText}`
-        );
-      }
-      const coursesData: Course[] = await resCourses.json();
       setCourses(coursesData);
     } catch (err: any) {
       console.error("Error al cambiar módulo:", err);
@@ -126,7 +102,7 @@ export default function Home() {
     if (imagePath.startsWith("http")) {
       return imagePath;
     }
-    return `http://localhost:5000${imagePath}`;
+    return `${import.meta.env.VITE_API_URL}${imagePath}`; // Usamos VITE_API_URL para que sea dinámico
   };
 
   return (

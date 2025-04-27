@@ -1,21 +1,40 @@
+// frontend/src/pages/Register.tsx
+
 "use client";
 
 import { useState, ChangeEvent, FormEvent, JSX } from "react";
-import { Link } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useTheme } from "@/context/ThemeContext";
 import Navbar from "../components/Navbar";
+import { apiPost } from "../api"; // Importamos apiPost para las solicitudes
 
 interface RegisterForm {
   name: string;
   email: string;
   password: string;
-  confirmPassword?: string; // Added for the confirm password field
+  confirmPassword: string;
+}
+
+interface ThemeColors {
+  background: string;
+  text: string;
+  card: string;
+  border: string;
+  accent: string;
+  secondaryText: string;
+  button: string;
+  buttonText: string;
+  error: string;
+  success: string;
+}
+
+interface ThemeContext {
+  theme: { colors: ThemeColors };
 }
 
 export default function Register(): JSX.Element {
   const navigate = useNavigate();
-  const { theme } = useTheme();
+  const { theme } = useTheme() as ThemeContext;
 
   const [form, setForm] = useState<RegisterForm>({
     name: "",
@@ -36,27 +55,28 @@ export default function Register(): JSX.Element {
     e.preventDefault();
     setError("");
 
-    // Validate password match
+    // Validaciones
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      setError("Por favor, introduce un email válido");
+      return;
+    }
+
+    if (form.password.length < 6) {
+      setError("La contraseña debe tener al menos 6 caracteres");
+      return;
+    }
+
     if (form.password !== form.confirmPassword) {
       setError("Las contraseñas no coinciden");
       return;
     }
 
     try {
-      const res = await fetch("http://localhost:5000/api/users/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: form.name,
-          email: form.email,
-          password: form.password,
-        }),
+      await apiPost<{ message: string }>("/api/users/register", {
+        name: form.name,
+        email: form.email,
+        password: form.password,
       });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Error al registrarse");
 
       navigate("/login");
     } catch (err: any) {
@@ -245,6 +265,7 @@ export default function Register(): JSX.Element {
                   background: theme.colors.button,
                   color: theme.colors.buttonText,
                 }}
+                aria-label="Crear cuenta"
               >
                 CREAR CUENTA
               </button>

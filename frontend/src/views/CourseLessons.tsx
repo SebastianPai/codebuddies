@@ -43,8 +43,6 @@ interface ErrorResponse {
   message?: string;
 }
 
-const API_URL = "http://localhost:5000";
-
 export default function CourseLesson() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -78,9 +76,9 @@ export default function CourseLesson() {
         setError(null);
 
         const [courseRes, lessonRes, progressRes] = await Promise.all([
-          fetchWithAuth(`${API_URL}/api/courses/${id}`),
-          fetchWithAuth(`${API_URL}/api/courses/${id}/lessons`),
-          fetchWithAuth(`${API_URL}/api/progress/${id}/all`),
+          fetchWithAuth(`/api/courses/${id}`),
+          fetchWithAuth(`/api/courses/${id}/lessons`),
+          fetchWithAuth(`/api/progress/${id}/all`),
         ]);
 
         if (!courseRes.ok) {
@@ -238,7 +236,7 @@ export default function CourseLesson() {
 
     try {
       const response = await fetchWithAuth(
-        `${API_URL}/api/progress/${id}/${lessonId}/${exerciseOrder}/can-access`
+        `/api/progress/${id}/${lessonId}/${exerciseOrder}/can-access`
       );
       if (!response.ok) {
         const errorData = (await response

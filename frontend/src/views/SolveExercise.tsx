@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, JSX } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios, { AxiosError } from "axios";
+import { useAuth } from "@/context/AuthContext";
 import {
   Code,
   Play,
@@ -58,6 +58,7 @@ interface ErrorResponse {
 
 export default function SolveExercise() {
   const { theme } = useTheme();
+  const { fetchWithAuth } = useAuth();
   const { courseId, lessonId, exerciseOrder } = useParams<{
     courseId: string;
     lessonId: string;
@@ -87,12 +88,15 @@ export default function SolveExercise() {
     "correct" | "incorrect" | null
   >(null);
 
-  const axiosInstance = axios.create({
-    baseURL: "http://localhost:5000/api",
-    headers: {
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
-    },
-  });
+  const getImageUrl = (imagePath: string) => {
+    if (!imagePath) {
+      return "/images/default-course.jpg";
+    }
+    if (imagePath.startsWith("http")) {
+      return imagePath;
+    }
+    return `${import.meta.env.VITE_API_URL}${imagePath}`;
+  };
 
   const fetchData = useCallback(async () => {
     try {
@@ -110,13 +114,22 @@ export default function SolveExercise() {
         );
       }
 
-      const lessonRes = await axiosInstance.get(`/lessons/${lessonId}`);
-      setLesson(lessonRes.data);
+      const lessonRes = await fetchWithAuth(`/api/lessons/${lessonId}`);
+      if (!lessonRes.ok) {
+        const errorData = await lessonRes.json();
+        throw new Error(errorData.message || "Error al obtener la lección");
+      }
+      const lessonData = await lessonRes.json();
+      setLesson(lessonData);
 
-      const exerciseRes = await axiosInstance.get(
-        `/lessons/${lessonId}/exercises/${exerciseOrder}`
+      const exerciseRes = await fetchWithAuth(
+        `/api/lessons/${lessonId}/exercises/${exerciseOrder}`
       );
-      const fetchedExercise = exerciseRes.data;
+      if (!exerciseRes.ok) {
+        const errorData = await exerciseRes.json();
+        throw new Error(errorData.message || "Error al obtener el ejercicio");
+      }
+      const fetchedExercise = await exerciseRes.json();
       setExercise(fetchedExercise);
 
       if (fetchedExercise.language === "html") {
@@ -138,37 +151,32 @@ export default function SolveExercise() {
         parseInstructions(fetchedExercise.instructions);
       }
 
-      try {
-        const progressRes = await axiosInstance.get(
-          `/progress/courses/${courseId}/lessons/${lessonId}/exercises/${exerciseOrder}/progress`
-        );
-        setIsExerciseCompleted(progressRes.data.completed || false);
-      } catch (progressError: unknown) {
+      const progressRes = await fetchWithAuth(
+        `/api/progress/courses/${courseId}/lessons/${lessonId}/exercises/${exerciseOrder}/progress`
+      );
+      if (progressRes.ok) {
+        const progressData = await progressRes.json();
+        setIsExerciseCompleted(progressData.completed || false);
+      } else {
         setIsExerciseCompleted(false);
-        if (axios.isAxiosError(progressError)) {
-          const errorMessage =
-            (progressError as AxiosError<ErrorResponse>).response?.data
-              ?.message || "No se pudo cargar el progreso del ejercicio.";
-          toast.warn(errorMessage, { toastId: "progress-error" });
-        } else {
-          toast.warn(
-            "No se pudo cargar el progreso del ejercicio. Continúa con el ejercicio.",
-            { toastId: "progress-error" }
-          );
-        }
+        const errorData = await progressRes.json();
+        toast.warn(
+          errorData.message || "No se pudo cargar el progreso del ejercicio.",
+          {
+            toastId: "progress-error",
+          }
+        );
       }
     } catch (error: unknown) {
-      let errorMessage = "No se pudo cargar el ejercicio.";
-      if (axios.isAxiosError(error)) {
-        errorMessage =
-          (error as AxiosError<ErrorResponse>).response?.data?.message ||
-          errorMessage;
-      }
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "No se pudo cargar el ejercicio.";
       toast.error(errorMessage, { toastId: "fetch-error" });
     } finally {
       setLoading(false);
     }
-  }, [courseId, lessonId, exerciseOrder]);
+  }, [courseId, lessonId, exerciseOrder, fetchWithAuth]);
 
   useEffect(() => {
     if (courseId && lessonId && exerciseOrder) {
@@ -474,47 +482,54 @@ export default function SolveExercise() {
     switch (exercise.language) {
       case "html":
         try {
-          const response = await axiosInstance.post("/lessons/validate-html", {
-            userCode: htmlCode,
-            expectedOutput: exercise.expectedOutput,
+          const response = await fetchWithAuth(`/api/lessons/validate-html`, {
+            method: "POST",
+            body: JSON.stringify({
+              userCode: htmlCode,
+              expectedOutput: exercise.expectedOutput,
+            }),
           });
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(
+              errorData.message || "Error al validar el código HTML"
+            );
+          }
+          const responseData = await response.json();
 
           setModalContent({
-            isCorrect: response.data.isCorrect,
-            message: response.data.message,
+            isCorrect: responseData.isCorrect,
+            message: responseData.message,
           });
 
           setShowFeedbackScreen(
-            response.data.isCorrect ? "correct" : "incorrect"
+            responseData.isCorrect ? "correct" : "incorrect"
           );
           setTimeout(() => setShowFeedbackScreen(null), 2000);
 
-          if (response.data.isCorrect) {
+          if (responseData.isCorrect) {
             setIsExerciseCompleted(true);
-            try {
-              const progressResponse = await axiosInstance.post(
-                `/progress/courses/${courseId}/lessons/${lessonId}/exercises/${exerciseOrder}/complete`
-              );
-              toast.success(`🎉 Ejercicio número ${exercise.order} superado.`, {
-                toastId: "progress-success",
-              });
-            } catch (progressError: unknown) {
-              let errorMessage = "Error al guardar el progreso.";
-              if (axios.isAxiosError(progressError)) {
-                errorMessage =
-                  (progressError as AxiosError<ErrorResponse>).response?.data
-                    ?.message || errorMessage;
+            const progressResponse = await fetchWithAuth(
+              `/api/progress/courses/${courseId}/lessons/${lessonId}/exercises/${exerciseOrder}/complete`,
+              {
+                method: "POST",
               }
-              toast.error(errorMessage, { toastId: "progress-error" });
+            );
+            if (!progressResponse.ok) {
+              const errorData = await progressResponse.json();
+              throw new Error(
+                errorData.message || "Error al guardar el progreso"
+              );
             }
+            toast.success(`🎉 Ejercicio número ${exercise.order} superado.`, {
+              toastId: "progress-success",
+            });
           }
         } catch (error: unknown) {
-          let errorMessage = "❌ Error al validar el código. Intenta de nuevo.";
-          if (axios.isAxiosError(error)) {
-            errorMessage =
-              (error as AxiosError<ErrorResponse>).response?.data?.message ||
-              errorMessage;
-          }
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : "❌ Error al validar el código. Intenta de nuevo.";
           setModalContent({
             isCorrect: false,
             message: errorMessage,
@@ -559,19 +574,26 @@ export default function SolveExercise() {
       if (isCorrect) {
         setIsExerciseCompleted(true);
         try {
-          const progressResponse = await axiosInstance.post(
-            `/progress/courses/${courseId}/lessons/${lessonId}/exercises/${exerciseOrder}/complete`
+          const progressResponse = await fetchWithAuth(
+            `/api/progress/courses/${courseId}/lessons/${lessonId}/exercises/${exerciseOrder}/complete`,
+            {
+              method: "POST",
+            }
           );
+          if (!progressResponse.ok) {
+            const errorData = await progressResponse.json();
+            throw new Error(
+              errorData.message || "Error al guardar el progreso"
+            );
+          }
           toast.success(`🎉 Ejercicio número ${exercise.order} superado.`, {
             toastId: "progress-success",
           });
         } catch (progressError: unknown) {
-          let errorMessage = "Error al guardar el progreso.";
-          if (axios.isAxiosError(progressError)) {
-            errorMessage =
-              (progressError as AxiosError<ErrorResponse>).response?.data
-                ?.message || errorMessage;
-          }
+          const errorMessage =
+            progressError instanceof Error
+              ? progressError.message
+              : "Error al guardar el progreso.";
           toast.error(errorMessage, { toastId: "progress-error" });
         }
       }
@@ -985,7 +1007,7 @@ export default function SolveExercise() {
           groupedElements.push(
             <div key={`image-${index}`} className="space-y-2">
               <img
-                src={element.value}
+                src={getImageUrl(element.value)}
                 alt={`Imagen ${index + 1}`}
                 className="w-full max-w-md rounded-md object-contain"
                 onError={() =>

@@ -1,36 +1,47 @@
 // frontend/src/context/AuthContext.tsx
+
 import { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { apiGet, apiPost } from "../api"; // Importa las funciones de api.tsx
+
+interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+}
 
 interface AuthContextType {
-  user: { id: string; name: string; email: string } | null;
+  user: AuthUser | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
-  fetchWithAuth: (url: string, options?: RequestInit) => Promise<Response>;
+  fetchWithAuth: (endpoint: string, options?: RequestInit) => Promise<Response>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<{
-    id: string;
-    name: string;
-    email: string;
-  } | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
+  const fetchWithAuth = async (endpoint: string, options: RequestInit = {}) => {
     const token = localStorage.getItem("token");
     const headers = {
       ...options.headers,
       Authorization: token ? `Bearer ${token}` : "",
       "Content-Type": "application/json",
     };
+
     try {
-      const response = await fetch(url, { ...options, headers });
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}${endpoint}`,
+        {
+          ...options,
+          headers,
+        }
+      );
       if (response.status === 401) {
         logout();
         navigate("/login");
@@ -45,13 +56,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await fetch("http://localhost:5000/api/users/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Login failed");
+      const data = await apiPost<{ token: string; user: AuthUser }>(
+        "/api/users/login",
+        {
+          email,
+          password,
+        }
+      );
+
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
       setUser(data.user);
@@ -75,15 +87,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const user = localStorage.getItem("user");
       if (token && user) {
         try {
-          const response = await fetchWithAuth(
-            "http://localhost:5000/api/users/me"
-          );
-          const data = await response.json();
-          if (response.ok) {
-            setUser(data);
-          } else {
-            logout();
-          }
+          const data = await apiGet<{ user: AuthUser }>("/api/users/me", token);
+          setUser(data.user);
         } catch (error) {
           logout();
         }
