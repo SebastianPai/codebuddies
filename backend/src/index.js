@@ -54,14 +54,20 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        connectSrc: [
+        connectSrc: ["'self'"],
+        imgSrc: [
           "'self'",
-          "https://codebuddies-jh-3e772884b367.herokuapp.com",
+          "data:",
+          "https://picsum.photos",
+          "https://v.etsystatic.com",
+          "https://codebuddies-jh-3e772884b367.herokuapp.com", // Para /uploads
         ],
-        // Agrega otras directivas si es necesario, por ejemplo, para imágenes o scripts
-        imgSrc: ["'self'", "data:"],
         scriptSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"], // Permite estilos inline si usas CSS en línea
+        styleSrc: [
+          "'self'",
+          "'unsafe-inline'",
+          "https://www.gstatic.com", // Para Google Translate
+        ],
       },
     },
   })
