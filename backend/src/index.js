@@ -27,36 +27,50 @@ const corsOptions = {
     const allowedOrigins = [
       "http://localhost:5173",
       "https://codebuddies-jh-3e772884b367.herokuapp.com",
+      null, // Permitir origen nulo para <iframe> con srcDoc
     ];
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error("Not allowed by CORS"));
+      callback(new Error("No permitido por CORS"));
     }
   },
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
-  optionsSuccessStatus: 200, // Para compatibilidad con algunos navegadores
+  optionsSuccessStatus: 200,
 };
 
 // Aplicar CORS antes de cualquier ruta
 app.use(cors(corsOptions));
 
-// Configuración de multer
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "Uploads/");
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + path.extname(file.originalName));
-  },
-});
+// Middleware para agregar cabeceras CORS a archivos estáticos
+const addCorsHeaders = (req, res, next) => {
+  const allowedOrigin =
+    process.env.NODE_ENV === "production"
+      ? "https://codebuddies-jh-3e772884b367.herokuapp.com"
+      : "http://localhost:5173";
+  res.set({
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Methods": "GET",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Credentials": "true",
+  });
+  next();
+};
 
-const upload = multer({ storage });
+// Servir archivos estáticos con CORS
+app.use(
+  "/images",
+  addCorsHeaders,
+  express.static(path.join(__dirname, "../public/images"))
+);
+app.use(
+  "/uploads",
+  addCorsHeaders,
+  express.static(path.join(__dirname, "../Uploads"))
+);
 
-app.use("/uploads", express.static(path.join(__dirname, "../Uploads")));
 app.use(express.json());
 
 // Configurar Helmet con CSP personalizada
@@ -82,10 +96,6 @@ app.use(
   })
 );
 
-// Servir archivos estáticos
-app.use("/images", express.static(path.join(__dirname, "../public/images")));
-app.use("/uploads", express.static(path.join(__dirname, "../Uploads")));
-
 app.use(morgan("dev"));
 
 // Rutas de la API
@@ -101,7 +111,11 @@ app.use(express.static(path.join(__dirname, "../../frontend/dist")));
 
 // Middleware para manejar rutas del frontend (React Router)
 app.use((req, res, next) => {
-  if (req.path.startsWith("/api") || req.path.startsWith("/uploads")) {
+  if (
+    req.path.startsWith("/api") ||
+    req.path.startsWith("/uploads") ||
+    req.path.startsWith("/images")
+  ) {
     return next();
   }
   res.sendFile(path.join(__dirname, "../../frontend/dist", "index.html"));
