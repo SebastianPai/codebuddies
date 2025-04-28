@@ -38,21 +38,16 @@ export default function Learn() {
     const fetchModulesAndCourses = async () => {
       try {
         setLoading(true);
-        const token = localStorage.getItem("token");
-        if (!token) throw new Error("No se encontró el token de autenticación");
+        setError("");
 
-        // Fetch modules
-        const modulesData: Module[] = await apiGet<Module[]>(
-          "/api/modules",
-          token
-        );
+        // Fetch modules (público, sin token)
+        const modulesData: Module[] = await apiGet<Module[]>("/api/modules");
 
-        // Fetch courses for each module
+        // Fetch courses for each module (público, sin token)
         const modulesWithCourses: ModuleWithCourses[] = await Promise.all(
           modulesData.map(async (mod) => {
             const coursesData: Course[] = await apiGet<Course[]>(
-              `/api/modules/${mod._id}/courses`,
-              token
+              `/api/modules/${mod._id}/courses`
             );
             return {
               ...mod,
@@ -84,8 +79,11 @@ export default function Learn() {
     if (imagePath.startsWith("http")) {
       return imagePath;
     }
-    // Assuming the backend serves images relative to the API base URL
-    return `${process.env.REACT_APP_API_URL || ""}${imagePath}`;
+    // Usar la URL base del backend en producción
+    return `${
+      import.meta.env.VITE_API_URL ||
+      "https://codebuddies-jh-3e772884b367.herokuapp.com"
+    }${imagePath}`;
   };
 
   // Determine background image based on theme

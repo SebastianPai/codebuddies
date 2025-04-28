@@ -9,6 +9,7 @@ import moduleRoutes from "./routes/ModuleRoutes.js";
 import lessonRoutes from "./routes/lessonRoutes.js";
 import courseRoutes from "./routes/courseRoutes.js";
 import progressRoutes from "./routes/progress.js";
+import imageProxyRoutes from "./routes/imageRoutes.js"; // Importar la ruta de proxy
 import multer from "multer";
 import { fileURLToPath } from "url";
 import path from "path";
@@ -60,14 +61,11 @@ app.use(
           "data:",
           "https://picsum.photos",
           "https://v.etsystatic.com",
-          "https://codebuddies-jh-3e772884b367.herokuapp.com", // Para /uploads
+          "https://codebuddies-jh-3e772884b367.herokuapp.com",
         ],
         scriptSrc: ["'self'"],
-        styleSrc: [
-          "'self'",
-          "'unsafe-inline'",
-          "https://www.gstatic.com", // Para Google Translate
-        ],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://www.gstatic.com"],
+        frameSrc: ["'self'"], // Permitir iframes locales
       },
     },
   })
@@ -81,6 +79,7 @@ app.use("/api/modules", moduleRoutes);
 app.use("/api/lessons", lessonRoutes);
 app.use("/api/courses", courseRoutes);
 app.use("/api/progress", progressRoutes);
+app.use("/api", imageProxyRoutes); // Registrar ruta de proxy
 
 // Servir archivos estáticos del frontend
 app.use(express.static(path.join(__dirname, "../../frontend/dist")));

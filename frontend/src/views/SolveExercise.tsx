@@ -95,7 +95,7 @@ export default function SolveExercise() {
     if (imagePath.startsWith("http")) {
       return imagePath;
     }
-    return `${import.meta.env.VITE_API_URL}${imagePath}`;
+    return `/api/proxy-image?url=${encodeURIComponent(imagePath)}`;
   };
 
   const fetchData = useCallback(async () => {
@@ -687,6 +687,12 @@ export default function SolveExercise() {
     const escapeCode = (code: string) =>
       code.replace(/</g, "<").replace(/>/g, ">");
 
+    // Reemplazar URLs de imágenes en htmlCode con el proxy
+    const proxiedHtmlCode = htmlCode.replace(
+      /<img[^>]+src=["'](.*?)["']/gi,
+      (match, url) => `<img src="${getImageUrl(url)}"`
+    );
+
     const cssContent =
       exercise?.language === "html" || exercise?.language === "css"
         ? escapeCode(cssCode)
@@ -698,7 +704,7 @@ export default function SolveExercise() {
         <style>${cssContent}</style>
       </head>
       <body>
-        ${escapeCode(htmlCode)}
+        ${escapeCode(proxiedHtmlCode)}
       </body>
       </html>
     `;
@@ -712,6 +718,7 @@ export default function SolveExercise() {
             theme.name === "dark" ? "#FFFFFF" : theme.colors.background,
           border: `1px solid ${theme.colors.border}`,
         }}
+        sandbox="allow-same-origin allow-scripts"
       />
     );
   };
