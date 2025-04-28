@@ -9,7 +9,7 @@ import moduleRoutes from "./routes/ModuleRoutes.js";
 import lessonRoutes from "./routes/lessonRoutes.js";
 import courseRoutes from "./routes/courseRoutes.js";
 import progressRoutes from "./routes/progress.js";
-import imageProxyRoutes from "./routes/imageProxy.js";
+import imageProxyRoutes from "./routes/imageRoutes.js";
 import multer from "multer";
 import { fileURLToPath } from "url";
 import path from "path";
