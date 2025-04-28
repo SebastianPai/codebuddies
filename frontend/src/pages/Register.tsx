@@ -78,7 +78,7 @@ export default function Register(): JSX.Element {
         password: form.password,
       });
 
-      navigate("/login");
+      navigate("/learn");
     } catch (err: any) {
       setError(err.message || "Error en el registro");
     }

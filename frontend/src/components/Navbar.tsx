@@ -16,7 +16,7 @@ export default function Navbar() {
   };
 
   // Enlace dinámico a /profile o /login según autenticación
-  const profileLink = user ? "/profile" : "/login";
+  const profileLink = user ? "/perfil" : "/login";
 
   return (
     <nav
@@ -29,20 +29,6 @@ export default function Navbar() {
     >
       <div className="flex items-center space-x-8">
         <Link to="/" className="flex items-center">
-          <div
-            className="w-8 h-8 rounded-md flex items-center justify-center mr-2 border-2"
-            style={{
-              background: theme.colors.accent,
-              borderColor: theme.colors.border,
-            }}
-          >
-            <span
-              className="font-bold"
-              style={{ color: theme.colors.buttonText }}
-            >
-              C
-            </span>
-          </div>
           <span className="text-2xl font-bold tracking-wider">CODEBUDDIES</span>
           <span
             className="text-sm ml-1"

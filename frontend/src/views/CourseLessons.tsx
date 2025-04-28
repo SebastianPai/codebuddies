@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ChevronDown, Lock, Trophy, Zap, Star } from "lucide-react";
@@ -54,10 +52,6 @@ export default function CourseLesson() {
   const [expandedLesson, setExpandedLesson] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    console.log("Current theme in CourseLessons:", theme);
-  }, [theme]);
 
   const toggleLesson = (lessonIndex: number) => {
     setExpandedLesson(expandedLesson === lessonIndex ? null : lessonIndex);
@@ -122,9 +116,6 @@ export default function CourseLesson() {
           progressData
         );
         setExpandedLesson(currentLessonIndex);
-
-        console.log("Lessons:", lessonData);
-        console.log("Progress:", progressData);
       } catch (err: unknown) {
         const errorMessage =
           err instanceof Error
@@ -178,9 +169,6 @@ export default function CourseLesson() {
     );
 
     if (isExerciseCompleted) {
-      console.log(
-        `Access granted: Exercise ${lessonId}/${exerciseOrder} is already completed.`
-      );
       return true;
     }
 
@@ -191,9 +179,6 @@ export default function CourseLesson() {
       );
 
     if (isExerciseAccessible) {
-      console.log(
-        `Access granted: Exercise ${lessonId}/${exerciseOrder} is accessible based on progress.`
-      );
       return true;
     }
 
@@ -209,14 +194,6 @@ export default function CourseLesson() {
         (a, b) => a.order - b.order
       );
 
-      console.log(
-        `Fallback check for lesson ${lessonId}, prevLesson ${prevLesson._id}:`,
-        {
-          prevLessonProgress,
-          prevLessonExercises,
-        }
-      );
-
       const isPrevLessonCompleted = prevLessonExercises.every((exercise) =>
         prevLessonProgress.some(
           (p) => p.exerciseOrder === exercise.order && p.completed
@@ -224,9 +201,6 @@ export default function CourseLesson() {
       );
 
       if (isPrevLessonCompleted) {
-        console.log(
-          `Access granted: Previous lesson ${prevLesson._id} is fully completed.`
-        );
         toast.info("Acceso permitido: la lección anterior está completada.", {
           toastId: `access-granted-${lessonId}-${exerciseOrder}`,
         });
@@ -242,10 +216,6 @@ export default function CourseLesson() {
         const errorData = (await response
           .json()
           .catch(() => ({}))) as ErrorResponse;
-        console.log(
-          `Access check failed for ${lessonId}/${exerciseOrder}:`,
-          errorData
-        );
         toast.warn(
           errorData.message ||
             "Debes completar todos los ejercicios de la lección anterior primero.",
@@ -265,10 +235,6 @@ export default function CourseLesson() {
       toast.error(errorMessage, {
         toastId: `access-error-${lessonId}-${exerciseOrder}`,
       });
-      console.error(
-        `Error in checkExerciseAccess for ${lessonId}/${exerciseOrder}:`,
-        err
-      );
       return false;
     }
   };
