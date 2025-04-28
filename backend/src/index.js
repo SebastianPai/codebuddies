@@ -60,6 +60,7 @@ app.use(
           "'self'",
           "data:",
           "https://picsum.photos",
+          "https://fastly.picsum.photos",
           "https://v.etsystatic.com",
           "https://codebuddies-jh-3e772884b367.herokuapp.com",
         ],

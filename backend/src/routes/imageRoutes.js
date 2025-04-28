@@ -16,9 +16,9 @@ router.get("/proxy-image", async (req, res) => {
     // Lista de dominios permitidos (puedes expandirla según tus necesidades)
     const allowedDomains = [
       "picsum.photos",
+      "fastly.picsum.photos",
       "images.unsplash.com",
       "via.placeholder.com",
-      "scontent.fpso1-1.fna.fbcdn.net", // Temporalmente para Facebook
       "codebuddies-jh-3e772884b367.herokuapp.com",
     ];
     const isAllowed = allowedDomains.some((domain) =>

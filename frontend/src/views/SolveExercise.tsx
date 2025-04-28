@@ -90,9 +90,9 @@ export default function SolveExercise() {
 
   const getImageUrl = (imagePath: string) => {
     if (!imagePath) {
-      return "/images/default-course.jpg";
+      return "/images/default-image.jpg";
     }
-    if (imagePath.startsWith("http")) {
+    if (imagePath.startsWith("data")) {
       return imagePath;
     }
     return `/api/proxy-image?url=${encodeURIComponent(imagePath)}`;
@@ -687,7 +687,6 @@ export default function SolveExercise() {
     const escapeCode = (code: string) =>
       code.replace(/</g, "<").replace(/>/g, ">");
 
-    // Reemplazar URLs de imágenes en htmlCode con el proxy
     const proxiedHtmlCode = htmlCode.replace(
       /<img[^>]+src=["'](.*?)["']/gi,
       (match, url) => `<img src="${getImageUrl(url)}"`
@@ -718,7 +717,7 @@ export default function SolveExercise() {
             theme.name === "dark" ? "#FFFFFF" : theme.colors.background,
           border: `1px solid ${theme.colors.border}`,
         }}
-        sandbox="allow-same-origin allow-scripts"
+        sandbox="allow-scripts" // Solo allow-scripts
       />
     );
   };
@@ -1264,7 +1263,7 @@ export default function SolveExercise() {
                   }}
                 >
                   <Play className="w-4 h-4 mr-2" />
-                  Run
+                  Runn
                 </button>
                 <div className="flex space-x-2">
                   <button
