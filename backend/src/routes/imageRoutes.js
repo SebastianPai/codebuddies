@@ -12,14 +12,13 @@ router.get("/proxy-image", async (req, res) => {
   }
 
   // Establecer cabeceras CORS
-  const allowedOrigin =
-    process.env.NODE_ENV === "production"
-      ? req.headers.origin ||
-        "https://codebuddies-jh-3e772884b367.herokuapp.com"
-      : "http://localhost:5173";
+  const allowedOrigin = req.headers.origin || "*"; // Permitir origen nulo
+  console.log(
+    `Origen de la solicitud (proxy): ${req.headers.origin || "null"}`
+  );
   res.set({
     "Access-Control-Allow-Origin": allowedOrigin,
-    "Access-Control-Allow-Methods": "GET",
+    "Access-Control-Allow-Methods": "GET, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "Access-Control-Allow-Credentials": "true",
   });
@@ -28,10 +27,13 @@ router.get("/proxy-image", async (req, res) => {
     const imageUrl = new URL(url);
 
     // Bloquear URLs internas
-    if (imageUrl.hostname === "codebuddies-jh-3e772884b367.herokuapp.com") {
+    if (
+      imageUrl.hostname === "codebuddies-jh-3e772884b367.herokuapp.com" ||
+      imageUrl.hostname === "localhost"
+    ) {
       const defaultImagePath = path.join(
         __dirname,
-        "../../public/images/default-image.jpg"
+        "../../frontend/public/images/default-image.jpg"
       );
       const buffer = fs.readFileSync(defaultImagePath);
       res.set("Content-Type", "image/jpeg");
@@ -51,9 +53,10 @@ router.get("/proxy-image", async (req, res) => {
     );
 
     if (!isAllowed) {
+      console.warn(`Dominio no permitido: ${imageUrl.hostname}`);
       const defaultImagePath = path.join(
         __dirname,
-        "../../public/images/default-image.jpg"
+        "../../frontend/public/images/default-image.jpg"
       );
       const buffer = fs.readFileSync(defaultImagePath);
       res.set("Content-Type", "image/jpeg");
@@ -68,9 +71,10 @@ router.get("/proxy-image", async (req, res) => {
     });
 
     if (!response.ok) {
+      console.error(`Error al obtener imagen: ${response.status}`);
       const defaultImagePath = path.join(
         __dirname,
-        "../../public/images/default-image.jpg"
+        "../../frontend/public/images/default-image.jpg"
       );
       const buffer = fs.readFileSync(defaultImagePath);
       res.set("Content-Type", "image/jpeg");
@@ -87,7 +91,7 @@ router.get("/proxy-image", async (req, res) => {
     console.error("Error en proxy-image:", err);
     const defaultImagePath = path.join(
       __dirname,
-      "../../public/images/default-image.jpg"
+      "../../frontend/public/images/default-image.jpg"
     );
     const buffer = fs.readFileSync(defaultImagePath);
     res.set("Content-Type", "image/jpeg");

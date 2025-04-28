@@ -24,52 +24,30 @@ const app = express();
 // Configuración de CORS
 const corsOptions = {
   origin: (origin, callback) => {
-    const allowedOrigins = [
-      "http://localhost:5173",
-      "https://codebuddies-jh-3e772884b367.herokuapp.com",
-      null, // Permitir origen nulo para <iframe> con srcDoc
-    ];
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
+    if (process.env.NODE_ENV === "development") {
+      console.log(`Origen de la solicitud: ${origin || "null"}`);
+      callback(null, true); // Permitir todos los orígenes en local
     } else {
-      callback(new Error("No permitido por CORS"));
+      const allowedOrigins = [
+        "https://codebuddies-jh-3e772884b367.herokuapp.com",
+        null, // Permitir origen nulo para <iframe>
+      ];
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.error(`Origen no permitido: ${origin}`);
+        callback(new Error("No permitido por CORS"));
+      }
     }
   },
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
   optionsSuccessStatus: 200,
 };
 
-// Aplicar CORS antes de cualquier ruta
+// Aplicar CORS globalmente
 app.use(cors(corsOptions));
-
-// Middleware para agregar cabeceras CORS a archivos estáticos
-const addCorsHeaders = (req, res, next) => {
-  const allowedOrigin =
-    process.env.NODE_ENV === "production"
-      ? "https://codebuddies-jh-3e772884b367.herokuapp.com"
-      : "http://localhost:5173";
-  res.set({
-    "Access-Control-Allow-Origin": allowedOrigin,
-    "Access-Control-Allow-Methods": "GET",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Access-Control-Allow-Credentials": "true",
-  });
-  next();
-};
-
-// Servir archivos estáticos con CORS
-app.use(
-  "/images",
-  addCorsHeaders,
-  express.static(path.join(__dirname, "../public/images"))
-);
-app.use(
-  "/uploads",
-  addCorsHeaders,
-  express.static(path.join(__dirname, "../Uploads"))
-);
 
 app.use(express.json());
 
@@ -79,14 +57,19 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        connectSrc: ["'self'"],
+        connectSrc: [
+          "'self'",
+          "http://localhost:5000",
+          "https://codebuddies-jh-3e772884b367.herokuapp.com",
+        ],
         imgSrc: [
           "'self'",
           "data:",
+          "http://localhost:5173", // Frontend local
+          "https://codebuddies-jh-3e772884b367.herokuapp.com", // Frontend producción
           "https://picsum.photos",
           "https://fastly.picsum.photos",
           "https://v.etsystatic.com",
-          "https://codebuddies-jh-3e772884b367.herokuapp.com",
         ],
         scriptSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://www.gstatic.com"],
@@ -111,11 +94,7 @@ app.use(express.static(path.join(__dirname, "../../frontend/dist")));
 
 // Middleware para manejar rutas del frontend (React Router)
 app.use((req, res, next) => {
-  if (
-    req.path.startsWith("/api") ||
-    req.path.startsWith("/uploads") ||
-    req.path.startsWith("/images")
-  ) {
+  if (req.path.startsWith("/api")) {
     return next();
   }
   res.sendFile(path.join(__dirname, "../../frontend/dist", "index.html"));

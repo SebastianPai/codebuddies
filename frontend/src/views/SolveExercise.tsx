@@ -90,30 +90,35 @@ export default function SolveExercise() {
 
   const getImageUrl = (imagePath: string) => {
     if (!imagePath) {
-      return "/images/default-image.jpg"; // Ajustado a /images/
+      return "/images/default-image.jpg"; // Resuelve a frontend/public/images/
     }
     if (imagePath.startsWith("data:")) {
       return imagePath;
     }
-    const baseUrl =
+
+    // Base URL del backend para APIs
+    const apiUrl =
       import.meta.env.VITE_API_URL ||
       "https://codebuddies-jh-3e772884b367.herokuapp.com";
 
-    // Imágenes locales en /images/ o /uploads/
+    // Imágenes locales: usar la raíz del frontend (/images/)
     if (
       imagePath.startsWith("/images/") ||
-      imagePath.startsWith("/uploads/") ||
       imagePath.includes("fondo1.jpg") ||
-      imagePath.includes("fonodcurso.jpg") ||
-      imagePath.includes("fondocss.jpg")
+      imagePath.includes("default-image.jpg")
     ) {
-      return `${baseUrl}${
-        imagePath.startsWith("/") ? imagePath : `/images/${imagePath}`
-      }`;
+      // No agregar apiUrl, usar la URL relativa para el frontend
+      return imagePath.startsWith("/") ? imagePath : `/images/${imagePath}`;
     }
 
-    // Imágenes externas pasan por el proxy
-    return `${baseUrl}/api/proxy-image?url=${encodeURIComponent(imagePath)}`;
+    // Manejar URLs de localhost (extraer nombre del archivo)
+    if (imagePath.includes("localhost:5000")) {
+      const fileName = imagePath.split("/").pop();
+      return `/images/${fileName}`; // Resuelve a frontend/public/images/
+    }
+
+    // Imágenes externas: usar el proxy del backend
+    return `${apiUrl}/api/proxy-image?url=${encodeURIComponent(imagePath)}`;
   };
 
   const fetchData = useCallback(async () => {
@@ -702,23 +707,16 @@ export default function SolveExercise() {
   );
 
   const renderPreview = () => {
-    // No escapar < y >, ya que el HTML se renderiza directamente
     const proxiedHtmlCode = htmlCode.replace(
       /<img[^>]+src=["'](.*?)["']/gi,
       (match, url) => {
-        // Corregir URLs con localhost
-        if (url.includes("localhost:5000")) {
-          const fileName = url.split("/").pop();
-          return `<img src="/images/${fileName}"`;
-        }
-        // Usar getImageUrl para otras URLs
         return `<img src="${getImageUrl(url)}"`;
       }
     );
 
     const cssContent =
       exercise?.language === "html" || exercise?.language === "css"
-        ? cssCode // Sin escapar
+        ? cssCode
         : "";
     const htmlContent = `
       <!DOCTYPE html>
