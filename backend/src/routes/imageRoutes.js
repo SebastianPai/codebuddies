@@ -1,5 +1,7 @@
 import express from "express";
 import fetch from "node-fetch";
+import fs from "fs";
+import path from "path";
 
 const router = express.Router();
 
@@ -10,7 +12,6 @@ router.get("/proxy-image", async (req, res) => {
     return;
   }
 
-  // Configurar cabeceras CORS para todas las respuestas
   const allowedOrigin =
     process.env.NODE_ENV === "production"
       ? "https://codebuddies-jh-3e772884b367.herokuapp.com"
@@ -35,8 +36,13 @@ router.get("/proxy-image", async (req, res) => {
     );
 
     if (!isAllowed) {
-      // Redirección con cabeceras CORS
-      res.redirect(302, "/uploads/default-image.jpg");
+      const defaultImagePath = path.join(
+        __dirname,
+        "../../Uploads/default-image.jpg"
+      );
+      const buffer = fs.readFileSync(defaultImagePath);
+      res.set("Content-Type", "image/jpeg");
+      res.send(buffer);
       return;
     }
 
@@ -46,7 +52,13 @@ router.get("/proxy-image", async (req, res) => {
       },
     });
     if (!response.ok) {
-      res.redirect(302, "/uploads/default-image.jpg");
+      const defaultImagePath = path.join(
+        __dirname,
+        "../../Uploads/default-image.jpg"
+      );
+      const buffer = fs.readFileSync(defaultImagePath);
+      res.set("Content-Type", "image/jpeg");
+      res.send(buffer);
       return;
     }
 
@@ -59,7 +71,13 @@ router.get("/proxy-image", async (req, res) => {
     res.send(buffer);
   } catch (err) {
     console.error("Error en proxy-image:", err);
-    res.redirect(302, "/uploads/default-image.jpg");
+    const defaultImagePath = path.join(
+      __dirname,
+      "../../Uploads/default-image.jpg"
+    );
+    const buffer = fs.readFileSync(defaultImagePath);
+    res.set("Content-Type", "image/jpeg");
+    res.send(buffer);
   }
 });
 

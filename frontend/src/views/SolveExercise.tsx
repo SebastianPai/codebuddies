@@ -90,15 +90,20 @@ export default function SolveExercise() {
 
   const getImageUrl = (imagePath: string) => {
     if (!imagePath) {
-      return "/images/default-image.jpg";
+      return "/uploads/default-image.jpg";
     }
-    if (imagePath.startsWith("data")) {
+    if (imagePath.startsWith("data:")) {
       return imagePath;
     }
     const baseUrl =
       import.meta.env.VITE_API_URL ||
       "https://codebuddies-jh-3e772884b367.herokuapp.com";
-    return `/api/proxy-image?url=${encodeURIComponent(imagePath)}`;
+
+    if (imagePath.startsWith("/uploads/")) {
+      return `${baseUrl}${imagePath}`;
+    }
+
+    return `${baseUrl}/api/proxy-image?url=${encodeURIComponent(imagePath)}`;
   };
 
   const fetchData = useCallback(async () => {
@@ -688,11 +693,16 @@ export default function SolveExercise() {
 
   const renderPreview = () => {
     const escapeCode = (code: string) =>
-      code.replace(/</g, "<").replace(/>/g, ">");
+      code.replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
     const proxiedHtmlCode = htmlCode.replace(
       /<img[^>]+src=["'](.*?)["']/gi,
-      (match, url) => `<img src="${getImageUrl(url)}"`
+      (match, url) => {
+        if (url.startsWith("data:") || url.startsWith("/uploads/")) {
+          return `<img src="${url}"`;
+        }
+        return `<img src="${getImageUrl(url)}"`;
+      }
     );
 
     const cssContent =
@@ -720,7 +730,7 @@ export default function SolveExercise() {
             theme.name === "dark" ? "#FFFFFF" : theme.colors.background,
           border: `1px solid ${theme.colors.border}`,
         }}
-        sandbox="allow-scripts" // Solo allow-scripts
+        sandbox="allow-scripts"
       />
     );
   };
