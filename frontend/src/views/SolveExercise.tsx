@@ -95,6 +95,9 @@ export default function SolveExercise() {
     if (imagePath.startsWith("data")) {
       return imagePath;
     }
+    const baseUrl =
+      import.meta.env.VITE_API_URL ||
+      "https://codebuddies-jh-3e772884b367.herokuapp.com";
     return `/api/proxy-image?url=${encodeURIComponent(imagePath)}`;
   };
 

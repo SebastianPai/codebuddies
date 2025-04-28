@@ -9,7 +9,7 @@ import moduleRoutes from "./routes/ModuleRoutes.js";
 import lessonRoutes from "./routes/lessonRoutes.js";
 import courseRoutes from "./routes/courseRoutes.js";
 import progressRoutes from "./routes/progress.js";
-import imageProxyRoutes from "./routes/imageRoutes.js"; // Importar la ruta de proxy
+import imageProxyRoutes from "./routes/imageProxy.js";
 import multer from "multer";
 import { fileURLToPath } from "url";
 import path from "path";
@@ -20,6 +20,28 @@ const __dirname = path.dirname(__filename);
 dotenv.config();
 
 const app = express();
+
+// Configuración de CORS
+const corsOptions = {
+  origin: (origin, callback) => {
+    const allowedOrigins = [
+      "http://localhost:5173",
+      "https://codebuddies-jh-3e772884b367.herokuapp.com",
+    ];
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+  optionsSuccessStatus: 200, // Para compatibilidad con algunos navegadores
+};
+
+// Aplicar CORS antes de cualquier ruta
+app.use(cors(corsOptions));
 
 // Configuración de multer
 const storage = multer.diskStorage({
@@ -34,18 +56,6 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// Configurar CORS
-const corsOptions = {
-  origin:
-    process.env.NODE_ENV === "production"
-      ? "https://codebuddies-jh-3e772884b367.herokuapp.com"
-      : "http://localhost:5173",
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true,
-};
-
-app.use(cors(corsOptions));
 app.use("/uploads", express.static(path.join(__dirname, "../Uploads")));
 app.use(express.json());
 
@@ -66,7 +76,7 @@ app.use(
         ],
         scriptSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://www.gstatic.com"],
-        frameSrc: ["'self'"], // Permitir iframes locales
+        frameSrc: ["'self'"],
       },
     },
   })
@@ -80,7 +90,7 @@ app.use("/api/modules", moduleRoutes);
 app.use("/api/lessons", lessonRoutes);
 app.use("/api/courses", courseRoutes);
 app.use("/api/progress", progressRoutes);
-app.use("/api", imageProxyRoutes); // Registrar ruta de proxy
+app.use("/api", imageProxyRoutes);
 
 // Servir archivos estáticos del frontend
 app.use(express.static(path.join(__dirname, "../../frontend/dist")));

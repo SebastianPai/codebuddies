@@ -1,4 +1,3 @@
-// backend/src/routes/imageProxy.js
 import express from "express";
 import fetch from "node-fetch";
 
@@ -7,18 +6,28 @@ const router = express.Router();
 router.get("/proxy-image", async (req, res) => {
   const { url } = req.query;
   if (!url || typeof url !== "string") {
-    return res.status(400).json({ message: "URL inválida" });
+    res.status(400).json({ message: "URL inválida" });
+    return;
   }
 
+  // Configurar cabeceras CORS para todas las respuestas
+  const allowedOrigin =
+    process.env.NODE_ENV === "production"
+      ? "https://codebuddies-jh-3e772884b367.herokuapp.com"
+      : "http://localhost:5173";
+  res.set("Access-Control-Allow-Origin", allowedOrigin);
+  res.set("Access-Control-Allow-Methods", "GET");
+  res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.set("Access-Control-Allow-Credentials", "true");
+
   try {
-    // Validar la URL
     const imageUrl = new URL(url);
-    // Lista de dominios permitidos (puedes expandirla según tus necesidades)
     const allowedDomains = [
       "picsum.photos",
       "fastly.picsum.photos",
       "images.unsplash.com",
       "via.placeholder.com",
+      "scontent.fpso1-1.fna.fbcdn.net",
       "codebuddies-jh-3e772884b367.herokuapp.com",
     ];
     const isAllowed = allowedDomains.some((domain) =>
@@ -26,8 +35,9 @@ router.get("/proxy-image", async (req, res) => {
     );
 
     if (!isAllowed) {
-      // Servir una imagen de respaldo si el dominio no está permitido
-      return res.redirect("/uploads/default-image.jpg");
+      // Redirección con cabeceras CORS
+      res.redirect(302, "/uploads/default-image.jpg");
+      return;
     }
 
     const response = await fetch(imageUrl, {
@@ -36,7 +46,8 @@ router.get("/proxy-image", async (req, res) => {
       },
     });
     if (!response.ok) {
-      return res.redirect("/uploads/default-image.jpg");
+      res.redirect(302, "/uploads/default-image.jpg");
+      return;
     }
 
     const buffer = await response.buffer();
@@ -44,11 +55,11 @@ router.get("/proxy-image", async (req, res) => {
       "Content-Type",
       response.headers.get("content-type") || "image/jpeg"
     );
-    res.set("Cache-Control", "public, max-age=31536000"); // Cachear por 1 año
+    res.set("Cache-Control", "public, max-age=31536000");
     res.send(buffer);
   } catch (err) {
     console.error("Error en proxy-image:", err);
-    res.redirect("/uploads/default-image.jpg");
+    res.redirect(302, "/uploads/default-image.jpg");
   }
 });
 
