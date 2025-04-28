@@ -5,8 +5,6 @@ import mongoose from "mongoose";
 import helmet from "helmet";
 import morgan from "morgan";
 import userRoutes from "./routes/userRoutes.js";
-// import friendRoutes from "./routes/friendRoutes.js";
-// import friendRequestRoutes from "./routes/friendRequestRoutes.js";
 import moduleRoutes from "./routes/ModuleRoutes.js";
 import lessonRoutes from "./routes/lessonRoutes.js";
 import courseRoutes from "./routes/courseRoutes.js";
@@ -15,7 +13,6 @@ import multer from "multer";
 import { fileURLToPath } from "url";
 import path from "path";
 
-// Obtener __dirname en ES Modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -23,7 +20,7 @@ dotenv.config();
 
 const app = express();
 
-// Set up multer for file uploads
+// Configuración de multer
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, "Uploads/");
@@ -39,7 +36,9 @@ const upload = multer({ storage });
 // Configurar CORS
 const corsOptions = {
   origin:
-    process.env.NODE_ENV === "production" ? false : "http://localhost:5173",
+    process.env.NODE_ENV === "production"
+      ? "https://codebuddies-jh-3e772884b367.herokuapp.com"
+      : "http://localhost:5173",
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
@@ -48,7 +47,26 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use("/uploads", express.static(path.join(__dirname, "../Uploads")));
 app.use(express.json());
-app.use(helmet());
+
+// Configurar Helmet con CSP personalizada
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        connectSrc: [
+          "'self'",
+          "https://codebuddies-jh-3e772884b367.herokuapp.com",
+        ],
+        // Agrega otras directivas si es necesario, por ejemplo, para imágenes o scripts
+        imgSrc: ["'self'", "data:"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'"], // Permite estilos inline si usas CSS en línea
+      },
+    },
+  })
+);
+
 app.use(morgan("dev"));
 
 // Rutas de la API
@@ -63,11 +81,9 @@ app.use(express.static(path.join(__dirname, "../../frontend/dist")));
 
 // Middleware para manejar rutas del frontend (React Router)
 app.use((req, res, next) => {
-  // Si la solicitud es para una ruta de la API o uploads, pasar al siguiente middleware
   if (req.path.startsWith("/api") || req.path.startsWith("/uploads")) {
     return next();
   }
-  // De lo contrario, servir index.html para las rutas del frontend
   res.sendFile(path.join(__dirname, "../../frontend/dist", "index.html"));
 });
 
