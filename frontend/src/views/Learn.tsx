@@ -5,6 +5,7 @@ import Navbar from "../components/Navbar";
 import { Code, ChevronRight, Trophy, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@/context/ThemeContext";
+import { apiGet } from "../api";
 
 interface Module {
   _id: string;
@@ -37,34 +38,22 @@ export default function Learn() {
     const fetchModulesAndCourses = async () => {
       try {
         setLoading(true);
-        const resModules = await fetch("http://localhost:5000/api/modules", {
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-        });
-        if (!resModules.ok) {
-          throw new Error(`Error al cargar módulos: ${resModules.statusText}`);
-        }
-        const modulesData: Module[] = await resModules.json();
+        const token = localStorage.getItem("token");
+        if (!token) throw new Error("No se encontró el token de autenticación");
 
+        // Fetch modules
+        const modulesData: Module[] = await apiGet<Module[]>(
+          "/api/modules",
+          token
+        );
+
+        // Fetch courses for each module
         const modulesWithCourses: ModuleWithCourses[] = await Promise.all(
           modulesData.map(async (mod) => {
-            const resCourses = await fetch(
-              `http://localhost:5000/api/modules/${mod._id}/courses`,
-              {
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                credentials: "include",
-              }
+            const coursesData: Course[] = await apiGet<Course[]>(
+              `/api/modules/${mod._id}/courses`,
+              token
             );
-            if (!resCourses.ok) {
-              throw new Error(
-                `Error al cargar cursos para el módulo ${mod._id}: ${resCourses.statusText}`
-              );
-            }
-            const coursesData: Course[] = await resCourses.json();
             return {
               ...mod,
               courses: coursesData,
@@ -95,9 +84,22 @@ export default function Learn() {
     if (imagePath.startsWith("http")) {
       return imagePath;
     }
-    const fullUrl = `http://localhost:5000${imagePath}`;
-    console.log("Generated image URL:", fullUrl);
-    return fullUrl;
+    // Assuming the backend serves images relative to the API base URL
+    return `${process.env.REACT_APP_API_URL || ""}${imagePath}`;
+  };
+
+  // Determine background image based on theme
+  const getBackgroundImage = () => {
+    switch (theme.name) {
+      case "dark":
+        return "/images/fondo1.jpg";
+      case "light":
+        return "/images/fondo2.jpg";
+      case "pink":
+        return "/images/fondo3.jpg";
+      default:
+        return "/images/fondo4.jpg"; // Fallback
+    }
   };
 
   return (
@@ -116,7 +118,7 @@ export default function Learn() {
         <div
           className="absolute inset-0 bg-cover bg-center opacity-60"
           style={{
-            backgroundImage: "url('/images/fondo7.jpeg')",
+            backgroundImage: `url(${getBackgroundImage()})`,
             backgroundPosition: "center center",
             backgroundSize: "cover",
             minHeight: "550px",
