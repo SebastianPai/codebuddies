@@ -1,7 +1,8 @@
 import express from "express";
-import fetch from "node-fetch";
-import fs from "fs";
+import { URL } from "url";
 import path from "path";
+import fs from "fs";
+import fetch from "node-fetch";
 
 const router = express.Router();
 
@@ -12,10 +13,7 @@ router.get("/proxy-image", async (req, res) => {
   }
 
   // Establecer cabeceras CORS
-  const allowedOrigin = req.headers.origin || "*"; // Permitir origen nulo
-  console.log(
-    `Origen de la solicitud (proxy): ${req.headers.origin || "null"}`
-  );
+  const allowedOrigin = req.headers.origin || "*";
   res.set({
     "Access-Control-Allow-Origin": allowedOrigin,
     "Access-Control-Allow-Methods": "GET, OPTIONS",
@@ -33,7 +31,7 @@ router.get("/proxy-image", async (req, res) => {
     ) {
       const defaultImagePath = path.join(
         __dirname,
-        "../../frontend/public/images/default-image.jpg"
+        "../public/images/default-image.jpg"
       );
       const buffer = fs.readFileSync(defaultImagePath);
       res.set("Content-Type", "image/jpeg");
@@ -56,7 +54,7 @@ router.get("/proxy-image", async (req, res) => {
       console.warn(`Dominio no permitido: ${imageUrl.hostname}`);
       const defaultImagePath = path.join(
         __dirname,
-        "../../frontend/public/images/default-image.jpg"
+        "../public/images/default-image.jpg"
       );
       const buffer = fs.readFileSync(defaultImagePath);
       res.set("Content-Type", "image/jpeg");
@@ -74,7 +72,7 @@ router.get("/proxy-image", async (req, res) => {
       console.error(`Error al obtener imagen: ${response.status}`);
       const defaultImagePath = path.join(
         __dirname,
-        "../../frontend/public/images/default-image.jpg"
+        "../public/images/default-image.jpg"
       );
       const buffer = fs.readFileSync(defaultImagePath);
       res.set("Content-Type", "image/jpeg");
@@ -91,7 +89,7 @@ router.get("/proxy-image", async (req, res) => {
     console.error("Error en proxy-image:", err);
     const defaultImagePath = path.join(
       __dirname,
-      "../../frontend/public/images/default-image.jpg"
+      "../public/images/default-image.jpg"
     );
     const buffer = fs.readFileSync(defaultImagePath);
     res.set("Content-Type", "image/jpeg");
@@ -99,4 +97,4 @@ router.get("/proxy-image", async (req, res) => {
   }
 });
 
-export default router;
+export default router; // Exportar el router como default

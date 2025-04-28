@@ -90,34 +90,29 @@ export default function SolveExercise() {
 
   const getImageUrl = (imagePath: string) => {
     if (!imagePath) {
-      return "/images/default-image.jpg"; // Resuelve a frontend/public/images/
+      return "/images/default-image.jpg"; // Imagen por defecto en backend
     }
     if (imagePath.startsWith("data:")) {
-      return imagePath;
+      return imagePath; // URLs de datos (base64)
     }
 
-    // Base URL del backend para APIs
+    // Base URL del backend
     const apiUrl =
       import.meta.env.VITE_API_URL ||
       "https://codebuddies-jh-3e772884b367.herokuapp.com";
 
-    // Imágenes locales: usar la raíz del frontend (/images/)
+    // Imágenes internas (fondo1.jpg, default-image.jpg, o rutas /images/)
     if (
       imagePath.startsWith("/images/") ||
       imagePath.includes("fondo1.jpg") ||
       imagePath.includes("default-image.jpg")
     ) {
-      // No agregar apiUrl, usar la URL relativa para el frontend
-      return imagePath.startsWith("/") ? imagePath : `/images/${imagePath}`;
+      return `${apiUrl}${
+        imagePath.startsWith("/") ? imagePath : `/images/${imagePath}`
+      }`; // Servir desde backend
     }
 
-    // Manejar URLs de localhost (extraer nombre del archivo)
-    if (imagePath.includes("localhost:5000")) {
-      const fileName = imagePath.split("/").pop();
-      return `/images/${fileName}`; // Resuelve a frontend/public/images/
-    }
-
-    // Imágenes externas: usar el proxy del backend
+    // Imágenes externas: usar el proxy
     return `${apiUrl}/api/proxy-image?url=${encodeURIComponent(imagePath)}`;
   };
 
@@ -1401,7 +1396,7 @@ export default function SolveExercise() {
                     : !htmlCode.trim()
                 }
               >
-                <Play className="w-4 h-4 mr-2" />
+                <Play className="no" />
                 <span>Comprobar</span>
               </button>
               <button

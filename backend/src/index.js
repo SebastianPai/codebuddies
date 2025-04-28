@@ -49,6 +49,9 @@ const corsOptions = {
 // Aplicar CORS globalmente
 app.use(cors(corsOptions));
 
+// Después de app.use(cors(corsOptions));
+app.use("/images", express.static(path.join(__dirname, "public/images")));
+
 app.use(express.json());
 
 // Configurar Helmet con CSP personalizada
