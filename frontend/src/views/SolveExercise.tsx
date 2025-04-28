@@ -693,16 +693,11 @@ export default function SolveExercise() {
 
   const renderPreview = () => {
     const escapeCode = (code: string) =>
-      code.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      code.replace(/</g, "<").replace(/>/g, ">");
 
     const proxiedHtmlCode = htmlCode.replace(
       /<img[^>]+src=["'](.*?)["']/gi,
-      (match, url) => {
-        if (url.startsWith("data:") || url.startsWith("/uploads/")) {
-          return `<img src="${url}"`;
-        }
-        return `<img src="${getImageUrl(url)}"`;
-      }
+      (match, url) => `<img src="${getImageUrl(url)}"`
     );
 
     const cssContent =
@@ -730,7 +725,7 @@ export default function SolveExercise() {
             theme.name === "dark" ? "#FFFFFF" : theme.colors.background,
           border: `1px solid ${theme.colors.border}`,
         }}
-        sandbox="allow-scripts"
+        sandbox="allow-scripts" // Solo allow-scripts
       />
     );
   };
