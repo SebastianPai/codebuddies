@@ -12,6 +12,7 @@ router.get("/proxy-image", async (req, res) => {
     return;
   }
 
+  // Configurar cabeceras CORS
   const allowedOrigin =
     process.env.NODE_ENV === "production"
       ? "https://codebuddies-jh-3e772884b367.herokuapp.com"
@@ -23,13 +24,24 @@ router.get("/proxy-image", async (req, res) => {
 
   try {
     const imageUrl = new URL(url);
+    // No permitir URLs internas
+    if (imageUrl.hostname === "codebuddies-jh-3e772884b367.herokuapp.com") {
+      const defaultImagePath = path.join(
+        __dirname,
+        "../../public/images/default-image.jpg"
+      );
+      const buffer = fs.readFileSync(defaultImagePath);
+      res.set("Content-Type", "image/jpeg");
+      res.send(buffer);
+      return;
+    }
+
     const allowedDomains = [
       "picsum.photos",
       "fastly.picsum.photos",
       "images.unsplash.com",
       "via.placeholder.com",
       "scontent.fpso1-1.fna.fbcdn.net",
-      "codebuddies-jh-3e772884b367.herokuapp.com",
     ];
     const isAllowed = allowedDomains.some((domain) =>
       imageUrl.hostname.includes(domain)
@@ -38,7 +50,7 @@ router.get("/proxy-image", async (req, res) => {
     if (!isAllowed) {
       const defaultImagePath = path.join(
         __dirname,
-        "../../Uploads/default-image.jpg"
+        "../../public/images/default-image.jpg"
       );
       const buffer = fs.readFileSync(defaultImagePath);
       res.set("Content-Type", "image/jpeg");
@@ -54,7 +66,7 @@ router.get("/proxy-image", async (req, res) => {
     if (!response.ok) {
       const defaultImagePath = path.join(
         __dirname,
-        "../../Uploads/default-image.jpg"
+        "../../public/images/default-image.jpg"
       );
       const buffer = fs.readFileSync(defaultImagePath);
       res.set("Content-Type", "image/jpeg");
@@ -73,7 +85,7 @@ router.get("/proxy-image", async (req, res) => {
     console.error("Error en proxy-image:", err);
     const defaultImagePath = path.join(
       __dirname,
-      "../../Uploads/default-image.jpg"
+      "../../public/images/default-image.jpg"
     );
     const buffer = fs.readFileSync(defaultImagePath);
     res.set("Content-Type", "image/jpeg");

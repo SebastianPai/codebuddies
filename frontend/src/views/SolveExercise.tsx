@@ -90,7 +90,7 @@ export default function SolveExercise() {
 
   const getImageUrl = (imagePath: string) => {
     if (!imagePath) {
-      return "/uploads/default-image.jpg";
+      return "/images/default-image.jpg"; // Ajustado a /images/
     }
     if (imagePath.startsWith("data:")) {
       return imagePath;
@@ -99,10 +99,20 @@ export default function SolveExercise() {
       import.meta.env.VITE_API_URL ||
       "https://codebuddies-jh-3e772884b367.herokuapp.com";
 
-    if (imagePath.startsWith("/uploads/")) {
-      return `${baseUrl}${imagePath}`;
+    // Imágenes locales en /images/ o /uploads/
+    if (
+      imagePath.startsWith("/images/") ||
+      imagePath.startsWith("/uploads/") ||
+      imagePath.includes("fondo1.jpg") ||
+      imagePath.includes("fonodcurso.jpg") ||
+      imagePath.includes("fondocss.jpg")
+    ) {
+      return `${baseUrl}${
+        imagePath.startsWith("/") ? imagePath : `/images/${imagePath}`
+      }`;
     }
 
+    // Imágenes externas pasan por el proxy
     return `${baseUrl}/api/proxy-image?url=${encodeURIComponent(imagePath)}`;
   };
 
@@ -692,17 +702,23 @@ export default function SolveExercise() {
   );
 
   const renderPreview = () => {
-    const escapeCode = (code: string) =>
-      code.replace(/</g, "<").replace(/>/g, ">");
-
+    // No escapar < y >, ya que el HTML se renderiza directamente
     const proxiedHtmlCode = htmlCode.replace(
       /<img[^>]+src=["'](.*?)["']/gi,
-      (match, url) => `<img src="${getImageUrl(url)}"`
+      (match, url) => {
+        // Corregir URLs con localhost
+        if (url.includes("localhost:5000")) {
+          const fileName = url.split("/").pop();
+          return `<img src="/images/${fileName}"`;
+        }
+        // Usar getImageUrl para otras URLs
+        return `<img src="${getImageUrl(url)}"`;
+      }
     );
 
     const cssContent =
       exercise?.language === "html" || exercise?.language === "css"
-        ? escapeCode(cssCode)
+        ? cssCode // Sin escapar
         : "";
     const htmlContent = `
       <!DOCTYPE html>
@@ -711,7 +727,7 @@ export default function SolveExercise() {
         <style>${cssContent}</style>
       </head>
       <body>
-        ${escapeCode(proxiedHtmlCode)}
+        ${proxiedHtmlCode}
       </body>
       </html>
     `;
@@ -725,7 +741,7 @@ export default function SolveExercise() {
             theme.name === "dark" ? "#FFFFFF" : theme.colors.background,
           border: `1px solid ${theme.colors.border}`,
         }}
-        sandbox="allow-scripts" // Solo allow-scripts
+        sandbox="allow-scripts"
       />
     );
   };

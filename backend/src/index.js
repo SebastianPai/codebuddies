@@ -82,6 +82,10 @@ app.use(
   })
 );
 
+// Servir archivos estáticos
+app.use("/images", express.static(path.join(__dirname, "../public/images")));
+app.use("/uploads", express.static(path.join(__dirname, "../Uploads")));
+
 app.use(morgan("dev"));
 
 // Rutas de la API
