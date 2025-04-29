@@ -56,6 +56,12 @@ interface ErrorResponse {
   message?: string;
 }
 
+// Type guard para verificar si un elemento tiene la propiedad 'value'
+const hasValue = (
+  element: InstructionElement
+): element is Exclude<InstructionElement, { type: "paragraph-break" }> =>
+  element.type !== "paragraph-break";
+
 export default function SolveExercise() {
   const { theme } = useTheme();
   const { fetchWithAuth } = useAuth();
@@ -87,33 +93,30 @@ export default function SolveExercise() {
   const [showFeedbackScreen, setShowFeedbackScreen] = useState<
     "correct" | "incorrect" | null
   >(null);
+  const [iframeContent, setIframeContent] = useState("");
+  const [isIframeLoading, setIsIframeLoading] = useState(false); // Nuevo estado para carga del iframe
+  const [instructionImages, setInstructionImages] = useState<{
+    [key: string]: string;
+  }>({});
 
-  const getImageUrl = (imagePath: string) => {
-    if (!imagePath) {
-      return "/images/default-image.jpg"; // Imagen por defecto en backend
+  // Nueva función convertImageToBase64
+  const convertImageToBase64 = async (imageUrl: string): Promise<string> => {
+    try {
+      const response = await fetch(imageUrl);
+      if (!response.ok) {
+        throw new Error(`No se pudo cargar la imagen: ${response.status}`);
+      }
+      const blob = await response.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.error("Error al convertir imagen a base64:", error);
+      return ""; // Retorna cadena vacía en caso de error
     }
-    if (imagePath.startsWith("data:")) {
-      return imagePath; // URLs de datos (base64)
-    }
-
-    // Base URL del backend
-    const apiUrl =
-      import.meta.env.VITE_API_URL ||
-      "https://codebuddies-jh-3e772884b367.herokuapp.com";
-
-    // Imágenes internas (fondo1.jpg, default-image.jpg, o rutas /images/)
-    if (
-      imagePath.startsWith("/images/") ||
-      imagePath.includes("fondo1.jpg") ||
-      imagePath.includes("default-image.jpg")
-    ) {
-      return `${apiUrl}${
-        imagePath.startsWith("/") ? imagePath : `/images/${imagePath}`
-      }`; // Servir desde backend
-    }
-
-    // Imágenes externas: usar el proxy
-    return `${apiUrl}/api/proxy-image?url=${encodeURIComponent(imagePath)}`;
   };
 
   const fetchData = useCallback(async () => {
@@ -204,6 +207,33 @@ export default function SolveExercise() {
       setLoading(false);
     }
   }, [courseId, lessonId, exerciseOrder, fetchData]);
+
+  // Precargar imágenes de las instrucciones
+  useEffect(() => {
+    const loadInstructionImages = async () => {
+      const imageElements = instructionElements.filter(
+        (el): el is { type: "image"; value: string } =>
+          el.type === "image" && hasValue(el) && !!el.value
+      );
+      const imagePromises = imageElements.map(async (el) => ({
+        url: el.value,
+        base64: await convertImageToBase64(el.value),
+      }));
+      const resolvedImages = await Promise.all(imagePromises);
+      const imagesMap = resolvedImages.reduce(
+        (acc, { url, base64 }) => ({
+          ...acc,
+          [url]: base64 || "", // Usa cadena vacía si falla
+        }),
+        {}
+      );
+      setInstructionImages(imagesMap);
+    };
+
+    if (instructionElements.length > 0) {
+      loadInstructionImages();
+    }
+  }, [instructionElements]);
 
   const parseInstructions = (instructions: string) => {
     const elements: InstructionElement[] = [];
@@ -702,31 +732,24 @@ export default function SolveExercise() {
   );
 
   const renderPreview = () => {
-    const proxiedHtmlCode = htmlCode.replace(
-      /<img[^>]+src=["'](.*?)["']/gi,
-      (match, url) => {
-        return `<img src="${getImageUrl(url)}"`;
-      }
-    );
+    if (isIframeLoading) {
+      return (
+        <div
+          className="flex justify-center items-center w-full h-full"
+          style={{ background: theme.colors.card }}
+        >
+          <div
+            className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2"
+            style={{ borderColor: theme.colors.accent }}
+            aria-label="Cargando vista previa"
+          ></div>
+        </div>
+      );
+    }
 
-    const cssContent =
-      exercise?.language === "html" || exercise?.language === "css"
-        ? cssCode
-        : "";
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>${cssContent}</style>
-      </head>
-      <body>
-        ${proxiedHtmlCode}
-      </body>
-      </html>
-    `;
     return (
       <iframe
-        srcDoc={htmlContent}
+        srcDoc={iframeContent}
         className="w-full h-full rounded-b-lg"
         title="Vista previa del ejercicio"
         style={{
@@ -738,6 +761,82 @@ export default function SolveExercise() {
       />
     );
   };
+
+  // Generar el contenido del iframe con imágenes en base64
+  useEffect(() => {
+    const generateIframeContent = async () => {
+      setIsIframeLoading(true);
+      try {
+        // Extraer todas las URLs de imágenes del htmlCode
+        const imageUrls: string[] = [];
+        htmlCode.replace(/<img[^>]+src=["'](.*?)["']/gi, (_match, url) => {
+          imageUrls.push(url);
+          return _match;
+        });
+
+        // Convertir todas las imágenes a base64
+        const resolvedUrls = await Promise.all(
+          imageUrls.map(async (url) => {
+            if (url.startsWith("data:")) return url; // Ya es base64
+            const base64 = await convertImageToBase64(url);
+            if (!base64) {
+              toast.warn(`No se pudo cargar la imagen: ${url}`, {
+                toastId: `image-error-${url}`,
+              });
+              return "";
+            }
+            return base64;
+          })
+        );
+
+        // Reemplazar las URLs originales con las versiones base64
+        let index = 0;
+        const proxiedHtmlCode = htmlCode.replace(
+          /<img[^>]+src=["'](.*?)["']/gi,
+          (_match, _url) => {
+            const base64Url = resolvedUrls[index++] || "";
+            return `<img src="${base64Url}" />`;
+          }
+        );
+
+        const cssContent =
+          exercise?.language === "html" || exercise?.language === "css"
+            ? cssCode
+            : "";
+        const htmlContent = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <style>${cssContent}</style>
+          </head>
+          <body>
+            ${proxiedHtmlCode}
+          </body>
+          </html>
+        `;
+        setIframeContent(htmlContent);
+      } catch (error) {
+        console.error("Error al generar el contenido del iframe:", error);
+        toast.error("Error al cargar la vista previa.", {
+          toastId: "iframe-error",
+        });
+        setIframeContent(`
+          <!DOCTYPE html>
+          <html>
+          <body>
+            <p>Error al cargar la vista previa.</p>
+          </body>
+          </html>
+        `);
+      } finally {
+        setIsIframeLoading(false);
+      }
+    };
+
+    if (htmlCode || cssCode) {
+      generateIframeContent();
+    }
+  }, [htmlCode, cssCode, exercise]);
 
   const renderTextGroup = (group: InstructionElement[]) => {
     const subgroups: InstructionElement[][] = [];
@@ -1014,7 +1113,7 @@ export default function SolveExercise() {
           currentTextGroup = [];
         }
 
-        if (element.type === "code" && element.value) {
+        if (element.type === "code" && hasValue(element) && element.value) {
           groupedElements.push(
             <div key={`code-${index}`} className="space-y-2">
               <p
@@ -1026,11 +1125,15 @@ export default function SolveExercise() {
               {renderCodeBlock(element.value, element.language)}
             </div>
           );
-        } else if (element.type === "image" && element.value) {
+        } else if (
+          element.type === "image" &&
+          hasValue(element) &&
+          element.value
+        ) {
           groupedElements.push(
             <div key={`image-${index}`} className="space-y-2">
               <img
-                src={getImageUrl(element.value)}
+                src={instructionImages[element.value] || ""}
                 alt={`Imagen ${index + 1}`}
                 className="w-full max-w-md rounded-md object-contain"
                 onError={() =>
@@ -1280,7 +1383,7 @@ export default function SolveExercise() {
                   }}
                 >
                   <Play className="w-4 h-4 mr-2" />
-                  Runn
+                  Run
                 </button>
                 <div className="flex space-x-2">
                   <button
