@@ -94,12 +94,12 @@ export default function SolveExercise() {
     "correct" | "incorrect" | null
   >(null);
   const [iframeContent, setIframeContent] = useState("");
-  const [isIframeLoading, setIsIframeLoading] = useState(false); // Nuevo estado para carga del iframe
+  const [isIframeLoading, setIsIframeLoading] = useState(false);
   const [instructionImages, setInstructionImages] = useState<{
     [key: string]: string;
   }>({});
 
-  // Nueva función convertImageToBase64
+  // Función para convertir imágenes a base64
   const convertImageToBase64 = async (imageUrl: string): Promise<string> => {
     try {
       const response = await fetch(imageUrl);
@@ -115,7 +115,15 @@ export default function SolveExercise() {
       });
     } catch (error) {
       console.error("Error al convertir imagen a base64:", error);
-      return ""; // Retorna cadena vacía en caso de error
+      // Evitar toast duplicados y forzar autoClose
+      if (!toast.isActive(`image-error-${imageUrl}`)) {
+        toast.warn(`No se pudo cargar la imagen: ${imageUrl}`, {
+          toastId: `image-error-${imageUrl}`,
+          autoClose: 3000,
+        });
+      }
+      // Retornar placeholder gris en caso de error
+      return "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
     }
   };
 
@@ -185,6 +193,7 @@ export default function SolveExercise() {
           errorData.message || "No se pudo cargar el progreso del ejercicio.",
           {
             toastId: "progress-error",
+            autoClose: 3000, // Forzar autoClose
           }
         );
       }
@@ -193,7 +202,7 @@ export default function SolveExercise() {
         error instanceof Error
           ? error.message
           : "No se pudo cargar el ejercicio.";
-      toast.error(errorMessage, { toastId: "fetch-error" });
+      toast.error(errorMessage, { toastId: "fetch-error", autoClose: 3000 });
     } finally {
       setLoading(false);
     }
@@ -203,7 +212,10 @@ export default function SolveExercise() {
     if (courseId && lessonId && exerciseOrder) {
       fetchData();
     } else {
-      toast.error("Faltan parámetros en la URL.", { toastId: "url-error" });
+      toast.error("Faltan parámetros en la URL.", {
+        toastId: "url-error",
+        autoClose: 3000,
+      });
       setLoading(false);
     }
   }, [courseId, lessonId, exerciseOrder, fetchData]);
@@ -223,7 +235,7 @@ export default function SolveExercise() {
       const imagesMap = resolvedImages.reduce(
         (acc, { url, base64 }) => ({
           ...acc,
-          [url]: base64 || "", // Usa cadena vacía si falla
+          [url]: base64 || "",
         }),
         {}
       );
@@ -571,6 +583,7 @@ export default function SolveExercise() {
             }
             toast.success(`🎉 Ejercicio número ${exercise.order} superado.`, {
               toastId: "progress-success",
+              autoClose: 3000,
             });
           }
         } catch (error: unknown) {
@@ -636,13 +649,17 @@ export default function SolveExercise() {
           }
           toast.success(`🎉 Ejercicio número ${exercise.order} superado.`, {
             toastId: "progress-success",
+            autoClose: 3000,
           });
         } catch (progressError: unknown) {
           const errorMessage =
             progressError instanceof Error
               ? progressError.message
               : "Error al guardar el progreso.";
-          toast.error(errorMessage, { toastId: "progress-error" });
+          toast.error(errorMessage, {
+            toastId: "progress-error",
+            autoClose: 3000,
+          });
         }
       }
     }
@@ -710,6 +727,7 @@ export default function SolveExercise() {
           navigator.clipboard.writeText(code);
           toast.success("Código copiado al portapapeles.", {
             toastId: "copy-success",
+            autoClose: 3000,
           });
         }}
         className="absolute top-2 right-2 p-2 rounded-md transition-colors"
@@ -767,6 +785,9 @@ export default function SolveExercise() {
     const generateIframeContent = async () => {
       setIsIframeLoading(true);
       try {
+        // Cerrar todos los toast existentes para evitar acumulación
+        toast.dismiss();
+
         // Extraer todas las URLs de imágenes del htmlCode
         const imageUrls: string[] = [];
         htmlCode.replace(/<img[^>]+src=["'](.*?)["']/gi, (_match, url) => {
@@ -779,23 +800,17 @@ export default function SolveExercise() {
           imageUrls.map(async (url) => {
             if (url.startsWith("data:")) return url; // Ya es base64
             const base64 = await convertImageToBase64(url);
-            if (!base64) {
-              toast.warn(`No se pudo cargar la imagen: ${url}`, {
-                toastId: `image-error-${url}`,
-              });
-              return "";
-            }
             return base64;
           })
         );
 
-        // Reemplazar las URLs originales con las versiones base64
+        // Reemplazar solo el atributo src, preservando otros atributos
         let index = 0;
         const proxiedHtmlCode = htmlCode.replace(
-          /<img[^>]+src=["'](.*?)["']/gi,
-          (_match, _url) => {
+          /<img([^>]*?)src=["'](.*?)["']([^>]*?)>/gi,
+          (_match, beforeSrc, _url, afterSrc) => {
             const base64Url = resolvedUrls[index++] || "";
-            return `<img src="${base64Url}" />`;
+            return `<img ${beforeSrc} src="${base64Url}" ${afterSrc}>`;
           }
         );
 
@@ -819,6 +834,7 @@ export default function SolveExercise() {
         console.error("Error al generar el contenido del iframe:", error);
         toast.error("Error al cargar la vista previa.", {
           toastId: "iframe-error",
+          autoClose: 3000,
         });
         setIframeContent(`
           <!DOCTYPE html>
@@ -1139,6 +1155,7 @@ export default function SolveExercise() {
                 onError={() =>
                   toast.error(`No se pudo cargar la imagen ${index + 1}.`, {
                     toastId: "image-error",
+                    autoClose: 3000,
                   })
                 }
                 style={{ border: `1px solid ${theme.colors.border}` }}
@@ -1397,6 +1414,7 @@ export default function SolveExercise() {
                       );
                       toast.success("Código copiado al portapapeles.", {
                         toastId: "copy-success",
+                        autoClose: 3000,
                       });
                     }}
                     className="p-2 rounded-md"
@@ -1710,6 +1728,7 @@ export default function SolveExercise() {
                     navigator.clipboard.writeText(jsCode);
                     toast.success("Código copiado al portapapeles.", {
                       toastId: "copy-success",
+                      autoClose: 3000,
                     });
                   }}
                   className="p-2 rounded-md"
@@ -1837,12 +1856,12 @@ export default function SolveExercise() {
         autoClose={3000}
         hideProgressBar={false}
         newestOnTop
-        closeOnClick={false}
+        closeOnClick={true} // Permitir cerrar al hacer clic
         closeButton={true}
         rtl={false}
-        pauseOnFocusLoss
+        pauseOnFocusLoss={false} // No pausar al perder foco
         draggable
-        pauseOnHover
+        pauseOnHover={false} // No pausar al pasar el ratón
         theme={theme.name}
         limit={3}
       />
