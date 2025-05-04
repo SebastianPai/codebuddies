@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "heroku-postbuild": "NPM_CONFIG_PRODUCTION=false cd frontend && npm install && npm run build",
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
