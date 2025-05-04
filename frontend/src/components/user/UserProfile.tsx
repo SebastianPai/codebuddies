@@ -16,9 +16,9 @@ import {
   User,
 } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
-import Navbar from "../components/Navbar";
-import { useAuth } from "../context/AuthContext";
-import { apiGet, apiPost } from "../api";
+import Navbar from "../common/Navbar";
+import { useAuth } from "../../context/AuthContext";
+import { apiGet, apiPost } from "../../api";
 
 // Definir tipos para los datos
 interface UserData {

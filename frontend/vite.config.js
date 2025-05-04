@@ -4,6 +4,7 @@ import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 
 export default defineConfig({
+  base: "/", // 👈 Esto asegura rutas absolutas que funcionen con Express
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {

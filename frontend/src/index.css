@@ -9,3 +9,30 @@
 @theme {
   --font-PixelifySans: PixelifySans, "sans-serif";
 }
+
+/* Estilos para el contenedor del editor */
+.monaco-editor {
+  width: 100% !important;
+  height: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Estilos para las barras de desplazamiento */
+.monaco-editor .monaco-scrollable-element > .scrollbar > .slider {
+  background: #888 !important;
+  border-radius: 4px !important;
+}
+
+.monaco-editor .monaco-scrollable-element > .scrollbar > .slider:hover {
+  background: #555 !important;
+}
+
+@media (min-width: 768px) {
+  .flex-row > div {
+    flex: 1 1 0 !important;
+    max-width: 33.3333% !important;
+  }
+  .flex-row > div:nth-child(3) {
+    max-width: 33.3333% !important;
+  }
+}

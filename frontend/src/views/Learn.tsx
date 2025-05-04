@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Navbar from "../components/Navbar";
+import Navbar from "../components/common/Navbar";
 import { Code, ChevronRight, Trophy, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@/context/ThemeContext";

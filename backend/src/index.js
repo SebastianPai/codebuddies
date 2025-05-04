@@ -10,7 +10,6 @@ import lessonRoutes from "./routes/lessonRoutes.js";
 import courseRoutes from "./routes/courseRoutes.js";
 import progressRoutes from "./routes/progress.js";
 import imageProxyRoutes from "./routes/imageRoutes.js";
-import multer from "multer";
 import { fileURLToPath } from "url";
 import path from "path";
 
@@ -49,9 +48,10 @@ const corsOptions = {
 // Aplicar CORS globalmente
 app.use(cors(corsOptions));
 
-// Después de app.use(cors(corsOptions));
+// Servir imágenes estáticas
 app.use("/images", express.static(path.join(__dirname, "public/images")));
 
+// Parsear JSON
 app.use(express.json());
 
 // Configurar Helmet con CSP personalizada
@@ -63,6 +63,8 @@ app.use(
         connectSrc: [
           "'self'",
           "http://localhost:5000",
+          "https://codebuddies.live",
+          "https://www.codebuddies.live",
           "https://codebuddies-jh-3e772884b367.herokuapp.com",
         ],
         imgSrc: [
@@ -71,6 +73,8 @@ app.use(
           "http://localhost:5173", // Frontend local
           "https://codebuddies-jh-3e772884b367.herokuapp.com", // Frontend producción
           "https://picsum.photos",
+          "https://codebuddies.live",
+          "https://www.codebuddies.live",
           "https://fastly.picsum.photos",
           "https://v.etsystatic.com",
         ],
@@ -84,6 +88,9 @@ app.use(
 
 app.use(morgan("dev"));
 
+// Servir archivos estáticos del frontend
+app.use(express.static(path.join(__dirname, "../../frontend/dist")));
+
 // Rutas de la API
 app.use("/api/users", userRoutes);
 app.use("/api/modules", moduleRoutes);
@@ -92,18 +99,25 @@ app.use("/api/courses", courseRoutes);
 app.use("/api/progress", progressRoutes);
 app.use("/api", imageProxyRoutes);
 
-// Servir archivos estáticos del frontend
-app.use(express.static(path.join(__dirname, "../../frontend/dist")));
-
 // Middleware para manejar rutas del frontend (React Router)
 app.use((req, res, next) => {
-  if (req.path.startsWith("/api")) {
+  // Excluir rutas de la API
+  if (req.path.startsWith("/api") || req.path.startsWith("/images")) {
     return next();
   }
-  res.sendFile(path.join(__dirname, "../../frontend/dist", "index.html"));
+  // Servir index.html para las rutas del frontend
+  res.sendFile(
+    path.join(__dirname, "../../frontend/dist", "index.html"),
+    (err) => {
+      if (err) {
+        console.error("Error al enviar index.html:", err);
+        next(err);
+      }
+    }
+  );
 });
 
-// Manejar rutas no encontradas para la API
+// Manejar rutas no encontradas
 app.use((req, res) => {
   res.status(404).json({ message: "Ruta no encontrada" });
 });

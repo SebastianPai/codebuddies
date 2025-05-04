@@ -13,8 +13,8 @@ import {
   Github,
 } from "lucide-react";
 import { useTheme } from "@/context/ThemeContext";
-import Navbar from "../components/Navbar";
-import { apiGet } from "../api"; // Importamos apiGet para las solicitudes
+import Navbar from "../../../components/common/Navbar";
+import { apiGet } from "../../../api"; // Importamos apiGet para las solicitudes
 
 interface Module {
   _id: string;

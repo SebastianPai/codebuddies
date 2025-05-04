@@ -1,25 +1,23 @@
 // frontend/src/App.tsx
 import { Routes, Route } from "react-router-dom";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Dashboard from "./pages/Dashboard";
-import PrivateRoute from "./components/PrivateRoute";
-import Home from "./pages/Home";
-import FindFriends from "./pages/FindFriends";
-import FriendRequests from "./pages/FriendRequests";
-import FriendList from "./pages/FriendList";
-import PendingSentRequests from "./pages/PendingSentRequests";
+import Login from "./features/dashboard/views/Login";
+import Register from "./features/dashboard/views/Register";
+import Dashboard from "./features/dashboard/views/Dashboard";
+import PrivateRoute from "./components/common/PrivateRoute";
+import Home from "./features/dashboard/views/Home";
+import FindFriends from "./features/social/views/FindFriends";
+import FriendRequests from "./features/social/views/FriendRequests";
+import FriendList from "./features/social/views/FriendList";
+import PendingSentRequests from "./features/social/views/PendingSentRequests";
 import Learn from "./views/Learn";
-import ModuleDetail from "./views/ModuleDetail";
-import LessonDetail from "./views/LessonDetail";
-import ChallengeView from "./views/ChallengeView";
-import CourseLessons from "./views/CourseLessons";
-import SolveExercise from "./views/SolveExercise";
+import ChallengeView from "./features/exercises/views/ChallengeView";
+import CourseLessons from "./features/courses/views/CourseLessons";
+import SolveExercise from "./features/exercises/views/SolveExercise";
 import AdminModules from "./pages/AdminModules";
 import AdminCourses from "./pages/AdminCourses";
-import AdminLessons from "./pages/AdminLessons";
-import AdminExercise from "./pages/AdminExercise";
-import UserProfile from "./components/UserProfile";
+import AdminLessons from "./features/lessons/views/AdminLessons";
+import AdminExercise from "./features/exercises/views/AdminExercise";
+import UserProfile from "./components/user/UserProfile";
 
 export default function App() {
   return (
@@ -55,8 +53,6 @@ export default function App() {
       <Route path="/enviadas" element={<PendingSentRequests />} />
       <Route path="/learn" element={<Learn />} />
       <Route path="/perfil" element={<UserProfile />} />
-      <Route path="/learn/module/:moduleId" element={<ModuleDetail />} />
-      <Route path="/learn/lesson/:lessonId" element={<LessonDetail />} />
       <Route
         path="/learn/lesson/:lessonId/challenge"
         element={<ChallengeView />}
@@ -80,6 +76,3 @@ export default function App() {
     </Routes>
   );
 }
-// frontend/src/api.tsx
-const API_URL: string = import.meta.env.VITE_API_URL || "http://localhost:5000";
-console.log("API_URL:", API_URL); // Añade este console.log para depurar

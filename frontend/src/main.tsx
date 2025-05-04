@@ -9,7 +9,7 @@ import "./index.css";
 import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
-import ErrorBoundary from "./components/ErrorBoundary";
+import ErrorBoundary from "./components/common/ErrorBoundary";
 createRoot(document.getElementById("root") as HTMLElement).render(
   <StrictMode>
     <ErrorBoundary>

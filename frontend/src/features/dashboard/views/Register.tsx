@@ -1,12 +1,19 @@
-// frontend/src/pages/Login.tsx
+// frontend/src/pages/Register.tsx
 
 "use client";
 
-import { useState, FormEvent, JSX } from "react";
+import { useState, ChangeEvent, FormEvent, JSX } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
-import Navbar from "../components/Navbar";
+import Navbar from "../../../components/common/Navbar";
+import { apiPost } from "../../../api"; // Importamos apiPost para las solicitudes
+
+interface RegisterForm {
+  name: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+}
 
 interface ThemeColors {
   background: string;
@@ -25,25 +32,55 @@ interface ThemeContext {
   theme: { colors: ThemeColors };
 }
 
-export default function Login(): JSX.Element {
-  const { login } = useAuth();
+export default function Register(): JSX.Element {
   const navigate = useNavigate();
   const { theme } = useTheme() as ThemeContext;
 
-  const [email, setEmail] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
+  const [form, setForm] = useState<RegisterForm>({
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
   const [error, setError] = useState<string>("");
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleRegister = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
 
+    // Validaciones
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+      setError("Por favor, introduce un email válido");
+      return;
+    }
+
+    if (form.password.length < 6) {
+      setError("La contraseña debe tener al menos 6 caracteres");
+      return;
+    }
+
+    if (form.password !== form.confirmPassword) {
+      setError("Las contraseñas no coinciden");
+      return;
+    }
+
     try {
-      await login(email, password);
-      // No necesitas navigate("/dashboard") aquí porque AuthContext.tsx ya lo hace
+      await apiPost<{ message: string }>("/api/users/register", {
+        name: form.name,
+        email: form.email,
+        password: form.password,
+      });
+
+      navigate("/learn");
     } catch (err: any) {
-      console.error(err);
-      setError(err.message || "Credenciales inválidas");
+      setError(err.message || "Error en el registro");
     }
   };
 
@@ -77,13 +114,13 @@ export default function Login(): JSX.Element {
                 )
               )}
             </div>
-            <h1 className="text-3xl font-bold mb-2">Inicia Sesión</h1>
+            <h1 className="text-3xl font-bold mb-2">Regístrate</h1>
             <p style={{ color: theme.colors.secondaryText }}>
-              ¡Continúa tu aventura de código!
+              ¡Comienza tu aventura de programación!
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleRegister} className="space-y-4">
             {error && (
               <div
                 className="p-2 rounded text-center"
@@ -98,17 +135,49 @@ export default function Login(): JSX.Element {
 
             <div>
               <label
+                htmlFor="name"
+                className="block mb-2"
+                style={{ color: theme.colors.text }}
+              >
+                Nombre de Usuario
+              </label>
+              <input
+                id="name"
+                type="text"
+                name="name"
+                value={form.name}
+                onChange={handleChange}
+                className="w-full rounded-md p-3 placeholder:text-[#9ca3af] focus:outline-none focus:scale-[1.02] transition-all duration-300"
+                style={{
+                  background: theme.colors.background,
+                  border: `2px solid ${theme.colors.border}`,
+                  color: theme.colors.text,
+                }}
+                placeholder="CoderHero42"
+                required
+                onFocus={(e) =>
+                  (e.currentTarget.style.border = `2px solid ${theme.colors.accent}`)
+                }
+                onBlur={(e) =>
+                  (e.currentTarget.style.border = `2px solid ${theme.colors.border}`)
+                }
+              />
+            </div>
+
+            <div>
+              <label
                 htmlFor="email"
                 className="block mb-2"
                 style={{ color: theme.colors.text }}
               >
-                Email o Usuario
+                Email
               </label>
               <input
                 id="email"
-                type="text"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="email"
+                name="email"
+                value={form.email}
+                onChange={handleChange}
                 className="w-full rounded-md p-3 placeholder:text-[#9ca3af] focus:outline-none focus:scale-[1.02] transition-all duration-300"
                 style={{
                   background: theme.colors.background,
@@ -137,8 +206,40 @@ export default function Login(): JSX.Element {
               <input
                 id="password"
                 type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                name="password"
+                value={form.password}
+                onChange={handleChange}
+                className="w-full rounded-md p-3 placeholder:text-[#9ca3af] focus:outline-none focus:scale-[1.02] transition-all duration-300"
+                style={{
+                  background: theme.colors.background,
+                  border: `2px solid ${theme.colors.border}`,
+                  color: theme.colors.text,
+                }}
+                placeholder="••••••••"
+                required
+                onFocus={(e) =>
+                  (e.currentTarget.style.border = `2px solid ${theme.colors.accent}`)
+                }
+                onBlur={(e) =>
+                  (e.currentTarget.style.border = `2px solid ${theme.colors.border}`)
+                }
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="confirmPassword"
+                className="block mb-2"
+                style={{ color: theme.colors.text }}
+              >
+                Confirmar Contraseña
+              </label>
+              <input
+                id="confirmPassword"
+                type="password"
+                name="confirmPassword"
+                value={form.confirmPassword}
+                onChange={handleChange}
                 className="w-full rounded-md p-3 placeholder:text-[#9ca3af] focus:outline-none focus:scale-[1.02] transition-all duration-300"
                 style={{
                   background: theme.colors.background,
@@ -164,22 +265,22 @@ export default function Login(): JSX.Element {
                   background: theme.colors.button,
                   color: theme.colors.buttonText,
                 }}
-                aria-label="Iniciar sesión"
+                aria-label="Crear cuenta"
               >
-                INICIAR SESIÓN
+                CREAR CUENTA
               </button>
             </div>
           </form>
 
           <div className="mt-6 text-center">
             <p style={{ color: theme.colors.secondaryText }}>
-              ¿No tienes una cuenta?{" "}
+              ¿Ya tienes una cuenta?{" "}
               <Link
-                to="/register"
+                to="/login"
                 className="hover:underline"
                 style={{ color: theme.colors.accent }}
               >
-                Regístrate
+                Inicia Sesión
               </Link>
             </p>
           </div>
@@ -193,7 +294,7 @@ export default function Login(): JSX.Element {
               style={{ color: theme.colors.secondaryText }}
             >
               <span style={{ color: theme.colors.success }}>// </span>
-              Tip: Completa misiones diarias para ganar XP y subir de nivel
+              Tip: Personaliza tu perfil para desbloquear logros especiales
             </p>
           </div>
         </div>
