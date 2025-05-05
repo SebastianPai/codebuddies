@@ -51,6 +51,15 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
+// Validar rutas con barras dobles
+app.use((req, res, next) => {
+  if (req.path.includes("//")) {
+    console.error(`Ruta inválida con barras dobles: ${req.path}`);
+    return res.status(400).json({ error: "Ruta inválida" });
+  }
+  next();
+});
+
 // Servir imágenes estáticas
 app.use("/images", express.static(path.join(__dirname, "../public/images")));
 
@@ -97,6 +106,12 @@ app.use(
 
 app.use(morgan("dev"));
 
+// Logging para rutas de API
+app.use("/api", (req, res, next) => {
+  console.log(`Solicitud API: ${req.method} ${req.path}`);
+  next();
+});
+
 // Servir archivos estáticos del frontend
 app.use(
   express.static(path.join(__dirname, "../../frontend/dist"), {
@@ -129,6 +144,7 @@ app.use((req, res, next) => {
   ) {
     return next();
   }
+  console.log(`Sirviendo index.html para la ruta: ${req.path}`);
   res.sendFile(
     path.join(__dirname, "../../frontend/dist", "index.html"),
     (err) => {
@@ -142,7 +158,7 @@ app.use((req, res, next) => {
 
 // Manejar rutas no encontradas
 app.use((req, res) => {
-  res.status(404).json({ message: "Ruta no encontrada" });
+  res.status(404).json({ error: "Ruta no encontrada" });
 });
 
 // Conectar a MongoDB
