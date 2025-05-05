@@ -2,7 +2,6 @@ import express from "express";
 import { URL } from "url";
 import path from "path";
 import fs from "fs";
-import fetch from "node-fetch";
 
 const router = express.Router();
 
@@ -79,12 +78,12 @@ router.get("/proxy-image", async (req, res) => {
       return res.send(buffer);
     }
 
-    const buffer = await response.buffer();
+    const buffer = await response.arrayBuffer();
     res.set({
       "Content-Type": response.headers.get("content-type") || "image/jpeg",
       "Cache-Control": "public, max-age=31536000",
     });
-    res.send(buffer);
+    res.send(Buffer.from(buffer));
   } catch (err) {
     console.error("Error en proxy-image:", err);
     const defaultImagePath = path.join(
@@ -97,4 +96,4 @@ router.get("/proxy-image", async (req, res) => {
   }
 });
 
-export default router; // Exportar el router como default
+export default router;
