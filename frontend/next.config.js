@@ -14,20 +14,6 @@ const nextConfig = {
     });
     return config;
   },
-  // La CSP se maneja en el backend, pero puedes incluirla aquí para desarrollo local
-  async headers() {
-    return [
-      {
-        source: "/(.*)",
-        headers: [
-          {
-            key: "Content-Security-Policy",
-            value: "script-src 'self'; worker-src 'self';",
-          },
-        ],
-      },
-    ];
-  },
 };
 
 module.exports = nextConfig;

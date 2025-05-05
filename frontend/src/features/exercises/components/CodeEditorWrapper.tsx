@@ -1,4 +1,4 @@
-import { FC } from "react";
+import { FC, Dispatch, SetStateAction } from "react";
 import Editor from "@monaco-editor/react";
 import type * as Monaco from "monaco-editor";
 import editorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker";
@@ -8,7 +8,7 @@ import jsWorker from "monaco-editor/esm/vs/language/typescript/ts.worker?worker"
 
 interface CodeEditorWrapperProps {
   value: string;
-  onValueChange: (value: string) => void;
+  onValueChange: Dispatch<SetStateAction<string>>;
   highlightLanguage: string;
   padding?: number;
   className?: string;
