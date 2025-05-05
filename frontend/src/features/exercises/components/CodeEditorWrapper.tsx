@@ -25,6 +25,7 @@ export const CodeEditorWrapper: FC<CodeEditorWrapperProps> = ({
 }) => {
   const beforeMount = (monaco: typeof Monaco) => {
     self.MonacoEnvironment = {
+      baseUrl: "/code-editor/",
       getWorker(_: string, label: string) {
         switch (label) {
           case "editorWorkerService":

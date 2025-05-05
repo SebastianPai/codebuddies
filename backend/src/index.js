@@ -81,7 +81,7 @@ app.use(
         scriptSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://www.gstatic.com"],
         frameSrc: ["'self'"],
-        workerSrc: ["'self'"], // Añadido para Web Workers de Monaco Editor
+        workerSrc: ["'self'", "blob:"], // Añadido para Web Workers de Monaco Editor
       },
     },
   })
