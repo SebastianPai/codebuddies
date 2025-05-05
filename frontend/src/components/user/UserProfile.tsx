@@ -1,5 +1,3 @@
-// frontend/src/pages/UserProfile.tsx
-
 "use client";
 
 import { useState, useEffect, JSX } from "react";
@@ -20,36 +18,37 @@ import Navbar from "../common/Navbar";
 import { useAuth } from "../../context/AuthContext";
 import { apiGet, apiPost } from "../../api";
 
-// Definir tipos para los datos
-interface UserData {
-  name: string;
-  email: string;
-  profilePicture: string;
-  university: string;
-  isUniversityStudent: boolean;
-  level: number;
-  xp: number;
-  maxXp: number;
-  powers: { name: string; icon: string }[];
-  achievements: { name: string; description: string }[];
-}
-
 interface EditForm {
   name: string;
   profilePicture: string;
   university: string;
   isUniversityStudent: boolean;
+  profilePictureFile?: File | null;
 }
 
 interface ApiResponse {
-  user: UserData;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    profilePicture: string;
+    university: string;
+    isUniversityStudent: boolean;
+    level: number;
+    xp: number;
+    maxXp: number;
+    powers: { name: string; icon: string }[];
+    achievements: { name: string; description: string }[];
+  };
   message?: string;
 }
 
 interface Ranking {
   rank: number;
   name: string;
-  points: number;
+  xp: number;
+  level: number; // Cambiado de opcional a requerido
+  profilePicture: string; // Cambiado de opcional a requerido
   isCurrentUser?: boolean;
 }
 
@@ -73,9 +72,10 @@ interface ThemeContext {
 export default function UserProfile() {
   const { theme } = useTheme() as ThemeContext;
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { user, logout, fetchWithAuth } = useAuth();
 
-  const [user, setUser] = useState<UserData>({
+  const [userData, setUserData] = useState({
+    id: "",
     name: "",
     email: "",
     profilePicture: "",
@@ -84,70 +84,157 @@ export default function UserProfile() {
     level: 1,
     xp: 0,
     maxXp: 100,
-    powers: [],
-    achievements: [],
+    powers: [] as { name: string; icon: string }[],
+    achievements: [] as { name: string; description: string }[],
   });
+  const [rankings, setRankings] = useState<Ranking[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState<EditForm>({
     name: "",
     profilePicture: "",
     university: "",
     isUniversityStudent: false,
+    profilePictureFile: null,
   });
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
-  const rankings: Ranking[] = [
-    { rank: 1, name: "MEGA_GAMER", points: 9800 },
-    {
-      rank: 2,
-      name: user.name || "PIXEL_MASTER",
-      points: 9500,
-      isCurrentUser: true,
-    },
-    { rank: 3, name: "ARCADE_PRO", points: 9200 },
-    { rank: 4, name: "RETRO_KING", points: 8900 },
-    { rank: 5, name: "8BIT_QUEEN", points: 8700 },
-  ];
-
-  // Fetch user data
+  // Redirect if not authenticated
   useEffect(() => {
-    const fetchUser = async () => {
+    if (!user || !localStorage.getItem("token")) {
+      navigate("/login", { replace: true });
+    }
+  }, [user, navigate]);
+
+  // Sync userData with AuthContext global state
+  useEffect(() => {
+    if (user) {
+      setUserData((prev) => ({
+        ...prev,
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        level: user.level || 1,
+        xp: user.xp || 0,
+        maxXp: user.maxXp || 100,
+        profilePicture: user.profilePicture || "",
+        university: user.university || "",
+        isUniversityStudent: user.isUniversityStudent || false,
+        achievements: user.achievements || [],
+      }));
+      setEditForm({
+        name: user.name,
+        profilePicture: user.profilePicture || "",
+        university: user.university || "",
+        isUniversityStudent: user.isUniversityStudent || false,
+        profilePictureFile: null,
+      });
+    }
+  }, [user]);
+
+  // Fetch complete user data and rankings
+  useEffect(() => {
+    let isMounted = true;
+    const controller = new AbortController();
+
+    const fetchData = async () => {
       try {
         setIsLoading(true);
+        setError("");
         const token = localStorage.getItem("token");
-        if (!token) throw new Error("No se encontró el token de autenticación");
+        if (!token) {
+          throw new Error("No authentication token found");
+        }
 
-        const data = await apiGet<ApiResponse>("/api/users/me", token);
+        // Fetch user data
+        const userDataResponse = await apiGet<ApiResponse>(
+          "/api/users/me",
+          token,
+          { signal: controller.signal }
+        );
+        if (isMounted) {
+          setUserData({
+            id: userDataResponse.user.id || "",
+            name: userDataResponse.user.name || "",
+            email: userDataResponse.user.email || "",
+            profilePicture: userDataResponse.user.profilePicture || "",
+            university: userDataResponse.user.university || "",
+            isUniversityStudent:
+              userDataResponse.user.isUniversityStudent || false,
+            level: userDataResponse.user.level || 1,
+            xp: userDataResponse.user.xp || 0,
+            maxXp: userDataResponse.user.maxXp || 100,
+            powers: Array.isArray(userDataResponse.user.powers)
+              ? userDataResponse.user.powers
+              : [],
+            achievements: Array.isArray(userDataResponse.user.achievements)
+              ? userDataResponse.user.achievements
+              : [],
+          });
+          setEditForm({
+            name: userDataResponse.user.name || "",
+            profilePicture: userDataResponse.user.profilePicture || "",
+            university: userDataResponse.user.university || "",
+            isUniversityStudent:
+              userDataResponse.user.isUniversityStudent || false,
+            profilePictureFile: null,
+          });
+        }
 
-        setUser({
-          name: data.user.name || "",
-          email: data.user.email || "",
-          profilePicture: data.user.profilePicture || "",
-          university: data.user.university || "",
-          isUniversityStudent: data.user.isUniversityStudent || false,
-          level: data.user.level || 1,
-          xp: data.user.xp || 0,
-          maxXp: data.user.maxXp || 100,
-          powers: Array.isArray(data.user.powers) ? data.user.powers : [],
-          achievements: Array.isArray(data.user.achievements)
-            ? data.user.achievements
-            : [],
+        // Fetch rankings
+        const rankingsResponse = await fetchWithAuth("/api/users/rankings", {
+          signal: controller.signal,
         });
-        setEditForm({
-          name: data.user.name || "",
-          profilePicture: data.user.profilePicture || "",
-          university: data.user.university || "",
-          isUniversityStudent: data.user.isUniversityStudent || false,
-        });
+        if (!rankingsResponse.ok) {
+          const errorData = await rankingsResponse.json();
+          throw new Error(
+            errorData.message ||
+              `Error ${rankingsResponse.status} fetching rankings`
+          );
+        }
+        const rankingsData = await rankingsResponse.json();
+        const formattedRankings = (rankingsData.rankings || []).map(
+          (rank: Ranking) => ({
+            ...rank,
+            isCurrentUser: rank.name === user?.name,
+          })
+        );
+        if (isMounted) {
+          setRankings(formattedRankings);
+        }
       } catch (err: any) {
-        setError(err.message || "Error al cargar el perfil");
+        if (err.name === "AbortError") {
+          return;
+        }
+        const errorMessage = err.message || "Error loading profile or rankings";
+        if (isMounted) {
+          setError(errorMessage);
+          if (
+            err.message.includes(
+              "Por favor, inicia sesión para acceder al curso"
+            )
+          ) {
+            navigate("/login", { replace: true, state: { fromCourse: true } });
+          }
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
-    fetchUser();
-  }, []);
+
+    if (user && localStorage.getItem("token")) {
+      fetchData();
+    } else {
+      setIsLoading(false);
+    }
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
+  }, [fetchWithAuth, user, navigate]);
 
   // Handle profile update
   const handleUpdate = async (e: React.FormEvent) => {
@@ -155,35 +242,66 @@ export default function UserProfile() {
     setError("");
     try {
       const token = localStorage.getItem("token");
-      if (!token) throw new Error("No se encontró el token de autenticación");
+      if (!token) throw new Error("No authentication token found");
 
+      // Validate file
+      if (editForm.profilePictureFile) {
+        const file = editForm.profilePictureFile;
+        const validTypes = ["image/jpeg", "image/png"];
+        if (!validTypes.includes(file.type)) {
+          throw new Error("Only JPEG or PNG images are allowed.");
+        }
+        if (file.size > 5 * 1024 * 1024) {
+          throw new Error("Image must not exceed 5MB.");
+        }
+
+        const formData = new FormData();
+        formData.append("profilePicture", file);
+
+        const profilePictureResponse = await apiPost<{
+          message: string;
+          profilePicture: string;
+        }>("/api/users/profile-picture", formData, "PUT", token);
+        editForm.profilePicture = profilePictureResponse.profilePicture;
+      }
+
+      // Update other fields
       const data = await apiPost<ApiResponse>(
         "/api/users/update",
-        editForm,
+        {
+          name: editForm.name,
+          profilePicture: editForm.profilePicture,
+          university: editForm.university,
+          isUniversityStudent: editForm.isUniversityStudent,
+        },
         "PUT",
         token
       );
 
-      setUser((prev) => ({
+      setUserData((prev) => ({
         ...prev,
         ...data.user,
         powers: prev.powers,
         achievements: prev.achievements,
       }));
       setIsEditing(false);
+      setEditForm((prev) => ({ ...prev, profilePictureFile: null }));
     } catch (err: any) {
-      setError(err.message || "Error al actualizar perfil");
+      const errorMessage =
+        err.message || err.response?.data?.message || "Error updating profile";
+      setError(errorMessage);
     }
   };
 
   // Handle logout
   const handleLogout = () => {
     logout();
-    localStorage.removeItem("token");
-    navigate("/login");
+    navigate("/login", { replace: true });
   };
 
-  const xpPercentage = user.maxXp ? (user.xp / user.maxXp) * 100 : 0;
+  const xpPercentage = userData.maxXp
+    ? (userData.xp / userData.maxXp) * 100
+    : 0;
 
   const iconMap: { [key: string]: JSX.Element } = {
     Flame: <Flame className="w-6 h-6" style={{ color: theme.colors.accent }} />,
@@ -206,7 +324,7 @@ export default function UserProfile() {
         <Navbar />
         <div className="flex justify-center items-center flex-grow">
           <div className="text-center" style={{ color: theme.colors.text }}>
-            Cargando perfil...
+            Loading profile...
           </div>
         </div>
       </div>
@@ -248,11 +366,14 @@ export default function UserProfile() {
                   background: theme.colors.border,
                 }}
               >
-                {user.profilePicture ? (
+                {userData.profilePicture ? (
                   <img
-                    src={user.profilePicture}
+                    src={userData.profilePicture}
                     alt="Profile"
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = "/images/default-profile.jpg";
+                    }}
                   />
                 ) : (
                   <User
@@ -262,14 +383,14 @@ export default function UserProfile() {
                 )}
               </div>
               <div
-                className="absolute -bottom-2 -right-2 text-xs rounded-md px-2 py-1"
+                className="absolute -bottom-2 -right-2 text-xs rounded-md px-2 py-1 animate-pulse"
                 style={{
                   background: theme.colors.primary,
                   color: theme.colors.buttonText,
                   border: `2px solid ${theme.colors.border}`,
                 }}
               >
-                LVL {user.level}
+                LVL {userData.level}
               </div>
             </div>
 
@@ -278,28 +399,28 @@ export default function UserProfile() {
                 className="text-3xl md:text-4xl font-bold tracking-wider"
                 style={{ color: theme.colors.text }}
               >
-                {user.name}
+                {userData.name}
               </h1>
               <div
                 className="text-lg mt-1"
                 style={{ color: theme.colors.secondaryText }}
               >
-                Nivel {user.level}
+                Level {userData.level}
               </div>
-              {user.isUniversityStudent && user.university && (
+              {userData.isUniversityStudent && userData.university && (
                 <div
                   className="text-sm mt-1"
                   style={{ color: theme.colors.secondaryText }}
                 >
-                  Estudiante en {user.university}
+                  Student at {userData.university}
                 </div>
               )}
-              {!user.isUniversityStudent && user.university && (
+              {!userData.isUniversityStudent && userData.university && (
                 <div
                   className="text-sm mt-1"
                   style={{ color: theme.colors.secondaryText }}
                 >
-                  {user.university}
+                  {userData.university}
                 </div>
               )}
 
@@ -309,7 +430,7 @@ export default function UserProfile() {
                   style={{ color: theme.colors.secondaryText }}
                 >
                   <span>
-                    XP: {user.xp}/{user.maxXp}
+                    XP: {userData.xp}/{userData.maxXp}
                   </span>
                   <span>{Math.round(xpPercentage)}%</span>
                 </div>
@@ -321,7 +442,7 @@ export default function UserProfile() {
                   }}
                 >
                   <div
-                    className="h-full rounded-sm"
+                    className="h-full rounded-sm transition-all duration-500 ease-in-out"
                     style={{
                       width: `${xpPercentage}%`,
                       background: theme.colors.accent,
@@ -341,7 +462,7 @@ export default function UserProfile() {
                 }}
               >
                 <Edit className="w-4 h-4" />
-                <span>Editar Perfil</span>
+                <span>Edit Profile</span>
               </button>
               <button
                 onClick={handleLogout}
@@ -352,7 +473,7 @@ export default function UserProfile() {
                 }}
               >
                 <LogOut className="w-4 h-4" />
-                <span>Salir</span>
+                <span>Logout</span>
               </button>
             </div>
           </div>
@@ -364,9 +485,12 @@ export default function UserProfile() {
             >
               <h2
                 className="text-xl font-bold mb-4"
-                style={{ color: theme.colors.text }}
+                style={{
+                  color: theme.colors.text,
+                  borderBottom: `2px solid ${theme.colors.border}`,
+                }}
               >
-                Editar Perfil
+                Edit Profile
               </h2>
               <form onSubmit={handleUpdate} className="space-y-4">
                 <div>
@@ -375,7 +499,7 @@ export default function UserProfile() {
                     className="block mb-2"
                     style={{ color: theme.colors.text }}
                   >
-                    Nombre
+                    Name
                   </label>
                   <input
                     id="name"
@@ -401,29 +525,30 @@ export default function UserProfile() {
                 </div>
                 <div>
                   <label
-                    htmlFor="profilePicture"
+                    htmlFor="profilePictureFile"
                     className="block mb-2"
                     style={{ color: theme.colors.text }}
                   >
-                    URL de Foto de Perfil
+                    Profile Picture (JPEG/PNG, max 5MB)
                   </label>
                   <input
-                    id="profilePicture"
-                    type="text"
-                    value={editForm.profilePicture}
+                    id="profilePictureFile"
+                    type="file"
+                    accept="image/jpeg,image/png"
                     onChange={(e) =>
                       setEditForm({
                         ...editForm,
-                        profilePicture: e.target.value,
+                        profilePictureFile: e.target.files
+                          ? e.target.files[0]
+                          : null,
                       })
                     }
-                    className="w-full rounded-md p-3 focus:outline-none focus:scale-[1.02] transition-all duration-300"
+                    className="w-full rounded-md p-3 focus:outline-none focus:scale-[1.02] transition-all duration-300 file:mr-4 file:py-1 file:px-2 file:rounded file:border-0 file:bg-gray-600 file:text-white hover:file:bg-gray-500"
                     style={{
                       background: theme.colors.background,
                       border: `2px solid ${theme.colors.border}`,
                       color: theme.colors.text,
                     }}
-                    placeholder="https://example.com/image.jpg"
                     onFocus={(e) =>
                       (e.currentTarget.style.border = `2px solid ${theme.colors.accent}`)
                     }
@@ -438,7 +563,7 @@ export default function UserProfile() {
                     className="block mb-2"
                     style={{ color: theme.colors.text }}
                   >
-                    Universidad o Institución
+                    University or Institution
                   </label>
                   <input
                     id="university"
@@ -453,7 +578,7 @@ export default function UserProfile() {
                       border: `2px solid ${theme.colors.border}`,
                       color: theme.colors.text,
                     }}
-                    placeholder="Nombre de la universidad"
+                    placeholder="University name"
                     onFocus={(e) =>
                       (e.currentTarget.style.border = `2px solid ${theme.colors.accent}`)
                     }
@@ -479,7 +604,7 @@ export default function UserProfile() {
                     htmlFor="isUniversityStudent"
                     style={{ color: theme.colors.text }}
                   >
-                    ¿Estudiante universitario?
+                    University student?
                   </label>
                 </div>
                 <div className="flex gap-2">
@@ -491,7 +616,7 @@ export default function UserProfile() {
                       color: theme.colors.buttonText,
                     }}
                   >
-                    Guardar
+                    Save
                   </button>
                   <button
                     type="button"
@@ -502,7 +627,7 @@ export default function UserProfile() {
                       color: theme.colors.buttonText,
                     }}
                   >
-                    Cancelar
+                    Cancel
                   </button>
                 </div>
               </form>
@@ -511,17 +636,17 @@ export default function UserProfile() {
 
           <div className="mb-8">
             <h2
-              className="text-xl font-bold mb-4 pb-2"
+              className="text-xl font-bold mb-4"
               style={{
-                borderBottom: `2px solid ${theme.colors.border}`,
                 color: theme.colors.text,
+                borderBottom: `2px solid ${theme.colors.border}`,
               }}
             >
-              PODERES Y HABILIDADES
+              POWERS AND ABILITIES
             </h2>
-            {user.powers.length > 0 ? (
+            {userData.powers.length > 0 ? (
               <div className="flex flex-wrap gap-3">
-                {user.powers.map((power, index) => (
+                {userData.powers.map((power, index) => (
                   <div
                     key={index}
                     className="rounded-md p-3 flex items-center gap-2"
@@ -550,91 +675,130 @@ export default function UserProfile() {
               </div>
             ) : (
               <p style={{ color: theme.colors.secondaryText }}>
-                No hay poderes disponibles.
+                No powers available.
               </p>
             )}
           </div>
 
           <div className="mb-8">
             <h2
-              className="text-xl font-bold mb-4 pb-2"
+              className="text-xl font-bold mb-4"
               style={{
-                borderBottom: `2px solid ${theme.colors.border}`,
                 color: theme.colors.text,
+                borderBottom: `2px solid ${theme.colors.border}`,
               }}
             >
-              RANKINGS SEMANALES
+              WEEKLY RANKINGS
             </h2>
-            <div className="grid gap-2">
-              {rankings.map((player) => (
-                <div
-                  key={player.rank}
-                  className="flex items-center p-3 rounded-md"
-                  style={{
-                    background: player.isCurrentUser
-                      ? theme.colors.card
-                      : theme.colors.background,
-                    border: `2px solid ${
-                      player.isCurrentUser
-                        ? theme.colors.accent
-                        : theme.colors.border
-                    }`,
-                  }}
-                >
-                  <div
-                    className="flex items-center justify-center w-8 h-8 rounded-md mr-3"
-                    style={{ background: theme.colors.background }}
-                  >
-                    <Trophy
-                      className="w-5 h-5"
+            {rankings.length > 0 ? (
+              <div className="grid gap-2">
+                {rankings.map((player, index) => (
+                  <div key={player.rank}>
+                    <div
+                      className="flex items-center p-3 rounded-md"
                       style={{
-                        color:
-                          player.rank === 1
+                        background: player.isCurrentUser
+                          ? theme.colors.card
+                          : theme.colors.background,
+                        border: `2px solid ${
+                          player.isCurrentUser
                             ? theme.colors.accent
-                            : player.rank === 2
-                            ? theme.colors.secondaryText
-                            : player.rank === 3
-                            ? theme.colors.primary
-                            : theme.colors.text,
+                            : theme.colors.border
+                        }`,
                       }}
-                    />
+                    >
+                      <div
+                        className="flex items-center justify-center w-8 h-8 rounded-md mr-3"
+                        style={{ background: theme.colors.background }}
+                      >
+                        <Trophy
+                          className="w-5 h-5"
+                          style={{
+                            color:
+                              player.rank === 1
+                                ? theme.colors.accent
+                                : player.rank === 2
+                                ? theme.colors.secondaryText
+                                : player.rank === 3
+                                ? theme.colors.primary
+                                : theme.colors.text,
+                          }}
+                        />
+                      </div>
+                      <div
+                        className="text-xl font-bold mr-3"
+                        style={{ color: theme.colors.text }}
+                      >
+                        #{player.rank}
+                      </div>
+                      <div className="w-8 h-8 rounded-full overflow-hidden mr-3">
+                        {player.profilePicture ? (
+                          <img
+                            src={player.profilePicture}
+                            alt={`${player.name}'s profile`}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.src =
+                                "/images/default-profile.jpg";
+                            }}
+                          />
+                        ) : (
+                          <User
+                            className="w-8 h-8 p-1"
+                            style={{ color: theme.colors.accent }}
+                          />
+                        )}
+                      </div>
+                      <div
+                        className="flex-grow flex items-center gap-2"
+                        style={{ color: theme.colors.text }}
+                      >
+                        <span>{player.name}</span>
+                        <span
+                          className="text-sm"
+                          style={{ color: theme.colors.secondaryText }}
+                        >
+                          (Lv. {player.level})
+                        </span>
+                      </div>
+                      <div
+                        className="font-bold"
+                        style={{ color: theme.colors.accent }}
+                      >
+                        {player.xp} XP
+                      </div>
+                    </div>
+                    {index === 4 && rankings.length > 5 && (
+                      <div
+                        className="w-full text-center py-2"
+                        style={{ color: theme.colors.secondaryText }}
+                      >
+                        ...
+                      </div>
+                    )}
                   </div>
-                  <div
-                    className="text-xl font-bold mr-3"
-                    style={{ color: theme.colors.text }}
-                  >
-                    #{player.rank}
-                  </div>
-                  <div
-                    className="flex-grow"
-                    style={{ color: theme.colors.text }}
-                  >
-                    {player.name}
-                  </div>
-                  <div
-                    className="font-bold"
-                    style={{ color: theme.colors.accent }}
-                  >
-                    {player.points} PTS
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <p style={{ color: theme.colors.secondaryText }}>
+                No rankings available. {error && `(${error})`}
+              </p>
+            )}
           </div>
 
           <div>
             <h2
-              className="text-xl font-bold mb-4 pb-2"
+              className="text-xl font-bold mb-4"
               style={{
-                borderBottom: `2px solid ${theme.colors.border}`,
                 color: theme.colors.text,
+                borderBottom: `2px solid ${theme.colors.border}`,
               }}
             >
-              LOGROS DESBLOQUEADOS
+              UNLOCKED ACHIEVEMENTS
             </h2>
-            {user.achievements.length > 0 ? (
+            {userData.achievements.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                {user.achievements.map((achievement, index) => (
+                {userData.achievements.map((achievement, index) => (
                   <div
                     key={index}
                     className="rounded-md p-4"
@@ -672,7 +836,7 @@ export default function UserProfile() {
               </div>
             ) : (
               <p style={{ color: theme.colors.secondaryText }}>
-                No hay logros desbloqueados.
+                No achievements unlocked.
               </p>
             )}
           </div>

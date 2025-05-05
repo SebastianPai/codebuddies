@@ -1,6 +1,10 @@
+"use client";
+
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/common/Navbar";
 import { useTheme } from "@/context/ThemeContext";
+import { useAuth } from "@/context/AuthContext";
 import { CourseHeader } from "../components/CourseHeader";
 import { LessonList } from "../components/LessonList";
 import { UserProfileCard } from "../components/UserProfileCard";
@@ -13,12 +17,30 @@ import { Exercise } from "@/types/course";
 export default function CourseLesson() {
   const navigate = useNavigate();
   const { theme } = useTheme();
+  const { user, loading: authLoading } = useAuth();
   const { course, lessons, progress, loading, error } = useCourseData();
   const { checkExerciseAccess } = useExerciseAccess(lessons, progress);
   const { currentExercise, currentLessonIndex } = useCurrentExercise(
     lessons,
     progress
   );
+
+  // Redirigir a login si no está autenticado
+  useEffect(() => {
+    if (!authLoading && (!user || !localStorage.getItem("token"))) {
+      navigate("/login", { replace: true, state: { fromCourse: true } });
+    }
+  }, [user, authLoading, navigate]);
+
+  // No renderizar nada mientras se verifica la autenticación
+  if (authLoading) {
+    return null; // Opcionalmente, mostrar un spinner global si prefieres
+  }
+
+  // Solo renderizar si el usuario está autenticado
+  if (!user || !localStorage.getItem("token")) {
+    return null; // Esto no debería ejecutarse debido al navigate, pero es una salvaguarda
+  }
 
   if (loading) {
     return (

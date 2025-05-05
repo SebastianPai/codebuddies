@@ -181,6 +181,12 @@ const AdminLessons = () => {
   const [loading, setLoading] = useState(true);
   const [newLesson, setNewLesson] = useState({ title: "", description: "" });
 
+  // URL base del backend
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+  // Obtener token JWT
+  const token = localStorage.getItem("token");
+
   const fetchCourseAndLessons = useCallback(async () => {
     if (!courseId) {
       toast.error("ID del curso no proporcionado.");
@@ -189,14 +195,18 @@ const AdminLessons = () => {
     }
     try {
       setLoading(true);
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const [courseRes, lessonsRes] = await Promise.all([
-        axios.get(`http://localhost:5000/api/courses/${courseId}`),
-        axios.get(`http://localhost:5000/api/courses/${courseId}/lessons`),
+        axios.get(`${API_URL}/api/courses/${courseId}`, { headers }),
+        axios.get(`${API_URL}/api/courses/${courseId}/lessons`, { headers }),
       ]);
       setCourse(courseRes.data);
       setLessons(lessonsRes.data);
     } catch (error: any) {
-      if (error.response?.status === 404) {
+      if (error.response?.status === 401) {
+        toast.error("Sesión expirada. Por favor, inicia sesión nuevamente.");
+        navigate("/login");
+      } else if (error.response?.status === 404) {
         toast.error("Curso no encontrado. Verifica el ID del curso.");
         navigate("/admin/modules");
       } else {
@@ -206,7 +216,7 @@ const AdminLessons = () => {
     } finally {
       setLoading(false);
     }
-  }, [courseId, navigate]);
+  }, [courseId, navigate, API_URL, token]);
 
   useEffect(() => {
     fetchCourseAndLessons();
@@ -219,16 +229,26 @@ const AdminLessons = () => {
     }
     try {
       setLoading(true);
-      const res = await axios.post("http://localhost:5000/api/lessons", {
-        ...newLesson,
-        course: courseId,
-      });
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await axios.post(
+        `${API_URL}/api/lessons`,
+        {
+          ...newLesson,
+          course: courseId,
+        },
+        { headers }
+      );
       setLessons([...lessons, res.data]);
       setNewLesson({ title: "", description: "" });
       toast.success("Lección creada exitosamente.");
-    } catch (error) {
-      toast.error("No se pudo crear la lección. Intenta de nuevo.");
-      console.error("Error al crear lección:", error);
+    } catch (error: any) {
+      if (error.response?.status === 401) {
+        toast.error("Sesión expirada. Por favor, inicia sesión nuevamente.");
+        navigate("/login");
+      } else {
+        toast.error("No se pudo crear la lección. Intenta de nuevo.");
+        console.error("Error al crear lección:", error);
+      }
     } finally {
       setLoading(false);
     }
@@ -240,17 +260,24 @@ const AdminLessons = () => {
   ) => {
     try {
       setLoading(true);
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const res = await axios.put(
-        `http://localhost:5000/api/lessons/${id}`,
-        updatedLesson
+        `${API_URL}/api/lessons/${id}`,
+        updatedLesson,
+        { headers }
       );
       setLessons((prev) =>
         prev.map((lesson) => (lesson._id === id ? res.data : lesson))
       );
       toast.success("Lección actualizada exitosamente.");
-    } catch (error) {
-      toast.error("No se pudo actualizar la lección. Intenta de nuevo.");
-      console.error("Error al actualizar lección:", error);
+    } catch (error: any) {
+      if (error.response?.status === 401) {
+        toast.error("Sesión expirada. Por favor, inicia sesión nuevamente.");
+        navigate("/login");
+      } else {
+        toast.error("No se pudo actualizar la lección. Intenta de nuevo.");
+        console.error("Error al actualizar lección:", error);
+      }
     } finally {
       setLoading(false);
     }
@@ -261,12 +288,18 @@ const AdminLessons = () => {
       return;
     try {
       setLoading(true);
-      await axios.delete(`http://localhost:5000/api/lessons/${id}`);
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      await axios.delete(`${API_URL}/api/lessons/${id}`, { headers });
       setLessons((prev) => prev.filter((lesson) => lesson._id !== id));
       toast.success("Lección eliminada exitosamente.");
-    } catch (error) {
-      toast.error("No se pudo eliminar la lección. Intenta de nuevo.");
-      console.error("Error al eliminar lección:", error);
+    } catch (error: any) {
+      if (error.response?.status === 401) {
+        toast.error("Sesión expirada. Por favor, inicia sesión nuevamente.");
+        navigate("/login");
+      } else {
+        toast.error("No se pudo eliminar la lección. Intenta de nuevo.");
+        console.error("Error al eliminar lección:", error);
+      }
     } finally {
       setLoading(false);
     }

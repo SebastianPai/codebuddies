@@ -16,20 +16,6 @@ interface Course {
   module: string;
 }
 
-// Función para construir la URL completa de la imagen
-const getImageUrl = (imagePath: string) => {
-  if (!imagePath) {
-    return "/images/default-course.jpg"; // Imagen por defecto
-  }
-  if (imagePath.startsWith("http")) {
-    return imagePath;
-  }
-  const fullUrl = `http://localhost:5000${imagePath}`;
-  console.log("Generated image URL:", fullUrl); // Depuración
-  return fullUrl;
-};
-
-// Reusable CourseCard component
 const CourseCard = ({
   course,
   onUpdate,
@@ -120,20 +106,19 @@ const CourseCard = ({
           <div className="flex items-center gap-2">
             {localCourse.image && (
               <img
-                src={getImageUrl(localCourse.image)}
+                src={localCourse.image}
                 alt={localCourse.title}
                 className="w-12 h-12 object-cover rounded"
-                onError={() =>
-                  console.error(
-                    `Failed to load image: ${getImageUrl(localCourse.image)}`
-                  )
-                }
+                onError={(e) => {
+                  console.error(`Failed to load image: ${localCourse.image}`);
+                  e.currentTarget.src = "/images/default-course.jpg";
+                }}
               />
             )}
             <input
               id={`image-${course._id}`}
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png"
               onChange={(e) =>
                 setImageFile(e.target.files ? e.target.files[0] : null)
               }
@@ -191,12 +176,18 @@ export default function AdminCourses() {
   const [isLoading, setIsLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
+  // URL base del backend
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+  // Obtener token JWT
+  const token = localStorage.getItem("token");
+
   const fetchCourses = useCallback(async () => {
     try {
       setIsLoading(true);
-      const res = await axios.get(
-        `http://localhost:5000/api/courses/module/${moduleId}`
-      );
+      const res = await axios.get(`${API_URL}/api/courses/module/${moduleId}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       const data = res.data;
       const courseArray = Array.isArray(data) ? data : data ? [data] : [];
       setCourses(courseArray);
@@ -207,7 +198,7 @@ export default function AdminCourses() {
     } finally {
       setIsLoading(false);
     }
-  }, [moduleId]);
+  }, [moduleId, API_URL, token]);
 
   useEffect(() => {
     fetchCourses();
@@ -234,9 +225,10 @@ export default function AdminCourses() {
         formData.append("image", imageFile);
       }
 
-      await axios.post("http://localhost:5000/api/courses", formData, {
+      await axios.post(`${API_URL}/api/courses`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
 
@@ -280,15 +272,12 @@ export default function AdminCourses() {
         formData.append("image", imageFile);
       }
 
-      await axios.put(
-        `http://localhost:5000/api/courses/${course._id}`,
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
+      await axios.put(`${API_URL}/api/courses/${course._id}`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
 
       toast.success("Curso actualizado exitosamente.");
       fetchCourses();
@@ -308,7 +297,9 @@ export default function AdminCourses() {
     }
     try {
       setActionLoading(id);
-      await axios.delete(`http://localhost:5000/api/courses/${id}`);
+      await axios.delete(`${API_URL}/api/courses/${id}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       toast.success("Curso eliminado exitosamente.");
       fetchCourses();
     } catch (err) {
@@ -327,7 +318,6 @@ export default function AdminCourses() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-900 text-white">
-      {/* Toast Container */}
       <ToastContainer
         position="top-right"
         autoClose={3000}
@@ -340,8 +330,6 @@ export default function AdminCourses() {
         pauseOnHover
         theme="dark"
       />
-
-      {/* Header */}
       <header className="flex items-center justify-between p-4 bg-gray-800 border-b border-gray-700">
         <h1 className="text-xl font-bold">Gestión de Cursos</h1>
         <button
@@ -354,10 +342,7 @@ export default function AdminCourses() {
           <RefreshCw className="w-5 h-5" />
         </button>
       </header>
-
-      {/* Main content */}
       <div className="flex-1 p-6 overflow-auto">
-        {/* Form for creating new course */}
         <section className="mb-6 bg-gray-800 p-4 rounded-xl border border-gray-700">
           <h2 className="text-lg font-semibold mb-4 flex items-center">
             <Plus className="w-5 h-5 mr-2" />
@@ -437,7 +422,7 @@ export default function AdminCourses() {
               <input
                 id="new-course-image"
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/png"
                 onChange={(e) =>
                   setImageFile(e.target.files ? e.target.files[0] : null)
                 }
@@ -458,11 +443,8 @@ export default function AdminCourses() {
             </div>
           </div>
         </section>
-
-        {/* List of courses */}
         <section className="space-y-4">
           <h2 className="text-lg font-semibold">Cursos Existentes</h2>
-
           {isLoading ? (
             <div className="flex justify-center p-8">
               <div

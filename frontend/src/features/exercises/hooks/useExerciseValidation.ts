@@ -21,7 +21,7 @@ export const useExerciseValidation = (
   jsCode: string,
   setIsExerciseCompleted: React.Dispatch<React.SetStateAction<boolean>>
 ): UseExerciseValidationReturn => {
-  const { fetchWithAuth } = useAuth();
+  const { fetchWithAuth, updateUser } = useAuth();
   const { courseId, lessonId, exerciseOrder } = useParams<{
     courseId: string;
     lessonId: string;
@@ -82,20 +82,7 @@ export const useExerciseValidation = (
 
           if (responseData.isCorrect) {
             setIsExerciseCompleted(true);
-            const progressResponse = await fetchWithAuth(
-              `/api/progress/courses/${courseId}/lessons/${lessonId}/exercises/${exerciseOrder}/complete`,
-              { method: "POST" }
-            );
-            if (!progressResponse.ok) {
-              const errorData = await progressResponse.json();
-              throw new Error(
-                errorData.message || "Error al guardar el progreso"
-              );
-            }
-            toast.success(`🎉 Ejercicio número ${exercise.order} superado.`, {
-              toastId: "progress-success",
-              autoClose: 3000,
-            });
+            await completeExercise();
           }
         } catch (error: unknown) {
           const errorMessage =
@@ -142,35 +129,103 @@ export const useExerciseValidation = (
 
       if (isCorrect) {
         setIsExerciseCompleted(true);
-        try {
-          const progressResponse = await fetchWithAuth(
-            `/api/progress/courses/${courseId}/lessons/${lessonId}/exercises/${exerciseOrder}/complete`,
-            { method: "POST" }
-          );
-          if (!progressResponse.ok) {
-            const errorData = await progressResponse.json();
-            throw new Error(
-              errorData.message || "Error al guardar el progreso"
-            );
-          }
-          toast.success(`🎉 Ejercicio número ${exercise.order} superado.`, {
-            toastId: "progress-success",
-            autoClose: 3000,
-          });
-        } catch (progressError: unknown) {
-          const errorMessage =
-            progressError instanceof Error
-              ? progressError.message
-              : "Error al guardar el progreso.";
-          toast.error(errorMessage, {
-            toastId: "progress-error",
-            autoClose: 3000,
-          });
-        }
+        await completeExercise();
       }
     }
 
     setIsModalOpen(true);
+  };
+
+  const completeExercise = async () => {
+    try {
+      const previousLevel = (
+        await fetchWithAuth("/api/users/me").then((res) => res.json())
+      ).user.level;
+      const progressResponse = await fetchWithAuth(
+        `/api/progress/courses/${courseId}/lessons/${lessonId}/exercises/${exerciseOrder}/complete`,
+        { method: "POST" }
+      );
+      const progressData = await progressResponse.json();
+
+      if (!progressResponse.ok) {
+        throw new Error(progressData.message || "Error al guardar el progreso");
+      }
+
+      // Actualizar estado global del usuario
+      if (progressData.user) {
+        updateUser({
+          xp: progressData.user.xp,
+          level: progressData.user.level,
+          maxXp: progressData.user.maxXp,
+          achievements: progressData.user.achievements,
+        });
+
+        // Notificar XP ganado
+        if (
+          progressData.message.includes("Ejercicio marcado como completado")
+        ) {
+          toast.success(`🎉 +10 XP por completar el ejercicio!`, {
+            toastId: `xp-exercise-${exerciseOrder}`,
+            autoClose: 3000,
+          });
+        } else if (
+          progressData.message.includes("Ejercicio ya estaba completado")
+        ) {
+          toast.info("ℹ️ Este ejercicio ya estaba completado.", {
+            toastId: `xp-exercise-repeat-${exerciseOrder}`,
+            autoClose: 3000,
+          });
+        }
+
+        // Verificar si completó un curso
+        const courseProgress = await fetchWithAuth(
+          `/api/progress/courses/${courseId}/progress/all`
+        ).then((res) => res.json());
+        const { completedExercises, totalExercises } = courseProgress;
+        if (completedExercises.length === totalExercises) {
+          toast.success(`🏆 +100 XP por completar el curso!`, {
+            toastId: `xp-course-${courseId}`,
+            autoClose: 3000,
+          });
+        }
+
+        // Notificar si subió de nivel
+        if (progressData.user.level > previousLevel) {
+          toast.success(`🎉 ¡Subiste al nivel ${progressData.user.level}!`, {
+            toastId: `level-up-${progressData.user.level}`,
+            autoClose: 3000,
+          });
+        }
+
+        // Notificar nuevos logros
+        if (
+          progressData.user.achievements &&
+          progressData.user.achievements.length > 0
+        ) {
+          const newAchievements = progressData.user.achievements.slice(-1); // Últimos logros
+          newAchievements.forEach((achievement: { name: string }) => {
+            toast.success(`🏅 Logro desbloqueado: ${achievement.name}`, {
+              toastId: `achievement-${achievement.name}`,
+              autoClose: 3000,
+            });
+          });
+        }
+
+        toast.success(`🎉 Ejercicio número ${exercise?.order} superado.`, {
+          toastId: "progress-success",
+          autoClose: 3000,
+        });
+      }
+    } catch (progressError: unknown) {
+      const errorMessage =
+        progressError instanceof Error
+          ? progressError.message
+          : "Error al guardar el progreso.";
+      toast.error(errorMessage, {
+        toastId: "progress-error",
+        autoClose: 3000,
+      });
+    }
   };
 
   return {

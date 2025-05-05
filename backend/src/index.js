@@ -1,6 +1,7 @@
+// backend/src/index.js
+import "./config/env.js"; // Cargar variables de entorno primero
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
 import mongoose from "mongoose";
 import helmet from "helmet";
 import morgan from "morgan";
@@ -12,11 +13,13 @@ import progressRoutes from "./routes/progress.js";
 import imageProxyRoutes from "./routes/imageRoutes.js";
 import { fileURLToPath } from "url";
 import path from "path";
+import { setMaxListeners } from "events";
+
+// Aumentar el límite de listeners
+setMaxListeners(15);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-dotenv.config();
 
 const app = express();
 
@@ -25,11 +28,12 @@ const corsOptions = {
   origin: (origin, callback) => {
     if (process.env.NODE_ENV === "development") {
       console.log(`Origen de la solicitud: ${origin || "null"}`);
-      callback(null, true); // Permitir todos los orígenes en local
+      callback(null, true);
     } else {
       const allowedOrigins = [
-        "https://codebuddies-jh-3e772884b367.herokuapp.com",
-        null, // Permitir origen nulo para <iframe>
+        "https://www.codebuddies.live",
+        "https://codebuddies.live",
+        null,
       ];
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
@@ -45,16 +49,15 @@ const corsOptions = {
   optionsSuccessStatus: 200,
 };
 
-// Aplicar CORS globalmente
 app.use(cors(corsOptions));
 
 // Servir imágenes estáticas
-app.use("/images", express.static(path.join(__dirname, "public/images")));
+app.use("/images", express.static(path.join(__dirname, "../public/images")));
 
 // Parsear JSON
 app.use(express.json());
 
-// Configurar Helmet con CSP personalizada
+// Configurar Helmet con CSP
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -63,25 +66,24 @@ app.use(
         connectSrc: [
           "'self'",
           "http://localhost:5000",
-          "https://codebuddies.live",
           "https://www.codebuddies.live",
-          "https://codebuddies-jh-3e772884b367.herokuapp.com",
+          "https://codebuddies.live",
         ],
         imgSrc: [
           "'self'",
           "data:",
-          "http://localhost:5173", // Frontend local
-          "https://codebuddies-jh-3e772884b367.herokuapp.com", // Frontend producción
-          "https://picsum.photos",
-          "https://codebuddies.live",
+          "http://localhost:5173",
           "https://www.codebuddies.live",
+          "https://codebuddies.live",
+          "https://picsum.photos",
           "https://fastly.picsum.photos",
           "https://v.etsystatic.com",
+          "https://codebuddiesimages.nyc3.cdn.digitaloceanspaces.com",
         ],
         scriptSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://www.gstatic.com"],
         frameSrc: ["'self'"],
-        workerSrc: ["'self'", "blob:"], // Añadido para Web Workers de Monaco Editor
+        workerSrc: ["'self'", "blob:"],
       },
     },
   })
@@ -90,7 +92,15 @@ app.use(
 app.use(morgan("dev"));
 
 // Servir archivos estáticos del frontend
-app.use(express.static(path.join(__dirname, "../../frontend/dist")));
+app.use(
+  express.static(path.join(__dirname, "../../../frontend/dist"), {
+    setHeaders: (res, path) => {
+      if (path.endsWith(".js")) {
+        res.setHeader("Content-Type", "application/javascript");
+      }
+    },
+  })
+);
 
 // Rutas de la API
 app.use("/api/users", userRoutes);
@@ -102,13 +112,15 @@ app.use("/api", imageProxyRoutes);
 
 // Middleware para manejar rutas del frontend (React Router)
 app.use((req, res, next) => {
-  // Excluir rutas de la API
-  if (req.path.startsWith("/api") || req.path.startsWith("/images")) {
+  if (
+    req.path.startsWith("/api") ||
+    req.path.startsWith("/images") ||
+    req.path.startsWith("/monaco-editor")
+  ) {
     return next();
   }
-  // Servir index.html para las rutas del frontend
   res.sendFile(
-    path.join(__dirname, "../../frontend/dist", "index.html"),
+    path.join(__dirname, "../../../frontend/dist", "index.html"),
     (err) => {
       if (err) {
         console.error("Error al enviar index.html:", err);

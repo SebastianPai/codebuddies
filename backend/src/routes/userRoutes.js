@@ -1,16 +1,19 @@
-// routes/userRoutes.js
 import express from "express";
 import bcrypt from "bcryptjs";
 import User from "../models/User.js";
 import jwt from "jsonwebtoken";
-import { verifyToken } from "../middleware/verifyToken.js"; // Cambiar a verifyToken
+import { verifyToken } from "../middleware/verifyToken.js";
+import {
+  getRankings,
+  updateProfilePicture,
+} from "../controllers/userController.js";
+import { upload } from "../services/spacesService.js";
 
 const router = express.Router();
 
 // Ruta protegida para obtener info del usuario logueado
 router.get("/me", verifyToken, async (req, res) => {
   try {
-    // Buscar el usuario en la base de datos por ID, excluyendo la contraseña
     const user = await User.findById(req.user.userId).select("-password");
     if (!user) {
       return res.status(404).json({ message: "Usuario no encontrado" });
@@ -32,7 +35,6 @@ router.get("/me", verifyToken, async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("❌ Error en /me:", error);
     res.status(500).json({ message: "Error del servidor" });
   }
 });
@@ -65,7 +67,6 @@ router.post("/register", async (req, res) => {
 
     res.status(201).json({ message: "Usuario registrado correctamente" });
   } catch (error) {
-    console.error("❌ Error al registrar:", error);
     res.status(500).json({ message: "Error del servidor" });
   }
 });
@@ -104,10 +105,16 @@ router.post("/login", async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        level: user.level || 1,
+        xp: user.xp || 0,
+        maxXp: user.maxXp || 100,
+        profilePicture: user.profilePicture || "",
+        university: user.university || "",
+        isUniversityStudent: user.isUniversityStudent || false,
+        achievements: user.achievements || [],
       },
     });
   } catch (error) {
-    console.error("❌ Error en login:", error);
     res.status(500).json({ message: "Error del servidor" });
   }
 });
@@ -117,12 +124,10 @@ router.put("/update", verifyToken, async (req, res) => {
   try {
     const { name, profilePicture, university, isUniversityStudent } = req.body;
 
-    // Validate required fields
     if (!name) {
       return res.status(400).json({ message: "El nombre es obligatorio." });
     }
 
-    // Update user
     const updatedUser = await User.findByIdAndUpdate(
       req.user.userId,
       {
@@ -131,7 +136,7 @@ router.put("/update", verifyToken, async (req, res) => {
         university,
         isUniversityStudent,
       },
-      { new: true, select: "-password" } // Exclude password from response
+      { new: true, select: "-password" }
     );
 
     if (!updatedUser) {
@@ -143,9 +148,19 @@ router.put("/update", verifyToken, async (req, res) => {
       user: updatedUser,
     });
   } catch (error) {
-    console.error("❌ Error al actualizar perfil:", error);
     res.status(500).json({ message: "Error del servidor" });
   }
 });
+
+// Update profile picture
+router.put(
+  "/profile-picture",
+  verifyToken,
+  upload.single("profilePicture"),
+  updateProfilePicture
+);
+
+// Ruta para obtener el ranking (protegida)
+router.get("/rankings", verifyToken, getRankings);
 
 export default router;

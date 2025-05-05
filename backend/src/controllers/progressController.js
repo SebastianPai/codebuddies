@@ -2,6 +2,10 @@ import * as progressService from "../services/progressService.js";
 import Lesson from "../models/LessonModel.js";
 import Course from "../models/CourseModel.js";
 import Progress from "../models/ProgressModel.js";
+import { addXP } from "../services/xpService.js";
+
+const EXERCISE_XP = 10; // XP por ejercicio
+const COURSE_COMPLETION_XP = 100; // XP por completar curso
 
 // Verificar si un usuario puede acceder a un ejercicio
 export const canAccessExercise = async (req, res) => {
@@ -97,7 +101,7 @@ export const getCourseProgress = async (req, res) => {
 export const getExerciseProgress = async (req, res) => {
   try {
     const { courseId, lessonId, exerciseOrder } = req.params;
-    const userId = req.user.id; // Asumiendo middleware de autenticación
+    const userId = req.user.userId; // Cambiado de req.user.id a req.user.userId
 
     // Validar parámetros
     if (!courseId || !lessonId || !exerciseOrder) {
@@ -148,7 +152,7 @@ export const getExerciseProgress = async (req, res) => {
 export const completeExercise = async (req, res) => {
   try {
     const { courseId, lessonId, exerciseOrder } = req.params;
-    const userId = req.user.userId; // Cambiado de req.user.id a req.user.userId para consistencia con otros controladores
+    const userId = req.user.userId;
 
     // Validar parámetros
     if (!courseId || !lessonId || !exerciseOrder) {
@@ -191,22 +195,56 @@ export const completeExercise = async (req, res) => {
       });
     }
 
-    // Evitar duplicados
-    if (
-      !progress.completedExercises.some(
-        (ex) => ex.lesson.toString() === lessonId && ex.exerciseOrder === order
-      )
-    ) {
+    // Verificar si el ejercicio ya está completado
+    const isAlreadyCompleted = progress.completedExercises.some(
+      (ex) => ex.lesson.toString() === lessonId && ex.exerciseOrder === order
+    );
+
+    if (!isAlreadyCompleted) {
+      // Agregar ejercicio completado
       progress.completedExercises.push({
         lesson: lessonId,
         exerciseOrder: order,
         completedAt: new Date(),
       });
+
+      // Guardar progreso
+      await progress.save();
+
+      // Otorgar XP por ejercicio
+      const updatedUser = await addXP(userId, EXERCISE_XP);
+
+      // Verificar si el curso está completo
+      const lessons = await Lesson.find({ course: courseId });
+      const totalExercises = lessons.reduce(
+        (sum, l) => sum + l.exercises.length,
+        0
+      );
+      const completedExercises = progress.completedExercises.length;
+      const completionPercentage = (completedExercises / totalExercises) * 100;
+
+      if (completionPercentage === 100) {
+        // Verificar si el curso ya fue marcado como completado
+        const user = await User.findById(userId);
+        if (!user.completedCourses.includes(courseId)) {
+          user.completedCourses.push(courseId);
+          await user.save();
+          // Otorgar XP por completar curso
+          await addXP(userId, COURSE_COMPLETION_XP);
+        }
+      }
+
+      res.json({
+        message: "Ejercicio marcado como completado.",
+        user: {
+          xp: updatedUser.xp,
+          level: updatedUser.level,
+          maxXp: updatedUser.maxXp,
+        },
+      });
+    } else {
+      res.json({ message: "Ejercicio ya estaba completado." });
     }
-
-    await progress.save();
-
-    res.json({ message: "Ejercicio marcado como completado." });
   } catch (error) {
     console.error("Error al completar ejercicio:", {
       message: error.message,

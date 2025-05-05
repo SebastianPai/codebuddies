@@ -1,19 +1,22 @@
+// backend/src/controllers/courseController.js
 import Course from "../models/CourseModel.js";
 import Lesson from "../models/LessonModel.js";
-
-const BASE_URL = "http://localhost:5000"; // Replace with environment variable in production
+import { uploadFileToSpaces } from "../services/spacesService.js";
 
 export const createCourse = async (req, res) => {
   try {
     const { title, description, level, module } = req.body;
-    const image = req.file
-      ? `${BASE_URL}/uploads/${req.file.filename}`
-      : undefined;
+    let imageUrl;
+
+    if (req.file) {
+      const result = await uploadFileToSpaces(req.file);
+      imageUrl = result.Location; // URL del CDN
+    }
 
     const newCourse = new Course({
       title,
       description,
-      image, // Save the absolute URL
+      image: imageUrl,
       level,
       module,
       lessons: [],
@@ -29,13 +32,11 @@ export const createCourse = async (req, res) => {
 export const updateCourse = async (req, res) => {
   try {
     const { title, description, level, module } = req.body;
-    const image = req.file
-      ? `${BASE_URL}/uploads/${req.file.filename}`
-      : undefined;
+    let updateData = { title, description, level, module };
 
-    const updateData = { title, description, level, module };
-    if (image) {
-      updateData.image = image; // Update with absolute URL if a new image is uploaded
+    if (req.file) {
+      const result = await uploadFileToSpaces(req.file);
+      updateData.image = result.Location; // URL del CDN
     }
 
     const updatedCourse = await Course.findByIdAndUpdate(
@@ -52,7 +53,6 @@ export const updateCourse = async (req, res) => {
   }
 };
 
-// Other functions remain unchanged
 export const getAllCourses = async (req, res) => {
   try {
     const courses = await Course.find().populate("module");

@@ -1,4 +1,3 @@
-// models/User.js
 import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema(
@@ -47,14 +46,29 @@ const userSchema = new mongoose.Schema(
     },
     powers: [
       {
-        name: String,
-        icon: String, // Store icon name or color for frontend rendering
+        name: { type: String, required: true },
+        icon: { type: String, required: true }, // Store icon name for frontend rendering
       },
     ],
     achievements: [
       {
-        name: String,
-        description: String,
+        name: { type: String, required: true },
+        description: { type: String, required: true },
+        awardedAt: { type: Date, default: Date.now },
+      },
+    ],
+    completedCourses: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Course",
+      },
+    ],
+    completedExercises: [
+      {
+        courseId: { type: mongoose.Schema.Types.ObjectId, ref: "Course" },
+        lessonId: { type: mongoose.Schema.Types.ObjectId, ref: "Lesson" },
+        exerciseId: { type: mongoose.Schema.Types.ObjectId, ref: "Exercise" },
+        completedAt: { type: Date, default: Date.now },
       },
     ],
   },

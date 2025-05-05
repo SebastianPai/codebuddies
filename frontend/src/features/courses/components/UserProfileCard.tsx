@@ -41,7 +41,7 @@ export const UserProfileCard: React.FC = () => {
       </div>
       <button
         className="w-full py-2 rounded-md transition-colors font-bold border-2"
-        onClick={() => navigate("/profile")}
+        onClick={() => navigate("/perfil")}
         style={{
           background: theme.colors.button,
           color: theme.colors.buttonText,

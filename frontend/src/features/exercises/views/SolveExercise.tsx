@@ -614,12 +614,14 @@ const SolveExercise: React.FC = () => {
             width: "400px",
             textAlign: "center",
             zIndex: 1000,
+            transition: "transform 0.3s ease-in-out",
           },
           overlay: {
             backgroundColor: "rgba(0, 0, 0, 0.5)",
             zIndex: 1000,
           },
         }}
+        className={modalContent.isCorrect ? "animate-pulse" : ""}
       >
         <h2 className="text-xl font-bold mb-4">
           {modalContent.isCorrect ? "¡Correcto!" : "Error"}

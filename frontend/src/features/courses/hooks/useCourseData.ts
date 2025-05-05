@@ -3,7 +3,11 @@ import { useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useAuth } from "@/context/AuthContext";
 import { Course, Lesson, Progress } from "@/types/course";
-import { fetchCourse, fetchLessons, fetchProgress } from "../services/courseService";
+import {
+  fetchCourse,
+  fetchLessons,
+  fetchProgress,
+} from "../services/courseService";
 
 export const useCourseData = () => {
   const { id } = useParams<{ id: string }>();
@@ -33,7 +37,10 @@ export const useCourseData = () => {
         setLessons(lessonData);
         setProgress(progressData);
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : "No se pudieron cargar los datos del curso.";
+        const errorMessage =
+          err instanceof Error
+            ? err.message
+            : "No se pudieron cargar los datos del curso.";
         setError(errorMessage);
         toast.error(errorMessage, { toastId: "fetch-error" });
       } finally {

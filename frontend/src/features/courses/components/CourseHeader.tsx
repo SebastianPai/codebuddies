@@ -103,7 +103,7 @@ export const CourseHeader: React.FC<CourseHeaderProps> = ({
               toast.info("¡Has completado todas las lecciones del curso!", {
                 toastId: "course-completed",
               });
-              navigate("/dashboard");
+              navigate("/learn");
             }
           }}
           onMouseEnter={(e) => {
