@@ -8,8 +8,7 @@ import Modal from "react-modal";
 import Navbar from "@/components/common/Navbar";
 import { InstructionsPanel } from "../components/InstructionsPanel";
 import { ExerciseHeader } from "../components/ExerciseHeader";
-import { CodeEditor } from "../components/CodeEditor"; // Mantenemos CodeEditor para HTML/CSS
-import { CodeEditorWrapper } from "../components/CodeEditorWrapper"; // Usamos CodeEditorWrapper para JS/Python
+import { CodeEditorWrapper } from "../components/CodeEditorWrapper";
 import { PreviewPanel } from "../components/PreviewPanel";
 import { toast } from "react-toastify";
 import { TerminalPanel } from "../components/TerminalPanel";
@@ -75,46 +74,6 @@ const SolveExercise: React.FC = () => {
   const [activeSection, setActiveSection] = useState<
     "code" | "preview" | "instructions"
   >("code");
-
-  // Reintroducimos el useEffect para cargar loader.js manualmente
-  useEffect(() => {
-    const loadMonacoLoader = () => {
-      if (document.getElementById("monaco-loader")) {
-        return;
-      }
-
-      const script = document.createElement("script");
-      script.id = "monaco-loader";
-      script.src = "/monaco-editor/min/vs/loader.js";
-      script.async = true;
-
-      script.onload = () => {
-        const win = window as any;
-        if (win.require) {
-          win.require.config({
-            paths: {
-              vs: "/monaco-editor/min/vs",
-            },
-          });
-        }
-      };
-
-      script.onerror = () => {
-        console.error("No se pudo cargar Monaco loader.js");
-      };
-
-      document.head.appendChild(script);
-    };
-
-    loadMonacoLoader();
-
-    return () => {
-      const script = document.getElementById("monaco-loader");
-      if (script) {
-        document.head.removeChild(script);
-      }
-    };
-  }, []);
 
   useEffect(() => {
     const loadInstructionImages = async () => {
@@ -190,7 +149,6 @@ const SolveExercise: React.FC = () => {
       return (
         <>
           <ExerciseHeader exercise={exercise} />
-          {/* Pestañas para móviles */}
           <div
             className="md:hidden flex justify-around p-4 border-b"
             style={{ borderColor: theme.colors.border }}
@@ -254,7 +212,6 @@ const SolveExercise: React.FC = () => {
             </button>
           </div>
           <div className="flex flex-1 overflow-hidden flex-col md:flex-row h-full">
-            {/* Instrucciones */}
             <div
               className={`w-full p-6 overflow-y-auto border-r min-w-0 ${
                 activeSection === "instructions"
@@ -290,25 +247,36 @@ const SolveExercise: React.FC = () => {
                 />
               </div>
             </div>
-            {/* Código */}
             <div
               className={`w-full min-w-0 flex-1 ${
                 activeSection === "code"
                   ? "block h-full"
                   : "hidden md:block md:w-1/3"
               }`}
-              style={{ flex: "1 1 0" }}
+              style={{ flex: "1 1 0", height: "100%" }}
             >
-              <CodeEditor
-                language={exercise.language}
-                htmlCode={htmlCode}
-                cssCode={cssCode}
-                setHtmlCode={setHtmlCode}
-                setCssCode={setCssCode}
-                onRunCode={handleRunCode}
-              />
+              <div
+                className="flex-1 overflow-hidden p-4"
+                style={{ height: "100%" }}
+              >
+                <CodeEditorWrapper
+                  value={exercise.language === "html" ? htmlCode : cssCode}
+                  onValueChange={
+                    exercise.language === "html" ? setHtmlCode : setCssCode
+                  }
+                  highlightLanguage={exercise.language}
+                  padding={16}
+                  className="font-mono text-sm rounded-lg h-full outline-none"
+                  style={{
+                    background: theme.colors.card,
+                    color: theme.colors.text,
+                    border: `1px solid ${theme.colors.border}`,
+                    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+                    height: "100%",
+                  }}
+                />
+              </div>
             </div>
-            {/* Vista Previa */}
             <div
               className={`w-full flex flex-col min-w-0 flex-1 ${
                 activeSection === "preview"
@@ -374,7 +342,6 @@ const SolveExercise: React.FC = () => {
             Ejercicio - {exercise.language.toUpperCase()}
           </h1>
         </div>
-        {/* Pestañas para móviles */}
         <div
           className="md:hidden flex justify-around p-4 border-b"
           style={{ borderColor: theme.colors.border }}
@@ -419,7 +386,6 @@ const SolveExercise: React.FC = () => {
           </button>
         </div>
         <div className="flex flex-1 overflow-hidden flex-col md:flex-row">
-          {/* Instrucciones */}
           <div
             className={`w-full md:w-1/2 overflow-y-auto p-6 border-r min-w-0 ${
               activeSection === "instructions" ? "block" : "hidden md:block"
@@ -450,7 +416,6 @@ const SolveExercise: React.FC = () => {
               />
             </div>
           </div>
-          {/* Código y Terminal */}
           <div
             className={`w-full md:w-1/2 flex flex-col min-w-0 ${
               activeSection === "code" ? "block" : "hidden md:block"
