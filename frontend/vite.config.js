@@ -6,6 +6,7 @@ import path from "path";
 
 export default defineConfig({
   base: "/", // 👈 Esto asegura rutas absolutas que funcionen con Express
+  publicDir: "public", // Asegura que Vite use la carpeta public
   plugins: [
     react(),
     tailwindcss(),
