@@ -120,7 +120,7 @@ app.use((req, res, next) => {
     return next();
   }
   res.sendFile(
-    path.join(__dirname, "../../../frontend/dist", "index.html"),
+    path.join(__dirname, "../../frontend/dist", "index.html"),
     (err) => {
       if (err) {
         console.error("Error al enviar index.html:", err);
