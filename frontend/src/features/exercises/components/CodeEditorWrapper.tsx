@@ -7,10 +7,10 @@ import cssWorker from "monaco-editor/esm/vs/language/css/css.worker?worker";
 import htmlWorker from "monaco-editor/esm/vs/language/html/html.worker?worker";
 import jsWorker from "monaco-editor/esm/vs/language/typescript/ts.worker?worker";
 
-// Configura la ruta base para Monaco Editor antes de inicializar el componente
+// Configura la ruta base para Monaco Editor
 loader.config({
   paths: {
-    vs: "/monaco-editor", // Apunta a public/monaco-editor
+    vs: "/monaco-editor/vs", // Apunta a public/monaco-editor/vs
   },
 });
 
@@ -33,7 +33,7 @@ export const CodeEditorWrapper: FC<CodeEditorWrapperProps> = ({
 }) => {
   const beforeMount = (monaco: typeof Monaco) => {
     self.MonacoEnvironment = {
-      baseUrl: "/monaco-editor/", // Ruta para recursos locales
+      baseUrl: "/monaco-editor/vs/", // Ruta correcta para los recursos
       getWorker(_: string, label: string) {
         switch (label) {
           case "editorWorkerService":
