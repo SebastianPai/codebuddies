@@ -32,6 +32,7 @@ const corsOptions = {
       const allowedOrigins = [
         "https://www.codebuddies.live",
         "https://codebuddies.live",
+        "https://codebuddies-jh-3e772884b367.herokuapp.com",
         null,
       ];
       if (!origin || allowedOrigins.includes(origin)) {
@@ -57,17 +58,23 @@ app.use("/images", express.static(path.join(__dirname, "../public/images")));
 app.use(express.json());
 
 // Configurar Helmet con CSP
+const allowedConnectSrc = [
+  "'self'",
+  "https://www.codebuddies.live",
+  "https://codebuddies.live",
+  "https://codebuddies-jh-3e772884b367.herokuapp.com",
+];
+
+if (process.env.NODE_ENV === "development") {
+  allowedConnectSrc.push("http://localhost:5000");
+}
+
 app.use(
   helmet({
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        connectSrc: [
-          "'self'",
-          "http://localhost:5000",
-          "https://www.codebuddies.live",
-          "https://codebuddies.live",
-        ],
+        connectSrc: allowedConnectSrc,
         imgSrc: [
           "'self'",
           "data:",
