@@ -1,4 +1,3 @@
-// backend/src/index.js
 import "./config/env.js"; // Cargar variables de entorno primero
 import express from "express";
 import cors from "cors";
@@ -93,10 +92,13 @@ app.use(morgan("dev"));
 
 // Servir archivos estáticos del frontend
 app.use(
-  express.static(path.join(__dirname, "../../../frontend/dist"), {
+  express.static(path.join(__dirname, "../../frontend/dist"), {
     setHeaders: (res, path) => {
       if (path.endsWith(".js")) {
         res.setHeader("Content-Type", "application/javascript");
+      }
+      if (path.endsWith(".css")) {
+        res.setHeader("Content-Type", "text/css");
       }
     },
   })
@@ -115,7 +117,8 @@ app.use((req, res, next) => {
   if (
     req.path.startsWith("/api") ||
     req.path.startsWith("/images") ||
-    req.path.startsWith("/monaco-editor")
+    req.path.startsWith("/monaco-editor") ||
+    req.path.startsWith("/assets")
   ) {
     return next();
   }
