@@ -34,6 +34,7 @@ const corsOptions = {
         "https://codebuddies.live",
         "https://codebuddies-jh-3e772884b367.herokuapp.com",
         "https://cdn.pixabay.com",
+        "https://picsum.photos",
         null,
       ];
       if (!origin || allowedOrigins.includes(origin)) {
@@ -74,6 +75,7 @@ const allowedConnectSrc = [
   "https://codebuddies.live",
   "https://codebuddies-jh-3e772884b367.herokuapp.com",
   "https://cdn.pixabay.com",
+  "https://picsum.photos",
 ];
 
 if (process.env.NODE_ENV === "development") {
@@ -93,6 +95,7 @@ app.use(
           "https://www.codebuddies.live",
           "https://codebuddies.live",
           "https://cdn.pixabay.com",
+          "https://picsum.photos",
           "https://codebuddiesimages.nyc3.cdn.digitaloceanspaces.com",
         ],
         scriptSrc: ["'self'"],
