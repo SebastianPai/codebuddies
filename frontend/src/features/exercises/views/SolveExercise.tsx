@@ -2,9 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useTheme } from "@/context/ThemeContext";
-import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import Modal from "react-modal";
 import Navbar from "@/components/common/Navbar";
 import { InstructionsPanel } from "../components/InstructionsPanel";
 import { ExerciseHeader } from "../components/ExerciseHeader";
@@ -27,9 +24,6 @@ import {
   Play,
   Copy,
 } from "lucide-react";
-
-// Configurar react-modal
-Modal.setAppElement("#root");
 
 const SolveExercise: React.FC = () => {
   const { theme } = useTheme();
@@ -58,6 +52,7 @@ const SolveExercise: React.FC = () => {
     isModalOpen,
     handleCheckAnswer,
     setIsModalOpen,
+    userProgress,
   } = useExerciseValidation(
     exercise,
     lesson,
@@ -110,7 +105,7 @@ const SolveExercise: React.FC = () => {
     }
   };
 
-  const renderContent = () => {
+  const renderContent = (): React.ReactNode => {
     if (loading) {
       return (
         <div
@@ -581,69 +576,239 @@ const SolveExercise: React.FC = () => {
         ></div>
       )}
       <Navbar />
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop
-        closeOnClick
-        closeButton
-        rtl={false}
-        pauseOnFocusLoss={false}
-        draggable
-        pauseOnHover={false}
-        theme={theme.name}
-        limit={3}
-      />
-      <Modal
-        isOpen={isModalOpen}
-        onRequestClose={() => setIsModalOpen(false)}
-        style={{
-          content: {
-            top: "50%",
-            left: "50%",
-            right: "auto",
-            bottom: "auto",
-            marginRight: "-50%",
-            transform: "translate(-50%, -50%)",
-            background: modalContent.isCorrect ? "#22c55e" : "#ef4444",
-            color: theme.colors.buttonText,
-            borderRadius: "8px",
-            padding: "20px",
-            border: `2px solid ${theme.colors.border}`,
-            width: "400px",
-            textAlign: "center",
-            zIndex: 1000,
-            transition: "transform 0.3s ease-in-out",
-          },
-          overlay: {
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
-            zIndex: 1000,
-          },
-        }}
-        className={modalContent.isCorrect ? "animate-pulse" : ""}
-      >
-        <h2 className="text-xl font-bold mb-4">
-          {modalContent.isCorrect ? "¡Correcto!" : "Error"}
-        </h2>
-        <p className="mb-4">{modalContent.message}</p>
-        <button
-          onClick={() => {
-            setIsModalOpen(false);
-            if (modalContent.isCorrect) {
-              handleNavigate("next");
-            }
-          }}
-          style={{
-            background: theme.colors.accent,
-            color: theme.colors.buttonText,
-            padding: "8px 16px",
-            borderRadius: "4px",
-          }}
-        >
-          {modalContent.isCorrect ? "Continuar" : "Cerrar"}
-        </button>
-      </Modal>
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black bg-opacity-80 flex justify-center items-center p-4">
+          <div
+            className="p-8 rounded-lg max-w-md w-full animate-pulse"
+            style={{
+              background: theme.colors.card,
+              border: `4px solid ${
+                modalContent.isCorrect
+                  ? theme.colors.success
+                  : theme.colors.error
+              }`,
+            }}
+          >
+            <div className="flex justify-center mb-4">
+              <div
+                className="flex items-center justify-center w-12 h-12 rounded-full"
+                style={{
+                  background: modalContent.isCorrect
+                    ? theme.colors.success
+                    : theme.colors.error,
+                }}
+              >
+                <span className="text-2xl">
+                  {modalContent.isCorrect ? "🎉" : "💀"}
+                </span>
+              </div>
+            </div>
+
+            <h1
+              className="text-3xl uppercase font-mono text-center font-bold tracking-widest mb-4"
+              style={{
+                color: modalContent.isCorrect
+                  ? theme.colors.success
+                  : theme.colors.error,
+              }}
+            >
+              {modalContent.isCorrect ? "¡ÉXITO!" : "¡ERROR!"}
+            </h1>
+
+            <div
+              className="p-4 rounded-md"
+              style={{
+                border: `2px solid ${
+                  modalContent.isCorrect
+                    ? theme.colors.success
+                    : theme.colors.error
+                }`,
+                background: theme.colors.background,
+              }}
+            >
+              <p
+                className="text-center font-mono text-sm uppercase tracking-wide"
+                style={{ color: theme.colors.highlightText }}
+              >
+                {modalContent.message}
+              </p>
+
+              <div className="flex justify-center mt-4">
+                <div className="relative animate-bounce">
+                  <img
+                    src={
+                      modalContent.isCorrect
+                        ? "/images/feliz1.png"
+                        : "/images/triste2.png"
+                    }
+                    alt={
+                      modalContent.isCorrect
+                        ? "Mascota feliz"
+                        : "Mascota triste"
+                    }
+                    className={
+                      modalContent.isCorrect
+                        ? "mx-auto w-36 h-32 pixelated"
+                        : "mx-auto w-32 h-32 pixelated"
+                    }
+                  />
+                  <div className="absolute -top-2 -right-2 text-xl animate-bounce">
+                    {modalContent.isCorrect ? "😊" : "😢"}
+                  </div>
+                </div>
+              </div>
+
+              <p
+                className="text-center mt-4 font-mono text-xs"
+                style={{ color: theme.colors.text }}
+              >
+                <span
+                  style={{
+                    color: modalContent.isCorrect
+                      ? theme.colors.success
+                      : theme.colors.error,
+                  }}
+                >
+                  BITZI
+                </span>{" "}
+                ESTÁ {modalContent.isCorrect ? "FELIZ" : "TRISTE"}...
+              </p>
+
+              {modalContent.isCorrect && userProgress && (
+                <div className="mt-4">
+                  <p
+                    className="text-center font-mono text-sm"
+                    style={{ color: theme.colors.highlightText }}
+                  >
+                    {userProgress.isAlreadyCompleted
+                      ? "ℹ️ Misión ya completada. ¡Solo se otorgan 10 XP la primera vez!"
+                      : userProgress.gainedXp && userProgress.gainedXp > 0
+                      ? `🎉 +${userProgress.gainedXp} XP GANADOS`
+                      : "🎉 Ejercicio completado"}
+                  </p>
+                  <p
+                    className="text-center font-mono text-xs mt-2"
+                    style={{ color: theme.colors.text }}
+                  >
+                    TOTAL: {userProgress.xp}/{userProgress.maxXp} XP
+                  </p>
+                  <div className="mt-2">
+                    <div
+                      className="h-2 rounded-full"
+                      style={{ background: theme.colors.progressBackground }}
+                    >
+                      <div
+                        className="h-2 rounded-full"
+                        style={{
+                          background: theme.colors.progressFill,
+                          width: `${
+                            (userProgress.xp / userProgress.maxXp) * 100
+                          }%`,
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {!modalContent.isCorrect && userProgress && (
+                <div className="mt-4">
+                  <p
+                    className="text-center font-mono text-sm"
+                    style={{ color: theme.colors.highlightText }}
+                  >
+                    ❌ Intenta de nuevo para ganar XP
+                  </p>
+                  <p
+                    className="text-center font-mono text-xs mt-2"
+                    style={{ color: theme.colors.text }}
+                  >
+                    TOTAL: {userProgress.xp}/{userProgress.maxXp} XP
+                  </p>
+                  <div className="mt-2">
+                    <div
+                      className="h-2 rounded-full"
+                      style={{ background: theme.colors.progressBackground }}
+                    >
+                      <div
+                        className="h-2 rounded-full"
+                        style={{
+                          background: theme.colors.progressFill,
+                          width: `${
+                            (userProgress.xp / userProgress.maxXp) * 100
+                          }%`,
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <button
+                onClick={() => {
+                  setIsModalOpen(false);
+                  if (modalContent.isCorrect) {
+                    handleNavigate("next");
+                  }
+                }}
+                className="border-2 hover:scale-105 transition duration-150 py-2 rounded-md font-bold uppercase tracking-widest px-4 flex items-center justify-center"
+                style={{
+                  background: modalContent.isCorrect
+                    ? theme.colors.success
+                    : theme.colors.error,
+                  color: theme.colors.buttonText,
+                  borderColor: theme.colors.border,
+                }}
+              >
+                <span className="mr-2">
+                  {modalContent.isCorrect ? "➡️" : "🔄"}
+                </span>
+                {modalContent.isCorrect ? "Continuar" : "Reintentar"}
+              </button>
+
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="border-2 hover:scale-105 transition duration-150 py-2 rounded-md font-bold uppercase tracking-widest px-4 flex items-center justify-center"
+                style={{
+                  background: theme.colors.secondaryButton,
+                  color: theme.colors.buttonText,
+                  borderColor: theme.colors.border,
+                }}
+              >
+                <span className="mr-2">❌</span> Cerrar
+              </button>
+            </div>
+
+            {userProgress && (
+              <div
+                className="mt-6 border-t-2 pt-4"
+                style={{
+                  borderColor: modalContent.isCorrect
+                    ? theme.colors.success
+                    : theme.colors.error,
+                }}
+              >
+                <div className="flex justify-between">
+                  <div
+                    className="font-mono text-xs"
+                    style={{ color: theme.colors.highlightText }}
+                  >
+                    NIVEL: {userProgress.level}
+                  </div>
+                  <div
+                    className="font-mono text-xs"
+                    style={{ color: theme.colors.highlightText }}
+                  >
+                    VIDAS: ❤️❤️❤️
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       {renderContent()}
     </div>
   );

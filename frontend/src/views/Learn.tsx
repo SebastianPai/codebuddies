@@ -144,12 +144,12 @@ export default function Learn() {
             className="text-4xl md:text-5xl mb-4 tracking-wider"
             style={{ color: theme.colors.text }}
           >
-            Explora el mundo de <br />
+            ¡Lánzate al universo del <br />
             <span
               className="text-5xl md:text-6xl font-bold mt-2 inline-block tracking-widest"
               style={{ color: theme.colors.accent }}
             >
-              Código
+              código!
             </span>
           </h1>
 
@@ -161,9 +161,9 @@ export default function Learn() {
               background: theme.colors.card,
             }}
           >
-            Empieza tu aventura en la programación con más de 200 horas de
-            ejercicios interactivos de programación, combinados con proyectos
-            reales. ¡Explora gratis! ✨
+            Descubre la programación con más de 100 horas de ejercicios
+            interactivos y proyectos prácticos del mundo real. ¡Comienza tu
+            aventura gratis!
           </p>
         </div>
       </section>

@@ -25,224 +25,252 @@ export default function WelcomeScreen({
 
   return (
     <div
-      className="w-full max-w-3xl border-4 p-6 rounded-lg shadow-[0_0_10px_rgba(168,85,247,0.5)] text-white uppercase tracking-widest relative"
-      style={{
-        backgroundColor: theme.colors.card,
-        borderColor: theme.colors.accent,
-      }}
+      className="flex flex-col min-h-screen font-mono"
+      style={{ background: theme.colors.background, color: theme.colors.text }}
     >
-      {/* Header */}
-      <div className="text-center mb-6">
-        <h1
-          className="text-2xl md:text-3xl font-bold mb-2 tracking-[0.2em] [text-shadow:2px_2px_0_#000]"
-          style={{ color: theme.colors.primary }}
-        >
-          BIENVENIDO/A{" "}
-          <span style={{ color: theme.colors.accent }}>{playerName}</span>
-        </h1>
-        <div className="flex justify-center items-center gap-4 text-sm md:text-base">
-          <div
-            className="px-3 py-1 border-2"
-            style={{
-              backgroundColor: theme.colors.background,
-              borderColor: theme.colors.primary,
-            }}
-          >
-            NIVEL: {level}
-          </div>
-          <div
-            className="px-3 py-1 border-2"
-            style={{
-              backgroundColor: theme.colors.background,
-              borderColor: theme.colors.primary,
-            }}
-          >
-            XP: {currentXp}/{maxXp}
-          </div>
-        </div>
+      <div className="flex justify-center items-center flex-grow p-4">
         <div
-          className="border-t-4 mt-4 mb-6"
-          style={{ borderColor: theme.colors.primary }}
-        ></div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Mission Card */}
-        <div
-          className="md:col-span-2 border-4 p-4 rounded"
+          className="w-full max-w-md rounded-xl p-6 sm:p-8 shadow-lg"
           style={{
-            backgroundColor: theme.colors.background,
-            borderColor: theme.colors.primary,
+            background: theme.colors.card,
+            border: `4px solid ${theme.colors.border}`,
           }}
         >
-          <h2
-            className="text-xl font-bold mb-3 flex items-center"
-            style={{ color: theme.colors.primary }}
-          >
-            <TrophyIcon className="mr-2 h-5 w-5" /> MISIÓN DE HOY
-          </h2>
-          <p className="mb-4" style={{ color: theme.colors.text }}>
-            {missionTitle}
-          </p>
-          <div
-            className="mb-2 text-xs"
-            style={{ color: theme.colors.secondaryText }}
-          >
-            PROGRESO: {missionProgress}%
-          </div>
-          <div
-            className="w-full h-4 border rounded overflow-hidden"
-            style={{
-              backgroundColor: theme.colors.card,
-              borderColor: theme.colors.primary,
-            }}
-          >
-            <div
-              className="h-full"
-              style={{
-                width: `${missionProgress}%`,
-                backgroundColor: theme.colors.primary,
-              }}
-            ></div>
-          </div>
-        </div>
-
-        {/* Mascot Area */}
-        <div className="flex flex-col items-center">
-          <div
-            className="w-32 h-32 border-4 flex items-center justify-center mb-2 relative overflow-hidden"
-            style={{
-              backgroundColor: theme.colors.background,
-              borderColor: theme.colors.primary,
-            }}
-          >
-            <div className="w-24 h-24 relative">
-              {/* Pixel art mascot */}
-              <div className="absolute inset-0 grid grid-cols-8 grid-rows-8">
-                {Array(64)
-                  .fill(0)
-                  .map((_, i) => {
-                    const row = Math.floor(i / 8);
-                    const col = i % 8;
-                    const isBody = row >= 2 && row <= 5 && col >= 2 && col <= 5;
-                    const isEye = row === 3 && (col === 3 || col === 4);
-                    const isMouth = row === 4 && (col === 3 || col === 4);
-
-                    let bgColor = "bg-transparent";
-                    if (isBody) bgColor = "bg-[#a855f7]";
-                    if (isEye) bgColor = "bg-white";
-                    if (isMouth) bgColor = "bg-[#facc15]";
-
-                    return (
-                      <div
-                        key={i}
-                        className={`${bgColor} border`}
-                        style={{
-                          borderColor: theme.colors.background,
-                        }}
-                      ></div>
-                    );
-                  })}
+          {/* Header */}
+          <div className="text-center mb-6">
+            <h1
+              className="text-2xl sm:text-3xl font-bold mb-2"
+              style={{ color: theme.colors.accent }}
+            >
+              {`BIENVENIDO/A ${playerName}`.split("").map((letter, index) => (
+                <span
+                  key={index}
+                  className="inline-block transform hover:scale-110 transition-transform duration-300"
+                >
+                  {letter}
+                </span>
+              ))}
+            </h1>
+            <div className="flex justify-center items-center gap-2 sm:gap-4 text-xs sm:text-sm">
+              <div
+                className="px-2 py-1 rounded-md"
+                style={{
+                  background: theme.colors.background,
+                  border: `2px solid ${theme.colors.border}`,
+                }}
+              >
+                NIVEL: {level}
+              </div>
+              <div
+                className="px-2 py-1 rounded-md"
+                style={{
+                  background: theme.colors.background,
+                  border: `2px solid ${theme.colors.border}`,
+                }}
+              >
+                XP: {currentXp}/{maxXp}
               </div>
             </div>
           </div>
+
+          <div className="space-y-6">
+            {/* Mission Card */}
+            <div
+              className="rounded-md p-4"
+              style={{
+                background: theme.colors.background,
+                border: `2px solid ${theme.colors.border}`,
+              }}
+            >
+              <h2
+                className="text-lg sm:text-xl font-bold mb-2 flex items-center"
+                style={{ color: theme.colors.accent }}
+              >
+                <TrophyIcon className="mr-2 h-4 w-4 sm:h-5 sm:w-5" /> MISIÓN DE
+                HOY
+              </h2>
+              <p
+                className="mb-3 text-sm sm:text-base"
+                style={{ color: theme.colors.text }}
+              >
+                {missionTitle}
+              </p>
+              <div
+                className="mb-2 text-xs sm:text-sm"
+                style={{ color: theme.colors.secondaryText }}
+              >
+                PROGRESO: {missionProgress}%
+              </div>
+              <div
+                className="w-full h-3 rounded overflow-hidden"
+                style={{
+                  background: theme.colors.card,
+                  border: `1px solid ${theme.colors.border}`,
+                }}
+              >
+                <div
+                  className="h-full"
+                  style={{
+                    width: `${missionProgress}%`,
+                    background: theme.colors.accent,
+                  }}
+                ></div>
+              </div>
+            </div>
+
+            {/* Mascot Area */}
+            <div className="flex flex-col items-center">
+              <div
+                className="w-24 h-24 sm:w-32 sm:h-32 rounded-md flex items-center justify-center mb-2 relative overflow-hidden"
+                style={{
+                  background: theme.colors.background,
+                  border: `2px solid ${theme.colors.border}`,
+                }}
+              >
+                <div className="w-16 h-16 sm:w-24 sm:h-24 relative">
+                  {/* Pixel art mascot */}
+                  <div className="absolute inset-0 grid grid-cols-8 grid-rows-8">
+                    {Array(64)
+                      .fill(0)
+                      .map((_, i) => {
+                        const row = Math.floor(i / 8);
+                        const col = i % 8;
+                        const isBody =
+                          row >= 2 && row <= 5 && col >= 2 && col <= 5;
+                        const isEye = row === 3 && (col === 3 || col === 4);
+                        const isMouth = row === 4 && (col === 3 || col === 4);
+
+                        let bgColor = "bg-transparent";
+                        if (isBody) bgColor = "bg-[#a855f7]";
+                        if (isEye) bgColor = "bg-white";
+                        if (isMouth) bgColor = "bg-[#facc15]";
+
+                        return (
+                          <div
+                            key={i}
+                            className={`${bgColor} border`}
+                            style={{
+                              borderColor: theme.colors.background,
+                            }}
+                          ></div>
+                        );
+                      })}
+                  </div>
+                </div>
+              </div>
+              <div
+                className="text-center text-xs sm:text-sm"
+                style={{ color: theme.colors.text }}
+              >
+                TU COMPAÑERO:{" "}
+                <span style={{ color: theme.colors.accent }}>{petName}</span>
+              </div>
+            </div>
+
+            {/* Training Buttons */}
+            <div>
+              <h2
+                className="text-lg sm:text-xl font-bold mb-3"
+                style={{ color: theme.colors.accent }}
+              >
+                SELECCIONA TU ENTRENAMIENTO:
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                <button
+                  className="w-full py-2 rounded-md font-bold hover:scale-105 transition-transform duration-300 flex items-center justify-center"
+                  style={{
+                    background: theme.colors.button,
+                    color: theme.colors.buttonText,
+                    border: `2px solid ${theme.colors.border}`,
+                  }}
+                >
+                  <MonitorIcon className="mr-1 h-4 w-4" /> JS BÁSICO
+                </button>
+                <button
+                  className="w-full py-2 rounded-md font-bold hover:scale-105 transition-transform duration-300 flex items-center justify-center"
+                  style={{
+                    background: theme.colors.button,
+                    color: theme.colors.buttonText,
+                    border: `2px solid ${theme.colors.border}`,
+                  }}
+                >
+                  <MonitorIcon className="mr-1 h-4 w-4" /> PYTHON
+                </button>
+                <button
+                  className="w-full py-2 rounded-md font-bold hover:scale-105 transition-transform duration-300 flex items-center justify-center"
+                  style={{
+                    background: theme.colors.button,
+                    color: theme.colors.buttonText,
+                    border: `2px solid ${theme.colors.border}`,
+                  }}
+                >
+                  <ScrollIcon className="mr-1 h-4 w-4" /> RETOS DIARIOS
+                </button>
+                <button
+                  className="w-full py-2 rounded-md font-bold hover:scale-105 transition-transform duration-300 flex items-center justify-center"
+                  style={{
+                    background: theme.colors.button,
+                    color: theme.colors.buttonText,
+                    border: `2px solid ${theme.colors.border}`,
+                  }}
+                >
+                  <TrophyIcon className="mr-1 h-4 w-4" /> JEFES FINALES
+                </button>
+              </div>
+            </div>
+
+            {/* Footer Menu */}
+            <div
+              className="pt-4 border-t-2"
+              style={{ borderColor: theme.colors.border }}
+            >
+              <div className="flex justify-around">
+                <button
+                  className="flex flex-col items-center transition-transform duration-300 hover:scale-105"
+                  style={{ color: theme.colors.text }}
+                >
+                  <PackageIcon className="h-5 w-5 sm:h-6 sm:w-6 mb-1" />
+                  <span className="text-xs">MI PERFIL</span>
+                </button>
+                <button
+                  className="flex flex-col items-center transition-transform duration-300 hover:scale-105"
+                  style={{ color: theme.colors.text }}
+                >
+                  <div
+                    className="h-5 w-5 sm:h-6 sm:w-6 mb-1 rounded-full"
+                    style={{ background: theme.colors.accent }}
+                  ></div>
+                  <span className="text-xs">BITZI</span>
+                </button>
+                <button
+                  className="flex flex-col items-center transition-transform duration-300 hover:scale-105"
+                  style={{ color: theme.colors.text }}
+                >
+                  <ScrollIcon className="h-5 w-5 sm:h-6 sm:w-6 mb-1" />
+                  <span className="text-xs">NOTICIAS DEL GREMIO</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Tip Section */}
           <div
-            className="text-center text-sm"
-            style={{ color: theme.colors.text }}
+            className="mt-4 p-3 rounded-md"
+            style={{
+              background: theme.colors.background,
+              border: `2px solid ${theme.colors.border}`,
+            }}
           >
-            TU COMPAÑERO:{" "}
-            <span style={{ color: theme.colors.primary }}>{petName}</span>
+            <p
+              className="text-xs"
+              style={{ color: theme.colors.secondaryText }}
+            >
+              <span style={{ color: theme.colors.success }}>// </span>
+              Tip: Completa misiones diarias para ganar XP y subir de nivel
+            </p>
           </div>
         </div>
       </div>
-
-      {/* Training Buttons */}
-      <div className="my-6">
-        <h2
-          className="text-xl font-bold mb-4"
-          style={{ color: theme.colors.primary }}
-        >
-          SELECCIONA TU ENTRENAMIENTO:
-        </h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <button
-            className="border-2 rounded px-3 py-2 hover:scale-105 transition font-bold flex items-center justify-center"
-            style={{
-              backgroundColor: theme.colors.button,
-              color: theme.colors.buttonText,
-              borderColor: theme.colors.text,
-            }}
-          >
-            <MonitorIcon className="mr-1 h-4 w-4" /> JS BÁSICO
-          </button>
-          <button
-            className="border-2 rounded px-3 py-2 hover:scale-105 transition font-bold flex items-center justify-center"
-            style={{
-              backgroundColor: theme.colors.button,
-              color: theme.colors.buttonText,
-              borderColor: theme.colors.text,
-            }}
-          >
-            <MonitorIcon className="mr-1 h-4 w-4" /> PYTHON
-          </button>
-          <button
-            className="border-2 rounded px-3 py-2 hover:scale-105 transition font-bold flex items-center justify-center"
-            style={{
-              backgroundColor: theme.colors.button,
-              color: theme.colors.buttonText,
-              borderColor: theme.colors.text,
-            }}
-          >
-            <ScrollIcon className="mr-1 h-4 w-4" /> RETOS DIARIOS
-          </button>
-          <button
-            className="border-2 rounded px-3 py-2 hover:scale-105 transition font-bold flex items-center justify-center"
-            style={{
-              backgroundColor: theme.colors.button,
-              color: theme.colors.buttonText,
-              borderColor: theme.colors.text,
-            }}
-          >
-            <TrophyIcon className="mr-1 h-4 w-4" /> JEFES FINALES
-          </button>
-        </div>
-      </div>
-
-      {/* Footer Menu */}
-      <div
-        className="mt-6 pt-4 border-t-4"
-        style={{ borderColor: theme.colors.accent }}
-      >
-        <div className="flex justify-around">
-          <button
-            className="flex flex-col items-center transition"
-            style={{ color: theme.colors.text }}
-          >
-            <PackageIcon className="h-6 w-6 mb-1" />
-            <span className="text-xs">MI PERFIL</span>
-          </button>
-          <button
-            className="flex flex-col items-center transition"
-            style={{ color: theme.colors.text }}
-          >
-            <div
-              className="h-6 w-6 mb-1 rounded-full"
-              style={{ backgroundColor: theme.colors.accent }}
-            ></div>
-            <span className="text-xs">BITZI</span>
-          </button>
-          <button
-            className="flex flex-col items-center transition"
-            style={{ color: theme.colors.text }}
-          >
-            <ScrollIcon className="h-6 w-6 mb-1" />
-            <span className="text-xs">NOTICIAS DEL GREMIO</span>
-          </button>
-        </div>
-      </div>
-
-      {/* CRT Effect Overlay */}
-      <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-transparent to-black opacity-10"></div>
     </div>
   );
 }

@@ -18,6 +18,10 @@ interface ThemeColors {
   success: string;
   error: string;
   accenttwo: string;
+  highlightText: string; // Nuevo: para texto destacado
+  secondaryButton: string; // Nuevo: para botón secundario
+  progressBackground: string; // Nuevo: fondo de la barra de progreso
+  progressFill: string; // Nuevo: relleno de la barra de progreso
 }
 
 interface Theme {
@@ -51,6 +55,10 @@ const themes: Record<"dark" | "light" | "pink", Theme> = {
       codeText: "#d1d5db",
       success: "#4CAF50",
       error: "#f87171",
+      highlightText: "#facc15", // Texto destacado
+      secondaryButton: "#2d3250", // Botón secundario
+      progressBackground: "#374151", // Gris oscuro para fondo
+      progressFill: "#facc15", // Amarillo para relleno
     },
   },
   light: {
@@ -71,6 +79,10 @@ const themes: Record<"dark" | "light" | "pink", Theme> = {
       codeText: "#1f2937",
       success: "#4CAF50",
       error: "#f87171",
+      highlightText: "#f59e0b", // Texto destacado (amarillo suave)
+      secondaryButton: "#6b7280", // Botón secundario (gris)
+      progressBackground: "#d1d5db", // Gris claro para fondo
+      progressFill: "#2563eb", // Azul para relleno
     },
   },
   pink: {
@@ -91,6 +103,10 @@ const themes: Record<"dark" | "light" | "pink", Theme> = {
       codeText: "#831843",
       success: "#4CAF50",
       error: "#f87171",
+      highlightText: "#f472b6", // Texto destacado (rosa claro)
+      secondaryButton: "#9d174d", // Botón secundario (rosa oscuro)
+      progressBackground: "#f9a8d4", // Rosa claro para fondo
+      progressFill: "#ec4899", // Rosa brillante para relleno
     },
   },
 };
