@@ -18,6 +18,7 @@ interface NavigationControlsProps {
     gainedXp?: number;
     isAlreadyCompleted?: boolean;
   } | null;
+  hasNextLesson: boolean;
 }
 
 export const NavigationControls = ({
@@ -30,6 +31,7 @@ export const NavigationControls = ({
   onNavigate,
   onCheckAnswer,
   userProgress,
+  hasNextLesson,
 }: NavigationControlsProps) => {
   const { theme } = useTheme();
 
@@ -41,9 +43,10 @@ export const NavigationControls = ({
   const isNextDisabled =
     !lesson ||
     !exercise ||
-    lesson.exercises.findIndex((ex) => ex.order === exercise.order) ===
-      lesson.exercises.length - 1 ||
-    !isExerciseCompleted;
+    (!isExerciseCompleted &&
+      lesson.exercises.findIndex((ex) => ex.order === exercise.order) ===
+        lesson.exercises.length - 1 &&
+      !hasNextLesson);
 
   const isCheckDisabled =
     exercise?.language === "html" || exercise?.language === "css"
@@ -58,7 +61,6 @@ export const NavigationControls = ({
         borderColor: theme.colors.border,
       }}
     >
-      {/* Sección de título y nivel (izquierda) */}
       <div className="flex items-center space-x-3">
         <button
           className="p-1 rounded-md"
@@ -78,8 +80,6 @@ export const NavigationControls = ({
           </div>
         </div>
       </div>
-
-      {/* Botones centrados */}
       <div className="flex items-center justify-center space-x-2">
         <button
           onClick={() => onNavigate("prev")}
@@ -126,8 +126,6 @@ export const NavigationControls = ({
           <Info className="w-4 h-4" />
         </button>
       </div>
-
-      {/* Barra de progreso y XP acumulado (derecha) */}
       <div className="flex items-center">
         <div className="flex flex-col items-end space-y-1">
           <div className="text-sm" style={{ color: theme.colors.accent }}>

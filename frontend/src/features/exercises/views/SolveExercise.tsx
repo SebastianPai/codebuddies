@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useTheme } from "@/context/ThemeContext";
+import { useAuth } from "@/context/AuthContext";
 import Navbar from "@/components/common/Navbar";
 import { InstructionsPanel } from "../components/InstructionsPanel";
 import { ExerciseHeader } from "../components/ExerciseHeader";
@@ -27,9 +28,11 @@ import {
   SiC,
   SiMarkdown,
 } from "react-icons/si";
+import { useParams } from "react-router-dom";
 
 const SolveExercise: React.FC = () => {
   const { theme } = useTheme();
+  const { fetchWithAuth } = useAuth();
   const {
     exercise,
     lesson,
@@ -53,7 +56,12 @@ const SolveExercise: React.FC = () => {
     setIsModalOpen,
     userProgress,
   } = useExerciseValidation(exercise, lesson, codes, setIsExerciseCompleted);
-  const { handleNavigate } = useExerciseNavigation(exercise, lesson);
+  const [courseLessons, setCourseLessons] = useState<Lesson[]>([]);
+  const { handleNavigate, hasNextLesson } = useExerciseNavigation(
+    exercise,
+    lesson,
+    courseLessons
+  );
   const [terminalOutput, setTerminalOutput] = useState("");
   const [instructionImages, setInstructionImages] = useState<{
     [key: string]: string;
@@ -62,6 +70,26 @@ const SolveExercise: React.FC = () => {
     "code" | "preview" | "instructions"
   >("code");
   const [activeTab, setActiveTab] = useState<string>("");
+  const { courseId } = useParams<{ courseId: string }>();
+
+  // Cargar lecciones del curso
+  useEffect(() => {
+    const loadCourseLessons = async () => {
+      if (!courseId) return;
+      try {
+        const response = await fetchWithAuth(
+          `/api/courses/${courseId}/lessons`
+        );
+        if (!response.ok) throw new Error("Error al obtener las lecciones");
+        const lessonsData = await response.json();
+        setCourseLessons(lessonsData || []);
+      } catch (error) {
+        console.error("Error al cargar lecciones del curso:", error);
+        toast.error("No se pudieron cargar las lecciones del curso.");
+      }
+    };
+    loadCourseLessons();
+  }, [courseId, fetchWithAuth]);
 
   // Mapeo de lenguajes a íconos
   const languageIcons: {
@@ -288,7 +316,6 @@ const SolveExercise: React.FC = () => {
           >
             {exercise.codes.length > 0 ? (
               <>
-                {/* Barra de pestañas con íconos */}
                 <div
                   className="flex border-b overflow-x-auto"
                   style={{ borderColor: theme.colors.border }}
@@ -342,7 +369,6 @@ const SolveExercise: React.FC = () => {
                     );
                   })}
                 </div>
-                {/* Editor de código activo */}
                 {exercise.codes
                   .filter((code) => code.language === activeTab)
                   .map((code) => (
@@ -468,6 +494,7 @@ const SolveExercise: React.FC = () => {
           onNavigate={handleNavigate}
           onCheckAnswer={handleCheckAnswer}
           userProgress={userProgress}
+          hasNextLesson={hasNextLesson}
         />
       </>
     );
@@ -558,7 +585,7 @@ const SolveExercise: React.FC = () => {
                         ? "Mascota feliz"
                         : "Mascota triste"
                     }
-                    className="mx-auto w-24 h-24 pixelated animate-bounce "
+                    className="mx-auto w-24 h-24 pixelated animate-bounce"
                   />
                   <div className="absolute -top-2 -right-2 text-xl animate-bounce">
                     {modalContent.isCorrect ? "😊" : "😢"}
