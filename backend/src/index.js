@@ -36,6 +36,10 @@ const corsOptions = {
         "https://cdn.pixabay.com",
         "https://fastly.picsum.photos",
         "https://picsum.photos",
+        // Agregar dominios de Google Analytics
+        "https://www.google-analytics.com",
+        "https://analytics.google.com",
+        "https://www.googletagmanager.com",
         null,
       ];
       if (!origin || allowedOrigins.includes(origin)) {
@@ -78,6 +82,10 @@ const allowedConnectSrc = [
   "https://cdn.pixabay.com",
   "https://fastly.picsum.photos",
   "https://picsum.photos",
+  // Agregar dominios de Google Analytics
+  "https://www.google-analytics.com",
+  "https://analytics.google.com",
+  "https://www.googletagmanager.com",
 ];
 
 if (process.env.NODE_ENV === "development") {
@@ -100,8 +108,16 @@ app.use(
           "https://fastly.picsum.photos",
           "https://picsum.photos",
           "https://codebuddiesimages.nyc3.cdn.digitaloceanspaces.com",
+          // Agregar dominio para píxeles de seguimiento de Google Analytics
+          "https://www.google-analytics.com",
         ],
-        scriptSrc: ["'self'"],
+        scriptSrc: [
+          "'self'",
+          // Agregar Google Tag Manager para el script de Google Analytics
+          "https://www.googletagmanager.com",
+          // Opcional: Permitir scripts inline si usas gtag directamente
+          // "'unsafe-inline'",
+        ],
         styleSrc: ["'self'", "'unsafe-inline'", "https://www.gstatic.com"],
         frameSrc: ["'self'"],
         workerSrc: ["'self'", "blob:"],
