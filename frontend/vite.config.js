@@ -5,8 +5,8 @@ import { viteStaticCopy } from "vite-plugin-static-copy";
 import path from "path";
 
 export default defineConfig({
-  base: "/", // 👈 Esto asegura rutas absolutas que funcionen con Express
-  publicDir: "public", // Asegura que Vite use la carpeta public
+  base: "/",
+  publicDir: "public",
   plugins: [
     react(),
     tailwindcss(),
@@ -14,7 +14,7 @@ export default defineConfig({
       targets: [
         {
           src: "node_modules/monaco-editor/min/vs/**/*",
-          dest: "monaco-editor/min/vs",
+          dest: "monaco-editor/vs",
         },
       ],
     }),
@@ -22,6 +22,20 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
+    },
+  },
+  assetsInclude: ["**/*.worker.js"],
+  optimizeDeps: {
+    include: ["monaco-editor", "monaco-python"],
+  },
+  build: {
+    rollupOptions: {
+      external: [
+        "monaco-editor/esm/vs/editor/editor.worker",
+        "monaco-editor/esm/vs/language/css/css.worker",
+        "monaco-editor/esm/vs/language/html/html.worker",
+        "monaco-editor/esm/vs/language/typescript/ts.worker",
+      ],
     },
   },
   server: {
@@ -34,6 +48,9 @@ export default defineConfig({
         target: "http://localhost:5000",
         changeOrigin: true,
       },
+    },
+    fs: {
+      allow: [".", path.resolve(__dirname, "node_modules/monaco-editor")],
     },
   },
 });

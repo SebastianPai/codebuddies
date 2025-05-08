@@ -1,4 +1,3 @@
-// routes/lessonRoutes.js
 import express from "express";
 import {
   createLesson,
@@ -11,7 +10,7 @@ import {
   updateExercise,
   deleteExercise,
   createExercise,
-  validateHtml,
+  validateCode, // Cambiado de validateHtml
 } from "../controllers/lessonController.js";
 import {
   canAccessLesson,
@@ -21,9 +20,9 @@ import { verifyToken } from "../middleware/verifyToken.js";
 
 const router = express.Router();
 
-// Ruta para SolveExercise.tsx (compatibilidad con frontend)
+// Ruta para SolveExercise.tsx
 router.get("/:id", verifyToken, getLessonById);
-router.get("/:lessonId/exercises/:order", verifyToken, getExerciseByOrder); // Nueva ruta
+router.get("/:lessonId/exercises/:order", verifyToken, getExerciseByOrder);
 
 // Lesson routes
 router.get(
@@ -54,7 +53,7 @@ router.get(
 router.put("/:lessonId/exercises/:order", verifyToken, updateExercise);
 router.delete("/:lessonId/exercises/:order", verifyToken, deleteExercise);
 
-// Nueva ruta para validar HTML
-router.post("/validate-html", verifyToken, validateHtml);
+// Ruta para validar código
+router.post("/validate-code", verifyToken, validateCode);
 
 export default router;

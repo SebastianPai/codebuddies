@@ -16,14 +16,17 @@ import { useExerciseValidation } from "../hooks/useExerciseValidation";
 import { useExerciseNavigation } from "../hooks/useExerciseNavigation";
 import { convertImageToBase64 } from "../services/imageService";
 import { InstructionElement, Exercise, Lesson } from "@/types/exercise";
+import { Code, Play, Copy } from "lucide-react";
 import {
-  ChevronLeft,
-  ChevronRight,
-  Code,
-  Info,
-  Play,
-  Copy,
-} from "lucide-react";
+  SiHtml5,
+  SiCss3,
+  SiJavascript,
+  SiPython,
+  SiPostgresql,
+  SiPhp,
+  SiC,
+  SiMarkdown,
+} from "react-icons/si";
 
 const SolveExercise: React.FC = () => {
   const { theme } = useTheme();
@@ -33,17 +36,13 @@ const SolveExercise: React.FC = () => {
     loading,
     isExerciseCompleted,
     instructionElements,
-    htmlCode,
-    cssCode,
-    jsCode,
+    codes,
+    setCodes,
     setIsExerciseCompleted,
-    setHtmlCode,
-    setCssCode,
-    setJsCode,
   } = useExerciseData();
   const { iframeContent, isIframeLoading } = useIframePreview(
-    htmlCode,
-    cssCode,
+    codes["html"] || "",
+    codes["css"] || "",
     exercise
   );
   const {
@@ -53,14 +52,7 @@ const SolveExercise: React.FC = () => {
     handleCheckAnswer,
     setIsModalOpen,
     userProgress,
-  } = useExerciseValidation(
-    exercise,
-    lesson,
-    htmlCode,
-    cssCode,
-    jsCode,
-    setIsExerciseCompleted
-  );
+  } = useExerciseValidation(exercise, lesson, codes, setIsExerciseCompleted);
   const { handleNavigate } = useExerciseNavigation(exercise, lesson);
   const [terminalOutput, setTerminalOutput] = useState("");
   const [instructionImages, setInstructionImages] = useState<{
@@ -69,6 +61,41 @@ const SolveExercise: React.FC = () => {
   const [activeSection, setActiveSection] = useState<
     "code" | "preview" | "instructions"
   >("code");
+  const [activeTab, setActiveTab] = useState<string>("");
+
+  // Mapeo de lenguajes a íconos
+  const languageIcons: {
+    [key: string]: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  } = {
+    html: SiHtml5,
+    css: SiCss3,
+    javascript: SiJavascript,
+    python: SiPython,
+    sql: SiPostgresql,
+    php: SiPhp,
+    c: SiC,
+    markup: SiMarkdown,
+    java: Code,
+  };
+
+  // Mapeo de lenguajes a colores
+  const languageColors: { [key: string]: string } = {
+    html: "#E34F26",
+    css: "#1572B6",
+    javascript: "#F7DF1E",
+    python: "#3776AB",
+    sql: "#00758F",
+    php: "#777BB4",
+    c: "#A8B9CC",
+    markup: "#6D4C41",
+    java: "#007396",
+  };
+
+  useEffect(() => {
+    if (exercise && exercise.codes.length > 0 && !activeTab) {
+      setActiveTab(exercise.codes[0].language);
+    }
+  }, [exercise, activeTab]);
 
   useEffect(() => {
     const loadInstructionImages = async () => {
@@ -78,13 +105,13 @@ const SolveExercise: React.FC = () => {
       );
       const imagePromises = imageElements.map(async (el) => ({
         url: el.value,
-        base64: await convertImageToBase64(el.value),
+        base64: await convertImageToBase64(el.value).catch(() => ""),
       }));
       const resolvedImages = await Promise.all(imagePromises);
       const imagesMap = resolvedImages.reduce(
         (acc, { url, base64 }) => ({
           ...acc,
-          [url]: base64 || "",
+          [url]: base64,
         }),
         {}
       );
@@ -105,11 +132,18 @@ const SolveExercise: React.FC = () => {
     }
   };
 
-  const renderContent = (): React.ReactNode => {
+  const handleCodeChange = (language: string, value: string) => {
+    setCodes((prev) => ({
+      ...prev,
+      [language]: value,
+    }));
+  };
+
+  const renderContent = () => {
     if (loading) {
       return (
         <div
-          className="flex justify-center p-8"
+          className="flex justify-center items-center h-full p-8"
           style={{
             background: theme.colors.background,
             color: theme.colors.text,
@@ -124,219 +158,27 @@ const SolveExercise: React.FC = () => {
       );
     }
 
-    if (!exercise) {
+    if (!exercise || !lesson) {
       return (
         <div
-          className="p-8 text-center"
+          className="p-8 text-center h-full"
           style={{
             background: theme.colors.background,
             color: theme.colors.text,
           }}
         >
           <p style={{ color: theme.colors.secondary }} aria-live="polite">
-            Ejercicio no encontrado.
+            Ejercicio o lección no encontrados.
           </p>
         </div>
       );
     }
 
-    if (exercise.language === "html" || exercise.language === "css") {
-      return (
-        <>
-          <ExerciseHeader exercise={exercise} />
-          <div
-            className="md:hidden flex justify-around p-4 border-b"
-            style={{ borderColor: theme.colors.border }}
-          >
-            <button
-              className={`px-4 py-2 rounded-md font-bold transition-colors ${
-                activeSection === "instructions" ? "border-b-4" : ""
-              }`}
-              style={{
-                background:
-                  activeSection === "instructions"
-                    ? theme.colors.accent
-                    : theme.colors.card,
-                color:
-                  activeSection === "instructions"
-                    ? theme.colors.buttonText
-                    : theme.colors.text,
-                borderColor: theme.colors.border,
-              }}
-              onClick={() => setActiveSection("instructions")}
-            >
-              Instrucciones
-            </button>
-            <button
-              className={`px-4 py-2 rounded-md font-bold transition-colors ${
-                activeSection === "code" ? "border-b-4" : ""
-              }`}
-              style={{
-                background:
-                  activeSection === "code"
-                    ? theme.colors.accent
-                    : theme.colors.card,
-                color:
-                  activeSection === "code"
-                    ? theme.colors.buttonText
-                    : theme.colors.text,
-                borderColor: theme.colors.border,
-              }}
-              onClick={() => setActiveSection("code")}
-            >
-              Código
-            </button>
-            <button
-              className={`px-4 py-2 rounded-md font-bold transition-colors ${
-                activeSection === "preview" ? "border-b-4" : ""
-              }`}
-              style={{
-                background:
-                  activeSection === "preview"
-                    ? theme.colors.accent
-                    : theme.colors.card,
-                color:
-                  activeSection === "preview"
-                    ? theme.colors.buttonText
-                    : theme.colors.text,
-                borderColor: theme.colors.border,
-              }}
-              onClick={() => setActiveSection("preview")}
-            >
-              Vista Previa
-            </button>
-          </div>
-          <div className="flex flex-1 overflow-hidden flex-col md:flex-row h-full">
-            <div
-              className={`w-full p-6 overflow-y-auto border-r min-w-0 ${
-                activeSection === "instructions"
-                  ? "block h-full"
-                  : "hidden md:block md:w-1/3"
-              }`}
-              style={{
-                background: theme.colors.card,
-                borderColor: theme.colors.border,
-              }}
-            >
-              <div className="space-y-6 max-w-full h-full">
-                <h2
-                  className="text-4xl font-bold mb-4"
-                  style={{ color: theme.colors.text }}
-                >
-                  {`${exercise.order}. ${exercise.title}`}
-                </h2>
-                <div className="flex items-center mb-4">
-                  <span className="mr-2" style={{ color: theme.colors.accent }}>
-                    #
-                  </span>
-                  <h3
-                    className="text-2xl font-bold"
-                    style={{ color: theme.colors.text }}
-                  >
-                    {exercise.language.toUpperCase()}
-                  </h3>
-                </div>
-                <InstructionsPanel
-                  instructionElements={instructionElements}
-                  instructionImages={instructionImages}
-                />
-              </div>
-            </div>
-            <div
-              className={`w-full min-w-0 flex-1 ${
-                activeSection === "code"
-                  ? "block h-full"
-                  : "hidden md:block md:w-1/3"
-              }`}
-              style={{ flex: "1 1 0", height: "100%" }}
-            >
-              <div
-                className="flex-1 overflow-hidden p-4"
-                style={{ height: "100%" }}
-              >
-                <CodeEditorWrapper
-                  value={exercise.language === "html" ? htmlCode : cssCode}
-                  onValueChange={
-                    exercise.language === "html" ? setHtmlCode : setCssCode
-                  }
-                  highlightLanguage={exercise.language}
-                  padding={16}
-                  className="font-mono text-sm rounded-lg h-full outline-none"
-                  style={{
-                    background: theme.colors.card,
-                    color: theme.colors.text,
-                    border: `1px solid ${theme.colors.border}`,
-                    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
-                    height: "100%",
-                  }}
-                />
-              </div>
-            </div>
-            <div
-              className={`w-full flex flex-col min-w-0 flex-1 ${
-                activeSection === "preview"
-                  ? "block h-full"
-                  : "hidden md:block md:w-1/3"
-              }`}
-              style={{ flex: "1 1 0" }}
-            >
-              <div
-                className="p-2 flex items-center justify-between border-b"
-                style={{
-                  background: theme.colors.card,
-                  borderColor: theme.colors.border,
-                }}
-              >
-                <div className="flex space-x-1 ml-2">
-                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                  <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                </div>
-                <div className="flex-1 mx-4">
-                  <div
-                    className="rounded-md px-2 py-1 text-center text-sm"
-                    style={{
-                      background: theme.colors.border,
-                      color: theme.colors.text,
-                    }}
-                  >
-                    index.html
-                  </div>
-                </div>
-              </div>
-              <PreviewPanel
-                iframeContent={iframeContent}
-                isIframeLoading={isIframeLoading}
-              />
-            </div>
-          </div>
-          <NavigationControls
-            exercise={exercise}
-            lesson={lesson}
-            isExerciseCompleted={isExerciseCompleted}
-            htmlCode={htmlCode}
-            cssCode={cssCode}
-            jsCode={jsCode}
-            onNavigate={handleNavigate}
-            onCheckAnswer={handleCheckAnswer}
-          />
-        </>
-      );
-    }
+    const isWebExercise = ["html", "css"].includes(exercise.language);
 
     return (
       <>
-        <div
-          className="p-4 border-b"
-          style={{ borderColor: theme.colors.border }}
-        >
-          <h1
-            className="text-4xl font-bold"
-            style={{ color: theme.colors.text }}
-          >
-            Ejercicio - {exercise.language.toUpperCase()}
-          </h1>
-        </div>
+        {isWebExercise && <ExerciseHeader exercise={exercise} />}
         <div
           className="md:hidden flex justify-around p-4 border-b"
           style={{ borderColor: theme.colors.border }}
@@ -379,13 +221,38 @@ const SolveExercise: React.FC = () => {
           >
             Código
           </button>
+          {isWebExercise && (
+            <button
+              className={`px-4 py-2 rounded-md font-bold transition-colors ${
+                activeSection === "preview" ? "border-b-4" : ""
+              }`}
+              style={{
+                background:
+                  activeSection === "preview"
+                    ? theme.colors.accent
+                    : theme.colors.card,
+                color:
+                  activeSection === "preview"
+                    ? theme.colors.buttonText
+                    : theme.colors.text,
+                borderColor: theme.colors.border,
+              }}
+              onClick={() => setActiveSection("preview")}
+            >
+              Vista Previa
+            </button>
+          )}
         </div>
         <div className="flex flex-1 overflow-hidden flex-col md:flex-row">
           <div
-            className={`w-full md:w-1/2 overflow-y-auto p-6 border-r min-w-0 ${
+            className={`w-full md:w-1/3 p-6 overflow-y-auto border-r min-w-0 ${
               activeSection === "instructions" ? "block" : "hidden md:block"
             }`}
-            style={{ borderColor: theme.colors.border }}
+            style={{
+              background: theme.colors.card,
+              borderColor: theme.colors.border,
+              height: "100%",
+            }}
           >
             <div className="space-y-6 max-w-full">
               <h2
@@ -412,148 +279,196 @@ const SolveExercise: React.FC = () => {
             </div>
           </div>
           <div
-            className={`w-full md:w-1/2 flex flex-col min-w-0 ${
+            className={`w-full md:w-${
+              isWebExercise ? "1/3" : "2/3"
+            } flex flex-col min-w-0 ${
               activeSection === "code" ? "block" : "hidden md:block"
             }`}
             style={{ height: "100%" }}
           >
-            <div
-              className="flex items-center p-2 border-b"
-              style={{
-                background: theme.colors.card,
-                borderColor: theme.colors.border,
-              }}
-            >
-              <div className="flex items-center space-x-2 px-2">
-                <Code size={16} style={{ color: theme.colors.accent }} />
-                <span style={{ color: theme.colors.text }}>
-                  {exercise.language === "javascript"
-                    ? "script.js"
-                    : exercise.language === "python"
-                    ? "script.py"
-                    : "code"}
-                </span>
+            {exercise.codes.length > 0 ? (
+              <>
+                {/* Barra de pestañas con íconos */}
+                <div
+                  className="flex border-b overflow-x-auto"
+                  style={{ borderColor: theme.colors.border }}
+                >
+                  {exercise.codes.map((code) => {
+                    const Icon = languageIcons[code.language] || Code;
+                    return (
+                      <button
+                        key={code.language}
+                        className={`px-4 py-2 font-medium transition-colors flex items-center space-x-2 ${
+                          activeTab === code.language
+                            ? "border-b-2"
+                            : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                        }`}
+                        style={{
+                          borderColor:
+                            activeTab === code.language
+                              ? theme.colors.accent
+                              : theme.colors.border,
+                          background:
+                            activeTab === code.language
+                              ? theme.colors.card
+                              : "transparent",
+                          color:
+                            activeTab === code.language
+                              ? theme.colors.text
+                              : theme.colors.secondary,
+                        }}
+                        onClick={() => setActiveTab(code.language)}
+                      >
+                        <Icon
+                          className="w-4 h-4"
+                          style={{
+                            color:
+                              languageColors[code.language] ||
+                              theme.colors.accent,
+                          }}
+                        />
+                        <span>
+                          {code.language === "javascript"
+                            ? "script.js"
+                            : code.language === "python"
+                            ? "script.py"
+                            : code.language === "html"
+                            ? "index.html"
+                            : code.language === "css"
+                            ? "styles.css"
+                            : `code.${code.language}`}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {/* Editor de código activo */}
+                {exercise.codes
+                  .filter((code) => code.language === activeTab)
+                  .map((code) => (
+                    <div
+                      key={code.language}
+                      className="flex-1 overflow-hidden p-4"
+                      style={{ height: "100%" }}
+                    >
+                      <CodeEditorWrapper
+                        value={codes[code.language] || ""}
+                        onValueChange={(value) =>
+                          handleCodeChange(code.language, value)
+                        }
+                        highlightLanguage={code.language}
+                        padding={16}
+                        className="font-mono text-sm rounded-lg h-full outline-none"
+                        style={{
+                          background: theme.colors.card,
+                          color: theme.colors.text,
+                          border: `1px solid ${theme.colors.border}`,
+                          boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
+                          height: "calc(100% - 16px)",
+                        }}
+                      />
+                    </div>
+                  ))}
+              </>
+            ) : (
+              <div
+                className="p-4 text-center"
+                style={{ color: theme.colors.text }}
+              >
+                No hay códigos definidos para este ejercicio.
               </div>
-            </div>
-            <div
-              className="flex-1 overflow-hidden p-4"
-              style={{ background: theme.colors.card, height: "100%" }}
-            >
-              <CodeEditorWrapper
-                value={jsCode}
-                onValueChange={setJsCode}
-                highlightLanguage={
-                  exercise.language === "javascript" ? "javascript" : "python"
-                }
-                padding={16}
-                className="font-mono text-sm rounded-lg h-full outline-none"
+            )}
+            {!isWebExercise && (
+              <div
+                className="flex items-center justify-between p-2 border-t"
                 style={{
                   background: theme.colors.card,
-                  color: theme.colors.text,
-                  border: `1px solid ${theme.colors.border}`,
-                  boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
-                  height: "100%",
-                }}
-              />
-            </div>
-            <div
-              className="flex items-center justify-between p-2 border-t"
-              style={{
-                background: theme.colors.card,
-                borderColor: theme.colors.border,
-              }}
-            >
-              <button
-                onClick={handleRunCode}
-                className="px-4 py-1 rounded flex items-center space-x-2"
-                style={{
-                  background: theme.colors.accent,
-                  color: theme.colors.buttonText,
+                  borderColor: theme.colors.border,
                 }}
               >
-                <Play size={16} />
-                <span>Run</span>
-              </button>
-              <div className="flex space-x-2">
                 <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(jsCode);
-                    toast.success("Código copiado al portapapeles.", {
-                      toastId: "copy-success",
-                      autoClose: 3000,
-                    });
+                  onClick={handleRunCode}
+                  className="px-4 py-1 rounded flex items-center space-x-2"
+                  style={{
+                    background: theme.colors.accent,
+                    color: theme.colors.buttonText,
                   }}
-                  className="p-2 rounded-md"
-                  style={{ color: theme.colors.text }}
                 >
-                  <Copy className="w-5 h-5" />
+                  <Play size={16} />
+                  <span>Run</span>
                 </button>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(
+                        codes[exercise.language] || ""
+                      );
+                      toast.success("Código copiado al portapapeles.", {
+                        toastId: "copy-success",
+                        autoClose: 3000,
+                      });
+                    }}
+                    className="p-2 rounded-md"
+                    style={{ color: theme.colors.text }}
+                  >
+                    <Copy className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
-            </div>
-            <TerminalPanel terminalOutput={terminalOutput} />
+            )}
+            {!isWebExercise && (
+              <TerminalPanel terminalOutput={terminalOutput} />
+            )}
           </div>
+          {isWebExercise && (
+            <div
+              className={`w-full md:w-1/3 flex flex-col min-w-0 ${
+                activeSection === "preview" ? "block" : "hidden md:block"
+              }`}
+              style={{ height: "100%" }}
+            >
+              <div
+                className="p-2 flex items-center justify-between border-b"
+                style={{
+                  background: theme.colors.card,
+                  borderColor: theme.colors.border,
+                }}
+              >
+                <div className="flex space-x-1 ml-2">
+                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                  <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                </div>
+                <div className="flex-1 mx-4">
+                  <div
+                    className="rounded-md px-2 py-1 text-center text-sm"
+                    style={{
+                      background: theme.colors.border,
+                      color: theme.colors.text,
+                    }}
+                  >
+                    index.html
+                  </div>
+                </div>
+              </div>
+              <PreviewPanel
+                iframeContent={iframeContent}
+                isIframeLoading={isIframeLoading}
+              />
+            </div>
+          )}
         </div>
-        <footer
-          className="p-4 border-t flex justify-center items-center space-x-3"
-          style={{ borderColor: theme.colors.border }}
-        >
-          <button
-            onClick={() => handleNavigate("prev")}
-            disabled={
-              !lesson ||
-              !exercise ||
-              lesson.exercises.findIndex(
-                (ex) => ex.order === exercise.order
-              ) === 0
-            }
-            className="px-4 py-2 rounded flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{
-              background: theme.colors.border,
-              color: theme.colors.text,
-            }}
-          >
-            <ChevronLeft size={16} />
-            <span>Anterior</span>
-          </button>
-          <button
-            onClick={handleCheckAnswer}
-            className="px-4 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{
-              background: theme.colors.accent,
-              color: theme.colors.buttonText,
-            }}
-            disabled={
-              exercise.language === "html" || exercise.language === "css"
-                ? !htmlCode.trim() && !cssCode.trim()
-                : !jsCode.trim()
-            }
-          >
-            Comprobar respuesta
-          </button>
-          <button
-            onClick={() => handleNavigate("next")}
-            disabled={
-              !lesson ||
-              !exercise ||
-              lesson.exercises.findIndex(
-                (ex) => ex.order === exercise.order
-              ) ===
-                lesson.exercises.length - 1 ||
-              !isExerciseCompleted
-            }
-            className="px-4 py-2 rounded flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{
-              background: theme.colors.border,
-              color: theme.colors.text,
-            }}
-          >
-            <span>Próximo</span>
-            <ChevronRight size={16} />
-          </button>
-          <button className="ml-2" style={{ color: theme.colors.text }}>
-            <Info size={16} />
-          </button>
-        </footer>
+        <NavigationControls
+          exercise={exercise}
+          lesson={lesson}
+          isExerciseCompleted={isExerciseCompleted}
+          htmlCode={codes["html"] || ""}
+          cssCode={codes["css"] || ""}
+          jsCode={codes["javascript"] || ""}
+          onNavigate={handleNavigate}
+          onCheckAnswer={handleCheckAnswer}
+          userProgress={userProgress}
+        />
       </>
     );
   };
@@ -603,7 +518,6 @@ const SolveExercise: React.FC = () => {
                 </span>
               </div>
             </div>
-
             <h1
               className="text-3xl uppercase font-mono text-center font-bold tracking-widest mb-4"
               style={{
@@ -614,7 +528,6 @@ const SolveExercise: React.FC = () => {
             >
               {modalContent.isCorrect ? "¡ÉXITO!" : "¡ERROR!"}
             </h1>
-
             <div
               className="p-4 rounded-md"
               style={{
@@ -632,9 +545,8 @@ const SolveExercise: React.FC = () => {
               >
                 {modalContent.message}
               </p>
-
               <div className="flex justify-center mt-4">
-                <div className="relative animate-bounce">
+                <div className="relative">
                   <img
                     src={
                       modalContent.isCorrect
@@ -646,18 +558,13 @@ const SolveExercise: React.FC = () => {
                         ? "Mascota feliz"
                         : "Mascota triste"
                     }
-                    className={
-                      modalContent.isCorrect
-                        ? "mx-auto w-36 h-32 pixelated"
-                        : "mx-auto w-32 h-32 pixelated"
-                    }
+                    className="mx-auto w-24 h-24 pixelated animate-bounce "
                   />
                   <div className="absolute -top-2 -right-2 text-xl animate-bounce">
                     {modalContent.isCorrect ? "😊" : "😢"}
                   </div>
                 </div>
               </div>
-
               <p
                 className="text-center mt-4 font-mono text-xs"
                 style={{ color: theme.colors.text }}
@@ -673,7 +580,6 @@ const SolveExercise: React.FC = () => {
                 </span>{" "}
                 ESTÁ {modalContent.isCorrect ? "FELIZ" : "TRISTE"}...
               </p>
-
               {modalContent.isCorrect && userProgress && (
                 <div className="mt-4">
                   <p
@@ -710,7 +616,6 @@ const SolveExercise: React.FC = () => {
                   </div>
                 </div>
               )}
-
               {!modalContent.isCorrect && userProgress && (
                 <div className="mt-4">
                   <p
@@ -744,7 +649,6 @@ const SolveExercise: React.FC = () => {
                 </div>
               )}
             </div>
-
             <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <button
                 onClick={() => {
@@ -767,7 +671,6 @@ const SolveExercise: React.FC = () => {
                 </span>
                 {modalContent.isCorrect ? "Continuar" : "Reintentar"}
               </button>
-
               <button
                 onClick={() => setIsModalOpen(false)}
                 className="border-2 hover:scale-105 transition duration-150 py-2 rounded-md font-bold uppercase tracking-widest px-4 flex items-center justify-center"
@@ -780,7 +683,6 @@ const SolveExercise: React.FC = () => {
                 <span className="mr-2">❌</span> Cerrar
               </button>
             </div>
-
             {userProgress && (
               <div
                 className="mt-6 border-t-2 pt-4"

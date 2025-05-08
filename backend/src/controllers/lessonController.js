@@ -2,40 +2,39 @@ import Lesson from "../models/LessonModel.js";
 import Course from "../models/CourseModel.js";
 import * as progressService from "../services/progressService.js";
 import { JSDOM } from "jsdom";
+import { VM } from "vm2";
+import sqlite3 from "sqlite3";
+import { exec } from "child_process";
+import util from "util";
+import { parse } from "css";
+import { minify } from "html-minifier";
+
+const execPromise = util.promisify(exec);
 
 // Obtener todas las lecciones de un curso
 export const getLessonsByCourse = async (req, res) => {
   try {
     const { courseId } = req.params;
-    const userId = req.user.userId; // Obtenido del token JWT
+    const userId = req.user.userId;
 
-    // Verificar que el curso existe
     const course = await Course.findById(courseId);
     if (!course) {
       return res.status(404).json({ message: "Curso no encontrado" });
     }
 
-    // Obtener lecciones ordenadas por createdAt o un campo order si lo tienes
     const lessons = await Lesson.find({ course: courseId })
-      .sort({
-        createdAt: 1, // O usa un campo order si lo agregas al modelo
-      })
+      .sort({ createdAt: 1 })
       .lean();
 
-    // Obtener progreso del usuario para el curso
     const progress = await UserExerciseProgress.find({
       userId,
       courseId,
     }).lean();
 
-    // Mapear lecciones con isAccessible
     const lessonsWithAccess = lessons.map((lesson, index) => {
-      // La primera lección siempre es accesible
       if (index === 0) {
         return { ...lesson, isAccessible: true };
       }
-
-      // Verificar si todos los ejercicios de la lección anterior están completados
       const previousLesson = lessons[index - 1];
       const previousLessonCompleted = previousLesson.exercises.every(
         (exercise) =>
@@ -46,7 +45,6 @@ export const getLessonsByCourse = async (req, res) => {
               p.completed
           )
       );
-
       return { ...lesson, isAccessible: previousLessonCompleted };
     });
 
@@ -61,13 +59,10 @@ export const getLessonsByCourse = async (req, res) => {
 export const getLessonById = async (req, res) => {
   try {
     const lessonId = req.params.id;
-    console.log("Buscando lección con ID:", lessonId);
     const lesson = await Lesson.findById(lessonId);
     if (!lesson) {
-      console.log("Lección no encontrada para ID:", lessonId);
       return res.status(404).json({ message: "Lección no encontrada" });
     }
-    console.log("Lección encontrada:", lesson);
     res.json(lesson);
   } catch (error) {
     console.error("Error en getLessonById:", error.message);
@@ -80,14 +75,12 @@ export const createLesson = async (req, res) => {
   try {
     const { title, description, course, exercises } = req.body;
 
-    // Validate required fields
     if (!title || !description || !course) {
       return res
         .status(400)
         .json({ message: "Título, descripción y curso son obligatorios" });
     }
 
-    // Verify course exists
     const courseExists = await Course.findById(course);
     if (!courseExists) {
       return res.status(404).json({ message: "Curso no encontrado" });
@@ -97,7 +90,7 @@ export const createLesson = async (req, res) => {
       title,
       description,
       course,
-      exercises: exercises || [], // Default to empty array if not provided
+      exercises: exercises || [],
     });
 
     const savedLesson = await newLesson.save();
@@ -113,7 +106,6 @@ export const updateLesson = async (req, res) => {
   try {
     const { title, description, exercises } = req.body;
 
-    // Validate required fields
     if (!title || !description) {
       return res
         .status(400)
@@ -168,9 +160,6 @@ export const getExerciseByOrder = async (req, res) => {
     const { courseId, lessonId, order } = req.params;
     const userId = req.user.userId;
 
-    console.log("Buscando ejercicio:", { courseId, lessonId, order, userId });
-
-    // Si courseId no está presente, omitir verificación de progreso
     if (courseId) {
       const canAccess = await progressService.canAccessExercise(
         userId,
@@ -179,7 +168,6 @@ export const getExerciseByOrder = async (req, res) => {
         parseInt(order)
       );
       if (!canAccess) {
-        console.log("Acceso denegado: ejercicios anteriores incompletos");
         return res.status(403).json({
           message: "Debes completar los ejercicios anteriores primero.",
         });
@@ -188,7 +176,6 @@ export const getExerciseByOrder = async (req, res) => {
 
     const lesson = await Lesson.findById(lessonId);
     if (!lesson) {
-      console.log("Lección no encontrada:", lessonId);
       return res.status(404).json({ message: "Lección no encontrada" });
     }
 
@@ -196,11 +183,9 @@ export const getExerciseByOrder = async (req, res) => {
       (ex) => ex.order === parseInt(order)
     );
     if (!exercise) {
-      console.log("Ejercicio no encontrado, orden:", order);
       return res.status(404).json({ message: "Ejercicio no encontrado" });
     }
 
-    console.log("Ejercicio encontrado:", exercise);
     res.json(exercise);
   } catch (error) {
     console.error("Error en getExerciseByOrder:", error.message);
@@ -208,45 +193,100 @@ export const getExerciseByOrder = async (req, res) => {
   }
 };
 
-// Actualizar un ejercicio por lessonId y order
-export const updateExercise = async (req, res) => {
+// Crear un ejercicio en una lección
+export const createExercise = async (req, res) => {
   try {
-    const { lessonId, order } = req.params;
-    const { title, content, instructions, language, expectedOutput } = req.body;
+    const { lessonId } = req.params;
+    const { order, title, codes, instructions, language } = req.body;
 
-    // Find the lesson
+    if (!order || !title || !codes || !language || !codes.length) {
+      return res.status(400).json({
+        message:
+          "Orden, título, al menos un código y lenguaje son obligatorios.",
+      });
+    }
+
+    // Validar que todos los códigos tengan language, initialCode
+    for (const code of codes) {
+      if (!code.language || !code.initialCode) {
+        return res.status(400).json({
+          message: "Cada código debe tener un lenguaje y un código inicial.",
+        });
+      }
+    }
+
     const lesson = await Lesson.findById(lessonId);
     if (!lesson) {
       return res.status(404).json({ message: "Lección no encontrada." });
     }
 
-    // Find the exercise by order
-    const exerciseOrder = parseInt(order); // Ensure order is an integer
+    const newExercise = {
+      order,
+      title,
+      codes,
+      instructions,
+      language,
+    };
+
+    lesson.exercises.push(newExercise);
+    await lesson.save();
+
+    res.status(201).json({
+      message: "Ejercicio creado exitosamente.",
+      exercise: newExercise,
+    });
+  } catch (error) {
+    console.error("Error in createExercise:", error);
+    res
+      .status(500)
+      .json({ message: "Error al crear el ejercicio.", error: error.message });
+  }
+};
+
+// Actualizar un ejercicio por lessonId y order
+export const updateExercise = async (req, res) => {
+  try {
+    const { lessonId, order } = req.params;
+    const { title, codes, instructions, language } = req.body;
+
+    if (!title || !codes || !language || !codes.length) {
+      return res.status(400).json({
+        message: "Título, al menos un código y lenguaje son obligatorios.",
+      });
+    }
+
+    // Validar que todos los códigos tengan language, initialCode
+    for (const code of codes) {
+      if (!code.language || !code.initialCode) {
+        return res.status(400).json({
+          message: "Cada código debe tener un lenguaje y un código inicial.",
+        });
+      }
+    }
+
+    const lesson = await Lesson.findById(lessonId);
+    if (!lesson) {
+      return res.status(404).json({ message: "Lección no encontrada." });
+    }
+
     const exerciseIndex = lesson.exercises.findIndex(
-      (ex) => ex.order === exerciseOrder
+      (ex) => ex.order === parseInt(order)
     );
     if (exerciseIndex === -1) {
       return res.status(404).json({ message: "Ejercicio no encontrado." });
     }
 
-    // Update the exercise with only the provided fields
     const updatedExercise = {
       ...lesson.exercises[exerciseIndex],
-      order: exerciseOrder,
-      title: title ?? lesson.exercises[exerciseIndex].title,
-      content: content ?? lesson.exercises[exerciseIndex].content,
-      instructions:
-        instructions ?? lesson.exercises[exerciseIndex].instructions,
-      language: language ?? lesson.exercises[exerciseIndex].language,
-      expectedOutput:
-        expectedOutput ?? lesson.exercises[exerciseIndex].expectedOutput,
+      order: parseInt(order),
+      title,
+      codes,
+      instructions,
+      language,
     };
 
     lesson.exercises[exerciseIndex] = updatedExercise;
-
-    // Mark the exercises array as modified
     lesson.markModified("exercises");
-
     await lesson.save();
 
     res.status(200).json({
@@ -254,7 +294,7 @@ export const updateExercise = async (req, res) => {
       exercise: updatedExercise,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Error in updateExercise:", error);
     res.status(500).json({
       message: "Error al actualizar el ejercicio.",
       error: error.message,
@@ -278,7 +318,6 @@ export const deleteExercise = async (req, res) => {
       return res.status(404).json({ message: "Ejercicio no encontrado" });
     }
 
-    // Remove exercise from array
     lesson.exercises.splice(exerciseIndex, 1);
     await lesson.save();
 
@@ -289,199 +328,429 @@ export const deleteExercise = async (req, res) => {
   }
 };
 
-// ... other imports and functions remain the same ...
-
-// Crear un ejercicio en una lección
-export const createExercise = async (req, res) => {
+// Validar el código del usuario
+export const validateCode = async (req, res) => {
   try {
-    const { lessonId } = req.params;
-    const { order, title, content, instructions, language, expectedOutput } =
-      req.body;
+    const { codes, expectedCodes, language } = req.body; // codes: { [lang]: string }, expectedCodes: { [lang]: string }
 
-    console.log("Creating exercise for lessonId:", lessonId);
-    console.log("Request body:", req.body);
-
-    // Find the lesson
-    const lesson = await Lesson.findById(lessonId);
-    if (!lesson) {
-      console.log("Lesson not found for lessonId:", lessonId);
-      return res.status(404).json({ message: "Lección no encontrada." });
-    }
-
-    console.log("Lesson found:", lesson);
-
-    // Create the new exercise
-    const newExercise = {
-      order,
-      title,
-      content,
-      instructions,
-      language,
-      expectedOutput,
-    };
-
-    lesson.exercises.push(newExercise);
-    await lesson.save();
-
-    res.status(201).json({
-      message: "Ejercicio creado exitosamente.",
-      exercise: newExercise,
-    });
-  } catch (error) {
-    console.error("Error in createExercise:", error);
-    res
-      .status(500)
-      .json({ message: "Error al crear el ejercicio.", error: error.message });
-  }
-};
-
-// Validar el HTML del usuario
-export const validateHtml = async (req, res) => {
-  try {
-    const { userCode, expectedOutput } = req.body;
-
-    // Validar que se hayan enviado los datos necesarios
-    if (!userCode || !expectedOutput) {
+    if (!codes || !expectedCodes || !language) {
       return res.status(400).json({
         isCorrect: false,
-        message: "⚠️ Código o salida esperada no proporcionados.",
+        message: "Códigos, salidas esperadas y lenguaje son obligatorios.",
+        results: {},
       });
     }
 
-    // Función para eliminar comentarios del código HTML
-    const stripComments = (code) => code.replace(/<!--[\s\S]*?-->/g, "").trim();
+    const results = {};
+    let isCorrect = true;
 
-    // Limpiar el código del usuario y la salida esperada
-    const cleanUserCode = stripComments(userCode);
-    const cleanExpectedOutput = stripComments(expectedOutput);
+    // Función para normalizar código
+    const normalizeCode = (code, lang) => {
+      if (!code) return "";
+      switch (lang) {
+        case "css":
+          try {
+            const parsed = parse(code);
+            return JSON.stringify(parsed.stylesheet.rules, null, 2)
+              .replace(/\s+/g, " ")
+              .trim()
+              .toLowerCase();
+          } catch {
+            return code.replace(/\s+/g, " ").trim().toLowerCase();
+          }
+        case "html":
+          return minify(code, {
+            collapseWhitespace: true,
+            caseSensitive: true,
+          }).toLowerCase();
+        case "javascript":
+        case "python":
+        case "sql":
+        case "php":
+          return code.replace(/\s+/g, " ").trim().toLowerCase();
+        default:
+          return code.trim();
+      }
+    };
 
-    // Parsear el código del usuario y la salida esperada con JSDOM
-    const userDom = new JSDOM(cleanUserCode);
-    const expectedDom = new JSDOM(cleanExpectedOutput);
+    // Validar cada lenguaje
+    for (const lang of Object.keys(expectedCodes)) {
+      const userCode = codes[lang] || "";
+      const expectedCode = expectedCodes[lang] || "";
 
-    const userDoc = userDom.window.document;
-    const expectedDoc = expectedDom.window.document;
+      if (!expectedCode) {
+        results[lang] = {
+          isCorrect: true,
+          message: "No se requiere validación.",
+        };
+        continue;
+      }
 
-    // Validar el DOCTYPE
-    if (!cleanUserCode.toLowerCase().startsWith("<!doctype html>")) {
-      throw new Error("Falta el <!DOCTYPE html>");
-    }
+      switch (lang) {
+        case "html": {
+          const stripComments = (code) =>
+            code.replace(/<!--[\s\S]*?-->/g, "").trim();
+          const cleanUserCode = stripComments(userCode);
+          const cleanExpectedCode = stripComments(expectedCode);
 
-    // Validar la estructura básica del HTML
-    const userHtml = userDoc.querySelector("html");
-    const userHead = userDoc.querySelector("head");
-    const userBody = userDoc.querySelector("body");
+          const userDom = new JSDOM(cleanUserCode);
+          const expectedDom = new JSDOM(cleanExpectedCode);
 
-    if (!userHtml || !userHead || !userBody) {
-      throw new Error(
-        "Falta la estructura básica de HTML (<html>, <head>, <body>)"
-      );
-    }
+          const userDoc = userDom.window.document;
+          const expectedDoc = expectedDom.window.document;
 
-    const expectedBody = expectedDoc.querySelector("body");
-    if (!expectedBody) {
-      throw new Error("La salida esperada debe tener un elemento <body>");
-    }
+          if (!cleanUserCode.toLowerCase().startsWith("<!doctype html>")) {
+            results[lang] = {
+              isCorrect: false,
+              message: "Falta el <!DOCTYPE html>",
+            };
+            isCorrect = false;
+            break;
+          }
 
-    // Función para obtener un mapa de elementos y sus cantidades, incluyendo anidamiento
-    const getElementStructure = (element, parentPath = "") => {
-      const structure = {};
-      const children = Array.from(element.children);
-      children.forEach((child, index) => {
-        const tagName = child.tagName.toLowerCase();
-        const currentPath = parentPath
-          ? `${parentPath}.${tagName}[${index}]`
-          : tagName;
+          const userHtml = userDoc.querySelector("html");
+          const userHead = userDoc.querySelector("head");
+          const userBody = userDoc.querySelector("body");
 
-        // Contar el elemento actual
-        structure[tagName] = (structure[tagName] || 0) + 1;
+          if (!userHtml || !userHead || !userBody) {
+            results[lang] = {
+              isCorrect: false,
+              message:
+                "Falta la estructura básica de HTML (<html>, <head>, <body>)",
+            };
+            isCorrect = false;
+            break;
+          }
 
-        // Recursivamente contar los elementos hijos
-        const childStructure = getElementStructure(child, currentPath);
-        for (const [childTag, count] of Object.entries(childStructure)) {
-          structure[childTag] = (structure[childTag] || 0) + count;
+          const expectedBody = expectedDoc.querySelector("body");
+          if (!expectedBody) {
+            results[lang] = {
+              isCorrect: false,
+              message: "La salida esperada debe tener un elemento <body>",
+            };
+            isCorrect = false;
+            break;
+          }
+
+          const getElementStructure = (element, parentPath = "") => {
+            const structure = {};
+            const children = Array.from(element.children);
+            children.forEach((child, index) => {
+              const tagName = child.tagName.toLowerCase();
+              const currentPath = parentPath
+                ? `${parentPath}.${tagName}[${index}]`
+                : tagName;
+              structure[tagName] = (structure[tagName] || 0) + 1;
+              const childStructure = getElementStructure(child, currentPath);
+              for (const [childTag, count] of Object.entries(childStructure)) {
+                structure[childTag] = (structure[childTag] || 0) + count;
+              }
+            });
+            return structure;
+          };
+
+          const expectedStructure = getElementStructure(expectedBody);
+          const userStructure = getElementStructure(userBody);
+
+          for (const [tagName, expectedCount] of Object.entries(
+            expectedStructure
+          )) {
+            const userCount = userStructure[tagName] || 0;
+            if (userCount !== expectedCount) {
+              results[lang] = {
+                isCorrect: false,
+                message: `Se esperaban exactamente ${expectedCount} elemento(s) <${tagName}>, pero se encontraron ${userCount}`,
+              };
+              isCorrect = false;
+              break;
+            }
+          }
+
+          if (isCorrect) {
+            for (const [tagName, userCount] of Object.entries(userStructure)) {
+              const expectedCount = expectedStructure[tagName] || 0;
+              if (userCount !== expectedCount) {
+                results[lang] = {
+                  isCorrect: false,
+                  message: `Se encontraron ${userCount} elemento(s) <${tagName}>, pero se esperaban ${expectedCount}`,
+                };
+                isCorrect = false;
+                break;
+              }
+            }
+          }
+
+          const textContainingTags = [
+            "h1",
+            "h2",
+            "h3",
+            "h4",
+            "h5",
+            "h6",
+            "p",
+            "span",
+            "div",
+          ];
+          const validateTextContent = (element, tagName, path) => {
+            if (
+              textContainingTags.includes(tagName) &&
+              !element.textContent.trim()
+            ) {
+              throw new Error(
+                `El elemento <${tagName}> en ${path} no puede estar vacío`
+              );
+            }
+            Array.from(element.children).forEach((child, index) => {
+              const childTag = child.tagName.toLowerCase();
+              const childPath = path
+                ? `${path}.${childTag}[${index}]`
+                : childTag;
+              validateTextContent(child, childTag, childPath);
+            });
+          };
+
+          if (isCorrect) {
+            try {
+              validateTextContent(userBody, "body", "body");
+              results[lang] = {
+                isCorrect: true,
+                message: "✅ HTML correcto",
+              };
+            } catch (error) {
+              results[lang] = {
+                isCorrect: false,
+                message: error.message,
+              };
+              isCorrect = false;
+            }
+          }
+          break;
         }
-      });
-      return structure;
-    };
 
-    // Obtener la estructura de elementos en el expectedOutput y userCode
-    const expectedStructure = getElementStructure(expectedBody);
-    const userStructure = getElementStructure(userBody);
+        case "css": {
+          // Validar CSS comparando reglas parseadas
+          try {
+            const userParsed = parse(userCode);
+            const expectedParsed = parse(expectedCode);
 
-    // Comparar la estructura de elementos
-    for (const [tagName, expectedCount] of Object.entries(expectedStructure)) {
-      const userCount = userStructure[tagName] || 0;
-      if (userCount !== expectedCount) {
-        throw new Error(
-          `Se esperaban exactamente ${expectedCount} elemento(s) <${tagName}>, pero se encontraron ${userCount}`
-        );
+            // Normalizar reglas para comparación
+            const normalizeRules = (rules) => {
+              return JSON.stringify(rules, (key, value) => {
+                if (key === "position" || key === "type") return undefined; // Ignorar propiedades irrelevantes
+                if (typeof value === "string")
+                  return value.trim().toLowerCase();
+                return value;
+              })
+                .replace(/\s+/g, " ")
+                .trim();
+            };
+
+            const userRules = normalizeRules(userParsed.stylesheet.rules);
+            const expectedRules = normalizeRules(
+              expectedParsed.stylesheet.rules
+            );
+
+            const cssIsCorrect = userRules === expectedRules;
+            results[lang] = {
+              isCorrect: cssIsCorrect,
+              message: cssIsCorrect
+                ? "✅ CSS correcto"
+                : "Las reglas CSS no coinciden con las esperadas",
+            };
+            if (!cssIsCorrect) isCorrect = false;
+          } catch (error) {
+            results[lang] = {
+              isCorrect: false,
+              message: `Error al parsear CSS: ${error.message}`,
+            };
+            isCorrect = false;
+          }
+          break;
+        }
+
+        case "javascript": {
+          const vm = new VM({
+            timeout: 1000,
+            sandbox: {},
+          });
+
+          let userResult, expectedResult;
+          try {
+            userResult = vm.run(userCode);
+            expectedResult = vm.run(expectedCode);
+            const isEqual =
+              JSON.stringify(userResult) === JSON.stringify(expectedResult);
+            results[lang] = {
+              isCorrect: isEqual,
+              message: isEqual
+                ? "✅ JavaScript correcto"
+                : "El resultado no coincide con lo esperado",
+            };
+            if (!isEqual) isCorrect = false;
+          } catch (error) {
+            results[lang] = {
+              isCorrect: false,
+              message: `Error en JavaScript: ${error.message}`,
+            };
+            isCorrect = false;
+          }
+          break;
+        }
+
+        case "python": {
+          // Nota: Para ejecución real, necesitarías un entorno como Pyodide o un servicio externo
+          // Aquí usamos comparación de código normalizado como ejemplo
+          const normalizedUserCode = normalizeCode(userCode, "python");
+          const normalizedExpectedCode = normalizeCode(expectedCode, "python");
+          const isEqual = normalizedUserCode === normalizedExpectedCode;
+          results[lang] = {
+            isCorrect: isEqual,
+            message: isEqual
+              ? "✅ Python correcto"
+              : "El código Python no coincide con lo esperado",
+          };
+          if (!isEqual) isCorrect = false;
+          break;
+        }
+
+        case "sql": {
+          // Usar SQLite en memoria para pruebas
+          const db = new sqlite3.Database(":memory:");
+          const runQuery = util.promisify(db.run.bind(db));
+          const allQuery = util.promisify(db.all.bind(db));
+
+          try {
+            // Crear una tabla de prueba
+            await runQuery(`
+              CREATE TABLE users (
+                id INTEGER PRIMARY KEY,
+                name TEXT,
+                age INTEGER
+              );
+              INSERT INTO users (name, age) VALUES ('Alice', 25), ('Bob', 30);
+            `);
+
+            let userRows, expectedRows;
+            try {
+              userRows = await allQuery(userCode);
+            } catch (error) {
+              results[lang] = {
+                isCorrect: false,
+                message: `Error en SQL: ${error.message}`,
+              };
+              isCorrect = false;
+              break;
+            }
+
+            try {
+              expectedRows = await allQuery(expectedCode);
+            } catch (error) {
+              results[lang] = {
+                isCorrect: false,
+                message: `Error en la salida esperada SQL: ${error.message}`,
+              };
+              isCorrect = false;
+              break;
+            }
+
+            const isEqual =
+              JSON.stringify(userRows) === JSON.stringify(expectedRows);
+            results[lang] = {
+              isCorrect: isEqual,
+              message: isEqual
+                ? "✅ SQL correcto"
+                : "El resultado de la consulta no coincide",
+            };
+            if (!isEqual) isCorrect = false;
+
+            db.close();
+          } catch (error) {
+            results[lang] = {
+              isCorrect: false,
+              message: `Error al ejecutar SQL: ${error.message}`,
+            };
+            isCorrect = false;
+            db.close();
+          }
+          break;
+        }
+
+        case "php": {
+          // Crear archivos temporales para PHP
+          const userFile = `/tmp/user_${Date.now()}.php`;
+          const expectedFile = `/tmp/expected_${Date.now()}.php`;
+          require("fs").writeFileSync(userFile, `<?php ${userCode} ?>`);
+          require("fs").writeFileSync(expectedFile, `<?php ${expectedCode} ?>`);
+
+          try {
+            const { stdout: userOutput } = await execPromise(`php ${userFile}`);
+            const { stdout: expectedOutput } = await execPromise(
+              `php ${expectedFile}`
+            );
+            const isEqual = userOutput.trim() === expectedOutput.trim();
+            results[lang] = {
+              isCorrect: isEqual,
+              message: isEqual
+                ? "✅ PHP correcto"
+                : "La salida PHP no coincide con lo esperado",
+            };
+            if (!isEqual) isCorrect = false;
+          } catch (error) {
+            results[lang] = {
+              isCorrect: false,
+              message: `Error en PHP: ${error.message}`,
+            };
+            isCorrect = false;
+          } finally {
+            require("fs").unlinkSync(userFile);
+            require("fs").unlinkSync(expectedFile);
+          }
+          break;
+        }
+
+        default: {
+          const normalizedUserCode = normalizeCode(userCode, lang);
+          const normalizedExpectedCode = normalizeCode(expectedCode, lang);
+          const isEqual = normalizedUserCode === normalizedExpectedCode;
+          results[lang] = {
+            isCorrect: isEqual,
+            message: isEqual
+              ? `✅ ${lang} correcto`
+              : `El código ${lang} no coincide con lo esperado`,
+          };
+          if (!isEqual) isCorrect = false;
+        }
       }
     }
 
-    // Asegurarnos de que no haya elementos adicionales en el userCode
-    for (const [tagName, userCount] of Object.entries(userStructure)) {
-      const expectedCount = expectedStructure[tagName] || 0;
-      if (userCount !== expectedCount) {
-        throw new Error(
-          `Se encontraron ${userCount} elemento(s) <${tagName}>, pero se esperaban ${expectedCount}`
-        );
-      }
-    }
-
-    // Validar que los elementos que normalmente contienen texto no estén vacíos
-    const textContainingTags = [
-      "h1",
-      "h2",
-      "h3",
-      "h4",
-      "h5",
-      "h6",
-      "p",
-      "span",
-      "div",
-    ];
-    const validateTextContent = (element, tagName, path) => {
-      if (textContainingTags.includes(tagName) && !element.textContent.trim()) {
-        throw new Error(
-          `El elemento <${tagName}> en ${path} no puede estar vacío`
-        );
-      }
-      Array.from(element.children).forEach((child, index) => {
-        const childTag = child.tagName.toLowerCase();
-        const childPath = path ? `${path}.${childTag}[${index}]` : childTag;
-        validateTextContent(child, childTag, childPath);
-      });
-    };
-
-    validateTextContent(userBody, "body", "body");
-
-    // Si todas las validaciones pasan
-    res.json({ isCorrect: true, message: "✅ ¡Respuesta correcta!" });
-  } catch (error) {
     res.json({
+      isCorrect,
+      results,
+      message: isCorrect
+        ? "✅ Todos los códigos son correctos"
+        : "❌ Uno o más códigos tienen errores",
+    });
+  } catch (error) {
+    console.error("Error en validateCode:", error);
+    res.status(500).json({
       isCorrect: false,
-      message: `❌ ${
-        error.message ||
-        "Intenta de nuevo. Verifica la sintaxis y el contenido del código."
-      }`,
+      message: `❌ Error al validar: ${error.message}`,
+      results: {},
     });
   }
 };
 
-// controllers/lessonController.js
+// Obtener todo el progreso por curso
 export const getAllProgressByCourse = async (req, res) => {
   try {
     const { courseId } = req.params;
-    const userId = req.user.userId; // Obtained from JWT
+    const userId = req.user.userId;
 
-    // Verify that the course exists
     const course = await Course.findById(courseId);
     if (!course) {
       return res.status(404).json({ message: "Curso no encontrado" });
     }
 
-    // Fetch all progress for the user and course
     const progress = await UserExerciseProgress.find({
       userId,
       courseId,

@@ -11,18 +11,16 @@ interface UseExerciseDataReturn {
   loading: boolean;
   isExerciseCompleted: boolean;
   instructionElements: InstructionElement[];
-  htmlCode: string;
-  cssCode: string;
-  jsCode: string;
+  codes: { [language: string]: string };
   setExercise: React.Dispatch<React.SetStateAction<Exercise | null>>;
   setLesson: React.Dispatch<React.SetStateAction<Lesson | null>>;
   setIsExerciseCompleted: React.Dispatch<React.SetStateAction<boolean>>;
   setInstructionElements: React.Dispatch<
     React.SetStateAction<InstructionElement[]>
   >;
-  setHtmlCode: React.Dispatch<React.SetStateAction<string>>;
-  setCssCode: React.Dispatch<React.SetStateAction<string>>;
-  setJsCode: React.Dispatch<React.SetStateAction<string>>;
+  setCodes: React.Dispatch<
+    React.SetStateAction<{ [language: string]: string }>
+  >;
 }
 
 export const useExerciseData = (): UseExerciseDataReturn => {
@@ -39,11 +37,7 @@ export const useExerciseData = (): UseExerciseDataReturn => {
   const [instructionElements, setInstructionElements] = useState<
     InstructionElement[]
   >([]);
-  const [htmlCode, setHtmlCode] = useState(
-    "<!-- Escribe tu código aquí ❤️ -->\n\n"
-  );
-  const [cssCode, setCssCode] = useState("/* Estilos para la página */\n\n");
-  const [jsCode, setJsCode] = useState("// Escribe tu código aquí\n\n");
+  const [codes, setCodes] = useState<{ [language: string]: string }>({});
 
   const fetchData = useCallback(async () => {
     try {
@@ -79,20 +73,16 @@ export const useExerciseData = (): UseExerciseDataReturn => {
       const fetchedExercise = await exerciseRes.json();
       setExercise(fetchedExercise);
 
-      if (fetchedExercise.language === "html") {
-        setHtmlCode(
-          fetchedExercise.content || "<!-- Escribe tu código aquí ❤️ -->\n\n"
-        );
-        setCssCode("/* Estilos para la página */\n\n");
-      } else if (fetchedExercise.language === "css") {
-        setCssCode(
-          fetchedExercise.content || "/* Estilos para la página */\n\n"
-        );
-        setHtmlCode("");
-      } else if (fetchedExercise.language === "javascript") {
-        setJsCode(fetchedExercise.content || "// Escribe tu código aquí\n\n");
-        setHtmlCode("");
-      }
+      // Inicializar códigos
+      const initialCodes: { [language: string]: string } = {};
+      fetchedExercise.codes.forEach(
+        (code: { language: string; initialCode: string }) => {
+          initialCodes[code.language] =
+            code.initialCode ||
+            `// Escribe tu código ${code.language} aquí\n\n`;
+        }
+      );
+      setCodes(initialCodes);
 
       if (fetchedExercise.instructions) {
         setInstructionElements(parseInstructions(fetchedExercise.instructions));
@@ -144,15 +134,11 @@ export const useExerciseData = (): UseExerciseDataReturn => {
     loading,
     isExerciseCompleted,
     instructionElements,
-    htmlCode,
-    cssCode,
-    jsCode,
+    codes,
     setExercise,
     setLesson,
     setIsExerciseCompleted,
     setInstructionElements,
-    setHtmlCode,
-    setCssCode,
-    setJsCode,
+    setCodes,
   };
 };

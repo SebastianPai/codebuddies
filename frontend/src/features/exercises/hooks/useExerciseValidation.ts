@@ -5,10 +5,18 @@ import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useAuth } from "@/context/AuthContext";
 import { Exercise, Lesson } from "@/types/exercise";
-import { normalizeCSS, normalizeCode } from "../services/validationService";
+
+interface ValidationResult {
+  isCorrect: boolean;
+  message: string;
+}
 
 interface UseExerciseValidationReturn {
-  modalContent: { isCorrect: boolean; message: string };
+  modalContent: {
+    isCorrect: boolean;
+    results: { [language: string]: ValidationResult };
+    message: string;
+  };
   showFeedbackScreen: "correct" | "incorrect" | null;
   isModalOpen: boolean;
   handleCheckAnswer: () => Promise<void>;
@@ -25,9 +33,7 @@ interface UseExerciseValidationReturn {
 export const useExerciseValidation = (
   exercise: Exercise | null,
   lesson: Lesson | null,
-  htmlCode: string,
-  cssCode: string,
-  jsCode: string,
+  codes: { [language: string]: string },
   setIsExerciseCompleted: React.Dispatch<React.SetStateAction<boolean>>
 ): UseExerciseValidationReturn => {
   const { fetchWithAuth, updateUser } = useAuth();
@@ -39,8 +45,9 @@ export const useExerciseValidation = (
   const navigate = useNavigate();
   const [modalContent, setModalContent] = useState<{
     isCorrect: boolean;
+    results: { [language: string]: ValidationResult };
     message: string;
-  }>({ isCorrect: false, message: "" });
+  }>({ isCorrect: false, results: {}, message: "" });
   const [showFeedbackScreen, setShowFeedbackScreen] = useState<
     "correct" | "incorrect" | null
   >(null);
@@ -54,10 +61,11 @@ export const useExerciseValidation = (
   } | null>(null);
 
   const handleCheckAnswer = async () => {
-    if (!exercise?.expectedOutput) {
+    if (!exercise || !lesson || !courseId || !lessonId || !exerciseOrder) {
       setModalContent({
         isCorrect: false,
-        message: "⚠️ No hay salida esperada definida.",
+        results: {},
+        message: "⚠️ Datos del ejercicio o parámetros de URL no válidos.",
       });
       setIsModalOpen(true);
       setShowFeedbackScreen("incorrect");
@@ -65,107 +73,67 @@ export const useExerciseValidation = (
       return;
     }
 
-    // Validar parámetros de URL
-    if (!courseId || !lessonId || !exerciseOrder) {
-      setModalContent({
-        isCorrect: false,
-        message: "⚠️ Parámetros de la URL no válidos.",
-      });
-      setIsModalOpen(true);
-      setShowFeedbackScreen("incorrect");
-      setTimeout(() => setShowFeedbackScreen(null), 2000);
-      return;
-    }
-
-    let userOutput = "";
-    let expectedOutput = exercise.expectedOutput;
-
-    switch (exercise.language) {
-      case "html":
-        try {
-          // Validar datos antes de enviar
-          if (!htmlCode || !exercise.expectedOutput) {
-            throw new Error("Código de usuario o salida esperada vacíos.");
-          }
-
-          const response = await fetchWithAuth(`/api/lessons/validate-html`, {
-            method: "POST",
-            body: JSON.stringify({
-              userCode: htmlCode,
-              expectedOutput: exercise.expectedOutput,
-            }),
-          });
-
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(
-              errorData.message || "Error al validar el código HTML"
-            );
-          }
-
-          const responseData: { isCorrect: boolean; message: string } =
-            await response.json();
-          setModalContent({
-            isCorrect: responseData.isCorrect,
-            message: responseData.message,
-          });
-
-          setShowFeedbackScreen(
-            responseData.isCorrect ? "correct" : "incorrect"
-          );
-          setTimeout(() => setShowFeedbackScreen(null), 2000);
-
-          if (responseData.isCorrect) {
-            setIsExerciseCompleted(true);
-            await completeExercise();
-          }
-        } catch (error) {
-          const errorMessage =
-            error instanceof Error
-              ? error.message
-              : "❌ Error al validar el código. Intenta de nuevo.";
-          setModalContent({ isCorrect: false, message: errorMessage });
-          setShowFeedbackScreen("incorrect");
-          setTimeout(() => setShowFeedbackScreen(null), 2000);
+    try {
+      // Preparar códigos esperados
+      const expectedCodes: { [language: string]: string } = {};
+      exercise.codes.forEach((code) => {
+        if (code.expectedCode) {
+          expectedCodes[code.language] = code.expectedCode;
         }
-        break;
+      });
 
-      case "css":
-        userOutput = normalizeCSS(cssCode);
-        expectedOutput = normalizeCSS(expectedOutput);
-        break;
-
-      case "javascript":
-        userOutput = normalizeCode(jsCode);
-        expectedOutput = normalizeCode(expectedOutput);
-        break;
-
-      default:
+      if (Object.keys(expectedCodes).length === 0) {
         setModalContent({
           isCorrect: false,
-          message: "⚠️ Lenguaje no soportado.",
+          results: {},
+          message: "⚠️ No hay salidas esperadas definidas.",
         });
         setIsModalOpen(true);
         setShowFeedbackScreen("incorrect");
         setTimeout(() => setShowFeedbackScreen(null), 2000);
         return;
-    }
+      }
 
-    if (exercise.language !== "html") {
-      const isCorrect = userOutput === expectedOutput;
-      setModalContent({
-        isCorrect,
-        message: isCorrect
-          ? "✅ ¡Respuesta correcta!"
-          : "❌ Intenta de nuevo. Verifica la sintaxis y el contenido del código.",
+      const response = await fetchWithAuth(`/api/lessons/validate-code`, {
+        method: "POST",
+        body: JSON.stringify({
+          codes,
+          expectedCodes,
+          language: exercise.language,
+        }),
       });
-      setShowFeedbackScreen(isCorrect ? "correct" : "incorrect");
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Error al validar los códigos");
+      }
+
+      const responseData: {
+        isCorrect: boolean;
+        results: { [language: string]: ValidationResult };
+        message: string;
+      } = await response.json();
+
+      setModalContent(responseData);
+      setShowFeedbackScreen(responseData.isCorrect ? "correct" : "incorrect");
       setTimeout(() => setShowFeedbackScreen(null), 2000);
 
-      if (isCorrect) {
+      if (responseData.isCorrect) {
         setIsExerciseCompleted(true);
         await completeExercise();
       }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "❌ Error al validar los códigos. Intenta de nuevo.";
+      setModalContent({
+        isCorrect: false,
+        results: {},
+        message: errorMessage,
+      });
+      setShowFeedbackScreen("incorrect");
+      setTimeout(() => setShowFeedbackScreen(null), 2000);
     }
 
     setIsModalOpen(true);
@@ -173,7 +141,6 @@ export const useExerciseValidation = (
 
   const completeExercise = async () => {
     try {
-      // Validar parámetros de URL
       if (!courseId || !lessonId || !exerciseOrder) {
         throw new Error("Parámetros de URL no válidos");
       }
@@ -183,7 +150,6 @@ export const useExerciseValidation = (
         throw new Error("No se encontró el token de autenticación");
       }
 
-      // Obtener datos del usuario antes de completar el ejercicio
       const userDataResponse = await fetchWithAuth("/api/users/me");
       if (!userDataResponse.ok) {
         throw new Error("Error al obtener datos del usuario");
@@ -207,7 +173,6 @@ export const useExerciseValidation = (
       let gainedXp = 0;
       let isAlreadyCompleted = false;
 
-      // Detección más precisa para ejercicios ya completados
       const messageLower = (progressData.message || "").toLowerCase();
       if (messageLower.includes("ejercicio ya completado")) {
         isAlreadyCompleted = true;
@@ -243,7 +208,6 @@ export const useExerciseValidation = (
         gainedXp += 100;
       }
 
-      // Usar datos del usuario devueltos por el servidor, o mantener los actuales si no están disponibles
       const newProgress = {
         xp: progressData.user?.xp ?? currentXp,
         maxXp: progressData.user?.maxXp ?? currentMaxXp,

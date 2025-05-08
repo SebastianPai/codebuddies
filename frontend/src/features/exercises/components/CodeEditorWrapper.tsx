@@ -1,4 +1,6 @@
-import { FC, Dispatch, SetStateAction } from "react";
+"use client";
+
+import { FC } from "react";
 import Editor from "@monaco-editor/react";
 import type * as Monaco from "monaco-editor";
 import { loader } from "@monaco-editor/react";
@@ -16,11 +18,12 @@ loader.config({
 
 interface CodeEditorWrapperProps {
   value: string;
-  onValueChange: Dispatch<SetStateAction<string>>;
+  onValueChange: (value: string) => void; // Ajustado para aceptar solo string
   highlightLanguage: string;
   padding?: number;
   className?: string;
   style?: React.CSSProperties;
+  disabled?: boolean;
 }
 
 export const CodeEditorWrapper: FC<CodeEditorWrapperProps> = ({
@@ -30,6 +33,7 @@ export const CodeEditorWrapper: FC<CodeEditorWrapperProps> = ({
   padding = 16,
   className = "",
   style = {},
+  disabled = false,
 }) => {
   const beforeMount = (monaco: typeof Monaco) => {
     self.MonacoEnvironment = {
@@ -58,7 +62,7 @@ export const CodeEditorWrapper: FC<CodeEditorWrapperProps> = ({
       width="100%"
       language={highlightLanguage}
       value={value}
-      onChange={(newValue) => onValueChange(newValue || "")}
+      onChange={(newValue) => !disabled && onValueChange(newValue || "")}
       theme="vs-dark"
       beforeMount={beforeMount}
       options={{
@@ -72,6 +76,7 @@ export const CodeEditorWrapper: FC<CodeEditorWrapperProps> = ({
         wrappingIndent: "indent",
         tabSize: 2,
         automaticLayout: true,
+        readOnly: disabled,
       }}
       className={className}
       wrapperProps={{ style: { ...style, padding: `${padding}px` } }}

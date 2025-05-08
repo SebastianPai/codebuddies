@@ -47,6 +47,11 @@ export const useIframePreview = (
           exercise?.language === "html" || exercise?.language === "css"
             ? cssCode
             : "";
+        const jsContent =
+          exercise?.language === "javascript"
+            ? exercise.codes.find((code) => code.language === "javascript")
+                ?.initialCode || ""
+            : "";
         const htmlContent = `
           <!DOCTYPE html>
           <html>
@@ -55,6 +60,7 @@ export const useIframePreview = (
           </head>
           <body>
             ${proxiedHtmlCode}
+            ${jsContent ? `<script>${jsContent}</script>` : ""}
           </body>
           </html>
         `;
@@ -71,7 +77,7 @@ export const useIframePreview = (
           <body>
             <p>Error al cargar la vista previa.</p>
           </body>
-          </html  </html>
+          </html>
         `);
       } finally {
         setIsIframeLoading(false);
@@ -80,6 +86,9 @@ export const useIframePreview = (
 
     if (htmlCode || cssCode) {
       generateIframeContent();
+    } else {
+      setIframeContent("");
+      setIsIframeLoading(false);
     }
   }, [htmlCode, cssCode, exercise]);
 

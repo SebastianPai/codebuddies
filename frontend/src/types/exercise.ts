@@ -1,10 +1,15 @@
+export interface Code {
+  language: string;
+  initialCode: string;
+  expectedCode?: string;
+}
+
 export interface Exercise {
   order: number;
   title: string;
-  content: string;
+  codes: Code[];
   instructions?: string;
   language: string;
-  expectedOutput?: string;
 }
 
 export interface Lesson {

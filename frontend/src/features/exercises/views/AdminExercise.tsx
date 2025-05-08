@@ -16,13 +16,36 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { Highlight, themes } from "prism-react-renderer";
 
+interface Code {
+  language:
+    | "javascript"
+    | "python"
+    | "html"
+    | "css"
+    | "c"
+    | "java"
+    | "markup"
+    | "sql"
+    | "php";
+  initialCode: string;
+  expectedCode?: string;
+}
+
 interface Exercise {
   order: number;
   title: string;
-  content: string;
+  codes: Code[];
   instructions?: string;
-  language: "javascript" | "python" | "html" | "css" | "c" | "java" | "markup";
-  expectedOutput?: string;
+  language:
+    | "javascript"
+    | "python"
+    | "html"
+    | "css"
+    | "c"
+    | "java"
+    | "markup"
+    | "sql"
+    | "php";
 }
 
 interface Lesson {
@@ -43,10 +66,9 @@ const AdminExercise = () => {
   const [newExercise, setNewExercise] = useState<Exercise>({
     order: 0,
     title: "",
-    content: "",
+    codes: [{ language: "javascript", initialCode: "", expectedCode: "" }],
     instructions: "",
     language: "javascript",
-    expectedOutput: "",
   });
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState(true);
@@ -115,7 +137,6 @@ const AdminExercise = () => {
     let currentCodeLang = "";
 
     lines.forEach((line) => {
-      // Image markdown: ![alt](url)
       if (line.match(/!\[.*\]\(.*\)/)) {
         const urlMatch = line.match(/!\[.*\]\((.*)\)/);
         if (urlMatch) {
@@ -127,7 +148,6 @@ const AdminExercise = () => {
         }
         return;
       }
-      // Code block start/end: ```language
       if (line.startsWith("```")) {
         if (inCodeBlock) {
           if (currentText.trim()) {
@@ -135,7 +155,7 @@ const AdminExercise = () => {
             currentText = "";
           }
           elements.push({
-            type: "code" as const,
+            type: "code",
             language: currentCodeLang || "javascript",
             value: currentCode.trim(),
           });
@@ -148,16 +168,13 @@ const AdminExercise = () => {
         }
         return;
       }
-      // Code block content
       if (inCodeBlock) {
         currentCode += line + "\n";
         return;
       }
-      // Text
       currentText += line + "\n";
     });
 
-    // Add any remaining text
     if (currentText.trim()) {
       elements.push({ type: "text", value: currentText.trim() });
     }
@@ -184,15 +201,6 @@ const AdminExercise = () => {
       ...instructionElements.slice(index + 1),
     ];
     setInstructionElements(newElements);
-    // Depuración para verificar el orden
-    console.log(
-      "Añadiendo elemento:",
-      type,
-      "en índice:",
-      index,
-      "Resultado:",
-      newElements
-    );
   };
 
   // Update instruction element
@@ -233,9 +241,78 @@ const AdminExercise = () => {
       .join("\n\n");
   };
 
+  // Add a new code entry
+  const addCodeEntry = () => {
+    const newCode: Code = {
+      language: "javascript",
+      initialCode: "",
+      expectedCode: "",
+    };
+    if (isCreating) {
+      setNewExercise((prev) => ({
+        ...prev,
+        codes: [...prev.codes, newCode],
+      }));
+    } else if (exercise) {
+      setExercise({
+        ...exercise,
+        codes: [...exercise.codes, newCode],
+      });
+    }
+  };
+
+  // Update a code entry
+  const updateCodeEntry = (
+    index: number,
+    field: "language" | "initialCode" | "expectedCode",
+    value: string
+  ) => {
+    if (isCreating) {
+      setNewExercise((prev) => {
+        const updatedCodes = [...prev.codes];
+        updatedCodes[index] = { ...updatedCodes[index], [field]: value };
+        return { ...prev, codes: updatedCodes };
+      });
+    } else if (exercise) {
+      setExercise({
+        ...exercise,
+        codes: exercise.codes.map((code, i) =>
+          i === index ? { ...code, [field]: value } : code
+        ),
+      });
+    }
+  };
+
+  // Remove a code entry
+  const removeCodeEntry = (index: number) => {
+    if (isCreating) {
+      setNewExercise((prev) => ({
+        ...prev,
+        codes:
+          prev.codes.length > 1
+            ? prev.codes.filter((_, i) => i !== index)
+            : [{ language: "javascript", initialCode: "", expectedCode: "" }],
+      }));
+    } else if (exercise) {
+      setExercise({
+        ...exercise,
+        codes:
+          exercise.codes.length > 1
+            ? exercise.codes.filter((_, i) => i !== index)
+            : [{ language: "javascript", initialCode: "", expectedCode: "" }],
+      });
+    }
+  };
+
   const handleCreateExercise = async () => {
-    if (!newExercise.title || !newExercise.content || !newExercise.language) {
-      toast.error("Título, contenido y lenguaje son obligatorios.");
+    if (
+      !newExercise.title ||
+      !newExercise.language ||
+      !newExercise.codes.length
+    ) {
+      toast.error(
+        "Título, lenguaje principal y al menos un código son obligatorios."
+      );
       return;
     }
     try {
@@ -243,10 +320,9 @@ const AdminExercise = () => {
       const exerciseData = {
         order: newExercise.order,
         title: newExercise.title,
-        content: newExercise.content,
+        codes: newExercise.codes,
         instructions: generateInstructions(),
         language: newExercise.language,
-        expectedOutput: newExercise.expectedOutput,
       };
       await axiosInstance.post(`/lessons/${lessonId}/exercises`, exerciseData);
       toast.success("Ejercicio creado exitosamente.");
@@ -255,10 +331,9 @@ const AdminExercise = () => {
           ? Math.max(...lesson.exercises.map((ex) => ex.order)) + 1
           : 1,
         title: "",
-        content: "",
+        codes: [{ language: "javascript", initialCode: "", expectedCode: "" }],
         instructions: "",
         language: "javascript",
-        expectedOutput: "",
       });
       setInstructionElements([{ type: "text", value: "" }]);
       navigate(`/admin/lessons/${lessonId}`);
@@ -276,10 +351,12 @@ const AdminExercise = () => {
       !exercise ||
       !exercise.order ||
       !exercise.title ||
-      !exercise.content ||
-      !exercise.language
+      !exercise.language ||
+      !exercise.codes.length
     ) {
-      toast.error("Orden, título, contenido y lenguaje son obligatorios.");
+      toast.error(
+        "Orden, título, lenguaje principal y al menos un código son obligatorios."
+      );
       return;
     }
     try {
@@ -287,10 +364,9 @@ const AdminExercise = () => {
       const exerciseData = {
         order: exercise.order,
         title: exercise.title,
-        content: exercise.content,
+        codes: exercise.codes,
         instructions: generateInstructions(),
         language: exercise.language,
-        expectedOutput: exercise.expectedOutput,
       };
       await axiosInstance.put(
         `/lessons/${lessonId}/exercises/${order}`,
@@ -441,7 +517,7 @@ const AdminExercise = () => {
           </h2>
           <div className="space-y-4">
             {/* Order (only for editing) */}
-            {!isCreating && (
+            {!isCreating && exercise && (
               <div className="space-y-2">
                 <label
                   htmlFor="exercise-order"
@@ -452,10 +528,10 @@ const AdminExercise = () => {
                 <input
                   id="exercise-order"
                   type="number"
-                  value={exercise?.order ?? 0}
+                  value={exercise.order}
                   onChange={(e) =>
                     setExercise({
-                      ...exercise!,
+                      ...exercise,
                       order: parseInt(e.target.value) || 0,
                     })
                   }
@@ -485,7 +561,8 @@ const AdminExercise = () => {
                           ...newExercise,
                           title: e.target.value,
                         })
-                      : setExercise({ ...exercise!, title: e.target.value })
+                      : exercise &&
+                        setExercise({ ...exercise, title: e.target.value })
                   }
                   className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   aria-required="true"
@@ -497,7 +574,7 @@ const AdminExercise = () => {
                   htmlFor="exercise-language"
                   className="text-sm text-gray-400"
                 >
-                  Lenguaje
+                  Lenguaje Principal
                 </label>
                 <select
                   id="exercise-language"
@@ -512,14 +589,15 @@ const AdminExercise = () => {
                           ...newExercise,
                           language: e.target.value as Exercise["language"],
                         })
-                      : setExercise({
-                          ...exercise!,
+                      : exercise &&
+                        setExercise({
+                          ...exercise,
                           language: e.target.value as Exercise["language"],
                         })
                   }
                   className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   aria-required="true"
-                  aria-label="Lenguaje del ejercicio"
+                  aria-label="Lenguaje principal del ejercicio"
                 >
                   <option value="javascript">JavaScript</option>
                   <option value="python">Python</option>
@@ -528,6 +606,8 @@ const AdminExercise = () => {
                   <option value="c">C</option>
                   <option value="java">Java</option>
                   <option value="markup">Markup</option>
+                  <option value="sql">SQL</option>
+                  <option value="php">PHP</option>
                 </select>
               </div>
             </div>
@@ -603,6 +683,8 @@ const AdminExercise = () => {
                             <option value="c">C</option>
                             <option value="java">Java</option>
                             <option value="markup">Markup</option>
+                            <option value="sql">SQL</option>
+                            <option value="php">PHP</option>
                           </select>
                           <label
                             htmlFor={`code-value-${index}`}
@@ -704,126 +786,168 @@ const AdminExercise = () => {
               </div>
             </div>
 
-            {/* Content with Preview Side by Side */}
+            {/* Codes Section */}
             <div className="space-y-2">
-              <label
-                htmlFor="exercise-content"
-                className="text-sm text-gray-400"
-              >
-                Contenido (Código Inicial)
+              <label className="text-sm text-gray-400">
+                Códigos (Inicial y Esperado)
               </label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <textarea
-                  id="exercise-content"
-                  value={
-                    isCreating ? newExercise.content : exercise?.content ?? ""
-                  }
-                  onChange={(e) =>
-                    isCreating
-                      ? setNewExercise({
-                          ...newExercise,
-                          content: e.target.value,
-                        })
-                      : setExercise({ ...exercise!, content: e.target.value })
-                  }
-                  className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-                  rows={10}
-                  aria-required="true"
-                  aria-label="Contenido del ejercicio"
-                />
-                {(isCreating ? newExercise.content : exercise?.content) && (
-                  <div className="space-y-2">
-                    <p className="text-sm text-gray-400">Vista Previa:</p>
-                    {renderCodeBlock(
-                      isCreating ? newExercise.content : exercise!.content,
-                      isCreating ? newExercise.language : exercise!.language
-                    )}
-                  </div>
+              <div className="space-y-4">
+                {(isCreating ? newExercise.codes : exercise?.codes ?? []).map(
+                  (code, index) => (
+                    <div
+                      key={index}
+                      className="space-y-2 mb-4 border-b border-gray-700 pb-4"
+                    >
+                      <div className="flex justify-between items-center">
+                        <h4 className="text-sm text-gray-400">
+                          Código {index + 1} ({code.language})
+                        </h4>
+                        <button
+                          onClick={() => removeCodeEntry(index)}
+                          className="bg-red-600 text-white px-2 py-1 rounded-md hover:bg-red-700 transition-colors"
+                          aria-label={`Eliminar código ${index + 1}`}
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                      <div className="space-y-2">
+                        <label
+                          htmlFor={`code-language-${index}`}
+                          className="text-sm text-gray-400"
+                        >
+                          Lenguaje
+                        </label>
+                        <select
+                          id={`code-language-${index}`}
+                          value={code.language}
+                          onChange={(e) =>
+                            updateCodeEntry(index, "language", e.target.value)
+                          }
+                          className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="javascript">JavaScript</option>
+                          <option value="python">Python</option>
+                          <option value="html">HTML</option>
+                          <option value="css">CSS</option>
+                          <option value="c">C</option>
+                          <option value="java">Java</option>
+                          <option value="markup">Markup</option>
+                          <option value="sql">SQL</option>
+                          <option value="php">PHP</option>
+                        </select>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label
+                            htmlFor={`initial-code-${index}`}
+                            className="text-sm text-gray-400"
+                          >
+                            Código Inicial
+                          </label>
+                          <textarea
+                            id={`initial-code-${index}`}
+                            value={code.initialCode}
+                            onChange={(e) =>
+                              updateCodeEntry(
+                                index,
+                                "initialCode",
+                                e.target.value
+                              )
+                            }
+                            className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                            rows={6}
+                            aria-label={`Código inicial ${index + 1}`}
+                          />
+                        </div>
+                        {code.initialCode && (
+                          <div className="space-y-2">
+                            <p className="text-sm text-gray-400">
+                              Vista Previa Inicial:
+                            </p>
+                            {renderCodeBlock(code.initialCode, code.language)}
+                          </div>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label
+                            htmlFor={`expected-code-${index}`}
+                            className="text-sm text-gray-400"
+                          >
+                            Código Esperado (Opcional)
+                          </label>
+                          <textarea
+                            id={`expected-code-${index}`}
+                            value={code.expectedCode ?? ""}
+                            onChange={(e) =>
+                              updateCodeEntry(
+                                index,
+                                "expectedCode",
+                                e.target.value
+                              )
+                            }
+                            className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                            rows={6}
+                            aria-label={`Código esperado ${index + 1}`}
+                          />
+                        </div>
+                        {code.expectedCode && (
+                          <div className="space-y-2">
+                            <p className="text-sm text-gray-400">
+                              Vista Previa Esperado:
+                            </p>
+                            {renderCodeBlock(code.expectedCode, code.language)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
                 )}
+                <button
+                  onClick={addCodeEntry}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center"
+                  aria-label="Agregar nuevo código"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Agregar Código
+                </button>
               </div>
             </div>
 
-            {/* Expected Output with Preview Side by Side */}
-            <div className="space-y-2">
-              <label
-                htmlFor="exercise-expectedOutput"
-                className="text-sm text-gray-400"
-              >
-                Salida Esperada (Opcional)
-              </label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <textarea
-                  id="exercise-expectedOutput"
-                  value={
-                    isCreating
-                      ? newExercise.expectedOutput ?? ""
-                      : exercise?.expectedOutput ?? ""
-                  }
-                  onChange={(e) =>
-                    isCreating
-                      ? setNewExercise({
-                          ...newExercise,
-                          expectedOutput: e.target.value,
-                        })
-                      : setExercise({
-                          ...exercise!,
-                          expectedOutput: e.target.value,
-                        })
-                  }
-                  className="w-full p-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-                  rows={6}
-                  aria-label="Salida esperada del ejercicio"
-                />
-                {(isCreating
-                  ? newExercise.expectedOutput
-                  : exercise?.expectedOutput) && (
-                  <div className="space-y-2">
-                    <p className="text-sm text-gray-400">Vista Previa:</p>
-                    {renderCodeBlock(
-                      isCreating
-                        ? newExercise.expectedOutput!
-                        : exercise!.expectedOutput!,
-                      isCreating ? newExercise.language : exercise!.language
-                    )}
-                  </div>
-                )}
-              </div>
+            <div className="flex flex-wrap gap-2 mt-4">
+              {isCreating ? (
+                <button
+                  onClick={handleCreateExercise}
+                  disabled={actionLoading}
+                  className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Crear nuevo ejercicio"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Crear Ejercicio
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={handleUpdateExercise}
+                    disabled={actionLoading || !exercise}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                    aria-label="Guardar cambios del ejercicio"
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    Guardar
+                  </button>
+                  <button
+                    onClick={handleDeleteExercise}
+                    disabled={actionLoading || !exercise}
+                    className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                    aria-label="Eliminar ejercicio"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Eliminar
+                  </button>
+                </>
+              )}
             </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2 mt-4">
-            {isCreating ? (
-              <button
-                onClick={handleCreateExercise}
-                disabled={actionLoading}
-                className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
-                aria-label="Crear nuevo ejercicio"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Crear Ejercicio
-              </button>
-            ) : (
-              <>
-                <button
-                  onClick={handleUpdateExercise}
-                  disabled={actionLoading}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
-                  aria-label="Guardar cambios del ejercicio"
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  Guardar
-                </button>
-                <button
-                  onClick={handleDeleteExercise}
-                  disabled={actionLoading}
-                  className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
-                  aria-label="Eliminar ejercicio"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Eliminar
-                </button>
-              </>
-            )}
           </div>
         </section>
       </div>

@@ -1,17 +1,23 @@
-// NavigationControls.tsx
 import { useTheme } from "@/context/ThemeContext";
 import { ChevronLeft, ChevronRight, Code, Info } from "lucide-react";
 import { Exercise, Lesson } from "@/types/exercise";
 
 interface NavigationControlsProps {
-  exercise: Exercise;
+  exercise: Exercise | null;
   lesson: Lesson | null;
   isExerciseCompleted: boolean;
   htmlCode: string;
   cssCode: string;
   jsCode: string;
   onNavigate: (direction: "prev" | "next") => void;
-  onCheckAnswer: () => void;
+  onCheckAnswer: () => Promise<void>;
+  userProgress: {
+    xp: number;
+    maxXp: number;
+    level: number;
+    gainedXp?: number;
+    isAlreadyCompleted?: boolean;
+  } | null;
 }
 
 export const NavigationControls = ({
@@ -23,6 +29,7 @@ export const NavigationControls = ({
   jsCode,
   onNavigate,
   onCheckAnswer,
+  userProgress,
 }: NavigationControlsProps) => {
   const { theme } = useTheme();
 
@@ -39,7 +46,7 @@ export const NavigationControls = ({
     !isExerciseCompleted;
 
   const isCheckDisabled =
-    exercise.language === "html" || exercise.language === "css"
+    exercise?.language === "html" || exercise?.language === "css"
       ? !htmlCode.trim() && !cssCode.trim()
       : !jsCode.trim();
 
@@ -51,6 +58,7 @@ export const NavigationControls = ({
         borderColor: theme.colors.border,
       }}
     >
+      {/* Sección de título y nivel (izquierda) */}
       <div className="flex items-center space-x-3">
         <button
           className="p-1 rounded-md"
@@ -63,11 +71,15 @@ export const NavigationControls = ({
         </button>
         <div className="text-sm">
           <div className="font-bold" style={{ color: theme.colors.text }}>
-            {`${exercise.order}. ${exercise.title}`}
+            {exercise ? `${exercise.order}. ${exercise.title}` : "Cargando..."}
           </div>
-          <div style={{ color: theme.colors.accent }}>10 XP</div>
+          <div style={{ color: theme.colors.accent }}>
+            NIVEL: {userProgress ? userProgress.level : 1}
+          </div>
         </div>
       </div>
+
+      {/* Botones centrados */}
       <div className="flex items-center justify-center space-x-2">
         <button
           onClick={() => onNavigate("prev")}
@@ -114,29 +126,29 @@ export const NavigationControls = ({
           <Info className="w-4 h-4" />
         </button>
       </div>
+
+      {/* Barra de progreso y XP acumulado (derecha) */}
       <div className="flex items-center">
-        <div className="flex -space-x-1">
+        <div className="flex flex-col items-end space-y-1">
+          <div className="text-sm" style={{ color: theme.colors.accent }}>
+            XP: {userProgress ? userProgress.xp : 0}/
+            {userProgress ? userProgress.maxXp : 100}
+          </div>
           <div
-            className="w-6 h-6 rounded-full bg-red-500 border-2"
-            style={{ borderColor: theme.colors.border }}
-          ></div>
-          <div
-            className="w-6 h-6 rounded-full bg-blue-500 border-2"
-            style={{ borderColor: theme.colors.border }}
-          ></div>
-          <div
-            className="w-6 h-6 rounded-full bg-green-500 border-2"
-            style={{ borderColor: theme.colors.border }}
-          ></div>
-          <div
-            className="w-6 h-6 rounded-full flex items-center justify-center text-xs"
-            style={{
-              background: theme.colors.accent,
-              color: theme.colors.buttonText,
-              borderColor: theme.colors.border,
-            }}
+            className="w-24 h-2 rounded-full"
+            style={{ background: theme.colors.progressBackground }}
           >
-            +13
+            <div
+              className="h-2 rounded-full"
+              style={{
+                background: theme.colors.progressFill,
+                width: `${
+                  userProgress
+                    ? (userProgress.xp / userProgress.maxXp) * 100
+                    : 0
+                }%`,
+              }}
+            ></div>
           </div>
         </div>
       </div>
