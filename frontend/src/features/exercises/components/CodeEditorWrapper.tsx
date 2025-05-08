@@ -14,12 +14,11 @@ loader.config({
 
 interface CodeEditorWrapperProps {
   value: string;
-  onValueChange: (value: string) => void;
+  onValueChange: (value: string) => void; // Cambiado de Dispatch<SetStateAction<string>>
   highlightLanguage: string;
   padding?: number;
   className?: string;
   style?: React.CSSProperties;
-  disabled?: boolean;
 }
 
 export const CodeEditorWrapper: FC<CodeEditorWrapperProps> = ({
@@ -29,11 +28,13 @@ export const CodeEditorWrapper: FC<CodeEditorWrapperProps> = ({
   padding = 16,
   className = "",
   style = {},
-  disabled = false,
 }) => {
   const beforeMount = (monaco: typeof Monaco) => {
+    // Registra el lenguaje python
+    monaco.languages.register({ id: "python" });
+
     self.MonacoEnvironment = {
-      baseUrl: "/monaco-editor/vs/", // Ruta correcta para los recursos
+      baseUrl: "/monaco-editor/vs/",
       getWorkerUrl(_: string, label: string) {
         switch (label) {
           case "editorWorkerService":
@@ -45,6 +46,8 @@ export const CodeEditorWrapper: FC<CodeEditorWrapperProps> = ({
           case "javascript":
           case "typescript":
             return "/monaco-editor/vs/language/typescript/ts.worker.js";
+          case "python": // Usa el worker genérico para python
+            return "/monaco-editor/vs/editor/editor.worker.js";
           default:
             return "/monaco-editor/vs/editor/editor.worker.js";
         }
@@ -58,7 +61,7 @@ export const CodeEditorWrapper: FC<CodeEditorWrapperProps> = ({
       width="100%"
       language={highlightLanguage}
       value={value}
-      onChange={(newValue) => !disabled && onValueChange(newValue || "")}
+      onChange={(newValue) => onValueChange(newValue ?? "")} // Maneja undefined
       theme="vs-dark"
       beforeMount={beforeMount}
       options={{
@@ -72,7 +75,6 @@ export const CodeEditorWrapper: FC<CodeEditorWrapperProps> = ({
         wrappingIndent: "indent",
         tabSize: 2,
         automaticLayout: true,
-        readOnly: disabled,
       }}
       className={className}
       wrapperProps={{ style: { ...style, padding: `${padding}px` } }}
