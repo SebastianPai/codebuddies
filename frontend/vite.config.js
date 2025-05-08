@@ -13,8 +13,8 @@ export default defineConfig({
     viteStaticCopy({
       targets: [
         {
-          src: "node_modules/monaco-editor/min/vs/**/*",
-          dest: "monaco-editor/vs",
+          src: "src/assets/fonts/Pixelify_Sans/*.ttf",
+          dest: "assets/fonts/Pixelify_Sans",
         },
       ],
     }),
@@ -24,18 +24,18 @@ export default defineConfig({
       "@": path.resolve(__dirname, "src"),
     },
   },
-  assetsInclude: ["**/*.worker.js"],
+  assetsInclude: ["**/*.worker.js", "**/*.ttf"],
   optimizeDeps: {
     include: ["monaco-editor", "monaco-python"],
   },
   build: {
+    sourcemap: false, // Desactiva source maps para evitar errores
     rollupOptions: {
-      external: [
-        "monaco-editor/esm/vs/editor/editor.worker",
-        "monaco-editor/esm/vs/language/css/css.worker",
-        "monaco-editor/esm/vs/language/html/html.worker",
-        "monaco-editor/esm/vs/language/typescript/ts.worker",
-      ],
+      output: {
+        manualChunks: {
+          "monaco-editor": ["monaco-editor", "monaco-python"],
+        },
+      },
     },
   },
   server: {

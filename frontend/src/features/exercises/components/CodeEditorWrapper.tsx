@@ -4,10 +4,6 @@ import { FC } from "react";
 import Editor from "@monaco-editor/react";
 import type * as Monaco from "monaco-editor";
 import { loader } from "@monaco-editor/react";
-import editorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker";
-import cssWorker from "monaco-editor/esm/vs/language/css/css.worker?worker";
-import htmlWorker from "monaco-editor/esm/vs/language/html/html.worker?worker";
-import jsWorker from "monaco-editor/esm/vs/language/typescript/ts.worker?worker";
 
 // Configura la ruta base para Monaco Editor
 loader.config({
@@ -18,7 +14,7 @@ loader.config({
 
 interface CodeEditorWrapperProps {
   value: string;
-  onValueChange: (value: string) => void; // Ajustado para aceptar solo string
+  onValueChange: (value: string) => void;
   highlightLanguage: string;
   padding?: number;
   className?: string;
@@ -38,19 +34,19 @@ export const CodeEditorWrapper: FC<CodeEditorWrapperProps> = ({
   const beforeMount = (monaco: typeof Monaco) => {
     self.MonacoEnvironment = {
       baseUrl: "/monaco-editor/vs/", // Ruta correcta para los recursos
-      getWorker(_: string, label: string) {
+      getWorkerUrl(_: string, label: string) {
         switch (label) {
           case "editorWorkerService":
-            return new editorWorker();
+            return "/monaco-editor/vs/editor/editor.worker.js";
           case "css":
-            return new cssWorker();
+            return "/monaco-editor/vs/language/css/css.worker.js";
           case "html":
-            return new htmlWorker();
+            return "/monaco-editor/vs/language/html/html.worker.js";
           case "javascript":
           case "typescript":
-            return new jsWorker();
+            return "/monaco-editor/vs/language/typescript/ts.worker.js";
           default:
-            throw new Error(`Unsupported worker label: ${label}`);
+            return "/monaco-editor/vs/editor/editor.worker.js";
         }
       },
     };
