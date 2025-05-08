@@ -1,5 +1,6 @@
-// frontend/src/App.tsx
-import { Routes, Route } from "react-router-dom";
+import { useEffect } from "react";
+import { Routes, Route, useLocation } from "react-router-dom";
+import ReactGA from "react-ga4"; // Importa react-ga4
 import Login from "./features/dashboard/views/Login";
 import Register from "./features/dashboard/views/Register";
 import Dashboard from "./features/dashboard/views/Dashboard";
@@ -19,60 +20,78 @@ import AdminLessons from "./features/lessons/views/AdminLessons";
 import AdminExercise from "./features/exercises/views/AdminExercise";
 import UserProfile from "./components/user/UserProfile";
 
+// Componente para rastrear cambios de página
+function TrackPageViews() {
+  const location = useLocation();
+
+  useEffect(() => {
+    // Envía un evento de vista de página a Google Analytics
+    ReactGA.send({
+      hitType: "pageview",
+      page: location.pathname + location.search,
+    });
+  }, [location]);
+
+  return null;
+}
+
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route
-        path="/dashboard"
-        element={
-          <PrivateRoute>
-            <Dashboard />
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/buscar-amigos"
-        element={
-          <PrivateRoute>
-            <FindFriends />
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/solicitudes"
-        element={
-          <PrivateRoute>
-            <FriendRequests />
-          </PrivateRoute>
-        }
-      />
-      <Route path="/friends" element={<FriendList />} />
-      <Route path="/enviadas" element={<PendingSentRequests />} />
-      <Route path="/learn" element={<Learn />} />
-      <Route path="/perfil" element={<UserProfile />} />
-      <Route
-        path="/learn/lesson/:lessonId/challenge"
-        element={<ChallengeView />}
-      />
-      <Route path="/learn/course/:id" element={<CourseLessons />} />
-      <Route
-        path="/courses/:courseId/lessons/:lessonId/exercises/:exerciseOrder"
-        element={<SolveExercise />}
-      />
-      <Route path="/admin/modules" element={<AdminModules />} />
-      <Route
-        path="/admin/modules/:moduleId/courses"
-        element={<AdminCourses />}
-      />
-      <Route path="/admin/lessons/:courseId" element={<AdminLessons />} />
-      <Route path="/admin/exercise/:lessonId" element={<AdminExercise />} />
-      <Route
-        path="/admin/exercise/:lessonId/:order"
-        element={<AdminExercise />}
-      />
-    </Routes>
+    <>
+      <TrackPageViews /> {/* Añade el componente fuera de Routes */}
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route
+          path="/dashboard"
+          element={
+            <PrivateRoute>
+              <Dashboard />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/buscar-amigos"
+          element={
+            <PrivateRoute>
+              <FindFriends />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/solicitudes"
+          element={
+            <PrivateRoute>
+              <FriendRequests />
+            </PrivateRoute>
+          }
+        />
+        <Route path="/friends" element={<FriendList />} />
+        <Route path="/enviadas" element={<PendingSentRequests />} />
+        <Route path="/learn" element={<Learn />} />
+        <Route path="/perfil" element={<UserProfile />} />
+        <Route
+          path="/learn/lesson/:lessonId/challenge"
+          element={<ChallengeView />}
+        />
+        <Route path="/learn/course/:id" element={<CourseLessons />} />
+        <Route
+          path="/courses/:courseId/lessons/:lessonId/exercises/:exerciseOrder"
+          element={<SolveExercise />}
+        />
+        <Route path="/admin/modules" element={<AdminModules />} />
+        <Route
+          path="/admin/modules/:moduleId/courses"
+          element={<AdminCourses />}
+        />
+        <Route path="/admin/lessons/:courseId" element={<AdminLessons />} />
+        <Route path="/admin/exercise/:lessonId" element={<AdminExercise />} />
+        <Route
+          path="/admin/exercise/:lessonId/:order"
+          element={<AdminExercise />}
+        />
+      </Routes>
+    </>
   );
 }

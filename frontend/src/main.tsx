@@ -1,4 +1,3 @@
-// frontend/src/main.tsx
 import React from "react";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
@@ -10,12 +9,15 @@ import App from "./App";
 import { AuthProvider } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import ErrorBoundary from "./components/common/ErrorBoundary";
+import ReactGA from "react-ga4"; // Importa react-ga4
+
+// Inicializa Google Analytics
+ReactGA.initialize("G-GLWHBNF66R");
+
 createRoot(document.getElementById("root") as HTMLElement).render(
   <StrictMode>
     <ErrorBoundary>
       <BrowserRouter>
-        {" "}
-        {/* Outer BrowserRouter */}
         <ThemeProvider>
           <AuthProvider>
             <App />
@@ -24,13 +26,13 @@ createRoot(document.getElementById("root") as HTMLElement).render(
               autoClose={3000}
               hideProgressBar={false}
               newestOnTop
-              closeOnClick={false} // Deshabilitar cierre al hacer clic en el toast
-              closeButton={true} // Asegurar que el botón de cierre esté habilitado
+              closeOnClick={false}
+              closeButton={true}
               rtl={false}
               pauseOnFocusLoss
               draggable
               pauseOnHover
-              limit={3} // Limitar el número de toasts visibles
+              limit={3}
             />
           </AuthProvider>
         </ThemeProvider>
