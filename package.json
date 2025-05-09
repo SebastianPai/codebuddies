@@ -19,6 +19,8 @@
     "helmet": "^6.0.1",
     "html-minifier": "^4.0.0",
     "jsonwebtoken": "^9.0.0",
+    "monaco-languages": "^2.11.1",
+    "monaco-sql-languages": "^0.13.1",
     "mongoose": "^7.0.0",
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
