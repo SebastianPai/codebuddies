@@ -2,6 +2,7 @@ import Lesson from "../models/LessonModel.js";
 import Course from "../models/CourseModel.js";
 import * as progressService from "../services/progressService.js";
 import * as livesService from "../services/livesService.js"; // Para el sistema de vidas
+import User from "../models/User.js";
 import { JSDOM } from "jsdom";
 import { VM } from "vm2";
 import sqlite3 from "sqlite3";
@@ -350,6 +351,7 @@ export const validateCode = async (req, res) => {
         message:
           "No tienes vidas suficientes. Compra más en la tienda o espera a que se recarguen.",
         results: {},
+        userProgress: { lives },
       });
     }
 
@@ -358,6 +360,7 @@ export const validateCode = async (req, res) => {
         isCorrect: false,
         message: "Códigos, salidas esperadas y lenguaje son obligatorios.",
         results: {},
+        userProgress: { lives },
       });
     }
 
@@ -383,6 +386,7 @@ export const validateCode = async (req, res) => {
             caseSensitive: true,
           }).toLowerCase();
         case "javascript":
+        case "typescript":
         case "python":
         case "sql":
         case "php":
@@ -400,6 +404,7 @@ export const validateCode = async (req, res) => {
         results[lang] = {
           isCorrect: true,
           message: "No se requiere validación.",
+          feedback: [],
         };
         continue;
       }
@@ -417,10 +422,14 @@ export const validateCode = async (req, res) => {
           const userDoc = userDom.window.document;
           const expectedDoc = expectedDom.window.document;
 
+          // Validar estructura básica
           if (!cleanUserCode.toLowerCase().startsWith("<!doctype html>")) {
             results[lang] = {
               isCorrect: false,
-              message: "Falta el <!DOCTYPE html>",
+              message: "Falta el <!DOCTYPE html> al inicio del documento.",
+              feedback: [
+                "Agrega `<!DOCTYPE html>` como primera línea de tu código.",
+              ],
             };
             isCorrect = false;
             break;
@@ -434,7 +443,10 @@ export const validateCode = async (req, res) => {
             results[lang] = {
               isCorrect: false,
               message:
-                "Falta la estructura básica de HTML (<html>, <head>, <body>)",
+                "Falta la estructura básica de HTML (<html>, <head>, <body>).",
+              feedback: [
+                "Asegúrate de incluir las etiquetas `<html>`, `<head>` y `<body>` en tu código.",
+              ],
             };
             isCorrect = false;
             break;
@@ -444,104 +456,152 @@ export const validateCode = async (req, res) => {
           if (!expectedBody) {
             results[lang] = {
               isCorrect: false,
-              message: "La salida esperada debe tener un elemento <body>",
+              message: "La salida esperada debe tener un elemento <body>.",
+              feedback: ["El código esperado debe incluir un `<body>` válido."],
             };
             isCorrect = false;
             break;
           }
 
-          const getElementStructure = (element, parentPath = "") => {
-            const structure = {};
-            const children = Array.from(element.children);
-            children.forEach((child, index) => {
-              const tagName = child.tagName.toLowerCase();
-              const currentPath = parentPath
-                ? `${parentPath}.${tagName}[${index}]`
-                : tagName;
-              structure[tagName] = (structure[tagName] || 0) + 1;
-              const childStructure = getElementStructure(child, currentPath);
-              for (const [childTag, count] of Object.entries(childStructure)) {
-                structure[childTag] = (structure[childTag] || 0) + count;
-              }
-            });
-            return structure;
-          };
+          // Comparar estructuras DOM
+          const compareDOMStructures = (
+            userElement,
+            expectedElement,
+            path = "body"
+          ) => {
+            const feedback = [];
 
-          const expectedStructure = getElementStructure(expectedBody);
-          const userStructure = getElementStructure(userBody);
-
-          for (const [tagName, expectedCount] of Object.entries(
-            expectedStructure
-          )) {
-            const userCount = userStructure[tagName] || 0;
-            if (userCount !== expectedCount) {
-              results[lang] = {
-                isCorrect: false,
-                message: `Se esperaban exactamente ${expectedCount} elemento(s) <${tagName}>, pero se encontraron ${userCount}`,
-              };
-              isCorrect = false;
-              break;
-            }
-          }
-
-          if (isCorrect) {
-            for (const [tagName, userCount] of Object.entries(userStructure)) {
-              const expectedCount = expectedStructure[tagName] || 0;
-              if (userCount !== expectedCount) {
-                results[lang] = {
-                  isCorrect: false,
-                  message: `Se encontraron ${userCount} elemento(s) <${tagName}>, pero se esperaban ${expectedCount}`,
-                };
-                isCorrect = false;
-                break;
-              }
-            }
-          }
-
-          const textContainingTags = [
-            "h1",
-            "h2",
-            "h3",
-            "h4",
-            "h5",
-            "h6",
-            "p",
-            "span",
-            "div",
-          ];
-          const validateTextContent = (element, tagName, path) => {
+            // Comparar nombre de la etiqueta
             if (
-              textContainingTags.includes(tagName) &&
-              !element.textContent.trim()
+              userElement.tagName.toLowerCase() !==
+              expectedElement.tagName.toLowerCase()
             ) {
-              throw new Error(
-                `El elemento <${tagName}> en ${path} no puede estar vacío`
+              feedback.push(
+                `En ${path}: Se esperaba un elemento <${expectedElement.tagName.toLowerCase()}> pero se encontró <${userElement.tagName.toLowerCase()}>.`
+              );
+              return { isCorrect: false, feedback };
+            }
+
+            // Comparar atributos
+            const userAttrs = Array.from(userElement.attributes).reduce(
+              (acc, attr) => ({ ...acc, [attr.name]: attr.value }),
+              {}
+            );
+            const expectedAttrs = Array.from(expectedElement.attributes).reduce(
+              (acc, attr) => ({ ...acc, [attr.name]: attr.value }),
+              {}
+            );
+
+            for (const [attr, value] of Object.entries(expectedAttrs)) {
+              if (!userAttrs[attr]) {
+                feedback.push(
+                  `En ${path}: Falta el atributo ${attr}="${value}" en <${userElement.tagName.toLowerCase()}>.`
+                );
+              } else if (userAttrs[attr] !== value) {
+                feedback.push(
+                  `En ${path}: El atributo ${attr} debería ser "${value}" pero es "${userAttrs[attr]}".`
+                );
+              }
+            }
+            for (const attr of Object.keys(userAttrs)) {
+              if (!expectedAttrs[attr]) {
+                feedback.push(
+                  `En ${path}: El atributo ${attr}="${
+                    userAttrs[attr]
+                  }" no se esperaba en <${userElement.tagName.toLowerCase()}>.`
+                );
+              }
+            }
+
+            // Comparar contenido de texto
+            const textContainingTags = [
+              "h1",
+              "h2",
+              "h3",
+              "h4",
+              "h5",
+              "h6",
+              "p",
+              "span",
+            ];
+            if (
+              textContainingTags.includes(userElement.tagName.toLowerCase())
+            ) {
+              const userText = userElement.textContent.trim();
+              const expectedText = expectedElement.textContent.trim();
+              if (userText !== expectedText) {
+                feedback.push(
+                  `En ${path}: El texto en <${userElement.tagName.toLowerCase()}> debería ser "${expectedText}" pero es "${
+                    userText || "(vacío)"
+                  }".`
+                );
+              }
+            }
+
+            // Comparar hijos
+            const userChildren = Array.from(userElement.children);
+            const expectedChildren = Array.from(expectedElement.children);
+
+            if (userChildren.length < expectedChildren.length) {
+              feedback.push(
+                `En ${path}: Faltan elementos hijos en <${userElement.tagName.toLowerCase()}>. Se esperaban ${
+                  expectedChildren.length
+                } pero se encontraron ${userChildren.length}.`
+              );
+            } else if (userChildren.length > expectedChildren.length) {
+              feedback.push(
+                `En ${path}: Hay elementos hijos de más en <${userElement.tagName.toLowerCase()}>. Se esperaban ${
+                  expectedChildren.length
+                } pero se encontraron ${userChildren.length}.`
               );
             }
-            Array.from(element.children).forEach((child, index) => {
-              const childTag = child.tagName.toLowerCase();
-              const childPath = path
-                ? `${path}.${childTag}[${index}]`
-                : childTag;
-              validateTextContent(child, childTag, childPath);
-            });
+
+            // Comparar cada hijo
+            const maxLength = Math.max(
+              userChildren.length,
+              expectedChildren.length
+            );
+            for (let i = 0; i < maxLength; i++) {
+              if (i >= userChildren.length) {
+                feedback.push(
+                  `En ${path}: Falta un elemento <${expectedChildren[
+                    i
+                  ].tagName.toLowerCase()}> en la posición ${i + 1}.`
+                );
+              } else if (i >= expectedChildren.length) {
+                feedback.push(
+                  `En ${path}: El elemento <${userChildren[
+                    i
+                  ].tagName.toLowerCase()}> en la posición ${
+                    i + 1
+                  } no se esperaba.`
+                );
+              } else {
+                const childPath = `${path}.${userChildren[
+                  i
+                ].tagName.toLowerCase()}[${i}]`;
+                const childComparison = compareDOMStructures(
+                  userChildren[i],
+                  expectedChildren[i],
+                  childPath
+                );
+                feedback.push(...childComparison.feedback);
+                if (!childComparison.isCorrect) isCorrect = false;
+              }
+            }
+
+            return { isCorrect: feedback.length === 0, feedback };
           };
 
-          if (isCorrect) {
-            try {
-              validateTextContent(userBody, "body", "body");
-              results[lang] = {
-                isCorrect: true,
-                message: "HTML correcto",
-              };
-            } catch (error) {
-              results[lang] = {
-                isCorrect: false,
-                message: error.message,
-              };
-              isCorrect = false;
-            }
-          }
+          const comparison = compareDOMStructures(userBody, expectedBody);
+          results[lang] = {
+            isCorrect: comparison.isCorrect,
+            message: comparison.isCorrect
+              ? "HTML correcto"
+              : "La estructura HTML no coincide con la esperada.",
+            feedback: comparison.feedback,
+          };
+          if (!comparison.isCorrect) isCorrect = false;
           break;
         }
 
@@ -550,34 +610,110 @@ export const validateCode = async (req, res) => {
             const userParsed = parse(userCode);
             const expectedParsed = parse(expectedCode);
 
-            const normalizeRules = (rules) => {
-              return JSON.stringify(rules, (key, value) => {
-                if (key === "position" || key === "type") return undefined;
-                if (typeof value === "string")
-                  return value.trim().toLowerCase();
-                return value;
-              })
-                .replace(/\s+/g, " ")
-                .trim();
-            };
+            const feedback = [];
 
-            const userRules = normalizeRules(userParsed.stylesheet.rules);
-            const expectedRules = normalizeRules(
-              expectedParsed.stylesheet.rules
-            );
+            const userRules = userParsed.stylesheet.rules;
+            const expectedRules = expectedParsed.stylesheet.rules;
 
-            const cssIsCorrect = userRules === expectedRules;
+            // Comparar número de reglas
+            if (userRules.length !== expectedRules.length) {
+              feedback.push(
+                `Se esperaban ${expectedRules.length} reglas CSS, pero se encontraron ${userRules.length}.`
+              );
+            }
+
+            // Comparar cada regla
+            expectedRules.forEach((expectedRule, i) => {
+              const userRule = userRules[i];
+              if (!userRule) {
+                feedback.push(
+                  `Falta la regla CSS para el selector "${expectedRule.selectors.join(
+                    ", "
+                  )}".`
+                );
+                return;
+              }
+
+              // Comparar selectores
+              if (
+                userRule.selectors.join(", ") !==
+                expectedRule.selectors.join(", ")
+              ) {
+                feedback.push(
+                  `El selector "${userRule.selectors.join(
+                    ", "
+                  )}" no coincide con el esperado "${expectedRule.selectors.join(
+                    ", "
+                  )}".`
+                );
+              }
+
+              // Comparar declaraciones
+              const expectedDeclarations = expectedRule.declarations.reduce(
+                (acc, d) => ({ ...acc, [d.property]: d.value }),
+                {}
+              );
+              const userDeclarations = userRule.declarations.reduce(
+                (acc, d) => ({ ...acc, [d.property]: d.value }),
+                {}
+              );
+
+              for (const [prop, value] of Object.entries(
+                expectedDeclarations
+              )) {
+                if (!userDeclarations[prop]) {
+                  feedback.push(
+                    `Falta la propiedad CSS "${prop}: ${value}" en la regla "${expectedRule.selectors.join(
+                      ", "
+                    )}".`
+                  );
+                } else if (userDeclarations[prop] !== value) {
+                  feedback.push(
+                    `La propiedad "${prop}" en "${expectedRule.selectors.join(
+                      ", "
+                    )}" debería ser "${value}" pero es "${
+                      userDeclarations[prop]
+                    }".`
+                  );
+                }
+              }
+
+              for (const prop of Object.keys(userDeclarations)) {
+                if (!expectedDeclarations[prop]) {
+                  feedback.push(
+                    `La propiedad "${prop}: ${
+                      userDeclarations[prop]
+                    }" en "${userRule.selectors.join(", ")}" no se esperaba.`
+                  );
+                }
+              }
+            });
+
+            // Verificar reglas adicionales
+            userRules.slice(expectedRules.length).forEach((extraRule) => {
+              feedback.push(
+                `La regla CSS para el selector "${extraRule.selectors.join(
+                  ", "
+                )}" no se esperaba.`
+              );
+            });
+
+            const cssIsCorrect = feedback.length === 0;
             results[lang] = {
               isCorrect: cssIsCorrect,
               message: cssIsCorrect
                 ? "CSS correcto"
-                : "Las reglas CSS no coinciden con las esperadas",
+                : "Las reglas CSS no coinciden con las esperadas.",
+              feedback,
             };
             if (!cssIsCorrect) isCorrect = false;
           } catch (error) {
             results[lang] = {
               isCorrect: false,
               message: `Error al parsear CSS: ${error.message}`,
+              feedback: [
+                "Revisa la sintaxis de tu CSS, parece haber un error.",
+              ],
             };
             isCorrect = false;
           }
@@ -590,40 +726,176 @@ export const validateCode = async (req, res) => {
             sandbox: {},
           });
 
+          const feedback = [];
+
           let userResult, expectedResult;
           try {
             userResult = vm.run(userCode);
             expectedResult = vm.run(expectedCode);
+
             const isEqual =
               JSON.stringify(userResult) === JSON.stringify(expectedResult);
+            if (!isEqual) {
+              feedback.push(
+                `El resultado de tu código (${JSON.stringify(
+                  userResult
+                )}) no coincide con el esperado (${JSON.stringify(
+                  expectedResult
+                )}).`
+              );
+              // Intentar identificar diferencias específicas
+              if (Array.isArray(userResult) && Array.isArray(expectedResult)) {
+                if (userResult.length !== expectedResult.length) {
+                  feedback.push(
+                    `El arreglo debe tener ${expectedResult.length} elementos, pero tiene ${userResult.length}.`
+                  );
+                } else {
+                  userResult.forEach((item, i) => {
+                    if (
+                      JSON.stringify(item) !== JSON.stringify(expectedResult[i])
+                    ) {
+                      feedback.push(
+                        `El elemento en la posición ${i} debería ser ${JSON.stringify(
+                          expectedResult[i]
+                        )} pero es ${JSON.stringify(item)}.`
+                      );
+                    }
+                  });
+                }
+              } else if (
+                typeof userResult === "object" &&
+                typeof expectedResult === "object"
+              ) {
+                for (const key of Object.keys(expectedResult)) {
+                  if (!(key in userResult)) {
+                    feedback.push(
+                      `Falta la propiedad "${key}" en el objeto resultado.`
+                    );
+                  } else if (
+                    JSON.stringify(userResult[key]) !==
+                    JSON.stringify(expectedResult[key])
+                  ) {
+                    feedback.push(
+                      `La propiedad "${key}" debería ser ${JSON.stringify(
+                        expectedResult[key]
+                      )} pero es ${JSON.stringify(userResult[key])}.`
+                    );
+                  }
+                }
+                for (const key of Object.keys(userResult)) {
+                  if (!(key in expectedResult)) {
+                    feedback.push(
+                      `La propiedad "${key}" no se esperaba en el objeto resultado.`
+                    );
+                  }
+                }
+              }
+            }
+
             results[lang] = {
               isCorrect: isEqual,
               message: isEqual
                 ? "JavaScript correcto"
-                : "El resultado no coincide con lo esperado",
+                : "El resultado no coincide con lo esperado.",
+              feedback,
             };
             if (!isEqual) isCorrect = false;
           } catch (error) {
+            feedback.push(`Error en tu código JavaScript: ${error.message}`);
             results[lang] = {
               isCorrect: false,
               message: `Error en JavaScript: ${error.message}`,
+              feedback,
             };
             isCorrect = false;
           }
           break;
         }
 
-        case "python": {
-          const normalizedUserCode = normalizeCode(userCode, "python");
-          const normalizedExpectedCode = normalizeCode(expectedCode, "python");
-          const isEqual = normalizedUserCode === normalizedExpectedCode;
-          results[lang] = {
-            isCorrect: isEqual,
-            message: isEqual
-              ? "Python correcto"
-              : "El código Python no coincide con lo esperado",
-          };
-          if (!isEqual) isCorrect = false;
+        case "typescript": {
+          const vm = new VM({
+            timeout: 1000,
+            sandbox: {},
+          });
+
+          const feedback = [];
+
+          try {
+            // Simular validación de TypeScript (sin compilación real)
+            // Asumimos que el código TypeScript es JavaScript válido para ejecución
+            const userResult = vm.run(userCode);
+            const expectedResult = vm.run(expectedCode);
+
+            const isEqual =
+              JSON.stringify(userResult) === JSON.stringify(expectedResult);
+            if (!isEqual) {
+              feedback.push(
+                `El resultado de tu código (${JSON.stringify(
+                  userResult
+                )}) no coincide con el esperado (${JSON.stringify(
+                  expectedResult
+                )}).`
+              );
+              // Validación básica de tipos (simulada)
+              // Nota: Para una validación real de TypeScript, necesitarías integrar el compilador de TypeScript (tsc)
+              if (typeof userResult !== typeof expectedResult) {
+                feedback.push(
+                  `El tipo del resultado debería ser ${typeof expectedResult} pero es ${typeof userResult}.`
+                );
+              }
+              // Comparar estructuras como en JavaScript
+              if (Array.isArray(userResult) && Array.isArray(expectedResult)) {
+                if (userResult.length !== expectedResult.length) {
+                  feedback.push(
+                    `El arreglo debe tener ${expectedResult.length} elementos, pero tiene ${userResult.length}.`
+                  );
+                }
+              } else if (
+                typeof userResult === "object" &&
+                typeof expectedResult === "object"
+              ) {
+                for (const key of Object.keys(expectedResult)) {
+                  if (!(key in userResult)) {
+                    feedback.push(
+                      `Falta la propiedad "${key}" en el objeto resultado.`
+                    );
+                  } else if (
+                    JSON.stringify(userResult[key]) !==
+                    JSON.stringify(expectedResult[key])
+                  ) {
+                    feedback.push(
+                      `La propiedad "${key}" debería ser ${JSON.stringify(
+                        expectedResult[key]
+                      )} pero es ${JSON.stringify(userResult[key])}.`
+                    );
+                  }
+                }
+              }
+            }
+
+            results[lang] = {
+              isCorrect: isEqual,
+              message: isEqual
+                ? "TypeScript correcto"
+                : "El resultado no coincide con lo esperado.",
+              feedback,
+            };
+            if (!isEqual) isCorrect = false;
+          } catch (error) {
+            feedback.push(`Error en tu código TypeScript: ${error.message}`);
+            // Simular errores de tipo (esto es básico, puedes mejorar con tsc)
+            if (error.message.includes("is not defined")) {
+              feedback.push(
+                "Parece que una variable o función no está definida. Revisa tus declaraciones."
+              );
+            }
+            results[lang] = {
+              isCorrect: false,
+              message: `Error en TypeScript: ${error.message}`,
+              feedback,
+            };
+            isCorrect = false;
+          }
           break;
         }
 
@@ -631,6 +903,8 @@ export const validateCode = async (req, res) => {
           const db = new sqlite3.Database(":memory:");
           const runQuery = util.promisify(db.run.bind(db));
           const allQuery = util.promisify(db.all.bind(db));
+
+          const feedback = [];
 
           try {
             await runQuery(`
@@ -646,9 +920,20 @@ export const validateCode = async (req, res) => {
             try {
               userRows = await allQuery(userCode);
             } catch (error) {
+              feedback.push(`Error en tu consulta SQL: ${error.message}`);
+              if (error.message.includes("no such table")) {
+                feedback.push(
+                  "La tabla especificada no existe. Asegúrate de usar la tabla 'users'."
+                );
+              } else if (error.message.includes("syntax error")) {
+                feedback.push(
+                  "Hay un error de sintaxis en tu consulta. Revisa los comandos SQL."
+                );
+              }
               results[lang] = {
                 isCorrect: false,
                 message: `Error en SQL: ${error.message}`,
+                feedback,
               };
               isCorrect = false;
               break;
@@ -657,9 +942,11 @@ export const validateCode = async (req, res) => {
             try {
               expectedRows = await allQuery(expectedCode);
             } catch (error) {
+              feedback.push(`Error en la consulta esperada: ${error.message}`);
               results[lang] = {
                 isCorrect: false,
                 message: `Error en la salida esperada SQL: ${error.message}`,
+                feedback,
               };
               isCorrect = false;
               break;
@@ -667,23 +954,71 @@ export const validateCode = async (req, res) => {
 
             const isEqual =
               JSON.stringify(userRows) === JSON.stringify(expectedRows);
+            if (!isEqual) {
+              feedback.push(
+                `El resultado de tu consulta (${JSON.stringify(
+                  userRows
+                )}) no coincide con el esperado (${JSON.stringify(
+                  expectedRows
+                )}).`
+              );
+              if (userRows.length !== expectedRows.length) {
+                feedback.push(
+                  `La consulta debe devolver ${expectedRows.length} filas, pero devuelve ${userRows.length}.`
+                );
+              } else {
+                userRows.forEach((row, i) => {
+                  if (JSON.stringify(row) !== JSON.stringify(expectedRows[i])) {
+                    feedback.push(
+                      `La fila ${i + 1} debería ser ${JSON.stringify(
+                        expectedRows[i]
+                      )} pero es ${JSON.stringify(row)}.`
+                    );
+                  }
+                });
+              }
+            }
+
             results[lang] = {
               isCorrect: isEqual,
               message: isEqual
                 ? "SQL correcto"
-                : "El resultado de la consulta no coincide",
+                : "El resultado de la consulta no coincide.",
+              feedback,
             };
             if (!isEqual) isCorrect = false;
 
             db.close();
           } catch (error) {
+            feedback.push(`Error al ejecutar SQL: ${error.message}`);
             results[lang] = {
               isCorrect: false,
               message: `Error al ejecutar SQL: ${error.message}`,
+              feedback,
             };
             isCorrect = false;
             db.close();
           }
+          break;
+        }
+
+        // Mantener otros casos (python, php, etc.) sin cambios por ahora
+        case "python": {
+          const normalizedUserCode = normalizeCode(userCode, "python");
+          const normalizedExpectedCode = normalizeCode(expectedCode, "python");
+          const isEqual = normalizedUserCode === normalizedExpectedCode;
+          results[lang] = {
+            isCorrect: isEqual,
+            message: isEqual
+              ? "Python correcto"
+              : "El código Python no coincide con lo esperado.",
+            feedback: isEqual
+              ? []
+              : [
+                  "El código Python no coincide con lo esperado. Revisa las instrucciones y compara tu código con el resultado esperado.",
+                ],
+          };
+          if (!isEqual) isCorrect = false;
           break;
         }
 
@@ -693,23 +1028,33 @@ export const validateCode = async (req, res) => {
           require("fs").writeFileSync(userFile, `<?php ${userCode} ?>`);
           require("fs").writeFileSync(expectedFile, `<?php ${expectedCode} ?>`);
 
+          const feedback = [];
+
           try {
             const { stdout: userOutput } = await execPromise(`php ${userFile}`);
             const { stdout: expectedOutput } = await execPromise(
               `php ${expectedFile}`
             );
             const isEqual = userOutput.trim() === expectedOutput.trim();
+            if (!isEqual) {
+              feedback.push(
+                `La salida de tu código PHP (${userOutput.trim()}) no coincide con la esperada (${expectedOutput.trim()}).`
+              );
+            }
             results[lang] = {
               isCorrect: isEqual,
               message: isEqual
                 ? "PHP correcto"
-                : "La salida PHP no coincide con lo esperado",
+                : "La salida PHP no coincide con lo esperado.",
+              feedback,
             };
             if (!isEqual) isCorrect = false;
           } catch (error) {
+            feedback.push(`Error en tu código PHP: ${error.message}`);
             results[lang] = {
               isCorrect: false,
               message: `Error en PHP: ${error.message}`,
+              feedback,
             };
             isCorrect = false;
           } finally {
@@ -727,27 +1072,68 @@ export const validateCode = async (req, res) => {
             isCorrect: isEqual,
             message: isEqual
               ? `${lang} correcto`
-              : `El código ${lang} продукти не відповідає очікуванням`,
+              : `El código ${lang} no coincide con lo esperado.`,
+            feedback: isEqual
+              ? []
+              : [
+                  `El código ${lang} no coincide con lo esperado. Revisa las instrucciones.`,
+                ],
           };
           if (!isEqual) isCorrect = false;
         }
       }
     }
 
+    const user = await User.findById(userId);
+
     if (!isCorrect) {
-      const remainingLives = await livesService.deductLife(userId);
+      let remainingLives;
+      try {
+        remainingLives = await livesService.deductLife(userId);
+      } catch (error) {
+        console.error("Error al deducir vida:", error);
+        return res.status(500).json({
+          isCorrect: false,
+          message: `Error al procesar la vida: ${error.message}`,
+          results,
+          userProgress: {
+            xp: user.xp,
+            level: user.level,
+            maxXp: user.maxXp,
+            coins: user.coins,
+            streak: user.streak,
+            lives: user.lives,
+          },
+        });
+      }
+
       return res.status(200).json({
         isCorrect: false,
         message: `Código incorrecto. Vidas restantes: ${remainingLives}`,
         results,
-        lives: remainingLives,
+        userProgress: {
+          xp: user.xp,
+          level: user.level,
+          maxXp: user.maxXp,
+          coins: user.coins,
+          streak: user.streak,
+          lives: remainingLives,
+        },
       });
     }
 
     res.json({
-      isCorrect,
+      isCorrect: true,
       results,
       message: "Todos los códigos son correctos",
+      userProgress: {
+        xp: user.xp,
+        level: user.level,
+        maxXp: user.maxXp,
+        coins: user.coins,
+        streak: user.streak,
+        lives: user.lives,
+      },
     });
   } catch (error) {
     console.error("Error en validateCode:", error);

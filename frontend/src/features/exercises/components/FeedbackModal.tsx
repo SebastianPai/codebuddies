@@ -17,6 +17,13 @@ interface UserProgress {
 interface ModalContent {
   isCorrect: boolean;
   message: string;
+  results: {
+    [lang: string]: {
+      isCorrect: boolean;
+      message: string;
+      feedback: string[];
+    };
+  };
 }
 
 interface FeedbackModalProps {
@@ -88,6 +95,41 @@ export const FeedbackModal: FC<FeedbackModalProps> = ({
           >
             {modalContent.message}
           </p>
+          {/* Mostrar feedback detallado */}
+          {!modalContent.isCorrect && modalContent.results && (
+            <div className="mt-4">
+              {Object.entries(modalContent.results).map(([lang, result]) => (
+                <div key={lang} className="mb-4">
+                  <h3
+                    className="font-mono text-sm uppercase"
+                    style={{ color: theme.colors.highlightText }}
+                  >
+                    {lang.toUpperCase()}
+                  </h3>
+                  <ul className="list-disc pl-5">
+                    {result.feedback && result.feedback.length > 0 ? (
+                      result.feedback.map((msg, index) => (
+                        <li
+                          key={index}
+                          className="font-mono text-xs"
+                          style={{ color: theme.colors.text }}
+                        >
+                          {msg}
+                        </li>
+                      ))
+                    ) : (
+                      <li
+                        className="font-mono text-xs"
+                        style={{ color: theme.colors.text }}
+                      >
+                        {result.message}
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
           <div className="flex justify-center mt-4">
             <div className="relative">
               <img
