@@ -22,6 +22,7 @@ interface ThemeColors {
   secondaryButton: string; // Nuevo: para botón secundario
   progressBackground: string; // Nuevo: fondo de la barra de progreso
   progressFill: string; // Nuevo: relleno de la barra de progreso
+  disabled: string; // Agregar
 }
 
 interface Theme {
@@ -59,6 +60,7 @@ const themes: Record<"dark" | "light" | "pink", Theme> = {
       secondaryButton: "#2d3250", // Botón secundario
       progressBackground: "#374151", // Gris oscuro para fondo
       progressFill: "#facc15", // Amarillo para relleno
+      disabled: "#6b7280", // Gris para elementos deshabilitados
     },
   },
   light: {
@@ -83,6 +85,7 @@ const themes: Record<"dark" | "light" | "pink", Theme> = {
       secondaryButton: "#6b7280", // Botón secundario (gris)
       progressBackground: "#d1d5db", // Gris claro para fondo
       progressFill: "#2563eb", // Azul para relleno
+      disabled: "#9ca3af", // Gris para elementos deshabilitados
     },
   },
   pink: {
@@ -107,6 +110,7 @@ const themes: Record<"dark" | "light" | "pink", Theme> = {
       secondaryButton: "#9d174d", // Botón secundario (rosa oscuro)
       progressBackground: "#f9a8d4", // Rosa claro para fondo
       progressFill: "#ec4899", // Rosa brillante para relleno
+      disabled: "#fbcfe8", // Rosa pálido para elementos deshabilitados
     },
   },
 };

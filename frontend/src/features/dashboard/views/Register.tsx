@@ -299,6 +299,44 @@ export default function Register(): JSX.Element {
           </div>
         </div>
       </div>
+      {/* Footer Personalizado */}
+      <footer
+        className="py-8 px-4 sm:px-6 lg:px-8 text-center"
+        style={{ background: theme.colors.card, color: theme.colors.text }}
+      >
+        <div className="max-w-7xl mx-auto flex flex-col items-center">
+          <img
+            src="/images/bitzi2.png"
+            alt="Bitzi Footer"
+            className="w-10 h-10 mb-4 rounded-full object-contain"
+            style={{ border: `2px solid ${theme.colors.accent}` }}
+            onError={(e) => {
+              e.currentTarget.src = "/images/default-bitzi.jpg";
+            }}
+          />
+          <p
+            className="text-sm md:text-base mb-2"
+            style={{ color: theme.colors.text }}
+          >
+            Creado con pasión por Jhon Sebastian Pai
+            <a
+              href="https://www.linkedin.com/in/sebastian-pai"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="linkedin-link ml-1"
+              style={{ color: theme.colors.accent }}
+            >
+              Conéctate
+            </a>
+          </p>
+          <p
+            className="text-xs md:text-sm"
+            style={{ color: theme.colors.secondaryText }}
+          >
+            © 2025 CodeBuddies. ¡Hecho para inspirar programadores!
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }

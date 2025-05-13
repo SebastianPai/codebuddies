@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useAuth } from "@/context/AuthContext";
@@ -9,6 +9,19 @@ import { Exercise, Lesson } from "@/types/exercise";
 interface ValidationResult {
   isCorrect: boolean;
   message: string;
+}
+
+interface UserProgress {
+  xp: number;
+  maxXp: number;
+  level: number;
+  coins: number;
+  streak: number;
+  lives: number;
+  gainedXp?: number;
+  gainedCoins?: number;
+  newAchievements?: { name: string; description: string }[];
+  isAlreadyCompleted?: boolean;
 }
 
 interface UseExerciseValidationReturn {
@@ -21,13 +34,7 @@ interface UseExerciseValidationReturn {
   isModalOpen: boolean;
   handleCheckAnswer: () => Promise<void>;
   setIsModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  userProgress: {
-    xp: number;
-    maxXp: number;
-    level: number;
-    gainedXp?: number;
-    isAlreadyCompleted?: boolean;
-  } | null;
+  userProgress: UserProgress | null;
 }
 
 export const useExerciseValidation = (
@@ -52,20 +59,15 @@ export const useExerciseValidation = (
     "correct" | "incorrect" | null
   >(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [userProgress, setUserProgress] = useState<{
-    xp: number;
-    maxXp: number;
-    level: number;
-    gainedXp?: number;
-    isAlreadyCompleted?: boolean;
-  } | null>(null);
+  const [userProgress, setUserProgress] = useState<UserProgress | null>(null);
+  const isCompletingRef = useRef(false); // Nuevo: Evitar múltiples ejecuciones
 
   const handleCheckAnswer = async () => {
     if (!exercise || !lesson || !courseId || !lessonId || !exerciseOrder) {
       setModalContent({
         isCorrect: false,
         results: {},
-        message: "⚠️ Datos del ejercicio o parámetros de URL no válidos.",
+        message: "Datos del ejercicio o parámetros de URL no válidos.",
       });
       setIsModalOpen(true);
       setShowFeedbackScreen("incorrect");
@@ -74,7 +76,6 @@ export const useExerciseValidation = (
     }
 
     try {
-      // Preparar códigos esperados
       const expectedCodes: { [language: string]: string } = {};
       exercise.codes.forEach((code) => {
         if (code.expectedCode) {
@@ -86,7 +87,7 @@ export const useExerciseValidation = (
         setModalContent({
           isCorrect: false,
           results: {},
-          message: "⚠️ No hay salidas esperadas definidas.",
+          message: "No hay salidas esperadas definidas.",
         });
         setIsModalOpen(true);
         setShowFeedbackScreen("incorrect");
@@ -118,15 +119,20 @@ export const useExerciseValidation = (
       setShowFeedbackScreen(responseData.isCorrect ? "correct" : "incorrect");
       setTimeout(() => setShowFeedbackScreen(null), 2000);
 
-      if (responseData.isCorrect) {
-        setIsExerciseCompleted(true);
-        await completeExercise();
+      if (responseData.isCorrect && !isCompletingRef.current) {
+        isCompletingRef.current = true; // Bloquear ejecuciones simultáneas
+        try {
+          await completeExercise();
+          setIsExerciseCompleted(true);
+        } finally {
+          isCompletingRef.current = false; // Liberar el bloqueo
+        }
       }
     } catch (error) {
       const errorMessage =
         error instanceof Error
           ? error.message
-          : "❌ Error al validar los códigos. Intenta de nuevo.";
+          : "Error al validar los códigos. Intenta de nuevo.";
       setModalContent({
         isCorrect: false,
         results: {},
@@ -150,6 +156,7 @@ export const useExerciseValidation = (
         throw new Error("No se encontró el token de autenticación");
       }
 
+      // Obtener datos del usuario
       const userDataResponse = await fetchWithAuth("/api/users/me");
       if (!userDataResponse.ok) {
         throw new Error("Error al obtener datos del usuario");
@@ -159,7 +166,11 @@ export const useExerciseValidation = (
       const currentXp = userData.user.xp || 0;
       const currentMaxXp = userData.user.maxXp || 100;
       const currentLevel = userData.user.level || 1;
+      const currentCoins = userData.user.coins || 0;
+      const currentStreak = userData.user.streak || 0;
+      const currentLives = userData.user.lives || 5;
 
+      // Completar ejercicio
       const progressResponse = await fetchWithAuth(
         `/api/progress/courses/${courseId}/lessons/${lessonId}/exercises/${exerciseOrder}/complete`,
         { method: "POST" }
@@ -171,15 +182,24 @@ export const useExerciseValidation = (
       const progressData = await progressResponse.json();
 
       let gainedXp = 0;
+      let gainedCoins = 0;
       let isAlreadyCompleted = false;
+      let newAchievements = (progressData.newAchievements || []).map(
+        ({ name, description }: { name: string; description: string }) => ({
+          name,
+          description,
+        })
+      );
 
       const messageLower = (progressData.message || "").toLowerCase();
       if (messageLower.includes("ejercicio ya completado")) {
         isAlreadyCompleted = true;
       } else if (messageLower.includes("marcado como completado")) {
         gainedXp += 10;
+        gainedCoins += 5;
       }
 
+      // Verificar progreso del curso (opcional)
       let courseProgress: {
         completedExercises: string[];
         totalExercises: number;
@@ -188,15 +208,11 @@ export const useExerciseValidation = (
         const courseProgressResponse = await fetchWithAuth(
           `/api/progress/courses/${courseId}/progress/all`
         );
-        if (!courseProgressResponse.ok) {
-          const errorData = await courseProgressResponse.json();
-          throw new Error(
-            errorData.message || "Error al obtener el progreso del curso"
-          );
+        if (courseProgressResponse.ok) {
+          courseProgress = await courseProgressResponse.json();
         }
-        courseProgress = await courseProgressResponse.json();
       } catch (error) {
-        // Continuar sin progreso del curso si falla
+        console.warn("No se pudo obtener el progreso del curso:", error);
       }
 
       if (
@@ -206,13 +222,20 @@ export const useExerciseValidation = (
         courseProgress.totalExercises > 0
       ) {
         gainedXp += 100;
+        gainedCoins += 50;
       }
 
-      const newProgress = {
+      const newProgress: UserProgress = {
         xp: progressData.user?.xp ?? currentXp,
         maxXp: progressData.user?.maxXp ?? currentMaxXp,
         level: progressData.user?.level ?? currentLevel,
+        coins: progressData.user?.coins ?? currentCoins,
+        streak: progressData.user?.streak ?? currentStreak,
+        lives: progressData.user?.lives ?? currentLives,
         gainedXp: gainedXp > 0 ? gainedXp : undefined,
+        gainedCoins: gainedCoins > 0 ? gainedCoins : undefined,
+        newAchievements:
+          newAchievements.length > 0 ? newAchievements : undefined,
         isAlreadyCompleted,
       };
 
@@ -222,60 +245,71 @@ export const useExerciseValidation = (
         xp: progressData.user?.xp ?? currentXp,
         level: progressData.user?.level ?? currentLevel,
         maxXp: progressData.user?.maxXp ?? currentMaxXp,
+        coins: progressData.user?.coins ?? currentCoins,
+        streak: progressData.user?.streak ?? currentStreak,
+        lives: progressData.user?.lives ?? currentLives,
         achievements: progressData.user?.achievements ?? [],
       });
 
+      // Mostrar notificaciones
       if (gainedXp > 0) {
-        toast.success(`🎉 +${gainedXp} XP por completar el ejercicio!`, {
+        toast.success(`+${gainedXp} XP por completar el ejercicio!`, {
           toastId: `xp-exercise-${exerciseOrder}`,
           autoClose: 3000,
         });
-      } else if (isAlreadyCompleted) {
+      }
+      if (gainedCoins > 0) {
+        toast.success(`+${gainedCoins} monedas ganadas!`, {
+          toastId: `coins-exercise-${exerciseOrder}`,
+          autoClose: 3000,
+        });
+      }
+      if (newAchievements.length > 0) {
+        newAchievements.forEach(
+          (achievement: { name: string; description: string }) => {
+            toast.success(`Logro desbloqueado: ${achievement.name}`, {
+              toastId: `achievement-${achievement.name}`,
+              autoClose: 3000,
+            });
+          }
+        );
+      }
+      if (progressData.user?.bonusXP > 0) {
+        toast.success(`+${progressData.user.bonusXP} XP por racha!`, {
+          toastId: `bonus-xp-${exerciseOrder}`,
+          autoClose: 3000,
+        });
+      }
+      if (isAlreadyCompleted) {
         toast.info(
-          "ℹ️ Misión ya completada. ¡Solo se otorgan 10 XP la primera vez!",
+          "Misión ya completada. ¡Solo se otorgan 10 XP y 5 monedas la primera vez!",
           {
             toastId: `xp-exercise-repeat-${exerciseOrder}`,
             autoClose: 3000,
           }
         );
       }
-
       if (
         !isAlreadyCompleted &&
         courseProgress.completedExercises.length ===
           courseProgress.totalExercises &&
         courseProgress.totalExercises > 0
       ) {
-        toast.success(`🏆 +100 XP por completar el curso!`, {
+        toast.success(`+100 XP y +50 monedas por completar el curso!`, {
           toastId: `xp-course-${courseId}`,
           autoClose: 3000,
         });
       }
-
       if ((progressData.user?.level ?? currentLevel) > previousLevel) {
         toast.success(
-          `🎉 ¡Subiste al nivel ${progressData.user?.level ?? currentLevel}!`,
+          `¡Subiste al nivel ${progressData.user?.level ?? currentLevel}!`,
           {
             toastId: `level-up-${progressData.user?.level ?? currentLevel}`,
             autoClose: 3000,
           }
         );
       }
-
-      if (
-        progressData.user?.achievements &&
-        progressData.user.achievements.length > 0
-      ) {
-        const newAchievements = progressData.user.achievements.slice(-1);
-        newAchievements.forEach((achievement: { name: string }) => {
-          toast.success(`🏅 Logro desbloqueado: ${achievement.name}`, {
-            toastId: `achievement-${achievement.name}`,
-            autoClose: 3000,
-          });
-        });
-      }
-
-      toast.success(`🎉 Ejercicio número ${exercise?.order} superado.`, {
+      toast.success(`Ejercicio número ${exercise?.order} superado.`, {
         toastId: `progress-success-${exerciseOrder}`,
         autoClose: 3000,
       });
@@ -291,13 +325,7 @@ export const useExerciseValidation = (
       if (errorMessage.includes("No se encontró el token de autenticación")) {
         navigate("/login", { replace: true });
       }
-      setUserProgress({
-        xp: userProgress?.xp ?? 0,
-        maxXp: userProgress?.maxXp ?? 100,
-        level: userProgress?.level ?? 1,
-        gainedXp: undefined,
-        isAlreadyCompleted: false,
-      });
+      // No actualizar userProgress en caso de error para evitar bucles
     }
   };
 

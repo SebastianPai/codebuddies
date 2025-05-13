@@ -1,6 +1,8 @@
-import { Lock } from "lucide-react";
+// frontend/src/components/ExerciseItem.tsx
+import { Lock, CheckCircle } from "lucide-react";
 import { Exercise, Progress } from "@/types/course";
 import { useTheme } from "@/context/ThemeContext";
+import { toast } from "react-toastify";
 
 interface ExerciseItemProps {
   lessonId: string;
@@ -35,25 +37,28 @@ export const ExerciseItem: React.FC<ExerciseItemProps> = ({
 
   return (
     <li
-      className="flex items-center justify-between p-3 rounded-md border-2"
+      className="flex items-center justify-between p-3 rounded-lg border-4 animate-course-item shine"
       style={{
         background: theme.colors.card,
         borderColor: theme.colors.border,
+        boxShadow: "0 4px 14px rgba(0, 0, 0, 0.1)",
       }}
     >
       <div className="flex items-center">
         <span
-          className="w-8 h-8 rounded-md flex items-center justify-center text-sm mr-3"
+          className="w-8 h-8 rounded-lg flex items-center justify-center text-sm mr-3 border-4"
           style={{
             background: isExerciseCompleted
               ? theme.colors.success
               : isExerciseAccessible
-              ? theme.colors.button
+              ? theme.colors.accent
               : theme.colors.border,
             color:
               isExerciseCompleted || isExerciseAccessible
                 ? theme.colors.buttonText
                 : theme.colors.secondaryText,
+            borderColor: theme.colors.border,
+            boxShadow: "0 4px 14px rgba(0, 0, 0, 0.1)",
           }}
         >
           {exercise.order}
@@ -69,43 +74,60 @@ export const ExerciseItem: React.FC<ExerciseItemProps> = ({
         </span>
       </div>
       <button
-        onClick={() => onStart(lessonId, exercise.order, exercise, lessonIndex)}
-        className="font-bold py-1 px-4 rounded-md transition-all flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+        onClick={() => {
+          if (isExerciseAccessible) {
+            onStart(lessonId, exercise.order, exercise, lessonIndex);
+            toast.success("¡Iniciando ejercicio!", {
+              toastId: `exercise-start-${exercise.order}`,
+              style: {
+                background: theme.colors.card,
+                color: theme.colors.text,
+                border: `2px solid ${theme.colors.accent}`,
+              },
+            });
+          } else {
+            toast.info(
+              "Completa el ejercicio anterior para desbloquear este.",
+              {
+                toastId: `exercise-locked-${exercise.order}`,
+                style: {
+                  background: theme.colors.card,
+                  color: theme.colors.text,
+                  border: `2px solid ${theme.colors.error}`,
+                },
+              }
+            );
+          }
+        }}
+        className="font-bold py-1 px-4 rounded-lg transition-all hover:scale-105 flex items-center disabled:opacity-50 disabled:cursor-not-allowed course-pulse"
         style={{
           background: isExerciseCompleted
             ? theme.colors.success
             : isExerciseAccessible
-            ? theme.colors.button
+            ? `linear-gradient(90deg, ${theme.colors.accenttwo} 0%, ${theme.colors.accent} 100%)`
             : theme.colors.border,
           color:
             isExerciseCompleted || isExerciseAccessible
               ? theme.colors.buttonText
               : theme.colors.secondaryText,
           border: `2px solid ${theme.colors.border}`,
+          boxShadow: "0 4px 14px rgba(0, 0, 0, 0.1)",
+          transition: "all 0.3s ease",
         }}
         disabled={!isExerciseAccessible}
-        onMouseEnter={(e) => {
-          if (isExerciseAccessible) {
-            e.currentTarget.style.background = theme.colors.button;
-            e.currentTarget.style.color = theme.colors.buttonText;
-          }
-        }}
-        onMouseLeave={(e) => {
-          if (isExerciseAccessible) {
-            e.currentTarget.style.background = isExerciseCompleted
-              ? theme.colors.success
-              : theme.colors.button;
-            e.currentTarget.style.color = theme.colors.buttonText;
-          }
-        }}
       >
-        {isExerciseCompleted ? "Completado" : "Iniciar"}
-        {!isExerciseCompleted && !isExerciseAccessible && (
-          <Lock
-            size={14}
-            className="ml-2"
-            style={{ color: theme.colors.secondaryText }}
-          />
+        {isExerciseCompleted ? (
+          <>
+            <CheckCircle className="w-4 h-4 mr-2" />
+            Completado
+          </>
+        ) : isExerciseAccessible ? (
+          "Iniciar"
+        ) : (
+          <>
+            <Lock className="w-4 h-4 mr-2" />
+            Bloqueado
+          </>
         )}
       </button>
     </li>

@@ -11,6 +11,7 @@ import {
   deleteExercise,
   createExercise,
   validateCode, // Cambiado de validateHtml
+  getAllProgressByCourse,
 } from "../controllers/lessonController.js";
 import {
   canAccessLesson,
@@ -55,5 +56,7 @@ router.delete("/:lessonId/exercises/:order", verifyToken, deleteExercise);
 
 // Ruta para validar código
 router.post("/validate-code", verifyToken, validateCode);
+
+router.get("/courses/:courseId/progress", verifyToken, getAllProgressByCourse);
 
 export default router;

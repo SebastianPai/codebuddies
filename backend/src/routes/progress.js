@@ -1,3 +1,4 @@
+// src/routes/progress.js
 import express from "express";
 import { verifyToken } from "../middleware/verifyToken.js";
 import {
@@ -6,11 +7,12 @@ import {
   getCourseProgress,
   getExerciseProgress,
   completeExercise,
+  skipExercise,
 } from "../controllers/progressController.js";
 
 const router = express.Router();
 
-// Primero las rutas MÁS específicas
+// Primero las rutas más específicas
 router.get(
   "/courses/:courseId/lessons/:lessonId/exercises/:exerciseOrder/progress",
   verifyToken,
@@ -21,6 +23,12 @@ router.post(
   "/courses/:courseId/lessons/:lessonId/exercises/:exerciseOrder/complete",
   verifyToken,
   completeExercise
+);
+
+router.post(
+  "/courses/:courseId/lessons/:lessonId/exercises/:exerciseOrder/skip",
+  verifyToken,
+  skipExercise
 );
 
 router.get(
@@ -37,7 +45,7 @@ router.get(
 
 router.get("/courses/:courseId/progress/all", verifyToken, getExerciseProgress);
 
-// Y al final las rutas genéricas
+// Rutas genéricas
 router.get("/:courseId/all", verifyToken, getCourseProgress);
 
 export default router;

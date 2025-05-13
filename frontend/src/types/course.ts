@@ -18,7 +18,7 @@ export interface Lesson {
 export interface Course {
   _id: string;
   title: string;
-  difficulty: string;
+  level: string;
   description: string;
   image?: string;
 }

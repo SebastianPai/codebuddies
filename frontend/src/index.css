@@ -36,3 +36,81 @@
     max-width: 33.3333% !important;
   }
 }
+
+/* Estilos para los bordes */
+
+/* Estilos para shop */
+
+/* terminan estilo para shop */
+
+/* src/index.css */
+.focus\:ring-2:focus {
+  --tw-ring-offset-width: 2px;
+  --tw-ring-color: var(
+    --accent-color,
+    #3b82f6
+  ); /* Ajusta según theme.colors.accent */
+  box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow),
+    var(--tw-shadow, 0 0 #0000);
+}
+.focus\:ring-accent:focus {
+  --tw-ring-color: var(--accent-color, #3b82f6);
+}
+
+/* src/index.css */
+
+.border-rainbow {
+  position: relative;
+  border: 4px solid transparent; /* Más grueso en móviles */
+  background: conic-gradient(red, orange, yellow, green, blue, purple, red);
+  background-size: 400%;
+  animation: rainbow 3s linear infinite;
+}
+
+.border-sparkle {
+  position: relative;
+  border: 3px solid transparent; /* Ligeramente más grueso en móviles */
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, var(--sparkle-intensity, 0.8)) 10%,
+    transparent 10%
+  );
+  background-size: 200% 200%;
+  animation: sparkle 2s linear infinite;
+}
+
+@keyframes rainbow {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 400% 50%;
+  }
+}
+
+@keyframes sparkle {
+  0% {
+    background-position: 0% 0%;
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    background-position: 100% 100%;
+    transform: scale(1.2);
+    opacity: 0.5;
+  }
+  100% {
+    background-position: 0% 0%;
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@media (min-width: 640px) {
+  .border-rainbow {
+    border-width: 5px; /* Más grueso en escritorio */
+  }
+  .border-sparkle {
+    border-width: 4px; /* Más grueso en escritorio */
+  }
+}

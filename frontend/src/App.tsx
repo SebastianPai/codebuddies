@@ -1,6 +1,7 @@
+// src/App.tsx
 import { useEffect } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
-import ReactGA from "react-ga4"; // Importa react-ga4
+import ReactGA from "react-ga4";
 import Login from "./features/dashboard/views/Login";
 import Register from "./features/dashboard/views/Register";
 import Dashboard from "./features/dashboard/views/Dashboard";
@@ -18,14 +19,18 @@ import AdminModules from "./pages/AdminModules";
 import AdminCourses from "./pages/AdminCourses";
 import AdminLessons from "./features/lessons/views/AdminLessons";
 import AdminExercise from "./features/exercises/views/AdminExercise";
-import UserProfile from "./components/user/UserProfile";
+import Profile from "./components/user/Profile";
+import AdminPowers from "./components/admin/AdminPowers";
+import AdminDashboard from "./components/admin/AdminDashboard"; // Nuevo: Import AdminDashboard.tsx
+import Rankings from "./components/rankings/Rankings";
+import PublicProfile from "./components/user/PublicProfile";
+import Shop from "./components/shop/Shop";
 
 // Componente para rastrear cambios de página
 function TrackPageViews() {
   const location = useLocation();
 
   useEffect(() => {
-    // Envía un evento de vista de página a Google Analytics
     ReactGA.send({
       hitType: "pageview",
       page: location.pathname + location.search,
@@ -38,7 +43,7 @@ function TrackPageViews() {
 export default function App() {
   return (
     <>
-      <TrackPageViews /> {/* Añade el componente fuera de Routes */}
+      <TrackPageViews />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
@@ -67,10 +72,71 @@ export default function App() {
             </PrivateRoute>
           }
         />
-        <Route path="/friends" element={<FriendList />} />
-        <Route path="/enviadas" element={<PendingSentRequests />} />
+        <Route
+          path="/friends"
+          element={
+            <PrivateRoute>
+              <FriendList />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/enviadas"
+          element={
+            <PrivateRoute>
+              <PendingSentRequests />
+            </PrivateRoute>
+          }
+        />
         <Route path="/learn" element={<Learn />} />
-        <Route path="/perfil" element={<UserProfile />} />
+        <Route
+          path="/perfil"
+          element={
+            <PrivateRoute>
+              <Profile />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/rankings"
+          element={
+            <PrivateRoute>
+              <Rankings />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/profile/:userId"
+          element={
+            <PrivateRoute>
+              <PublicProfile />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/shop"
+          element={
+            <PrivateRoute>
+              <Shop />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <PrivateRoute>
+              <AdminDashboard /> {/* Nueva ruta para AdminDashboard */}
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/admin/powers"
+          element={
+            <PrivateRoute>
+              <AdminPowers />
+            </PrivateRoute>
+          }
+        />
         <Route
           path="/learn/lesson/:lessonId/challenge"
           element={<ChallengeView />}

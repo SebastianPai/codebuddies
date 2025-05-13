@@ -4,12 +4,66 @@ import { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { apiGet, apiPost } from "../api";
-import Modal from "react-modal";
-import WelcomeScreen from "../components/common/WelcomeScreen";
-import { useTheme } from "@/context/ThemeContext";
 
-if (typeof window !== "undefined") {
-  Modal.setAppElement("#root");
+interface Achievement {
+  id?: string;
+  name: string;
+  description: string;
+  icon: string;
+  image?: string;
+  awardedAt?: string;
+}
+
+interface Border {
+  id: string;
+  name: string;
+  description: string;
+  properties?: { [key: string]: any };
+  image: string;
+  acquiredAt?: string;
+}
+
+interface Tag {
+  tagId: string;
+  name: string;
+  description: string;
+  properties?: { [key: string]: any };
+  image: string;
+  acquiredAt?: string;
+}
+
+interface Power {
+  powerId: string;
+  name: string;
+  description: string;
+  price: number;
+  effect: {
+    type: string;
+    value: number | string;
+    duration: number;
+    durationType: string;
+  };
+  image: string;
+  emoji: string;
+  usesLeft?: number;
+  acquiredAt?: string;
+}
+
+interface ActivePower {
+  powerId: string;
+  name: string;
+  description: string;
+  price: number;
+  effect: {
+    type: string;
+    value: number | string;
+    duration: number;
+    durationType: string;
+  };
+  image: string;
+  emoji: string;
+  remainingDuration?: number;
+  activatedAt?: string;
 }
 
 interface AuthUser {
@@ -19,10 +73,21 @@ interface AuthUser {
   level: number;
   xp: number;
   maxXp: number;
+  coins: number;
+  streak: number;
+  lives: number;
   profilePicture?: string;
+  profileBackground?: string;
   university?: string;
   isUniversityStudent?: boolean;
-  achievements?: { name: string; description: string; awardedAt?: string }[];
+  achievements?: Achievement[];
+  borders?: Border[];
+  tags?: Tag[];
+  activeBorder?: Border | null;
+  activeTag?: Tag | null;
+  powers?: Power[];
+  activePowers?: ActivePower[];
+  role?: string;
 }
 
 export interface AuthContextType {
@@ -39,21 +104,23 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const navigate = useNavigate();
-  const { theme } = useTheme();
 
   const fetchWithAuth = async (endpoint: string, options: RequestInit = {}) => {
     const token = localStorage.getItem("token");
     if (!token) {
+      console.error("No se encontró el token en localStorage");
       navigate("/login", { replace: true, state: { fromCourse: true } });
-      throw new Error("Por favor, inicia sesión para acceder al curso.");
+      toast.error("Por favor, inicia sesión para acceder al curso.");
+      throw new Error("No se encontró el token de autenticación");
     }
     const headers = {
       ...options.headers,
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     };
+
+    console.log("Enviando solicitud a:", endpoint, "con token:", token);
 
     try {
       const response = await fetch(
@@ -64,43 +131,53 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       );
       if (response.status === 401) {
+        console.error("Respuesta 401 - Token inválido o expirado");
         logout();
         navigate("/login", { replace: true, state: { fromCourse: true } });
         toast.error("Sesión expirada. Por favor, inicia sesión de nuevo.");
         throw new Error("Token inválido o usuario no autenticado");
       }
+      if (!response.ok) {
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch {
+          errorData = {};
+        }
+        console.error("Error en la respuesta:", {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+        });
+        throw new Error(
+          errorData.message ||
+            `Error en la solicitud: ${response.status} ${response.statusText}`
+        );
+      }
       return response;
     } catch (error) {
+      console.error("Error en fetchWithAuth:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Error de red. Intenta de nuevo."
+      );
       throw error;
     }
   };
 
   const login = async (email: string, password: string) => {
     try {
-      const data = await apiPost<{ token: string; user: AuthUser }>(
-        "/api/users/login",
-        {
-          email,
-          password,
-        }
-      );
+      const data = await apiPost<{
+        token: string;
+        user: AuthUser;
+      }>("/api/users/login", {
+        email,
+        password,
+      });
 
       localStorage.setItem("token", data.token);
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          id: data.user.id,
-          name: data.user.name,
-          email: data.user.email,
-          level: data.user.level || 1,
-          xp: data.user.xp || 0,
-          maxXp: data.user.maxXp || 100,
-          profilePicture: data.user.profilePicture || "",
-          university: data.user.university || "",
-          isUniversityStudent: data.user.isUniversityStudent || false,
-          achievements: data.user.achievements || [],
-        })
-      );
+      localStorage.setItem("user", JSON.stringify(data.user));
       setUser({
         id: data.user.id,
         name: data.user.name,
@@ -108,11 +185,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         level: data.user.level || 1,
         xp: data.user.xp || 0,
         maxXp: data.user.maxXp || 100,
+        coins: data.user.coins || 0,
+        streak: data.user.streak || 0,
+        lives: data.user.lives || 5,
         profilePicture: data.user.profilePicture || "",
+        profileBackground: data.user.profileBackground || "",
         university: data.user.university || "",
         isUniversityStudent: data.user.isUniversityStudent || false,
         achievements: data.user.achievements || [],
+        borders: data.user.borders || [],
+        tags: data.user.tags || [],
+        activeBorder: data.user.activeBorder || null,
+        activeTag: data.user.activeTag || null,
+        powers: data.user.powers || [],
+        activePowers: data.user.activePowers || [],
+        role: data.user.role || "user",
       });
+      localStorage.setItem("hasSeenWelcome", "false"); // Resetear para mostrar en Learn.tsx
       navigate("/learn");
     } catch (error: any) {
       toast.error(error.message || "Error al iniciar sesión");
@@ -125,7 +214,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     localStorage.removeItem("user");
     localStorage.removeItem("hasSeenWelcome");
     setUser(null);
-    setIsModalOpen(false);
     navigate("/login", { replace: true });
   };
 
@@ -152,14 +240,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             level: data.user.level || 1,
             xp: data.user.xp || 0,
             maxXp: data.user.maxXp || 100,
+            coins: data.user.coins || 0,
+            streak: data.user.streak || 0,
+            lives: data.user.lives || 5,
             profilePicture: data.user.profilePicture || "",
+            profileBackground: data.user.profileBackground || "",
             university: data.user.university || "",
             isUniversityStudent: data.user.isUniversityStudent || false,
             achievements: data.user.achievements || [],
+            borders: data.user.borders || [],
+            tags: data.user.tags || [],
+            activeBorder: data.user.activeBorder || null,
+            activeTag: data.user.activeTag || null,
+            powers: data.user.powers || [],
+            activePowers: data.user.activePowers || [],
+            role: data.user.role || "user",
           };
           setUser(updatedUser);
           localStorage.setItem("user", JSON.stringify(updatedUser));
         } catch (error) {
+          console.error("Error al inicializar auth:", error);
           logout();
         }
       }
@@ -168,66 +268,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     initializeAuth();
   }, []);
 
-  useEffect(() => {
-    if (user && !localStorage.getItem("hasSeenWelcome")) {
-      setIsModalOpen(true);
-      localStorage.setItem("hasSeenWelcome", "true");
-    }
-  }, [user]);
-
-  const closeModal = () => {
-    setIsModalOpen(false);
-  };
-
   return (
     <AuthContext.Provider
       value={{ user, loading, login, logout, fetchWithAuth, updateUser }}
     >
       {children}
-      <Modal
-        isOpen={isModalOpen}
-        onRequestClose={closeModal}
-        style={{
-          content: {
-            background: "transparent",
-            border: "none",
-            padding: 0,
-            inset: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 10000,
-          },
-          overlay: {
-            backgroundColor: "rgba(0, 0, 0, 0.5)",
-            zIndex: 9999,
-          },
-        }}
-      >
-        {user && (
-          <WelcomeScreen
-            playerName={user.name}
-            level={user.level}
-            currentXp={user.xp}
-            maxXp={user.maxXp}
-            missionTitle="En desarrollo"
-            missionProgress={50}
-            petName="Bitzi"
-          />
-        )}
-        <button
-          onClick={closeModal}
-          className="absolute top-4 right-4 px-4 py-2 rounded font-bold"
-          style={{
-            backgroundColor: theme.colors.button,
-            color: theme.colors.buttonText,
-            border: `2px solid ${theme.colors.text}`,
-            zIndex: 10001,
-          }}
-        >
-          Cerrar
-        </button>
-      </Modal>
     </AuthContext.Provider>
   );
 };

@@ -1,6 +1,7 @@
 import Lesson from "../models/LessonModel.js";
 import Course from "../models/CourseModel.js";
 import * as progressService from "../services/progressService.js";
+import * as livesService from "../services/livesService.js"; // Para el sistema de vidas
 import { JSDOM } from "jsdom";
 import { VM } from "vm2";
 import sqlite3 from "sqlite3";
@@ -160,6 +161,15 @@ export const getExerciseByOrder = async (req, res) => {
     const { courseId, lessonId, order } = req.params;
     const userId = req.user.userId;
 
+    // Verificar vidas
+    const lives = await livesService.getLives(userId);
+    if (lives <= 0) {
+      return res.status(403).json({
+        message:
+          "No tienes vidas suficientes. Compra más en la tienda o espera a que se recarguen.",
+      });
+    }
+
     if (courseId) {
       const canAccess = await progressService.canAccessExercise(
         userId,
@@ -206,7 +216,6 @@ export const createExercise = async (req, res) => {
       });
     }
 
-    // Validar que todos los códigos tengan language, initialCode
     for (const code of codes) {
       if (!code.language || !code.initialCode) {
         return res.status(400).json({
@@ -236,7 +245,7 @@ export const createExercise = async (req, res) => {
       exercise: newExercise,
     });
   } catch (error) {
-    console.error("Error in createExercise:", error);
+    console.error("Error en createExercise:", error);
     res
       .status(500)
       .json({ message: "Error al crear el ejercicio.", error: error.message });
@@ -255,7 +264,6 @@ export const updateExercise = async (req, res) => {
       });
     }
 
-    // Validar que todos los códigos tengan language, initialCode
     for (const code of codes) {
       if (!code.language || !code.initialCode) {
         return res.status(400).json({
@@ -294,7 +302,7 @@ export const updateExercise = async (req, res) => {
       exercise: updatedExercise,
     });
   } catch (error) {
-    console.error("Error in updateExercise:", error);
+    console.error("Error en updateExercise:", error);
     res.status(500).json({
       message: "Error al actualizar el ejercicio.",
       error: error.message,
@@ -331,7 +339,19 @@ export const deleteExercise = async (req, res) => {
 // Validar el código del usuario
 export const validateCode = async (req, res) => {
   try {
-    const { codes, expectedCodes, language } = req.body; // codes: { [lang]: string }, expectedCodes: { [lang]: string }
+    const { codes, expectedCodes, language } = req.body;
+    const userId = req.user.userId;
+
+    // Verificar vidas
+    const lives = await livesService.getLives(userId);
+    if (lives <= 0) {
+      return res.status(403).json({
+        isCorrect: false,
+        message:
+          "No tienes vidas suficientes. Compra más en la tienda o espera a que se recarguen.",
+        results: {},
+      });
+    }
 
     if (!codes || !expectedCodes || !language) {
       return res.status(400).json({
@@ -344,7 +364,6 @@ export const validateCode = async (req, res) => {
     const results = {};
     let isCorrect = true;
 
-    // Función para normalizar código
     const normalizeCode = (code, lang) => {
       if (!code) return "";
       switch (lang) {
@@ -373,7 +392,6 @@ export const validateCode = async (req, res) => {
       }
     };
 
-    // Validar cada lenguaje
     for (const lang of Object.keys(expectedCodes)) {
       const userCode = codes[lang] || "";
       const expectedCode = expectedCodes[lang] || "";
@@ -514,7 +532,7 @@ export const validateCode = async (req, res) => {
               validateTextContent(userBody, "body", "body");
               results[lang] = {
                 isCorrect: true,
-                message: "✅ HTML correcto",
+                message: "HTML correcto",
               };
             } catch (error) {
               results[lang] = {
@@ -528,15 +546,13 @@ export const validateCode = async (req, res) => {
         }
 
         case "css": {
-          // Validar CSS comparando reglas parseadas
           try {
             const userParsed = parse(userCode);
             const expectedParsed = parse(expectedCode);
 
-            // Normalizar reglas para comparación
             const normalizeRules = (rules) => {
               return JSON.stringify(rules, (key, value) => {
-                if (key === "position" || key === "type") return undefined; // Ignorar propiedades irrelevantes
+                if (key === "position" || key === "type") return undefined;
                 if (typeof value === "string")
                   return value.trim().toLowerCase();
                 return value;
@@ -554,7 +570,7 @@ export const validateCode = async (req, res) => {
             results[lang] = {
               isCorrect: cssIsCorrect,
               message: cssIsCorrect
-                ? "✅ CSS correcto"
+                ? "CSS correcto"
                 : "Las reglas CSS no coinciden con las esperadas",
             };
             if (!cssIsCorrect) isCorrect = false;
@@ -583,7 +599,7 @@ export const validateCode = async (req, res) => {
             results[lang] = {
               isCorrect: isEqual,
               message: isEqual
-                ? "✅ JavaScript correcto"
+                ? "JavaScript correcto"
                 : "El resultado no coincide con lo esperado",
             };
             if (!isEqual) isCorrect = false;
@@ -598,15 +614,13 @@ export const validateCode = async (req, res) => {
         }
 
         case "python": {
-          // Nota: Para ejecución real, necesitarías un entorno como Pyodide o un servicio externo
-          // Aquí usamos comparación de código normalizado como ejemplo
           const normalizedUserCode = normalizeCode(userCode, "python");
           const normalizedExpectedCode = normalizeCode(expectedCode, "python");
           const isEqual = normalizedUserCode === normalizedExpectedCode;
           results[lang] = {
             isCorrect: isEqual,
             message: isEqual
-              ? "✅ Python correcto"
+              ? "Python correcto"
               : "El código Python no coincide con lo esperado",
           };
           if (!isEqual) isCorrect = false;
@@ -614,13 +628,11 @@ export const validateCode = async (req, res) => {
         }
 
         case "sql": {
-          // Usar SQLite en memoria para pruebas
           const db = new sqlite3.Database(":memory:");
           const runQuery = util.promisify(db.run.bind(db));
           const allQuery = util.promisify(db.all.bind(db));
 
           try {
-            // Crear una tabla de prueba
             await runQuery(`
               CREATE TABLE users (
                 id INTEGER PRIMARY KEY,
@@ -658,7 +670,7 @@ export const validateCode = async (req, res) => {
             results[lang] = {
               isCorrect: isEqual,
               message: isEqual
-                ? "✅ SQL correcto"
+                ? "SQL correcto"
                 : "El resultado de la consulta no coincide",
             };
             if (!isEqual) isCorrect = false;
@@ -676,7 +688,6 @@ export const validateCode = async (req, res) => {
         }
 
         case "php": {
-          // Crear archivos temporales para PHP
           const userFile = `/tmp/user_${Date.now()}.php`;
           const expectedFile = `/tmp/expected_${Date.now()}.php`;
           require("fs").writeFileSync(userFile, `<?php ${userCode} ?>`);
@@ -691,7 +702,7 @@ export const validateCode = async (req, res) => {
             results[lang] = {
               isCorrect: isEqual,
               message: isEqual
-                ? "✅ PHP correcto"
+                ? "PHP correcto"
                 : "La salida PHP no coincide con lo esperado",
             };
             if (!isEqual) isCorrect = false;
@@ -715,26 +726,34 @@ export const validateCode = async (req, res) => {
           results[lang] = {
             isCorrect: isEqual,
             message: isEqual
-              ? `✅ ${lang} correcto`
-              : `El código ${lang} no coincide con lo esperado`,
+              ? `${lang} correcto`
+              : `El código ${lang} продукти не відповідає очікуванням`,
           };
           if (!isEqual) isCorrect = false;
         }
       }
     }
 
+    if (!isCorrect) {
+      const remainingLives = await livesService.deductLife(userId);
+      return res.status(200).json({
+        isCorrect: false,
+        message: `Código incorrecto. Vidas restantes: ${remainingLives}`,
+        results,
+        lives: remainingLives,
+      });
+    }
+
     res.json({
       isCorrect,
       results,
-      message: isCorrect
-        ? "✅ Todos los códigos son correctos"
-        : "❌ Uno o más códigos tienen errores",
+      message: "Todos los códigos son correctos",
     });
   } catch (error) {
     console.error("Error en validateCode:", error);
     res.status(500).json({
       isCorrect: false,
-      message: `❌ Error al validar: ${error.message}`,
+      message: `Error al validar: ${error.message}`,
       results: {},
     });
   }
@@ -746,6 +765,10 @@ export const getAllProgressByCourse = async (req, res) => {
     const { courseId } = req.params;
     const userId = req.user.userId;
 
+    if (!courseId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ message: "ID de curso inválido" });
+    }
+
     const course = await Course.findById(courseId);
     if (!course) {
       return res.status(404).json({ message: "Curso no encontrado" });
@@ -756,7 +779,20 @@ export const getAllProgressByCourse = async (req, res) => {
       courseId,
     }).lean();
 
-    res.json(progress);
+    if (!progress || progress.length === 0) {
+      return res.status(200).json([]);
+    }
+
+    const progressData = progress.map((exercise) => ({
+      userId: userId,
+      courseId: courseId,
+      lessonId: exercise.lessonId.toString(),
+      exerciseOrder: exercise.exerciseOrder,
+      completed: exercise.completed,
+      completedAt: exercise.completedAt,
+    }));
+
+    res.status(200).json(progressData);
   } catch (error) {
     console.error("Error en getAllProgressByCourse:", error.message);
     res.status(500).json({ message: "Error al obtener el progreso" });

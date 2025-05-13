@@ -1,3 +1,4 @@
+// src/models/User.js
 import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema(
@@ -22,7 +23,11 @@ const userSchema = new mongoose.Schema(
     },
     profilePicture: {
       type: String,
-      default: "", // URL or path to profile picture
+      default: "",
+    },
+    profileBackground: {
+      type: String,
+      default: "",
     },
     university: {
       type: String,
@@ -44,16 +49,30 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 100,
     },
+    coins: {
+      type: Number,
+      default: 0,
+    },
     powers: [
       {
-        name: { type: String, required: true },
-        icon: { type: String, required: true }, // Store icon name for frontend rendering
+        powerId: { type: mongoose.Schema.Types.ObjectId, ref: "Power" },
+        acquiredAt: { type: Date, default: Date.now },
+        usesLeft: { type: Number, default: 1 }, // Número de usos restantes
+      },
+    ],
+    activePowers: [
+      {
+        powerId: { type: mongoose.Schema.Types.ObjectId, ref: "Power" },
+        activatedAt: { type: Date, default: Date.now },
+        remainingDuration: { type: Number }, // Ejercicios o días restantes
       },
     ],
     achievements: [
       {
-        name: { type: String, required: true },
-        description: { type: String, required: true },
+        achievementId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Achievement",
+        },
         awardedAt: { type: Date, default: Date.now },
       },
     ],
@@ -67,10 +86,55 @@ const userSchema = new mongoose.Schema(
       {
         courseId: { type: mongoose.Schema.Types.ObjectId, ref: "Course" },
         lessonId: { type: mongoose.Schema.Types.ObjectId, ref: "Lesson" },
-        exerciseId: { type: mongoose.Schema.Types.ObjectId, ref: "Exercise" },
+        exerciseId: { type: mongoose.Schema.Types.ObjectId },
         completedAt: { type: Date, default: Date.now },
       },
     ],
+    lives: {
+      type: Number,
+      default: 5,
+      min: 0,
+      max: 5,
+    },
+    lastLivesReset: {
+      type: Date,
+      default: Date.now,
+    },
+    streak: {
+      type: Number,
+      default: 0,
+    },
+    lastActivity: {
+      type: Date,
+      default: null,
+    },
+    role: {
+      type: String,
+      enum: ["user", "admin"],
+      default: "user",
+    },
+    borders: [
+      {
+        borderId: { type: mongoose.Schema.Types.ObjectId, ref: "ShopItem" },
+        acquiredAt: { type: Date, default: Date.now },
+      },
+    ],
+    tags: [
+      {
+        tagId: { type: mongoose.Schema.Types.ObjectId, ref: "ShopItem" },
+        acquiredAt: { type: Date, default: Date.now },
+      },
+    ],
+    activeBorder: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ShopItem",
+      default: null,
+    },
+    activeTag: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ShopItem",
+      default: null,
+    },
   },
   {
     timestamps: true,

@@ -1,4 +1,5 @@
-import "./config/env.js"; // Cargar variables de entorno primero
+// src/index.js
+import "./config/env.js";
 import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
@@ -10,11 +11,14 @@ import lessonRoutes from "./routes/lessonRoutes.js";
 import courseRoutes from "./routes/courseRoutes.js";
 import progressRoutes from "./routes/progress.js";
 import imageProxyRoutes from "./routes/imageRoutes.js";
+import rankingRoutes from "./routes/rankingRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
+import shopRoutes from "./routes/shopRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
 import { fileURLToPath } from "url";
 import path from "path";
 import { setMaxListeners } from "events";
 
-// Aumentar el límite de listeners
 setMaxListeners(15);
 
 const __filename = fileURLToPath(import.meta.url);
@@ -22,7 +26,6 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// Configuración de CORS
 const corsOptions = {
   origin: (origin, callback) => {
     if (process.env.NODE_ENV === "development") {
@@ -36,7 +39,6 @@ const corsOptions = {
         "https://cdn.pixabay.com",
         "https://fastly.picsum.photos",
         "https://picsum.photos",
-        // Agregar dominios de Google Analytics
         "https://www.google-analytics.com",
         "https://analytics.google.com",
         "https://www.googletagmanager.com",
@@ -58,7 +60,6 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-// Validar rutas con barras dobles
 app.use((req, res, next) => {
   if (req.path.includes("//")) {
     console.error(`Ruta inválida con barras dobles: ${req.path}`);
@@ -67,13 +68,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// Servir imágenes estáticas
 app.use("/images", express.static(path.join(__dirname, "../public/images")));
 
-// Parsear JSON
 app.use(express.json());
 
-// Configurar Helmet con CSP
 const allowedConnectSrc = [
   "'self'",
   "https://www.codebuddies.live",
@@ -82,7 +80,6 @@ const allowedConnectSrc = [
   "https://cdn.pixabay.com",
   "https://fastly.picsum.photos",
   "https://picsum.photos",
-  // Agregar dominios de Google Analytics
   "https://www.google-analytics.com",
   "https://analytics.google.com",
   "https://www.googletagmanager.com",
@@ -108,16 +105,9 @@ app.use(
           "https://fastly.picsum.photos",
           "https://picsum.photos",
           "https://codebuddiesimages.nyc3.cdn.digitaloceanspaces.com",
-          // Agregar dominio para píxeles de seguimiento de Google Analytics
           "https://www.google-analytics.com",
         ],
-        scriptSrc: [
-          "'self'",
-          // Agregar Google Tag Manager para el script de Google Analytics
-          "https://www.googletagmanager.com",
-          // Opcional: Permitir scripts inline si usas gtag directamente
-          // "'unsafe-inline'",
-        ],
+        scriptSrc: ["'self'", "https://www.googletagmanager.com"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://www.gstatic.com"],
         frameSrc: ["'self'"],
         workerSrc: ["'self'", "blob:"],
@@ -128,13 +118,11 @@ app.use(
 
 app.use(morgan("dev"));
 
-// Logging para rutas de API
 app.use("/api", (req, res, next) => {
   console.log(`Solicitud API: ${req.method} ${req.path}`);
   next();
 });
 
-// Servir archivos estáticos del frontend
 app.use(
   express.static(path.join(__dirname, "../../frontend/dist"), {
     setHeaders: (res, path) => {
@@ -148,15 +136,17 @@ app.use(
   })
 );
 
-// Rutas de la API
 app.use("/api/users", userRoutes);
 app.use("/api/modules", moduleRoutes);
 app.use("/api/lessons", lessonRoutes);
 app.use("/api/courses", courseRoutes);
 app.use("/api/progress", progressRoutes);
+app.use("/api/rankings", rankingRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/shop", shopRoutes);
 app.use("/api", imageProxyRoutes);
 
-// Middleware para manejar rutas del frontend (React Router)
 app.use((req, res, next) => {
   if (
     req.path.startsWith("/api") ||
@@ -178,18 +168,15 @@ app.use((req, res, next) => {
   );
 });
 
-// Manejar rutas no encontradas
 app.use((req, res) => {
   res.status(404).json({ error: "Ruta no encontrada" });
 });
 
-// Conectar a MongoDB
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log("✅ Conectado a MongoDB Atlas"))
   .catch((err) => console.error("❌ Error al conectar a MongoDB:", err));
 
-// Configurar puerto dinámico
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);

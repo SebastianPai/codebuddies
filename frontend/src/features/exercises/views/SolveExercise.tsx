@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTheme } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
 import Navbar from "@/components/common/Navbar";
@@ -11,6 +11,7 @@ import { PreviewPanel } from "../components/PreviewPanel";
 import { toast } from "react-toastify";
 import { TerminalPanel } from "../components/TerminalPanel";
 import { NavigationControls } from "../components/NavigationControls";
+import { FeedbackModal } from "../components/FeedbackModal"; // Nuevo componente
 import { useExerciseData } from "../hooks/useExerciseData";
 import { useIframePreview } from "../hooks/useIframePreview";
 import { useExerciseValidation } from "../hooks/useExerciseValidation";
@@ -32,7 +33,7 @@ import { useParams } from "react-router-dom";
 
 const SolveExercise: React.FC = () => {
   const { theme } = useTheme();
-  const { fetchWithAuth } = useAuth();
+  const { fetchWithAuth, updateUser, user } = useAuth();
   const {
     exercise,
     lesson,
@@ -71,6 +72,33 @@ const SolveExercise: React.FC = () => {
   >("code");
   const [activeTab, setActiveTab] = useState<string>("");
   const { courseId } = useParams<{ courseId: string }>();
+  const prevUserProgressRef = useRef<UserProgress | null>(null);
+
+  // Actualizar user en AuthContext
+  useEffect(() => {
+    if (userProgress && prevUserProgressRef.current !== userProgress) {
+      const hasChanged =
+        !prevUserProgressRef.current ||
+        prevUserProgressRef.current.xp !== userProgress.xp ||
+        prevUserProgressRef.current.level !== userProgress.level ||
+        prevUserProgressRef.current.maxXp !== userProgress.maxXp ||
+        prevUserProgressRef.current.coins !== userProgress.coins ||
+        prevUserProgressRef.current.streak !== userProgress.streak ||
+        prevUserProgressRef.current.lives !== userProgress.lives;
+
+      if (hasChanged) {
+        updateUser({
+          xp: userProgress.xp,
+          level: userProgress.level,
+          maxXp: userProgress.maxXp,
+          coins: userProgress.coins || 0,
+          streak: userProgress.streak || 0,
+          lives: userProgress.lives || 5,
+        });
+        prevUserProgressRef.current = { ...userProgress };
+      }
+    }
+  }, [userProgress, updateUser]);
 
   // Cargar lecciones del curso
   useEffect(() => {
@@ -85,13 +113,19 @@ const SolveExercise: React.FC = () => {
         setCourseLessons(lessonsData || []);
       } catch (error) {
         console.error("Error al cargar lecciones del curso:", error);
-        toast.error("No se pudieron cargar las lecciones del curso.");
+        toast.error("No se pudieron cargar las lecciones del curso.", {
+          style: {
+            background: theme.colors.card,
+            color: theme.colors.text,
+            border: `2px solid ${theme.colors.error}`,
+          },
+        });
       }
     };
     loadCourseLessons();
   }, [courseId, fetchWithAuth]);
 
-  // Mapeo de lenguajes a íconos
+  // Íconos y colores por lenguaje
   const languageIcons: {
     [key: string]: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   } = {
@@ -106,7 +140,6 @@ const SolveExercise: React.FC = () => {
     java: Code,
   };
 
-  // Mapeo de lenguajes a colores
   const languageColors: { [key: string]: string } = {
     html: "#E34F26",
     css: "#1572B6",
@@ -119,12 +152,14 @@ const SolveExercise: React.FC = () => {
     java: "#007396",
   };
 
+  // Establecer pestaña activa inicial
   useEffect(() => {
     if (exercise && exercise.codes.length > 0 && !activeTab) {
       setActiveTab(exercise.codes[0].language);
     }
   }, [exercise, activeTab]);
 
+  // Cargar imágenes de instrucciones
   useEffect(() => {
     const loadInstructionImages = async () => {
       const imageElements = instructionElements.filter(
@@ -151,6 +186,7 @@ const SolveExercise: React.FC = () => {
     }
   }, [instructionElements]);
 
+  // Ejecutar código
   const handleRunCode = () => {
     if (
       exercise?.language === "javascript" ||
@@ -160,6 +196,7 @@ const SolveExercise: React.FC = () => {
     }
   };
 
+  // Cambiar código
   const handleCodeChange = (language: string, value: string) => {
     setCodes((prev) => ({
       ...prev,
@@ -167,6 +204,7 @@ const SolveExercise: React.FC = () => {
     }));
   };
 
+  // Renderizar contenido
   const renderContent = () => {
     if (loading) {
       return (
@@ -195,7 +233,7 @@ const SolveExercise: React.FC = () => {
             color: theme.colors.text,
           }}
         >
-          <p style={{ color: theme.colors.secondary }} aria-live="polite">
+          <p style={{ color: theme.colors.secondaryText }} aria-live="polite">
             Ejercicio o lección no encontrados.
           </p>
         </div>
@@ -320,14 +358,57 @@ const SolveExercise: React.FC = () => {
                   className="flex border-b overflow-x-auto"
                   style={{ borderColor: theme.colors.border }}
                 >
+                  <style>
+                    {`
+                      @keyframes spark {
+                        0% { transform: translate(0, 0) scale(1); opacity: 1; }
+                        100% { transform: translate(25px, -25px) scale(0); opacity: 0; }
+                      }
+                      .spark-button::after {
+                        content: '';
+                        position: absolute;
+                        width: 12px;
+                        height: 12px;
+                        background: ${theme.colors.accent};
+                        border-radius: 50%;
+                        opacity: 0;
+                        pointer-events: none;
+                      }
+                      .spark-button:active::after {
+                        animation: spark 0.5s ease-out;
+                      }
+                      @keyframes rotate-icon {
+                        0% { transform: rotate(0deg); }
+                        100% { transform: rotate(360deg); }
+                      }
+                      .rotate-icon {
+                        transition: transform 0.5s ease;
+                      }
+                      .spark-button:hover .rotate-icon {
+                        transform: rotate(360deg);
+                      }
+                      @media (prefers-reduced-motion) {
+                        .spark-button::after, .rotate-icon {
+                          animation: none;
+                          transition: none;
+                        }
+                      }
+                      @media (max-width: 640px) {
+                        .spark-button {
+                          font-size: 0.75rem;
+                          padding: 0.5rem 0.75rem;
+                        }
+                      }
+                    `}
+                  </style>
                   {exercise.codes.map((code) => {
                     const Icon = languageIcons[code.language] || Code;
                     return (
                       <button
                         key={code.language}
-                        className={`px-4 py-2 font-medium transition-colors flex items-center space-x-2 ${
+                        className={`px-4 py-2 font-medium transition-colors flex items-center space-x-2 spark-button ${
                           activeTab === code.language
-                            ? "border-b-2"
+                            ? "border-b-4"
                             : "hover:bg-gray-100 dark:hover:bg-gray-700"
                         }`}
                         style={{
@@ -337,17 +418,28 @@ const SolveExercise: React.FC = () => {
                               : theme.colors.border,
                           background:
                             activeTab === code.language
-                              ? theme.colors.card
-                              : "transparent",
+                              ? `linear-gradient(90deg, ${theme.colors.accent} 0%, ${theme.colors.accenttwo} 100%)`
+                              : theme.colors.card,
                           color:
                             activeTab === code.language
-                              ? theme.colors.text
-                              : theme.colors.secondary,
+                              ? theme.colors.buttonText
+                              : theme.colors.text,
+                          border: `2px solid ${theme.colors.border}`,
                         }}
                         onClick={() => setActiveTab(code.language)}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background =
+                            theme.colors.accenttwo;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background =
+                            activeTab === code.language
+                              ? `linear-gradient(90deg, ${theme.colors.accent} 0%, ${theme.colors.accenttwo} 100%)`
+                              : theme.colors.card;
+                        }}
                       >
                         <Icon
-                          className="w-4 h-4"
+                          className="w-4 h-4 rotate-icon"
                           style={{
                             color:
                               languageColors[code.language] ||
@@ -518,226 +610,13 @@ const SolveExercise: React.FC = () => {
         ></div>
       )}
       <Navbar />
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black bg-opacity-80 flex justify-center items-center p-4">
-          <div
-            className="p-8 rounded-lg max-w-md w-full animate-pulse"
-            style={{
-              background: theme.colors.card,
-              border: `4px solid ${
-                modalContent.isCorrect
-                  ? theme.colors.success
-                  : theme.colors.error
-              }`,
-            }}
-          >
-            <div className="flex justify-center mb-4">
-              <div
-                className="flex items-center justify-center w-12 h-12 rounded-full"
-                style={{
-                  background: modalContent.isCorrect
-                    ? theme.colors.success
-                    : theme.colors.error,
-                }}
-              >
-                <span className="text-2xl">
-                  {modalContent.isCorrect ? "🎉" : "💀"}
-                </span>
-              </div>
-            </div>
-            <h1
-              className="text-3xl uppercase font-mono text-center font-bold tracking-widest mb-4"
-              style={{
-                color: modalContent.isCorrect
-                  ? theme.colors.success
-                  : theme.colors.error,
-              }}
-            >
-              {modalContent.isCorrect ? "¡ÉXITO!" : "¡ERROR!"}
-            </h1>
-            <div
-              className="p-4 rounded-md"
-              style={{
-                border: `2px solid ${
-                  modalContent.isCorrect
-                    ? theme.colors.success
-                    : theme.colors.error
-                }`,
-                background: theme.colors.background,
-              }}
-            >
-              <p
-                className="text-center font-mono text-sm uppercase tracking-wide"
-                style={{ color: theme.colors.highlightText }}
-              >
-                {modalContent.message}
-              </p>
-              <div className="flex justify-center mt-4">
-                <div className="relative">
-                  <img
-                    src={
-                      modalContent.isCorrect
-                        ? "/images/feliz1.png"
-                        : "/images/triste2.png"
-                    }
-                    alt={
-                      modalContent.isCorrect
-                        ? "Mascota feliz"
-                        : "Mascota triste"
-                    }
-                    className="mx-auto w-24 h-24 pixelated animate-bounce"
-                  />
-                  <div className="absolute -top-2 -right-2 text-xl animate-bounce">
-                    {modalContent.isCorrect ? "😊" : "😢"}
-                  </div>
-                </div>
-              </div>
-              <p
-                className="text-center mt-4 font-mono text-xs"
-                style={{ color: theme.colors.text }}
-              >
-                <span
-                  style={{
-                    color: modalContent.isCorrect
-                      ? theme.colors.success
-                      : theme.colors.error,
-                  }}
-                >
-                  BITZI
-                </span>{" "}
-                ESTÁ {modalContent.isCorrect ? "FELIZ" : "TRISTE"}...
-              </p>
-              {modalContent.isCorrect && userProgress && (
-                <div className="mt-4">
-                  <p
-                    className="text-center font-mono text-sm"
-                    style={{ color: theme.colors.highlightText }}
-                  >
-                    {userProgress.isAlreadyCompleted
-                      ? "ℹ️ Misión ya completada. ¡Solo se otorgan 10 XP la primera vez!"
-                      : userProgress.gainedXp && userProgress.gainedXp > 0
-                      ? `🎉 +${userProgress.gainedXp} XP GANADOS`
-                      : "🎉 Ejercicio completado"}
-                  </p>
-                  <p
-                    className="text-center font-mono text-xs mt-2"
-                    style={{ color: theme.colors.text }}
-                  >
-                    TOTAL: {userProgress.xp}/{userProgress.maxXp} XP
-                  </p>
-                  <div className="mt-2">
-                    <div
-                      className="h-2 rounded-full"
-                      style={{ background: theme.colors.progressBackground }}
-                    >
-                      <div
-                        className="h-2 rounded-full"
-                        style={{
-                          background: theme.colors.progressFill,
-                          width: `${
-                            (userProgress.xp / userProgress.maxXp) * 100
-                          }%`,
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-              )}
-              {!modalContent.isCorrect && userProgress && (
-                <div className="mt-4">
-                  <p
-                    className="text-center font-mono text-sm"
-                    style={{ color: theme.colors.highlightText }}
-                  >
-                    ❌ Intenta de nuevo para ganar XP
-                  </p>
-                  <p
-                    className="text-center font-mono text-xs mt-2"
-                    style={{ color: theme.colors.text }}
-                  >
-                    TOTAL: {userProgress.xp}/{userProgress.maxXp} XP
-                  </p>
-                  <div className="mt-2">
-                    <div
-                      className="h-2 rounded-full"
-                      style={{ background: theme.colors.progressBackground }}
-                    >
-                      <div
-                        className="h-2 rounded-full"
-                        style={{
-                          background: theme.colors.progressFill,
-                          width: `${
-                            (userProgress.xp / userProgress.maxXp) * 100
-                          }%`,
-                        }}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <button
-                onClick={() => {
-                  setIsModalOpen(false);
-                  if (modalContent.isCorrect) {
-                    handleNavigate("next");
-                  }
-                }}
-                className="border-2 hover:scale-105 transition duration-150 py-2 rounded-md font-bold uppercase tracking-widest px-4 flex items-center justify-center"
-                style={{
-                  background: modalContent.isCorrect
-                    ? theme.colors.success
-                    : theme.colors.error,
-                  color: theme.colors.buttonText,
-                  borderColor: theme.colors.border,
-                }}
-              >
-                <span className="mr-2">
-                  {modalContent.isCorrect ? "➡️" : "🔄"}
-                </span>
-                {modalContent.isCorrect ? "Continuar" : "Reintentar"}
-              </button>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="border-2 hover:scale-105 transition duration-150 py-2 rounded-md font-bold uppercase tracking-widest px-4 flex items-center justify-center"
-                style={{
-                  background: theme.colors.secondaryButton,
-                  color: theme.colors.buttonText,
-                  borderColor: theme.colors.border,
-                }}
-              >
-                <span className="mr-2">❌</span> Cerrar
-              </button>
-            </div>
-            {userProgress && (
-              <div
-                className="mt-6 border-t-2 pt-4"
-                style={{
-                  borderColor: modalContent.isCorrect
-                    ? theme.colors.success
-                    : theme.colors.error,
-                }}
-              >
-                <div className="flex justify-between">
-                  <div
-                    className="font-mono text-xs"
-                    style={{ color: theme.colors.highlightText }}
-                  >
-                    NIVEL: {userProgress.level}
-                  </div>
-                  <div
-                    className="font-mono text-xs"
-                    style={{ color: theme.colors.highlightText }}
-                  >
-                    VIDAS: ❤️❤️❤️
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      <FeedbackModal
+        isModalOpen={isModalOpen}
+        setIsModalOpen={setIsModalOpen}
+        modalContent={modalContent}
+        userProgress={userProgress}
+        handleNavigate={handleNavigate}
+      />
       {renderContent()}
     </div>
   );
