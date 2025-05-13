@@ -1,5 +1,5 @@
-// src/services/livesService.js
 import User from "../models/User.js";
+import * as notificationService from "./notificationService.js"; // Ajusta la ruta según tu estructura
 
 export const getLives = async (userId) => {
   const user = await User.findById(userId);
