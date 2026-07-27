@@ -1,6 +1,9 @@
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  /* Columnas más anchas: con 100px las tarjetas quedaban tan angostas que el
+     texto de sus botones (footer libre por consumidor) se salía y parecía
+     "encimado" con la tarjeta vecina en vez de quedar contenido adentro. */
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
   gap: var(--cb-space-3);
 }
 

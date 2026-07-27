@@ -132,9 +132,12 @@
   font-weight: 900;
 }
 
+/* Uno debajo del otro en vez de lado a lado: con precios largos ("9999
+   Coins") + "Favorito"/"Quitar" no cabían en la misma fila y el texto de un
+   botón se salía encima del otro. */
 .actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 8px;
 }
 

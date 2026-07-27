@@ -299,7 +299,7 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
                       : isBuying
                         ? "Comprando..."
                         : owned
-                          ? `Ya tienes ${inventoryMap.get(item.id) ?? ""} · Comprar otro`
+                          ? "Comprar otro"
                           : "Comprar"}
                   </Button>
                 </div>
