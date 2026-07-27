@@ -1,0 +1,6 @@
+Listado de rutas de carpetas
+El número de serie del volumen es 000001EC 0475:A69C
+C:\USERS\SEBASTIAN\DESKTOP\MONEY\CODEBUDDIES\APPS\API\APPS\API\SRC
+Ruta de acceso no válida: \USERS\SEBASTIAN\DESKTOP\MONEY\CODEBUDDIES\APPS\API\APPS\API\SRC
+No existe ninguna subcarpeta 
+

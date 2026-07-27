@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "ItemSprite" ADD COLUMN     "row" INTEGER NOT NULL DEFAULT 0;

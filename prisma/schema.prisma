@@ -1,0 +1,2980 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  ADMIN
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum LessonType {
+  TEXT
+  CODE
+  QUIZ
+  LIVE
+}
+
+enum RoomRole {
+  OWNER
+  ADMIN
+  EDITOR
+  VISITOR
+}
+
+enum ExerciseType {
+  CODE
+  LIVE
+  QUIZ
+}
+
+enum RankingType {
+  WEEKLY
+  MONTHLY
+  GLOBAL
+}
+
+enum AvatarSlotType {
+  BODY
+  HEAD
+  HAIR
+  EYES
+  SHIRT
+  LEGS
+  SHOES
+  LEFT_ARM
+  RIGHT_ARM
+  ACCESSORY_HEAD
+  ACCESSORY_FACE
+  ACCESSORY_BACK
+  ACCESSORY_LEFT
+  ACCESSORY_RIGHT
+}
+
+enum WorldItemKind {
+  FLOOR
+  WALL
+  FURNITURE
+  NPC
+  DECORATION
+  INTERACTIVE
+}
+
+enum InteractionType {
+  SIT
+  LIE
+  DRINK
+  OPEN
+  TOGGLE
+  TELEPORT
+}
+
+enum ItemType {
+  AVATAR
+  WORLD
+}
+
+enum ItemAccessType {
+  FREE
+  PREMIUM
+  EVENT
+  VIP
+}
+
+enum BackgroundAccessType {
+  FREE
+  PURCHASABLE
+  PREMIUM
+  EVENT
+}
+
+enum WallSide {
+  NORTH
+  EAST
+  SOUTH
+  WEST
+}
+
+enum ItemSortType {
+  NEW
+  OLD
+  MOST_POPULAR
+  CHEAP
+  EXPENSIVE
+}
+
+enum Direction {
+  NORTH
+  NORTH_EAST
+  EAST
+  SOUTH_EAST
+  SOUTH
+  SOUTH_WEST
+  WEST
+  NORTH_WEST
+}
+
+enum ActivityType {
+  COMPLETED_LESSON
+  COMPLETED_EXERCISE
+  COMPLETED_COURSE
+  EARNED_CERTIFICATE
+  REACHED_LEVEL
+  STARTED_COURSE
+  EARNED_ACHIEVEMENT
+  CREATED_PROJECT
+  CREATED_POST
+}
+
+enum ReactionType {
+  LIKE
+  FIRE
+  CLAP
+  ROCKET
+}
+
+enum JoinRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum AnimationType {
+  IDLE
+  WALK
+  RUN
+  SIT
+  WAVE
+  DANCE
+  ATTACK
+}
+
+enum Currency {
+  COINS
+  USD
+  COP
+  CLP
+  EUR
+}
+
+enum SubscriptionType {
+  FREE
+  PREMIUM
+  VIP
+}
+
+enum AcademyType {
+  CODEBUDDIES
+  UNIVERSITY
+  COMPANY
+  PARTNER
+}
+
+enum CertificateOrderStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+enum CertificateAccessType {
+  FREE
+  PAID
+  PREMIUM
+  INSTITUTIONAL
+  SCHOLARSHIP
+}
+
+enum PaymentProviderType {
+  MOCK
+  STRIPE
+  PAYPAL
+}
+
+enum SubscriptionProviderType {
+  MOCK
+  STRIPE
+  PAYPAL
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  BLOCKED
+}
+
+enum MessageRequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum ConversationType {
+  DIRECT
+}
+
+enum NotificationType {
+  FRIEND_REQUEST_RECEIVED
+  FRIEND_REQUEST_ACCEPTED
+  NEW_FOLLOWER
+  NEW_MESSAGE
+  CERTIFICATE_ISSUED
+  PREMIUM_ACTIVATED
+  ACHIEVEMENT_UNLOCKED
+  MISSION_AVAILABLE
+  MISSION_COMPLETED
+  MISSION_REWARD_CLAIMED
+  REWARD_GRANTED
+  LEVEL_UPDATED
+  EVENT_CREATED
+  SEASON_STARTED
+  SEASON_ENDED
+  REFERRAL_PENDING
+  REFERRAL_VALIDATED
+  REFERRAL_REWARD_UNLOCKED
+  REFERRAL_RANKING_UPDATED
+  REFERRAL_FRAUD_FLAGGED
+  ROOM_JOIN_REQUEST
+  ROOM_JOIN_APPROVED
+}
+
+enum MissionCadence {
+  PERMANENT
+  DAILY
+  WEEKLY
+  MONTHLY
+  SPECIAL
+  EVENT
+}
+
+enum MissionVisibility {
+  VISIBLE
+  HIDDEN
+}
+
+enum MissionProgressStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CLAIMED
+}
+
+enum GamificationRewardType {
+  COINS
+  XP
+  ITEM
+  AVATAR_ITEM
+  FURNITURE
+  PET
+  BADGE
+  TITLE
+  ROLE
+  CUSTOM
+}
+
+enum RewardSourceType {
+  MISSION
+  ACHIEVEMENT
+  REFERRAL
+  RANKING
+  EVENT
+  ADMIN
+  SPECIAL
+}
+
+enum ReferralStatus {
+  PENDING
+  VALIDATED
+  REJECTED
+  FRAUD
+  REVOKED
+}
+
+enum ReferralRewardType {
+  COINS
+  XP
+  ITEM
+  TITLE
+  BADGE
+  PET
+  CUSTOM
+}
+
+enum ReferralGrantStatus {
+  GRANTED
+  REVOKED
+}
+
+enum ReferralSeasonStatus {
+  ACTIVE
+  FINALIZED
+  ARCHIVED
+}
+
+enum ReferralRewardScope {
+  MILESTONE
+  RANKING
+}
+
+enum EmailTemplateType {
+  WELCOME
+  PREMIUM_ACTIVATED
+  CERTIFICATE_ISSUED
+  BIRTHDAY
+  CHRISTMAS
+  NEW_YEAR
+  PROMOTION
+  NEW_COURSE_AVAILABLE
+}
+
+enum EmailCampaignStatus {
+  DRAFT
+  SCHEDULED
+  SENT
+  CANCELLED
+}
+
+enum EmailAudienceType {
+  ALL_USERS
+  PREMIUM_USERS
+  FREE_USERS
+  ACTIVE_USERS
+  INACTIVE_USERS
+  CERTIFICATE_HOLDERS
+}
+
+enum EmailLogStatus {
+  QUEUED
+  SENT
+  FAILED
+  SKIPPED
+}
+
+enum PremiumSubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+}
+
+enum AppType {
+  DELIVERY
+  ECOMMERCE
+  SOCIAL
+}
+
+enum AppStatus {
+  DRAFT
+  TESTING
+  PUBLISHED
+  DISABLED
+}
+
+enum PlacementType {
+  FLOOR
+  WALL
+  BOTH
+}
+
+enum FurnitureCategory {
+  CHAIR
+  TABLE
+  BED
+  DECORATION
+  ELECTRONICS
+  PLANT
+  STORAGE
+  WALL_ITEM
+}
+
+enum CreatorApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  MORE_INFO_REQUESTED
+}
+
+enum CreatorStatus {
+  ACTIVE
+  SUSPENDED
+  BLOCKED
+}
+
+enum CreatorLevelKey {
+  BRONZE
+  SILVER
+  GOLD
+  DIAMOND
+}
+
+enum MarketplaceContentType {
+  WORLD_ITEM
+  AVATAR_ITEM
+  BACKGROUND
+  TEXTURE
+  PET
+  ANIMATION
+  EMOTE
+  PARTICLE
+  EFFECT
+}
+
+enum MarketplaceContentStatus {
+  DRAFT
+  PENDING
+  IN_REVIEW
+  CHANGES_REQUESTED
+  APPROVED
+  REJECTED
+  PUBLISHED
+  RETIRED
+}
+
+enum MarketplaceReportReason {
+  COPY
+  BUG
+  OFFENSIVE
+  SPAM
+  OTHER
+}
+
+enum MarketplaceReportStatus {
+  OPEN
+  IN_REVIEW
+  RESOLVED
+  DISMISSED
+}
+
+enum MarketplaceWalletMovementType {
+  PUBLICATION_FEE
+  SALE_EARNING
+  COMMISSION
+  WITHDRAWAL
+  ADJUSTMENT
+  REFUND
+}
+
+enum CodeStudioCompanyStatus {
+  IDEA
+  BUILDING
+  LIVE
+  PAUSED
+  FAILED
+}
+
+enum CodeStudioDevelopmentStatus {
+  QUEUED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id            String    @id @default(uuid())
+  username      String    @unique
+  email         String    @unique
+  password      String
+  role          Role      @default(STUDENT)
+  emailVerified Boolean   @default(true)
+  avatarUrl     String?
+  avatarBorder  String?
+  location      String?
+  institution   String?
+  birthDate     DateTime?
+  country       String?
+
+  experience Int @default(0)
+  coins      Int @default(0)
+  level      Int @default(1)
+
+  energy                 Int       @default(5)
+  streak                 Int       @default(0)
+  bestStreak             Int       @default(0)
+  lastLoginAt            DateTime?
+  lastLearningActivityAt DateTime?
+  marketingEmailsEnabled Boolean   @default(true)
+  marketingEmailOptedAt  DateTime  @default(now())
+
+  energyUpdatedAt DateTime @default(now())
+  adsWatchedToday Int      @default(0)
+  adsResetAt      DateTime @default(now())
+
+  preferredLanguageId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  enrollments Enrollment[]
+  completions Completion[]
+
+  userPowers   UserPower[]
+  achievements UserAchievement[]
+  rankings     Ranking[]
+
+  subscription         Subscription[]
+  premiumSubscriptions PremiumSubscription[]
+  certificates         Certificate[]
+  certificateOrders    CertificateOrder[]
+  certificateAccesses  CertificateAccess[]
+
+  preferredLanguage Language? @relation(fields: [preferredLanguageId], references: [id])
+
+  followers Follow[] @relation("UserFollowers")
+  following Follow[] @relation("UserFollowing")
+
+  posts    Post[]
+  projects Project[]
+
+  activities Activity[]
+
+  coinTransactions CoinTransaction[]
+  xpTransactions   XPTransaction[]
+
+  // Relaciones bidireccionales añadidas
+  postComments           PostComment[]
+  postLikes              PostLike[]
+  projectLikes           ProjectLike[]
+  challengesAsChallenger FriendChallenge[] @relation("ChallengeChallenger")
+  challengesAsOpponent   FriendChallenge[] @relation("ChallengeOpponent")
+
+  duelsAsPlayer1 Duel[] @relation("DuelPlayer1")
+  duelsAsPlayer2 Duel[] @relation("DuelPlayer2")
+
+  // juego
+  avatar Avatar?
+  items  UserItem[]
+  rooms  Room[]
+  apps   App[]
+
+  roomUsers           RoomUser[]
+  roomPermissions     RoomPermission[]
+  roomRequests        RoomJoinRequest[]
+  roomInvitesSent     RoomInvite[]         @relation("SentInvites")
+  roomInvitesReceived RoomInvite[]         @relation("ReceivedInvites")
+  roomRatings         RoomRating[]
+  roomItems           RoomItem[]
+  backgrounds         UserRoomBackground[]
+
+  friendshipsInitiated     Friendship[]                  @relation("FriendshipRequester")
+  friendshipsReceived      Friendship[]                  @relation("FriendshipAddressee")
+  sentMessageRequests      MessageRequest[]              @relation("MessageRequestSender")
+  receivedMessageRequests  MessageRequest[]              @relation("MessageRequestReceiver")
+  conversationParticipants ConversationParticipant[]
+  messages                 Message[]
+  notifications            Notification[]
+  emailLogs                EmailLog[]
+  emailAuditLogs           EmailAuditLog[]
+  referralProfile          ReferralProfile?
+  referralsSent            Referral[]                    @relation("ReferralReferrer")
+  referralSource           Referral?                     @relation("ReferralReferred")
+  referralRewardGrants     ReferralRewardGrant[]
+  referralSeasons          ReferralSeasonStat[]
+  referralFraudLogs        ReferralFraudLog[]
+  missionProgress          UserMissionProgress[]
+  gamificationAchievements UserGamificationAchievement[]
+  rewardLedger             RewardLedgerEntry[]
+  rewardBundles            RewardBundle[]
+  creatorProfile           CreatorProfile?
+  creatorApplications      CreatorApplication[]
+  marketplaceFavorites     MarketplaceFavorite[]
+  marketplacePurchases     MarketplacePurchase[]         @relation("MarketplaceBuyer")
+  marketplaceRatings       MarketplaceRating[]
+  marketplaceReports       MarketplaceReport[]
+  marketplaceReviews       MarketplaceReviewComment[]    @relation("MarketplaceReviewAdmin")
+  marketplaceWalletMoves   CreatorWalletMovement[]
+  codeStudioCompanies      CodeStudioCompany[]
+}
+
+model App {
+  id      String @id @default(uuid())
+  ownerId String
+
+  type   AppType
+  status AppStatus @default(DRAFT)
+
+  // lógica del jugador (bloques)
+  logic Json
+
+  logo       String?
+  colorTheme String?
+
+  // Nuevas métricas más ricas
+  rating        Float @default(0)
+  activeUsers   Int   @default(0)
+  successRate   Float @default(0)
+  totalRequests Int   @default(0)
+  revenue       Float @default(0) // nuevo
+  retention     Float @default(0) // nuevo
+  churnRate     Float @default(0) // nuevo
+  avgRating     Float @default(0) // nuevo
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  translations AppTranslation[]
+
+  metrics AppMetrics?
+
+  snapshots AppSimulationSnapshot[]
+
+  @@index([ownerId])
+}
+
+model AppTranslation {
+  id         String @id @default(uuid())
+  appId      String
+  languageId String
+
+  name        String
+  description String?
+
+  app      App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+  language Language @relation(fields: [languageId], references: [id], onDelete: Cascade)
+
+  @@unique([appId, languageId])
+}
+
+model AppMetrics {
+  id    String @id @default(uuid())
+  appId String
+
+  activeUsers   Int @default(0)
+  successOrders Int @default(0)
+  failedOrders  Int @default(0)
+
+  lastTickAt DateTime @default(now())
+
+  app App @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  @@unique([appId])
+}
+
+model AppSimulationSnapshot {
+  id String @id @default(uuid())
+
+  appId String
+
+  users       Int
+  successRate Float
+
+  revenue   Float // nuevo
+  retention Float // nuevo
+
+  createdAt DateTime @default(now())
+
+  app App @relation(fields: [appId], references: [id], onDelete: Cascade)
+}
+
+model Avatar {
+  id     String @id @default(uuid())
+  userId String @unique
+
+  skinColor Int
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  slots AvatarSlot[]
+}
+
+model Item {
+  id String @id @default(uuid())
+
+  imageUrl String?
+
+  layer  Int @default(0)
+  rarity Int @default(0)
+
+  colorable Boolean @default(false)
+
+  // economy
+  coinsPrice Int?
+  gemsPrice  Int?
+
+  isTradable Boolean @default(true)
+  isSellable Boolean @default(true)
+
+  shopVisible Boolean @default(true)
+
+  category String?
+
+  type ItemType?
+
+  maxStack Int @default(1)
+
+  accessType ItemAccessType @default(FREE)
+
+  createdAt DateTime @default(now())
+
+  tags String[] @default([])
+
+  popularity Int @default(0)
+  views      Int @default(0)
+
+  sprites ItemSprite[]
+
+  avatarData AvatarItemData?
+  worldData  WorldItemData?
+
+  users                UserItem[]
+  translations         ItemTranslation[]
+  referralRewards      ReferralReward[]
+  referralRewardGrants ReferralRewardGrant[]
+  rewardLedgerEntries  RewardLedgerEntry[]
+  marketplaceContents  MarketplaceContent[]  @relation("PublishedMarketplaceItem")
+
+  avatarSlots AvatarSlot[]
+  roomItems   RoomItem[]
+}
+
+model AvatarItemData {
+  id     String @id @default(uuid())
+  itemId String @unique
+
+  slot AvatarSlotType @default(BODY)
+
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+}
+
+model WorldItemData {
+  id String @id @default(uuid())
+
+  itemId String @unique
+
+  width  Int
+  height Int
+
+  spriteSheetUrl String?
+
+  previewImageUrl String?
+
+  frameWidth  Int?
+  frameHeight Int?
+
+  footprintWidth  Int @default(1)
+  footprintHeight Int @default(1)
+
+  syncDirections Boolean @default(true)
+  footprints     Json?
+  surfaces       Json?
+  engineData     Json?
+
+  directions Int @default(4)
+
+  kind WorldItemKind
+
+  category FurnitureCategory @default(DECORATION)
+
+  isCollidable Boolean @default(false)
+
+  walkable Boolean @default(false)
+
+  isInteractable Boolean @default(false)
+
+  rotatable Boolean @default(true)
+
+  placementType PlacementType @default(FLOOR)
+
+  // stacking
+
+  allowsStacking Boolean @default(false)
+
+  canBeStacked Boolean @default(false)
+
+  stackHeight Int @default(1)
+
+  maxStackHeight Int @default(0)
+
+  // interacciones
+
+  interactionTypes InteractionType[]
+
+  // posición para sentarse/acostarse
+
+  sitX Int?
+  sitY Int?
+
+  sitElevation Int?
+
+  // teleports
+
+  teleportTargetRoomId String?
+
+  teleportTargetX Int?
+  teleportTargetY Int?
+
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+}
+
+model ItemTranslation {
+  id         String @id @default(uuid())
+  itemId     String
+  languageId String
+
+  name        String
+  description String?
+
+  item     Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  language Language @relation(fields: [languageId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, languageId])
+}
+
+model UserItem {
+  id String @id @default(uuid())
+
+  userId String
+  itemId String
+
+  amount Int @default(1)
+
+  equipped Boolean @default(false)
+
+  // 🔥 NUEVO
+  obtainedAt DateTime @default(now())
+
+  // 🔥 por si luego haces regalos/trades/eventos
+  source String? // shop, reward, admin, event, trade
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, itemId])
+  @@index([userId])
+  @@index([itemId])
+}
+
+model AvatarSlot {
+  id String @id @default(uuid())
+
+  avatarId String
+  slot     AvatarSlotType
+
+  itemId String?
+
+  color Int?
+
+  avatar Avatar @relation(fields: [avatarId], references: [id], onDelete: Cascade)
+  item   Item?  @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([avatarId, slot])
+}
+
+model ItemSprite {
+  id     String @id @default(uuid())
+  itemId String
+
+  animationId String
+  animation   Animation @relation(fields: [animationId], references: [id])
+
+  direction Direction
+
+  imageUrl String
+
+  frameWidth  Int
+  frameHeight Int
+  framesCount Int
+  row         Int @default(0)
+
+  createdAt DateTime @default(now())
+
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([itemId, animationId, direction])
+}
+
+model Animation {
+  id String @id @default(uuid())
+
+  name    String // "Walk Ninja", "Dance HipHop"
+  type    AnimationType
+  variant String // 🔥 conecta con ItemSprite.variant
+
+  loop  Boolean @default(true)
+  speed Int     @default(100)
+
+  createdAt DateTime @default(now())
+
+  sprites ItemSprite[]
+
+  @@unique([type, variant])
+}
+
+model Room {
+  id      String @id @default(uuid())
+  ownerId String
+
+  name        String
+  description String?
+
+  isPublic  Boolean @default(true)
+  isVipOnly Boolean @default(false)
+
+  maxUsers Int @default(20)
+
+  width  Int @default(20)
+  height Int @default(20)
+
+  thumbnailUrl String?
+
+  backgroundId String?
+  layoutId     String?
+
+  rating     Float @default(0)
+  totalVotes Int   @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  items        RoomItem[]
+  users        RoomUser[]
+  permissions  RoomPermission[]
+  joinRequests RoomJoinRequest[]
+  invites      RoomInvite[]
+
+  ratings RoomRating[]
+
+  background RoomBackground? @relation(fields: [backgroundId], references: [id])
+  layout     RoomLayout?     @relation(fields: [layoutId], references: [id])
+
+  @@index([ownerId])
+  @@index([isPublic])
+}
+
+model RoomLayout {
+  id String @id @default(uuid())
+
+  name        String
+  description String?
+
+  previewImageUrl String? // 👈 miniatura para UI
+
+  layoutJson Json // 👈 EL MAPA REAL
+
+  width    Int
+  height   Int
+  tileSize Int
+
+  isPublic Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  rooms Room[]
+}
+
+model RoomItem {
+  id String @id @default(uuid())
+
+  roomId String
+  itemId String
+  userId String
+
+  // posición base
+
+  x Int
+  y Int
+
+  // altura real
+
+  elevation Int @default(0)
+
+  // rotación
+
+  rotation Int @default(0)
+
+  // capa visual
+
+  zIndex Int @default(0)
+
+  // estado dinámico
+
+  state Json?
+
+  // stacking real
+
+  parentRoomItemId String?
+
+  parent RoomItem? @relation("RoomItemStack", fields: [parentRoomItemId], references: [id])
+
+  children RoomItem[] @relation("RoomItemStack")
+
+  // objetos de pared
+
+  wallSide WallSide?
+
+  wallOffset Int?
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([roomId])
+  @@index([userId])
+  @@index([itemId])
+  @@index([roomId, x, y])
+  @@index([parentRoomItemId])
+}
+
+model RoomJoinRequest {
+  id     String @id @default(uuid())
+  roomId String
+  userId String
+
+  status JoinRequestStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId])
+}
+
+model RoomUser {
+  id     String @id @default(uuid())
+  roomId String
+  userId String
+
+  x         Int       @default(0)
+  y         Int       @default(0)
+  direction Direction @default(SOUTH)
+
+  role RoomRole @default(VISITOR)
+
+  joinedAt DateTime @default(now())
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId])
+  @@index([roomId])
+  @@index([userId])
+}
+
+model RoomInvite {
+  id         String @id @default(uuid())
+  roomId     String
+  fromUserId String
+  toUserId   String
+
+  createdAt DateTime          @default(now())
+  status    JoinRequestStatus @default(PENDING)
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  fromUser User @relation("SentInvites", fields: [fromUserId], references: [id])
+  toUser   User @relation("ReceivedInvites", fields: [toUserId], references: [id])
+
+  @@unique([roomId, toUserId])
+}
+
+model RoomPermission {
+  id String @id @default(uuid())
+
+  roomId String
+  userId String
+
+  role RoomRole
+
+  createdAt DateTime @default(now())
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId])
+}
+
+model RoomBackground {
+  id String @id @default(uuid())
+
+  name        String
+  description String?
+  imageUrl    String
+  previewUrl  String?
+  categoryId  String?
+
+  active      Boolean              @default(true)
+  sortOrder   Int                  @default(0)
+  accessType  BackgroundAccessType @default(FREE)
+  isPremium   Boolean              @default(false)
+  isVip       Boolean              @default(false)
+  shopVisible Boolean              @default(true)
+  coinsPrice  Int                  @default(0)
+  gemsPrice   Int                  @default(0)
+  metadata    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  rooms        Room[]
+  category     RoomBackgroundCategory?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  translations RoomBackgroundTranslation[]
+  owners       UserRoomBackground[]
+
+  @@index([active, accessType])
+  @@index([categoryId])
+  @@index([sortOrder])
+}
+
+model RoomBackgroundCategory {
+  id          String  @id @default(uuid())
+  name        String
+  slug        String  @unique
+  description String?
+  active      Boolean @default(true)
+  sortOrder   Int     @default(0)
+  metadata    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  backgrounds RoomBackground[]
+}
+
+model RoomBackgroundTranslation {
+  id           String  @id @default(uuid())
+  backgroundId String
+  languageId   String
+  name         String
+  description  String?
+
+  background RoomBackground @relation(fields: [backgroundId], references: [id], onDelete: Cascade)
+  language   Language       @relation(fields: [languageId], references: [id], onDelete: Cascade)
+
+  @@unique([backgroundId, languageId])
+  @@index([languageId])
+}
+
+model UserRoomBackground {
+  id           String   @id @default(uuid())
+  userId       String
+  backgroundId String
+  obtainedAt   DateTime @default(now())
+  source       String?
+
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  background RoomBackground @relation(fields: [backgroundId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, backgroundId])
+  @@index([userId])
+  @@index([backgroundId])
+}
+
+model RoomRating {
+  id     String @id @default(uuid())
+  roomId String
+  userId String
+
+  value Int // 1 a 5
+
+  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, userId])
+}
+
+model Duel {
+  id        String @id @default(uuid())
+  player1Id String
+  player2Id String
+
+  exerciseId String
+
+  winnerId String?
+
+  createdAt DateTime @default(now())
+
+  player1 User @relation("DuelPlayer1", fields: [player1Id], references: [id], onDelete: Cascade)
+  player2 User @relation("DuelPlayer2", fields: [player2Id], references: [id], onDelete: Cascade)
+
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+}
+
+model Follow {
+  id          String   @id @default(uuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+}
+
+model Friendship {
+  id          String           @id @default(uuid())
+  requesterId String
+  addresseeId String
+  status      FriendshipStatus @default(PENDING)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  requester User @relation("FriendshipRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee User @relation("FriendshipAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId])
+  @@index([requesterId, status])
+  @@index([addresseeId, status])
+}
+
+model Conversation {
+  id        String           @id @default(uuid())
+  type      ConversationType @default(DIRECT)
+  directKey String?          @unique
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  participants ConversationParticipant[]
+  messages     Message[]
+}
+
+model ConversationParticipant {
+  id             String    @id @default(uuid())
+  conversationId String
+  userId         String
+  joinedAt       DateTime  @default(now())
+  lastReadAt     DateTime?
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+}
+
+model Message {
+  id             String    @id @default(uuid())
+  conversationId String
+  senderId       String
+  body           String
+  deliveredAt    DateTime?
+  seenAt         DateTime?
+  createdAt      DateTime  @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@index([conversationId, seenAt])
+  @@index([senderId])
+}
+
+model MessageRequest {
+  id         String               @id @default(uuid())
+  senderId   String
+  receiverId String
+  status     MessageRequestStatus @default(PENDING)
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
+
+  sender   User @relation("MessageRequestSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User @relation("MessageRequestReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([senderId, receiverId])
+  @@index([receiverId, status])
+  @@index([senderId, status])
+}
+
+model Module {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  translations ModuleTranslation[]
+  courses      Course[]
+}
+
+model ModuleTranslation {
+  id          String  @id @default(uuid())
+  moduleId    String
+  languageId  String
+  title       String
+  description String?
+
+  module   Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  language Language @relation(fields: [languageId], references: [id], onDelete: Cascade)
+
+  @@unique([moduleId, languageId])
+}
+
+model Course {
+  id         String     @id @default(uuid())
+  moduleId   String?
+  imageUrl   String?
+  difficulty Difficulty @default(EASY)
+  freeLimit  Int        @default(5)
+
+  createdAt DateTime @default(now())
+
+  module Module? @relation(fields: [moduleId], references: [id], onDelete: SetNull)
+
+  lessons             Lesson[]
+  enrollments         Enrollment[]
+  achievements        Achievement[]
+  completions         Completion[]
+  certificates        Certificate[]
+  certificateOrders   CertificateOrder[]
+  certificateAccesses CertificateAccess[]
+
+  translations CourseTranslation[]
+
+  // Relación bidireccional añadida
+  friendChallenges       FriendChallenge[]
+  referralProgramConfigs ReferralProgramConfig[]
+}
+
+model CourseTranslation {
+  id             String  @id @default(uuid())
+  courseId       String
+  languageId     String
+  title          String
+  description    String?
+  seoTitle       String?
+  seoDescription String?
+
+  course   Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  language Language @relation(fields: [languageId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, languageId])
+}
+
+model Lesson {
+  id       String     @id @default(uuid())
+  courseId String
+  order    Int
+  type     LessonType @default(TEXT)
+
+  experience Int @default(50)
+  coins      Int @default(10)
+
+  content Json?
+
+  createdAt DateTime @default(now())
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  exercises   Exercise[]
+  completions Completion[]
+
+  translations LessonTranslation[]
+}
+
+model LessonTranslation {
+  id          String  @id @default(uuid())
+  lessonId    String
+  languageId  String
+  title       String
+  description String?
+  content     Json?
+
+  lesson   Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  language Language @relation(fields: [languageId], references: [id], onDelete: Cascade)
+
+  @@unique([lessonId, languageId])
+}
+
+model Exercise {
+  id       String       @id @default(uuid())
+  lessonId String
+  order    Int
+  type     ExerciseType @default(CODE)
+
+  content Json?
+
+  codes Json?
+
+  experience Int @default(10)
+  coins      Int @default(5)
+
+  createdAt DateTime @default(now())
+
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  completions Completion[]
+
+  translations ExerciseTranslation[]
+
+  duels Duel[]
+}
+
+model ExerciseTranslation {
+  id          String  @id @default(uuid())
+  exerciseId  String
+  languageId  String
+  title       String
+  description String?
+  content     Json?
+
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  language Language @relation(fields: [languageId], references: [id], onDelete: Cascade)
+
+  @@unique([exerciseId, languageId])
+}
+
+model Enrollment {
+  id       String @id @default(uuid())
+  userId   String
+  courseId String
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+}
+
+model Completion {
+  id         String  @id @default(uuid())
+  userId     String
+  courseId   String?
+  lessonId   String?
+  exerciseId String?
+
+  createdAt DateTime @default(now())
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course   Course?   @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  lesson   Lesson?   @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  exercise Exercise? @relation(fields: [exerciseId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, courseId, lessonId, exerciseId])
+}
+
+model Achievement {
+  id          String @id @default(uuid())
+  courseId    String
+  rewardXP    Int    @default(0)
+  rewardCoins Int    @default(0)
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  userAchievements UserAchievement[]
+  translations     AchievementTranslation[]
+}
+
+model AchievementTranslation {
+  id            String  @id @default(uuid())
+  achievementId String
+  languageId    String
+  title         String
+  description   String?
+
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  language    Language    @relation(fields: [languageId], references: [id], onDelete: Cascade)
+
+  @@unique([achievementId, languageId])
+}
+
+model UserAchievement {
+  id            String @id @default(uuid())
+  userId        String
+  achievementId String
+
+  createdAt DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+}
+
+model MissionCategory {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  icon        String?
+  color       String?
+  active      Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  missions Mission[]
+
+  @@index([active, sortOrder])
+}
+
+model Mission {
+  id            String            @id @default(uuid())
+  categoryId    String?
+  name          String
+  description   String
+  icon          String?
+  imageUrl      String?
+  cadence       MissionCadence    @default(PERMANENT)
+  condition     String
+  requiredValue Int               @default(1)
+  active        Boolean           @default(true)
+  visibility    MissionVisibility @default(VISIBLE)
+  repeatable    Boolean           @default(false)
+  startsAt      DateTime?
+  endsAt        DateTime?
+  sortOrder     Int               @default(0)
+  rewards       Json?
+  dependencies  Json?
+  metadata      Json?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  category MissionCategory?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  progress UserMissionProgress[]
+
+  @@index([active, visibility, cadence, sortOrder])
+  @@index([startsAt, endsAt])
+}
+
+model UserMissionProgress {
+  id           String                @id @default(uuid())
+  userId       String
+  missionId    String
+  currentValue Int                   @default(0)
+  targetValue  Int                   @default(1)
+  status       MissionProgressStatus @default(PENDING)
+  completedAt  DateTime?
+  claimedAt    DateTime?
+  periodKey    String?
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mission Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, missionId, periodKey])
+  @@index([userId, status, updatedAt])
+  @@index([missionId, status])
+}
+
+model GamificationAchievement {
+  id            String   @id @default(uuid())
+  name          String
+  description   String
+  icon          String?
+  imageUrl      String?
+  condition     String
+  requiredValue Int      @default(1)
+  visible       Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  rewards       Json?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  unlockedBy UserGamificationAchievement[]
+
+  @@index([visible, sortOrder])
+  @@index([condition])
+}
+
+model UserGamificationAchievement {
+  id            String    @id @default(uuid())
+  userId        String
+  achievementId String
+  unlockedAt    DateTime  @default(now())
+  claimedAt     DateTime?
+
+  user        User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement GamificationAchievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@index([userId, unlockedAt])
+}
+
+model RewardLedgerEntry {
+  id         String                 @id @default(uuid())
+  userId     String
+  sourceType RewardSourceType
+  sourceId   String?
+  rewardType GamificationRewardType
+  amount     Int?
+  itemId     String?
+  label      String
+  message    String?
+  payload    Json?
+  grantedAt  DateTime               @default(now())
+
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item Item? @relation(fields: [itemId], references: [id], onDelete: SetNull)
+
+  @@index([userId, sourceType, grantedAt])
+  @@index([rewardType, grantedAt])
+}
+
+model RewardBundle {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  rewards     Json
+  active      Boolean  @default(true)
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdBy User? @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([active, createdAt])
+}
+
+model GamificationBadge {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  icon        String?
+  rarity      String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model GamificationPet {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  imageUrl    String?
+  rarity      String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model GamificationTitle {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  rarity      String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model GamificationEvent {
+  id          String    @id @default(uuid())
+  name        String
+  description String?
+  startsAt    DateTime?
+  endsAt      DateTime?
+  active      Boolean   @default(true)
+  metadata    Json?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([active, startsAt, endsAt])
+}
+
+model Power {
+  id         String @id @default(uuid())
+  priceCoins Int    @default(100)
+
+  userPowers UserPower[]
+
+  translations PowerTranslation[]
+}
+
+model PowerTranslation {
+  id          String  @id @default(uuid())
+  powerId     String
+  languageId  String
+  name        String
+  description String?
+
+  power    Power    @relation(fields: [powerId], references: [id], onDelete: Cascade)
+  language Language @relation(fields: [languageId], references: [id], onDelete: Cascade)
+
+  @@unique([powerId, languageId])
+}
+
+model UserPower {
+  id      String @id @default(uuid())
+  userId  String
+  powerId String
+
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  power Power @relation(fields: [powerId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, powerId])
+}
+
+model Ranking {
+  id     String @id @default(uuid())
+  userId String
+
+  score Int @default(0)
+
+  type   RankingType @default(GLOBAL)
+  period String?
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Subscription {
+  id     String @id @default(uuid())
+  userId String
+
+  type   SubscriptionType @default(FREE) // 🔥 CLAVE
+  active Boolean          @default(true)
+
+  expiresAt DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Academy {
+  id       String      @id @default(uuid())
+  name     String
+  slug     String      @unique
+  type     AcademyType @default(CODEBUDDIES)
+  metadata Json?
+  active   Boolean     @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  certificates        Certificate[]
+  certificateOrders   CertificateOrder[]
+  certificateAccesses CertificateAccess[]
+}
+
+model Certificate {
+  id                String   @id @default(uuid())
+  certificateNumber String   @unique
+  userId            String
+  courseId          String
+  academyId         String?
+  verificationCode  String   @unique
+  verificationUrl   String
+  issuedAt          DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  academy Academy? @relation(fields: [academyId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, courseId])
+  @@index([academyId])
+}
+
+model CertificateOrder {
+  id                String                 @id @default(uuid())
+  userId            String
+  courseId          String
+  academyId         String?
+  amount            Decimal                @db.Decimal(10, 2)
+  currency          Currency               @default(USD)
+  status            CertificateOrderStatus @default(PENDING)
+  paymentProvider   PaymentProviderType    @default(MOCK)
+  providerPaymentId String?                @unique
+  createdAt         DateTime               @default(now())
+  paidAt            DateTime?
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  academy Academy? @relation(fields: [academyId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, courseId])
+  @@index([academyId])
+  @@index([status])
+}
+
+model CertificateAccess {
+  id         String                @id @default(uuid())
+  userId     String
+  courseId   String
+  academyId  String?
+  accessType CertificateAccessType
+  createdAt  DateTime              @default(now())
+  expiresAt  DateTime?
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  academy Academy? @relation(fields: [academyId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, courseId, accessType])
+  @@index([academyId])
+  @@index([accessType])
+}
+
+model PremiumSubscription {
+  id                     String                    @id @default(uuid())
+  userId                 String
+  provider               SubscriptionProviderType  @default(MOCK)
+  providerSubscriptionId String?                   @unique
+  status                 PremiumSubscriptionStatus @default(ACTIVE)
+  startedAt              DateTime                  @default(now())
+  expiresAt              DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([expiresAt])
+}
+
+model Language {
+  id        String @id @default(uuid())
+  code      String @unique
+  name      String
+  direction String @default("ltr")
+
+  createdAt DateTime @default(now())
+
+  users User[]
+
+  moduleTranslations      ModuleTranslation[]
+  courseTranslations      CourseTranslation[]
+  lessonTranslations      LessonTranslation[]
+  exerciseTranslations    ExerciseTranslation[]
+  achievementTranslations AchievementTranslation[]
+  powerTranslations       PowerTranslation[]
+
+  // Relaciones bidireccionales añadidas (las que faltaban)
+  postTranslations    PostTranslation[]
+  commentTranslations CommentTranslation[]
+  projectTranslations ProjectTranslation[]
+
+  itemTranslations           ItemTranslation[]
+  roomBackgroundTranslations RoomBackgroundTranslation[]
+
+  appTranslations AppTranslation[]
+}
+
+model Post {
+  id        String   @id @default(uuid())
+  userId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  comments PostComment[]
+  likes    PostLike[]
+
+  translations PostTranslation[]
+}
+
+model PostTranslation {
+  id         String @id @default(uuid())
+  postId     String
+  languageId String
+  content    String
+
+  post     Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  language Language @relation(fields: [languageId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, languageId])
+}
+
+model PostComment {
+  id        String   @id @default(uuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  translations CommentTranslation[]
+}
+
+model CommentTranslation {
+  id         String @id @default(uuid())
+  commentId  String
+  languageId String
+  content    String
+
+  comment  PostComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  language Language    @relation(fields: [languageId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, languageId])
+}
+
+model PostLike {
+  id     String @id @default(uuid())
+  postId String
+  userId String
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+}
+
+model Project {
+  id       String @id @default(uuid())
+  userId   String
+  code     Json
+  language String
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  likes ProjectLike[]
+
+  tags ProjectTag[]
+
+  translations ProjectTranslation[]
+}
+
+model ProjectTranslation {
+  id          String  @id @default(uuid())
+  projectId   String
+  languageId  String
+  title       String
+  description String?
+
+  project  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  language Language @relation(fields: [languageId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, languageId])
+}
+
+model ProjectLike {
+  id        String @id @default(uuid())
+  projectId String
+  userId    String
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+}
+
+model Tag {
+  id   String @id @default(uuid())
+  name String @unique
+
+  projects ProjectTag[]
+}
+
+model ProjectTag {
+  id        String @id @default(uuid())
+  projectId String
+  tagId     String
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, tagId])
+}
+
+model Activity {
+  id       String       @id @default(uuid())
+  userId   String
+  type     ActivityType
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String?
+  metadata  Json?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
+}
+
+model FriendChallenge {
+  id           String  @id @default(uuid())
+  challengerId String
+  opponentId   String
+  courseId     String?
+
+  completed Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  challenger User @relation("ChallengeChallenger", fields: [challengerId], references: [id], onDelete: Cascade)
+  opponent   User @relation("ChallengeOpponent", fields: [opponentId], references: [id], onDelete: Cascade)
+
+  course Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+}
+
+model CoinTransaction {
+  id     String @id @default(uuid())
+  userId String
+  amount Int
+  reason String
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ColorPalette {
+  id String @id @default(uuid())
+
+  type String
+
+  value String
+}
+
+model XPTransaction {
+  id     String @id @default(uuid())
+  userId String
+  amount Int
+  reason String
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model EmailTemplate {
+  id        String            @id @default(uuid())
+  type      EmailTemplateType
+  language  String            @default("es")
+  name      String
+  subject   String
+  body      String
+  variables String[]          @default([])
+  active    Boolean           @default(true)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  campaigns EmailCampaign[]
+
+  @@unique([type, language])
+  @@index([active])
+}
+
+model EmailCampaign {
+  id             String              @id @default(uuid())
+  templateId     String
+  audience       EmailAudienceType
+  status         EmailCampaignStatus @default(DRAFT)
+  name           String
+  scheduledAt    DateTime?
+  sentAt         DateTime?
+  createdById    String?
+  roleFilter     Role?
+  languageFilter String?
+  countryFilter  String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  template EmailTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  logs     EmailLog[]
+
+  @@index([status, scheduledAt])
+}
+
+model EmailLog {
+  id           String             @id @default(uuid())
+  campaignId   String?
+  userId       String
+  email        String
+  templateType EmailTemplateType?
+  status       EmailLogStatus     @default(QUEUED)
+  error        String?
+  sentAt       DateTime?
+  createdAt    DateTime           @default(now())
+
+  campaign EmailCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([campaignId, status])
+}
+
+model EmailAuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  action    String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model ReferralProfile {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  referralCode String   @unique
+  referralLink String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([referralCode])
+}
+
+model ReferralProgramConfig {
+  id                          String   @id @default(uuid())
+  enabled                     Boolean  @default(true)
+  baseUrl                     String   @default("http://localhost:3000/register")
+  shareMessage                String?
+  codePrefix                  String?
+  codeLength                  Int      @default(8)
+  requiredLevel               Int      @default(5)
+  minAccountAgeDays           Int      @default(3)
+  requireVerifiedEmail        Boolean  @default(false)
+  requireCompletedCourse      Boolean  @default(true)
+  requiredCourseId            String?
+  maxReferralsPerDay          Int      @default(10)
+  rankingEnabled              Boolean  @default(true)
+  fraudAutoRevoke             Boolean  @default(true)
+  allowManualSeasonManagement Boolean  @default(true)
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+
+  requiredCourse Course? @relation(fields: [requiredCourseId], references: [id], onDelete: SetNull)
+}
+
+model ReferralSeason {
+  id          String               @id @default(uuid())
+  name        String
+  periodKey   String               @unique
+  startsAt    DateTime
+  endsAt      DateTime
+  status      ReferralSeasonStatus @default(ACTIVE)
+  finalizedAt DateTime?
+  metadata    Json?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  referrals Referral[]
+  rewards   ReferralReward[]
+  stats     ReferralSeasonStat[]
+
+  @@index([status, startsAt, endsAt])
+}
+
+model Referral {
+  id                 String         @id @default(uuid())
+  referrerUserId     String
+  referredUserId     String         @unique
+  seasonId           String?
+  referralCodeUsed   String
+  source             String?
+  status             ReferralStatus @default(PENDING)
+  validationSnapshot Json?
+  fraudSignals       Json?
+  riskScore          Int            @default(0)
+  evaluatedAt        DateTime?
+  validatedAt        DateTime?
+  rejectedAt         DateTime?
+  revokedAt          DateTime?
+  fraudAt            DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  referrer User            @relation("ReferralReferrer", fields: [referrerUserId], references: [id], onDelete: Cascade)
+  referred User            @relation("ReferralReferred", fields: [referredUserId], references: [id], onDelete: Cascade)
+  season   ReferralSeason? @relation(fields: [seasonId], references: [id], onDelete: SetNull)
+
+  rewardGrants ReferralRewardGrant[]
+  fraudLogs    ReferralFraudLog[]
+
+  @@index([referrerUserId, status, createdAt])
+  @@index([referredUserId, status])
+  @@index([seasonId, status])
+}
+
+model ReferralReward {
+  id          String              @id @default(uuid())
+  seasonId    String?
+  name        String
+  description String?
+  scope       ReferralRewardScope @default(MILESTONE)
+  rewardType  ReferralRewardType
+  threshold   Int?
+  rankFrom    Int?
+  rankTo      Int?
+  amount      Int?
+  itemId      String?
+  payload     Json?
+  active      Boolean             @default(true)
+  sortOrder   Int                 @default(0)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  item   Item?                 @relation(fields: [itemId], references: [id], onDelete: SetNull)
+  season ReferralSeason?       @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  grants ReferralRewardGrant[]
+
+  @@index([scope, active, sortOrder])
+  @@index([seasonId, active])
+}
+
+model ReferralRewardGrant {
+  id              String              @id @default(uuid())
+  userId          String
+  referralId      String?
+  rewardId        String?
+  itemId          String?
+  rewardType      ReferralRewardType
+  scope           ReferralRewardScope
+  status          ReferralGrantStatus @default(GRANTED)
+  amount          Int?
+  payloadSnapshot Json?
+  reason          String?
+  grantedAt       DateTime            @default(now())
+  revokedAt       DateTime?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  referral Referral?       @relation(fields: [referralId], references: [id], onDelete: SetNull)
+  reward   ReferralReward? @relation(fields: [rewardId], references: [id], onDelete: SetNull)
+  item     Item?           @relation(fields: [itemId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, rewardId, referralId])
+  @@index([userId, status, grantedAt])
+  @@index([rewardId, userId, status])
+  @@index([referralId, status])
+}
+
+model ReferralSeasonStat {
+  id                 String    @id @default(uuid())
+  seasonId           String
+  userId             String
+  validatedReferrals Int       @default(0)
+  pendingReferrals   Int       @default(0)
+  fraudReferrals     Int       @default(0)
+  totalRewards       Int       @default(0)
+  currentRank        Int?
+  finalRank          Int?
+  rewardGrantedAt    DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  season ReferralSeason @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([seasonId, userId])
+  @@index([seasonId, currentRank])
+  @@index([seasonId, validatedReferrals])
+}
+
+model ReferralFraudLog {
+  id          String    @id @default(uuid())
+  referralId  String
+  userId      String?
+  reasonCode  String
+  notes       String?
+  evidence    Json?
+  riskScore   Int?
+  actionTaken String?
+  resolvedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  referral Referral @relation(fields: [referralId], references: [id], onDelete: Cascade)
+  user     User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([referralId, createdAt])
+  @@index([userId, createdAt])
+  @@index([reasonCode, createdAt])
+}
+
+model MarketplaceSettings {
+  id String @id @default("default")
+
+  requireMinLevel      Boolean @default(true)
+  minLevel             Int     @default(10)
+  requireAccountAge    Boolean @default(true)
+  minAccountAgeDays    Int     @default(15)
+  requireEmailVerified Boolean @default(true)
+
+  publicationFeeCoins Int @default(50)
+  minPriceCoins       Int @default(100)
+  maxPriceCoins       Int @default(10000)
+  commissionRate      Int @default(20)
+
+  maxPendingItems        Int @default(5)
+  maxPublishedItems      Int @default(100)
+  maxSubmissionsPerDay   Int @default(3)
+  maxSubmissionsPerWeek  Int @default(10)
+  rejectionStrikeLimit   Int @default(3)
+  suspensionDaysOnStrike Int @default(7)
+
+  metadata  Json?
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
+model CreatorProfile {
+  id     String @id @default(uuid())
+  userId String @unique
+
+  displayName String?
+  bio         String?
+  avatarUrl   String?
+
+  status         CreatorStatus   @default(ACTIVE)
+  level          CreatorLevelKey @default(BRONZE)
+  verified       Boolean         @default(false)
+  featured       Boolean         @default(false)
+  joinedAt       DateTime        @default(now())
+  suspendedUntil DateTime?
+
+  totalSales      Int @default(0)
+  totalCoinsGross Int @default(0)
+  followersCount  Int @default(0)
+
+  metadata  Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user           User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wallet         CreatorWallet?
+  applications   CreatorApplication[]
+  contents       MarketplaceContent[]
+  purchases      MarketplacePurchase[]      @relation("MarketplaceCreatorSales")
+  walletMoves    CreatorWalletMovement[]
+  reviewComments MarketplaceReviewComment[]
+
+  @@index([status])
+  @@index([featured])
+}
+
+model CreatorWallet {
+  id        String @id @default(uuid())
+  creatorId String @unique
+
+  availableBalance Int @default(0)
+  historicalTotal  Int @default(0)
+  totalWithdrawn   Int @default(0)
+  totalSales       Int @default(0)
+  totalCommissions Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  creator   CreatorProfile          @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  movements CreatorWalletMovement[]
+}
+
+model CreatorWalletMovement {
+  id        String  @id @default(uuid())
+  creatorId String
+  walletId  String?
+  userId    String?
+
+  type         MarketplaceWalletMovementType
+  amount       Int
+  balanceAfter Int?
+  description  String?
+
+  contentId  String?
+  purchaseId String?
+  metadata   Json?
+
+  createdAt DateTime @default(now())
+
+  creator  CreatorProfile       @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  wallet   CreatorWallet?       @relation(fields: [walletId], references: [id], onDelete: SetNull)
+  user     User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
+  content  MarketplaceContent?  @relation(fields: [contentId], references: [id], onDelete: SetNull)
+  purchase MarketplacePurchase? @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
+
+  @@index([creatorId, createdAt])
+  @@index([type])
+}
+
+model CreatorApplication {
+  id        String  @id @default(uuid())
+  userId    String
+  creatorId String?
+
+  status              CreatorApplicationStatus @default(PENDING)
+  message             String?
+  adminMessage        String?
+  reviewedAt          DateTime?
+  requestedInfo       Json?
+  eligibilitySnapshot Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  creator CreatorProfile? @relation(fields: [creatorId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([userId])
+}
+
+model MarketplaceContent {
+  id        String @id @default(uuid())
+  creatorId String
+
+  type   MarketplaceContentType   @default(WORLD_ITEM)
+  status MarketplaceContentStatus @default(DRAFT)
+
+  title       String
+  description String?
+  category    String?
+  tags        String[] @default([])
+
+  spriteUrl  String?
+  previewUrl String?
+  priceCoins Int
+
+  payload            Json
+  validationSnapshot Json?
+  metadata           Json?
+
+  publishedItemId String?
+  publishedAt     DateTime?
+  submittedAt     DateTime?
+  reviewedAt      DateTime?
+  retiredAt       DateTime?
+
+  featured       Boolean @default(false)
+  views          Int     @default(0)
+  favoritesCount Int     @default(0)
+  downloadsCount Int     @default(0)
+  salesCount     Int     @default(0)
+  ratingAverage  Float   @default(0)
+  ratingCount    Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  creator       CreatorProfile              @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  publishedItem Item?                       @relation("PublishedMarketplaceItem", fields: [publishedItemId], references: [id], onDelete: SetNull)
+  versions      MarketplaceContentVersion[]
+  reviews       MarketplaceReviewComment[]
+  purchases     MarketplacePurchase[]
+  favorites     MarketplaceFavorite[]
+  ratings       MarketplaceRating[]
+  reports       MarketplaceReport[]
+  walletMoves   CreatorWalletMovement[]
+
+  @@index([status, createdAt])
+  @@index([type, status])
+  @@index([creatorId, status])
+  @@index([featured])
+}
+
+model MarketplaceContentVersion {
+  id        String @id @default(uuid())
+  contentId String
+  version   Int
+
+  title            String
+  description      String?
+  priceCoins       Int
+  payload          Json
+  changeNote       String?
+  statusAtCreation MarketplaceContentStatus
+
+  createdAt DateTime @default(now())
+
+  content MarketplaceContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@unique([contentId, version])
+  @@index([contentId, createdAt])
+}
+
+model MarketplaceReviewComment {
+  id        String  @id @default(uuid())
+  contentId String
+  creatorId String?
+  adminId   String?
+
+  message          String
+  status           MarketplaceContentStatus?
+  visibleToCreator Boolean                   @default(true)
+
+  createdAt DateTime @default(now())
+
+  content MarketplaceContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  creator CreatorProfile?    @relation(fields: [creatorId], references: [id], onDelete: SetNull)
+  admin   User?              @relation("MarketplaceReviewAdmin", fields: [adminId], references: [id], onDelete: SetNull)
+
+  @@index([contentId, createdAt])
+}
+
+model MarketplacePurchase {
+  id        String  @id @default(uuid())
+  buyerId   String
+  creatorId String
+  contentId String
+  itemId    String?
+
+  priceCoins      Int
+  creatorEarnings Int
+  platformFee     Int
+  useCount        Int       @default(0)
+  usedAt          DateTime?
+  placedAt        DateTime?
+  equippedAt      DateTime?
+
+  createdAt DateTime @default(now())
+
+  buyer     User                    @relation("MarketplaceBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
+  creator   CreatorProfile          @relation("MarketplaceCreatorSales", fields: [creatorId], references: [id], onDelete: Cascade)
+  content   MarketplaceContent      @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  movements CreatorWalletMovement[]
+
+  @@unique([buyerId, contentId])
+  @@index([creatorId, createdAt])
+  @@index([contentId])
+}
+
+model MarketplaceFavorite {
+  id        String   @id @default(uuid())
+  userId    String
+  contentId String
+  createdAt DateTime @default(now())
+
+  user    User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content MarketplaceContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, contentId])
+  @@index([contentId])
+}
+
+model MarketplaceRating {
+  id        String   @id @default(uuid())
+  userId    String
+  contentId String
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content MarketplaceContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, contentId])
+  @@index([contentId])
+}
+
+model MarketplaceReport {
+  id        String @id @default(uuid())
+  userId    String
+  contentId String
+
+  reason    MarketplaceReportReason
+  status    MarketplaceReportStatus @default(OPEN)
+  message   String?
+  adminNote String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content MarketplaceContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([contentId])
+}
+
+model CodeStudioAppType {
+  id          String  @id @default(uuid())
+  slug        String  @unique
+  name        String
+  icon        String?
+  color       String?
+  imageUrl    String?
+  description String?
+  category    String
+  difficulty  Int     @default(1)
+  active      Boolean @default(true)
+  order       Int     @default(0)
+  visible     Boolean @default(true)
+  metadata    Json?
+
+  blueprint CodeStudioBlueprint?
+  companies CodeStudioCompany[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active, visible, order])
+  @@index([category])
+}
+
+model CodeStudioModule {
+  id                 String  @id @default(uuid())
+  slug               String  @unique
+  name               String
+  description        String?
+  icon               String?
+  category           String
+  difficulty         Int     @default(1)
+  cost               Int     @default(100)
+  developmentSeconds Int     @default(60)
+  experience         Int     @default(10)
+  order              Int     @default(0)
+  visible            Boolean @default(true)
+  active             Boolean @default(true)
+  effects            Json?
+  requirements       Json?
+  metadata           Json?
+
+  blueprintModules CodeStudioBlueprintModule[]
+  installedModules CodeStudioCompanyModule[]
+  developmentTasks CodeStudioDevelopmentTask[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category, visible, order])
+}
+
+model CodeStudioTechnology {
+  id           String  @id @default(uuid())
+  slug         String  @unique
+  name         String
+  description  String?
+  icon         String?
+  category     String
+  cost         Int     @default(250)
+  active       Boolean @default(true)
+  order        Int     @default(0)
+  effects      Json?
+  requirements Json?
+  metadata     Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category, active, order])
+}
+
+model CodeStudioResearch {
+  id              String  @id @default(uuid())
+  slug            String  @unique
+  name            String
+  description     String?
+  durationSeconds Int     @default(300)
+  cost            Int     @default(500)
+  active          Boolean @default(true)
+  order           Int     @default(0)
+  requirements    Json?
+  rewards         Json?
+  metadata        Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CodeStudioCampaign {
+  id          String  @id @default(uuid())
+  slug        String  @unique
+  name        String
+  description String?
+  channel     String
+  baseCost    Int     @default(100)
+  active      Boolean @default(true)
+  order       Int     @default(0)
+  config      Json?
+  effects     Json?
+  metadata    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CodeStudioEventTemplate {
+  id          String  @id @default(uuid())
+  slug        String  @unique
+  name        String
+  description String?
+  category    String
+  severity    Int     @default(1)
+  active      Boolean @default(true)
+  weight      Int     @default(10)
+  triggers    Json?
+  effects     Json?
+  metadata    Json?
+
+  eventLogs CodeStudioEventLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CodeStudioEmployeeType {
+  id          String  @id @default(uuid())
+  slug        String  @unique
+  name        String
+  description String?
+  icon        String?
+  category    String
+  salary      Int     @default(100)
+  active      Boolean @default(true)
+  order       Int     @default(0)
+  baseStats   Json?
+  metadata    Json?
+
+  employees CodeStudioEmployee[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CodeStudioInfrastructureType {
+  id          String  @id @default(uuid())
+  slug        String  @unique
+  name        String
+  description String?
+  icon        String?
+  category    String
+  active      Boolean @default(true)
+  order       Int     @default(0)
+  baseCost    Int     @default(200)
+  scaling     Json?
+  metadata    Json?
+
+  infrastructure CodeStudioInfrastructure[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CodeStudioAchievement {
+  id          String  @id @default(uuid())
+  slug        String  @unique
+  name        String
+  description String?
+  icon        String?
+  active      Boolean @default(true)
+  order       Int     @default(0)
+  conditions  Json?
+  rewards     Json?
+  metadata    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CodeStudioBlueprint {
+  id        String @id @default(uuid())
+  appTypeId String @unique
+  name      String
+  version   Int    @default(1)
+
+  initialStats          Json?
+  requirements          Json?
+  technologies          Json?
+  suggestedCosts        Json?
+  suggestedTimes        Json?
+  compatibleEvents      Json?
+  recommendedEmployees  Json?
+  initialInfrastructure Json?
+  metadata              Json?
+
+  appType CodeStudioAppType           @relation(fields: [appTypeId], references: [id], onDelete: Cascade)
+  modules CodeStudioBlueprintModule[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CodeStudioBlueprintModule {
+  id          String  @id @default(uuid())
+  blueprintId String
+  moduleId    String
+  parentIds   Json?
+  position    Json?
+  required    Boolean @default(true)
+  order       Int     @default(0)
+  config      Json?
+
+  blueprint CodeStudioBlueprint @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
+  module    CodeStudioModule    @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@unique([blueprintId, moduleId])
+  @@index([blueprintId, order])
+}
+
+model CodeStudioCompany {
+  id        String @id @default(uuid())
+  userId    String
+  appTypeId String
+
+  name         String
+  status       CodeStudioCompanyStatus @default(IDEA)
+  level        Int                     @default(1)
+  cash         Int                     @default(5000)
+  reputation   Float                   @default(5)
+  innovation   Float                   @default(1)
+  valuation    Int                     @default(0)
+  activeUsers  Int                     @default(0)
+  totalUsers   Int                     @default(0)
+  revenue      Int                     @default(0)
+  expenses     Int                     @default(0)
+  satisfaction Float                   @default(75)
+  bugs         Float                   @default(0)
+  latency      Float                   @default(120)
+  stability    Float                   @default(99)
+  rating       Float                   @default(4)
+  tickCount    Int                     @default(0)
+
+  blueprintSnapshot Json?
+  stats             Json?
+  metadata          Json?
+  lastSimulatedAt   DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user    User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appType CodeStudioAppType @relation(fields: [appTypeId], references: [id])
+
+  modules        CodeStudioCompanyModule[]
+  employees      CodeStudioEmployee[]
+  infrastructure CodeStudioInfrastructure[]
+  development    CodeStudioDevelopmentTask[]
+  snapshots      CodeStudioAnalyticsSnapshot[]
+  events         CodeStudioEventLog[]
+
+  @@index([userId, updatedAt])
+  @@index([valuation])
+  @@index([activeUsers])
+}
+
+model CodeStudioCompanyModule {
+  id        String @id @default(uuid())
+  companyId String
+  moduleId  String
+
+  level       Int      @default(1)
+  quality     Float    @default(1)
+  installedAt DateTime @default(now())
+  config      Json?
+
+  company CodeStudioCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  module  CodeStudioModule  @relation(fields: [moduleId], references: [id])
+
+  @@unique([companyId, moduleId])
+  @@index([companyId])
+}
+
+model CodeStudioDevelopmentTask {
+  id        String @id @default(uuid())
+  companyId String
+  moduleId  String
+
+  status            CodeStudioDevelopmentStatus @default(QUEUED)
+  progress          Float                       @default(0)
+  requiredSeconds   Int
+  spentSeconds      Int                         @default(0)
+  assignedEmployees Json?
+  startedAt         DateTime?
+  completedAt       DateTime?
+  createdAt         DateTime                    @default(now())
+  updatedAt         DateTime                    @updatedAt
+
+  company CodeStudioCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  module  CodeStudioModule  @relation(fields: [moduleId], references: [id])
+
+  @@index([companyId, status])
+}
+
+model CodeStudioEmployee {
+  id             String @id @default(uuid())
+  companyId      String
+  employeeTypeId String
+
+  name         String
+  avatar       String?
+  age          Int
+  experience   Int      @default(1)
+  productivity Float    @default(1)
+  creativity   Float    @default(1)
+  motivation   Float    @default(80)
+  stress       Float    @default(5)
+  salary       Int
+  speed        Float    @default(1)
+  quality      Float    @default(1)
+  level        Int      @default(1)
+  hiredAt      DateTime @default(now())
+  metadata     Json?
+
+  company      CodeStudioCompany      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employeeType CodeStudioEmployeeType @relation(fields: [employeeTypeId], references: [id])
+
+  @@index([companyId])
+}
+
+model CodeStudioInfrastructure {
+  id                   String @id @default(uuid())
+  companyId            String
+  infrastructureTypeId String
+
+  level     Int   @default(1)
+  capacity  Int   @default(1000)
+  latency   Float @default(120)
+  stability Float @default(99)
+  cost      Int   @default(100)
+  metadata  Json?
+
+  company            CodeStudioCompany            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  infrastructureType CodeStudioInfrastructureType @relation(fields: [infrastructureTypeId], references: [id])
+
+  @@unique([companyId, infrastructureTypeId])
+}
+
+model CodeStudioAnalyticsSnapshot {
+  id        String @id @default(uuid())
+  companyId String
+
+  activeUsers Int
+  newUsers    Int
+  lostUsers   Int
+  retention   Float
+  conversion  Float
+  errors      Float
+  latency     Float
+  rating      Float
+  revenue     Int
+  expenses    Int
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  company CodeStudioCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, createdAt])
+}
+
+model CodeStudioEventLog {
+  id          String   @id @default(uuid())
+  companyId   String
+  templateId  String?
+  title       String
+  description String?
+  effects     Json?
+  resolved    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  company  CodeStudioCompany        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  template CodeStudioEventTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
+  @@index([companyId, createdAt])
+}
