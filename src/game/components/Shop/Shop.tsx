@@ -24,6 +24,17 @@ type TabType = "avatar" | "world" | "textures" | "backgrounds";
 
 const ITEMS_PER_PAGE = 12;
 
+// item.rarity llega como un tier numérico (0,1,2,3...) desde la base de
+// datos, no como texto — mostrarlo tal cual (con "?? COMMON", que nunca
+// dispara porque 0 no es null/undefined) hacía que se viera un número suelto
+// al lado del precio, dando la falsa impresión de dos precios ("10 10").
+const RARITY_LABELS = ["COMMON", "RARE", "EPIC", "LEGENDARY"];
+function getRarityLabel(rarity: unknown): string {
+  if (typeof rarity === "string" && rarity.trim()) return rarity;
+  const tier = typeof rarity === "number" ? rarity : 0;
+  return RARITY_LABELS[Math.max(0, Math.min(tier, RARITY_LABELS.length - 1))];
+}
+
 export default function Shop({ socket, inventory = [], onClose }: Props) {
   const [items, setItems] = useState<any[]>([]);
   const [search, setSearch] = useState("");
@@ -200,7 +211,7 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
       variant="floating"
       title="Item Shop"
       onClose={onClose ?? (() => {})}
-      style={{ width: "min(720px, calc(100vw - 24px))", height: "min(620px, calc(100dvh - 24px))" }}
+      style={{ width: "min(960px, calc(100vw - 24px))", height: "min(760px, calc(100dvh - 24px))" }}
     >
       <div className={styles.tabs}>
         <button
@@ -285,7 +296,7 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
                     ) : (
                       <CurrencyBadge currency="coins" amount={item.coinsPrice} size="sm" />
                     )}
-                    <span className={styles.rarity}>{item.rarity ?? "COMMON"}</span>
+                    <span className={styles.rarity}>{getRarityLabel(item.rarity)}</span>
                   </div>
                   <Button
                     variant="primary"

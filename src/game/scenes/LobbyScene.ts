@@ -715,7 +715,6 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
       playerSprite: this.player,
       username: user.username,
       level: user.level || 1,
-      coins: user.coins || 0,
     });
 
     this.otherPlayers = this.add.group();
@@ -1277,7 +1276,6 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
       playerSprite: other,
       username: playerData.username,
       level: playerData.level || 1,
-      coins: playerData.coins || 0,
     });
 
     this.otherPlayers.add(other);

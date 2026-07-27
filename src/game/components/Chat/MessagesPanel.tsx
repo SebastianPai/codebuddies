@@ -15,6 +15,7 @@ import {
 } from "../../network/messages";
 import { useChat } from "./ChatProvider";
 import { audioManager } from "../../audio/AudioManager";
+import UserBadges from "../shared/UserBadges";
 
 type Props = {
   onClose: () => void;
@@ -95,7 +96,8 @@ export default function MessagesPanel({ onClose }: Props) {
               {requests.map((request) => (
                 <div key={request.id} className={styles.requestRow}>
                   <div className={styles.requestBody}>
-                    <span className={styles.requestUser}>{request.sender.username}</span>: {request.body}
+                    <span className={styles.requestUser}>{request.sender.username}</span>
+                    <UserBadges username={request.sender.username} size={11} />: {request.body}
                   </div>
                   <div className={styles.requestActions}>
                     <button
@@ -138,7 +140,10 @@ export default function MessagesPanel({ onClose }: Props) {
                 </div>
               )}
               <div className={styles.conversationInfo}>
-                <div className={styles.conversationUser}>{conversation.partner.username}</div>
+                <div className={styles.conversationUser}>
+                  {conversation.partner.username}
+                  <UserBadges username={conversation.partner.username} size={12} />
+                </div>
                 {conversation.lastMessage && (
                   <div className={styles.conversationPreview}>{conversation.lastMessage.body}</div>
                 )}

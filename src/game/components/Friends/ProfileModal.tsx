@@ -16,6 +16,7 @@ import { requestGameConfirm, showGameAlert } from "../../utils/dialog";
 import { audioManager } from "../../audio/AudioManager";
 import Modal from "../shared/Modal";
 import Button from "../shared/Button";
+import UserBadges from "../shared/UserBadges";
 import { Globe, Lock, MessageCircle } from "lucide-react";
 
 type Props = {
@@ -156,7 +157,16 @@ export default function ProfileModal({ username, onClose, onOpenChat }: Props) {
 
   return (
     <Modal
-      title={!loading && !error && profile ? profile.username : "Perfil"}
+      title={
+        !loading && !error && profile ? (
+          <>
+            {profile.username}
+            <UserBadges verified={profile.verified} isCreator={profile.isCreator} size={14} className={styles.titleBadges} />
+          </>
+        ) : (
+          "Perfil"
+        )
+      }
       onClose={onClose}
       contentClassName={styles.content}
       style={{ width: "min(340px, 100%)" }}

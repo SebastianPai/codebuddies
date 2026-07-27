@@ -6,6 +6,7 @@ import "./UserProfilePanel.css";
 import AvatarPreview from "../AvatarEditor/AvatarPreview";
 import { useAvatar } from "../../hooks/useAvatar";
 import { useSocket } from "../../hooks/useSocket";
+import UserBadges from "../shared/UserBadges";
 
 export default function UserProfilePanel({
   username,
@@ -37,7 +38,10 @@ export default function UserProfilePanel({
           </div>
 
           <div className="info-section">
-            <div className="username">{username}</div>
+            <div className="username">
+              {username}
+              <UserBadges username={username} size={13} />
+            </div>
 
             <div className="level-row">
               <span className="level-number">NIVEL {level}</span>

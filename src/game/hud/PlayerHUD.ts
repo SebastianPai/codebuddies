@@ -6,7 +6,6 @@ export interface HUDConfig {
   playerSprite: ModularPlayer | null;
   username: string;
   level?: number;
-  coins?: number;
 }
 
 export default class PlayerHUD {
@@ -19,8 +18,6 @@ export default class PlayerHUD {
   private scene: Phaser.Scene;
   private sprite: ModularPlayer | null;
   private usernameText: Phaser.GameObjects.Text;
-  private levelText?: Phaser.GameObjects.Text;
-  private coinsText?: Phaser.GameObjects.Text;
   private chatText?: Phaser.GameObjects.Text;
 
   constructor(config: HUDConfig) {
@@ -28,40 +25,25 @@ export default class PlayerHUD {
     this.sprite = config.playerSprite;
     const HUD_DEPTH = PlayerHUD.HUD_DEPTH;
 
-    // Creamos los textos con posición temporal (0,0) y ocultos si no hay sprite
+    // Nombre y nivel en un solo texto/pill en vez de dos líneas flotantes con
+    // estilos distintos (blanco+fondo vs. verde suelto): quedaba desprolijo
+    // y no se leía como una sola etiqueta de jugador.
+    const label =
+      config.level !== undefined ? `${config.username}  ·  Lv.${config.level}` : config.username;
+
+    // Ocultos si no hay sprite todavía; update() los posiciona y muestra.
     this.usernameText = this.scene.add
-      .text(0, 0, config.username, {
-        fontSize: "14px",
-        color: "#ffffff",
+      .text(0, 0, label, {
+        fontFamily: "Arial, sans-serif",
+        fontSize: "13px",
+        color: "#f8fafc",
         fontStyle: "bold",
-        backgroundColor: "rgba(0,0,0,0.5)",
-        padding: { x: 4, y: 2 },
+        backgroundColor: "rgba(10, 12, 16, 0.72)",
+        padding: { x: 8, y: 4 },
       })
       .setOrigin(0.5)
       .setDepth(HUD_DEPTH)
-      .setVisible(!!this.sprite); // visible solo si ya hay sprite
-
-    if (config.level !== undefined) {
-      this.levelText = this.scene.add
-        .text(0, 0, `Lvl ${config.level}`, {
-          fontSize: "12px",
-          color: "#00ff00",
-        })
-        .setOrigin(0.5)
-        .setDepth(HUD_DEPTH)
-        .setVisible(!!this.sprite);
-    }
-
-    if (config.coins !== undefined) {
-      this.coinsText = this.scene.add
-        .text(0, 0, `${config.coins}`, {
-          fontSize: "12px",
-          color: "#ffd700",
-        })
-        .setOrigin(0.5)
-        .setDepth(HUD_DEPTH)
-        .setVisible(!!this.sprite);
-    }
+      .setVisible(!!this.sprite);
   }
 
   update() {
@@ -74,16 +56,6 @@ export default class PlayerHUD {
     this.usernameText.setPosition(this.sprite.x, this.sprite.y - 50);
     this.usernameText.setVisible(true);
 
-    if (this.levelText) {
-      this.levelText.setPosition(this.sprite.x, this.sprite.y - 70);
-      this.levelText.setVisible(true);
-    }
-
-    if (this.coinsText) {
-      this.coinsText.setPosition(this.sprite.x, this.sprite.y - 85);
-      this.coinsText.setVisible(true);
-    }
-
     if (this.chatText) {
       this.chatText.setPosition(this.sprite.x, this.sprite.y - 100);
       this.chatText.setDepth(PlayerHUD.HUD_DEPTH);
@@ -93,9 +65,7 @@ export default class PlayerHUD {
   // Objetos Phaser que componen el HUD, para que la escena pueda excluirlos
   // de otras cámaras (p. ej. el minimapa) sin depender de propiedades internas.
   getDisplayObjects(): Phaser.GameObjects.GameObject[] {
-    return [this.usernameText, this.levelText, this.coinsText, this.chatText].filter(
-      Boolean,
-    ) as Phaser.GameObjects.GameObject[];
+    return [this.usernameText, this.chatText].filter(Boolean) as Phaser.GameObjects.GameObject[];
   }
 
   showChat(message: string, duration = 3000) {
@@ -127,8 +97,6 @@ export default class PlayerHUD {
 
   destroy() {
     this.usernameText.destroy();
-    this.levelText?.destroy();
-    this.coinsText?.destroy();
     this.chatText?.destroy();
   }
 

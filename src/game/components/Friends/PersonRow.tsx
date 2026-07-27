@@ -1,6 +1,7 @@
 "use client";
 
 import styles from "./PersonRow.module.css";
+import UserBadges from "../shared/UserBadges";
 
 export type PersonRowAction = {
   label: string;
@@ -45,7 +46,10 @@ export default function PersonRow({
       </div>
 
       <div className={styles.info}>
-        <div className={styles.username}>{username}</div>
+        <div className={styles.username}>
+          {username}
+          <UserBadges username={username} size={12} />
+        </div>
         {subtitle && <div className={styles.subtitle}>{subtitle}</div>}
       </div>
 

@@ -12,6 +12,7 @@ import {
   sendTyping,
 } from "../../network/messages";
 import { audioManager } from "../../audio/AudioManager";
+import UserBadges from "../shared/UserBadges";
 
 type Props = {
   conversationId: string;
@@ -137,6 +138,7 @@ export default function ChatWindow({
           <div className={styles.avatarFallback}>{partnerUsername.slice(0, 1).toUpperCase()}</div>
         )}
         <span className={styles.username}>{partnerUsername}</span>
+        <UserBadges username={partnerUsername} size={13} />
         <button
           className={styles.closeBtn}
           aria-label="Cerrar chat"

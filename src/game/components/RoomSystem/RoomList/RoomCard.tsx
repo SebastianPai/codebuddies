@@ -4,6 +4,7 @@ import { Room } from "../../../types/room";
 import styles from "./RoomCard.module.css";
 import CachedGameImage from "../../shared/CachedGameImage";
 import ImagePreviewModal from "../../shared/ImagePreviewModal";
+import UserBadges from "../../shared/UserBadges";
 
 interface RoomCardProps {
   room: Room;
@@ -92,6 +93,7 @@ export default function RoomCard({ room, onJoin, onView }: RoomCardProps) {
 
             <span className={styles.ownerName}>
               <Crown size={12} /> {room.owner?.username ?? "Desconocido"}
+              {room.owner?.username && <UserBadges username={room.owner.username} size={11} />}
             </span>
           </div>
         </div>

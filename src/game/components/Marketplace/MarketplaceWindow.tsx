@@ -9,6 +9,7 @@ import Modal from "../shared/Modal";
 import Button from "../shared/Button";
 import ItemGrid from "../shared/ItemGrid";
 import ItemCard from "../shared/ItemCard";
+import UserBadges from "../shared/UserBadges";
 import styles from "./MarketplaceWindow.module.css";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
@@ -214,7 +215,7 @@ export default function MarketplaceWindow({ socket, onClose }: Props) {
       variant="floating"
       title="Marketplace"
       onClose={onClose}
-      style={{ width: "min(720px, calc(100vw - 24px))", height: "min(620px, calc(100dvh - 24px))" }}
+      style={{ width: "min(960px, calc(100vw - 24px))", height: "min(760px, calc(100dvh - 24px))" }}
     >
       <div className={styles.tabs}>
         <button className={tab === "marketplace" ? styles.active : ""} onClick={() => setTab("marketplace")}>
@@ -282,7 +283,7 @@ export default function MarketplaceWindow({ socket, onClose }: Props) {
                       <p className={styles.description}>{item.description || "Contenido de la comunidad."}</p>
                       <div className={styles.author}>
                         por <b>{item.creator.user.username}</b>
-                        {item.creator.verified && <span>Verified</span>}
+                        <UserBadges verified={item.creator.verified} isCreator size={12} />
                       </div>
                       <div className={styles.metrics}>
                         <span>{item.ratingAverage.toFixed(1)} estrellas</span>

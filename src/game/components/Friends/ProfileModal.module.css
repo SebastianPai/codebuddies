@@ -4,6 +4,11 @@
   gap: var(--cb-space-3);
 }
 
+.titleBadges {
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
 .profileHead {
   display: flex;
   flex-direction: column;

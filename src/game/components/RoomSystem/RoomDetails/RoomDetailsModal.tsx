@@ -8,6 +8,7 @@ import BackgroundSelector from "../BackgroundSelector/BackgroundSelector";
 import styles from "./RoomDetailsModal.module.css";
 import Modal from "../../shared/Modal";
 import Button from "../../shared/Button";
+import UserBadges from "../../shared/UserBadges";
 
 type PendingJoinRequest = {
   id: string;
@@ -110,8 +111,9 @@ export default function RoomDetailsModal({
             {room.description?.trim() || "Sin descripción"}
           </p>
 
-          <p>
+          <p className={styles.ownerLine}>
             <strong>Creador:</strong> {room.owner?.username || "Desconocido"}
+            {room.owner?.username && <UserBadges username={room.owner.username} size={12} />}
           </p>
 
           <p>
@@ -148,7 +150,10 @@ export default function RoomDetailsModal({
                 <p className={styles.joinRequestsTitle}>Quieren entrar</p>
                 {joinRequests.map((request) => (
                   <div key={request.id} className={styles.joinRequestRow}>
-                    <span className={styles.joinRequestUser}>{request.user.username}</span>
+                    <span className={styles.joinRequestUser}>
+                      {request.user.username}
+                      <UserBadges username={request.user.username} size={11} />
+                    </span>
                     <div className={styles.joinRequestActions}>
                       <Button
                         variant="primary"

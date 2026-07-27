@@ -21,6 +21,8 @@ export type PublicProfile = {
   friendshipStatus: FriendshipStatus;
   friendshipDirection?: FriendshipDirection;
   mutualFriends: number;
+  verified: boolean;
+  isCreator: boolean;
 };
 
 export type ProfileRoom = {
