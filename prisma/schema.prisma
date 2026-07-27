@@ -2360,6 +2360,26 @@ model CreatorProfile {
   @@index([featured])
 }
 
+// Insignia junto al nombre de usuario (verificado = lo activa un admin en
+// CreatorProfile.verified; creador = automático, se calcula por tener al
+// menos un MarketplaceContent en PUBLISHED). Este modelo solo guarda el
+// ícono opcional que el admin puede subir para reemplazar el ícono por
+// defecto de cada tipo — si iconUrl es null, el cliente usa su ícono lucide
+// por defecto.
+enum BadgeType {
+  VERIFIED
+  CREATOR
+}
+
+model BadgeConfig {
+  id      String    @id @default(uuid())
+  type    BadgeType @unique
+  iconUrl String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model CreatorWallet {
   id        String @id @default(uuid())
   creatorId String @unique

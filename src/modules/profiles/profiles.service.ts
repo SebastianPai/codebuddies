@@ -6,12 +6,14 @@ import {
 import { NotificationType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { BadgesService } from '../badges/badges.service';
 
 @Injectable()
 export class ProfilesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
+    private readonly badgesService: BadgesService,
   ) {}
 
   async getPublicProfile(username: string, viewerId?: string) {
@@ -42,7 +44,7 @@ export class ProfilesService {
       throw new NotFoundException('Profile not found');
     }
 
-    const [coursesCompleted, rank] = await Promise.all([
+    const [coursesCompleted, rank, badges] = await Promise.all([
       this.prisma.completion.count({
         where: {
           userId: user.id,
@@ -58,6 +60,7 @@ export class ProfilesService {
           },
         },
       }),
+      this.badgesService.getUserBadges(user.id),
     ]);
 
     let isFollowing = false;
@@ -158,6 +161,9 @@ export class ProfilesService {
       level: user.level,
       xp: user.experience,
       coins: user.coins,
+
+      verified: badges.verified,
+      isCreator: badges.isCreator,
 
       currentStreak: user.streak,
       bestStreak: user.bestStreak,

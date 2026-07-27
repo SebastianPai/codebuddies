@@ -33,6 +33,7 @@ import { RealtimeModule } from './modules/realtime/realtime.module';
 import { ReferralsModule } from './modules/referrals/referrals.module';
 import { GamificationModule } from './modules/gamification/gamification.module';
 import { MarketplaceModule } from './modules/marketplace/marketplace.module';
+import { BadgesModule } from './modules/badges/badges.module';
 import { CodeStudioModule } from './modules/codestudio/codestudio.module';
 import { ScheduleModule } from '@nestjs/schedule';
 
@@ -73,6 +74,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     ReferralsModule,
     GamificationModule,
     MarketplaceModule,
+    BadgesModule,
     CodeStudioModule,
   ],
 })
