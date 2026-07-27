@@ -1,0 +1,18 @@
+{
+  "loading": "Cargando...",
+  "title": "Animaciones",
+  "new": "Nueva",
+  "newAnimation": "Nueva animacion",
+  "editAnimation": "Editar animacion",
+  "preview": "Vista previa",
+  "name": "Nombre",
+  "variant": "Variante",
+  "speed": "Velocidad",
+  "loop": "Repetir",
+  "save": "Guardar",
+  "uploadSprite": "Subir sprite",
+  "frame": "Frame",
+  "uploading": "Subiendo...",
+  "upload": "Subir",
+  "uploaded": "Subido"
+}

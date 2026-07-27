@@ -1,0 +1,10 @@
+{
+  "nextLogoAlt": "Logotipo de Next.js",
+  "starterTitle": "Para comenzar, edita el archivo page.tsx.",
+  "starterDescription": "¿Buscas un punto de partida o más instrucciones? Visita las plantillas o el centro de aprendizaje.",
+  "templates": "Plantillas",
+  "learning": "Aprendizaje",
+  "deploy": "Desplegar ahora",
+  "documentation": "Documentación",
+  "vercelAlt": "Logotipo de Vercel"
+}
