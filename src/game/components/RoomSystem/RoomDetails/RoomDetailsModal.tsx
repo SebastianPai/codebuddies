@@ -8,6 +8,12 @@ import styles from "./RoomDetailsModal.module.css";
 import Modal from "../../shared/Modal";
 import Button from "../../shared/Button";
 
+type PendingJoinRequest = {
+  id: string;
+  createdAt: string;
+  user: { id: string; username: string; avatarUrl?: string | null };
+};
+
 interface Props {
   room: Room;
   currentUserId?: string;
@@ -29,6 +35,7 @@ export default function RoomDetailsModal({
   const [selectedBackgroundId, setSelectedBackgroundId] = useState(
     room.background?.id ?? "",
   );
+  const [joinRequests, setJoinRequests] = useState<PendingJoinRequest[]>([]);
   const socket =
     socketProp ||
     (typeof window !== "undefined" ? (window as any).phaserSocket : null);
@@ -49,6 +56,25 @@ export default function RoomDetailsModal({
       socket.off("backgrounds:list", setBackgrounds);
     };
   }, [socket]);
+
+  useEffect(() => {
+    if (!socket || !isOwner) return;
+
+    const handleJoinRequests = (data: { roomId: string; requests: PendingJoinRequest[] }) => {
+      if (data.roomId === room.id) setJoinRequests(data.requests);
+    };
+
+    socket.emit("room:joinRequests:list", { roomId: room.id });
+    socket.on("room:joinRequests", handleJoinRequests);
+    socket.on("room:joinRequest:approved", () => socket.emit("room:joinRequests:list", { roomId: room.id }));
+    socket.on("room:joinRequest:rejected", () => socket.emit("room:joinRequests:list", { roomId: room.id }));
+
+    return () => {
+      socket.off("room:joinRequests", handleJoinRequests);
+      socket.off("room:joinRequest:approved");
+      socket.off("room:joinRequest:rejected");
+    };
+  }, [socket, isOwner, room.id]);
 
   const handleJoin = async () => {
     if (joining) return;
@@ -113,6 +139,34 @@ export default function RoomDetailsModal({
         {isOwner && (
           <div className={styles.ownerActions}>
             <p className={styles.ownerLabel}>🔧 Eres el dueño de esta sala</p>
+
+            {joinRequests.length > 0 && (
+              <div className={styles.joinRequests}>
+                <p className={styles.joinRequestsTitle}>Quieren entrar</p>
+                {joinRequests.map((request) => (
+                  <div key={request.id} className={styles.joinRequestRow}>
+                    <span className={styles.joinRequestUser}>{request.user.username}</span>
+                    <div className={styles.joinRequestActions}>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => socket?.emit("room:joinRequest:approve", { requestId: request.id })}
+                      >
+                        Aceptar
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => socket?.emit("room:joinRequest:reject", { requestId: request.id })}
+                      >
+                        Rechazar
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <BackgroundSelector
               backgrounds={backgrounds}
               selectedId={selectedBackgroundId}

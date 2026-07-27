@@ -19,6 +19,7 @@ interface Props {
 }
 
 type TabType = "public" | "my";
+type SortType = "recent" | "popular" | "users";
 
 export default function RoomList({
   onJoinRoom,
@@ -30,6 +31,7 @@ export default function RoomList({
   const [showCreate, setShowCreate] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>("public");
   const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<SortType>("recent");
   const [loading, setLoading] = useState(true);
 
   const nodeRef = useRef<HTMLDivElement>(null);
@@ -101,16 +103,27 @@ export default function RoomList({
   const displayedRooms = useMemo(() => {
     const rooms = activeTab === "my" ? myRooms : publicRooms;
 
-    if (!search) return rooms;
-
     const term = search.toLowerCase();
+    const filtered = !term
+      ? rooms
+      : rooms.filter(
+          (room) =>
+            room.name.toLowerCase().includes(term) ||
+            room.description?.toLowerCase().includes(term),
+        );
 
-    return rooms.filter(
-      (room) =>
-        room.name.toLowerCase().includes(term) ||
-        room.description?.toLowerCase().includes(term),
-    );
-  }, [activeTab, myRooms, publicRooms, search]);
+    const sorted = [...filtered];
+    if (sort === "popular") {
+      sorted.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+    } else if (sort === "users") {
+      sorted.sort((a, b) => (b._count?.users ?? 0) - (a._count?.users ?? 0));
+    } else {
+      sorted.sort(
+        (a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime(),
+      );
+    }
+    return sorted;
+  }, [activeTab, myRooms, publicRooms, search, sort]);
 
   return (
     <>
@@ -178,18 +191,24 @@ export default function RoomList({
                   />
                 </div>
 
-                <select className={styles.sort}>
-                  <option>Más recientes</option>
-
-                  <option>Más populares</option>
-
-                  <option>Más usuarios</option>
+                <select
+                  className={styles.sort}
+                  value={sort}
+                  onChange={(event) => setSort(event.target.value as SortType)}
+                >
+                  <option value="recent">Más recientes</option>
+                  <option value="popular">Más populares</option>
+                  <option value="users">Más usuarios</option>
                 </select>
               </div>
 
               <div className={styles.grid}>
                 {loading ? (
-                  <div className={styles.loading}>Cargando salas...</div>
+                  <div className={styles.skeletonGrid}>
+                    {Array.from({ length: 6 }).map((_, index) => (
+                      <div key={index} className={styles.skeletonCard} />
+                    ))}
+                  </div>
                 ) : displayedRooms.length > 0 ? (
                   displayedRooms.map((room) => (
                     <RoomCard
@@ -200,7 +219,14 @@ export default function RoomList({
                     />
                   ))
                 ) : (
-                  <div className={styles.empty}>No se encontraron salas</div>
+                  <div className={styles.empty}>
+                    <span className={styles.emptyIcon}>🚪</span>
+                    <span>
+                      {activeTab === "my"
+                        ? "Todavía no tienes salas. Crea la primera arriba."
+                        : "No se encontraron salas con ese filtro."}
+                    </span>
+                  </div>
                 )}
               </div>
             </div>

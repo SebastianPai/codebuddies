@@ -3,7 +3,14 @@
 import { useEffect, useState } from "react";
 
 import styles from "./ProfileModal.module.css";
-import { PublicProfile, followUser, getPublicProfile, unfollowUser } from "../../network/profiles";
+import {
+  ProfileRoom,
+  PublicProfile,
+  followUser,
+  getPublicProfile,
+  getPublicProfileRooms,
+  unfollowUser,
+} from "../../network/profiles";
 import { acceptFriendRequest, removeFriendship, sendFriendRequest } from "../../network/friendships";
 import { requestGameConfirm, showGameAlert } from "../../utils/dialog";
 import { audioManager } from "../../audio/AudioManager";
@@ -21,6 +28,8 @@ export default function ProfileModal({ username, onClose, onOpenChat }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [rooms, setRooms] = useState<ProfileRoom[]>([]);
+  const [requestingRoomId, setRequestingRoomId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -37,8 +46,36 @@ export default function ProfileModal({ username, onClose, onOpenChat }: Props) {
 
   useEffect(() => {
     void load();
+    getPublicProfileRooms(username)
+      .then(setRooms)
+      .catch(() => setRooms([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [username]);
+
+  const joinRoom = (roomId: string) => {
+    const socket = (typeof window !== "undefined" && (window as any).phaserSocket) || null;
+    socket?.emit("joinRoom", { roomId });
+    onClose();
+  };
+
+  const requestJoinRoom = async (room: ProfileRoom) => {
+    const socket = (typeof window !== "undefined" && (window as any).phaserSocket) || null;
+    if (!socket) return;
+
+    setRequestingRoomId(room.id);
+    socket.emit("room:requestJoin", { roomId: room.id });
+    setRooms((current) =>
+      current.map((entry) => (entry.id === room.id ? { ...entry, joinRequestStatus: "PENDING" } : entry)),
+    );
+    setRequestingRoomId(null);
+
+    await showGameAlert({
+      title: "Solicitud enviada",
+      message: `Le avisamos a ${username} que quieres entrar a "${room.name}". Te llega una notificación si te deja pasar.`,
+      confirmLabel: "Entendido",
+      tone: "success",
+    });
+  };
 
   const handleFriendAction = async () => {
     if (!profile) return;
@@ -179,6 +216,44 @@ export default function ProfileModal({ username, onClose, onOpenChat }: Props) {
               {friendActionLabel()}
             </Button>
           </div>
+
+          {rooms.length > 0 && (
+            <div className={styles.rooms}>
+              <div className={styles.roomsTitle}>Salas de {profile.username}</div>
+              {rooms.map((room) => (
+                <div key={room.id} className={styles.roomRow}>
+                  <div className={styles.roomInfo}>
+                    <span className={styles.roomName}>{room.name}</span>
+                    <span className={styles.roomMeta}>
+                      {room.isPublic ? "🌍 Pública" : "🔒 Privada"} · {room._count.users}/{room.maxUsers}
+                    </span>
+                  </div>
+                  {room.canJoinDirectly ? (
+                    <Button variant="primary" size="sm" onClick={() => joinRoom(room.id)}>
+                      Entrar
+                    </Button>
+                  ) : room.joinRequestStatus === "PENDING" ? (
+                    <Button variant="secondary" size="sm" disabled>
+                      Pendiente
+                    </Button>
+                  ) : room.joinRequestStatus === "APPROVED" ? (
+                    <Button variant="primary" size="sm" onClick={() => joinRoom(room.id)}>
+                      Entrar
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={requestingRoomId === room.id}
+                      onClick={() => void requestJoinRoom(room)}
+                    >
+                      Pedir permiso
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </>
       )}
     </Modal>

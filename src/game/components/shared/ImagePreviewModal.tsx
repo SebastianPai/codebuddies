@@ -1,6 +1,9 @@
 "use client";
 
+import { useState } from "react";
+
 import Modal from "./Modal";
+import Button from "./Button";
 import styles from "./ImagePreviewModal.module.css";
 
 interface Props {
@@ -9,15 +12,78 @@ interface Props {
   onClose: () => void;
 }
 
-// Preview grande de una imagen de item/textura/sala: el thumbnail en la
-// tarjeta suele ser demasiado chico para ver bien el objeto (más aún si es
-// una textura no cuadrada), así que esto la muestra a tamaño completo.
+// Caja de referencia para calcular el zoom inicial (coincide, con margen, con
+// el tamaño real de .stage — .stage tiene su propio scroll para cuando el
+// usuario acerca más de lo que entra en el marco).
+const STAGE_WIDTH = 320;
+const STAGE_HEIGHT = 320;
+const MIN_SCALE = 1;
+const MAX_SCALE = 12;
+
+// Pixel art no se ve bien agrandado con escalas fraccionarias (queda
+// borroso). Usamos siempre un múltiplo ENTERO del tamaño real (1x, 2x, 3x...)
+// para que se vea nítido sin importar cuánto se acerque el usuario.
+function fitScale(naturalWidth: number, naturalHeight: number) {
+  if (!naturalWidth || !naturalHeight) return MIN_SCALE;
+  const scale = Math.floor(Math.min(STAGE_WIDTH / naturalWidth, STAGE_HEIGHT / naturalHeight));
+  return Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale));
+}
+
+// Preview grande de una imagen de item/textura/sala, con acercar/alejar a
+// gusto del usuario: el thumbnail en la tarjeta suele ser demasiado chico
+// para ver bien el objeto (más una textura nativa de 64x32), y el zoom
+// automático solo no siempre alcanza — a veces se quiere ver más de cerca.
 export default function ImagePreviewModal({ title, imageUrl, onClose }: Props) {
+  const [natural, setNatural] = useState<{ width: number; height: number } | null>(null);
+  const [zoom, setZoom] = useState<number | null>(null);
+
+  const scale = zoom ?? (natural ? fitScale(natural.width, natural.height) : null);
+
   return (
-    <Modal title={title} onClose={onClose} style={{ width: "min(440px, 92vw)" }}>
+    <Modal
+      title={title}
+      onClose={onClose}
+      style={{ width: "min(440px, 92vw)" }}
+      footer={
+        <div className={styles.zoomControls}>
+          <Button
+            variant="secondary"
+            size="sm"
+            aria-label="Alejar"
+            disabled={!natural || (scale ?? MIN_SCALE) <= MIN_SCALE}
+            onClick={() => setZoom(Math.max(MIN_SCALE, (scale ?? MIN_SCALE) - 1))}
+          >
+            − Alejar
+          </Button>
+          <span className={styles.zoomLabel}>{scale ? `${scale}x` : "…"}</span>
+          <Button
+            variant="secondary"
+            size="sm"
+            aria-label="Acercar"
+            disabled={!natural || (scale ?? MIN_SCALE) >= MAX_SCALE}
+            onClick={() => setZoom(Math.min(MAX_SCALE, (scale ?? MIN_SCALE) + 1))}
+          >
+            + Acercar
+          </Button>
+        </div>
+      }
+    >
       <div className={styles.stage}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={imageUrl} alt={title} className={styles.image} />
+        <img
+          src={imageUrl}
+          alt={title}
+          className={styles.image}
+          onLoad={(event) => {
+            const target = event.currentTarget;
+            setNatural({ width: target.naturalWidth, height: target.naturalHeight });
+          }}
+          style={
+            scale && natural
+              ? { width: natural.width * scale, height: natural.height * scale }
+              : undefined
+          }
+        />
       </div>
     </Modal>
   );
