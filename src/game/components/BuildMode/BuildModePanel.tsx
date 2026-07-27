@@ -286,7 +286,7 @@ function BuildItemGrid({
           title={inv.item?.name || inv.item?.worldData?.kind || "Item"}
           stackCount={inv.amount ?? inv.quantity ?? 1}
           onClick={() => onAction(inv.item)}
-          footer={<span className={styles.cardActionLabel}>{actionLabel}</span>}
+          actionHint={actionLabel}
         />
       ))}
     </SharedItemGrid>

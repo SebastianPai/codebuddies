@@ -16,6 +16,26 @@ function canonicalAssetUrl(url?: string | null) {
   }
 }
 
+const SCROLLABLE_OVERFLOW = /(auto|scroll|overlay)/;
+
+// IntersectionObserver con root=null (el default) mide contra el viewport
+// del navegador, sin tener en cuenta que un ancestro con overflow:auto/scroll
+// puede estar recortando el elemento visualmente. Sin esto, una imagen dentro
+// de una grilla con scroll propio (salas, tienda, inventario) puede quedar
+// marcada como "visible" mientras sigue tapada por el recorte del contenedor,
+// y nunca dispara la carga.
+function findScrollParent(node: Element | null): Element | null {
+  let el = node?.parentElement ?? null;
+  while (el) {
+    const style = window.getComputedStyle(el);
+    if (SCROLLABLE_OVERFLOW.test(style.overflowY) || SCROLLABLE_OVERFLOW.test(style.overflowX)) {
+      return el;
+    }
+    el = el.parentElement;
+  }
+  return null;
+}
+
 function preloadImage(url?: string | null) {
   const src = canonicalAssetUrl(url);
   if (!src || loadedImages.has(src)) return Promise.resolve(src);
@@ -66,7 +86,7 @@ export default function CachedGameImage({ src, loading = "lazy", decoding = "asy
           observer.disconnect();
         }
       },
-      { rootMargin: "320px" },
+      { root: findScrollParent(target), rootMargin: "320px" },
     );
     observer.observe(target);
     return () => observer.disconnect();

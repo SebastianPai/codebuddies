@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import { Room } from "../../../types/room";
 import styles from "./RoomCard.module.css";
 import CachedGameImage from "../../shared/CachedGameImage";
+import ImagePreviewModal from "../../shared/ImagePreviewModal";
 
 interface RoomCardProps {
   room: Room;
@@ -10,6 +11,7 @@ interface RoomCardProps {
 }
 
 export default function RoomCard({ room, onJoin, onView }: RoomCardProps) {
+  const [zoomOpen, setZoomOpen] = useState(false);
   const currentUsers = room._count?.users || 0;
 
   const isFull = currentUsers >= room.maxUsers;
@@ -36,7 +38,23 @@ export default function RoomCard({ room, onJoin, onView }: RoomCardProps) {
 
           {room.isVipOnly && <span className={styles.vipBadge}>💎 VIP</span>}
         </div>
+
+        <button
+          type="button"
+          className={styles.zoomBtn}
+          aria-label={`Ver imagen de ${room.name} en grande`}
+          onClick={(event) => {
+            event.stopPropagation();
+            setZoomOpen(true);
+          }}
+        >
+          🔍
+        </button>
       </div>
+
+      {zoomOpen && (
+        <ImagePreviewModal title={room.name} imageUrl={thumbnail} onClose={() => setZoomOpen(false)} />
+      )}
 
       <div className={styles.cardBody}>
         <h3 className={styles.roomTitle}>{room.name}</h3>

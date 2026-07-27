@@ -7,6 +7,7 @@ import { getSharedAuthToken } from "../../network/auth";
 import { requestGameConfirm, showGameAlert } from "../../utils/dialog";
 import { useDialogBehavior } from "../shared/useDialogBehavior";
 import Button from "../shared/Button";
+import ImagePreviewModal from "../shared/ImagePreviewModal";
 import styles from "./MarketplaceWindow.module.css";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
@@ -81,6 +82,7 @@ export default function MarketplaceWindow({ socket, onClose }: Props) {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [applicationMessage, setApplicationMessage] = useState("");
+  const [zoomItem, setZoomItem] = useState<MarketplaceItem | null>(null);
 
   const token = useMemo(() => getSharedAuthToken(), []);
 
@@ -282,6 +284,17 @@ export default function MarketplaceWindow({ socket, onClose }: Props) {
                       }}
                       alt={item.title}
                     />
+                    <button
+                      type="button"
+                      className={styles.zoomBtn}
+                      aria-label={`Ver ${item.title} en grande`}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setZoomItem(item);
+                      }}
+                    >
+                      🔍
+                    </button>
                   </div>
                   <h3>{item.title}</h3>
                   <p>{item.description || "Contenido de la comunidad."}</p>
@@ -323,6 +336,14 @@ export default function MarketplaceWindow({ socket, onClose }: Props) {
           setApplicationMessage={setApplicationMessage}
           onApply={apply}
           onSubmit={submit}
+        />
+      )}
+
+      {zoomItem && (
+        <ImagePreviewModal
+          title={zoomItem.title}
+          imageUrl={zoomItem.previewUrl || zoomItem.spriteUrl || ""}
+          onClose={() => setZoomItem(null)}
         />
       )}
     </section>

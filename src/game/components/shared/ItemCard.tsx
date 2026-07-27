@@ -1,9 +1,10 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 
 import styles from "./ItemCard.module.css";
 import ItemPreview from "../UI/ItemPreview";
+import ImagePreviewModal from "./ImagePreviewModal";
 
 interface Props {
   item: any;
@@ -14,6 +15,9 @@ interface Props {
   locked?: boolean;
   /** Zona libre para precio/botón de equipar/etc., propia de cada dominio (tienda, inventario, avatar...). */
   footer?: ReactNode;
+  /** Etiqueta corta ("Pintar", "Colocar") cuando TODA la tarjeta es la acción:
+   *  se pinta dentro del propio botón, a diferencia de "footer" que va afuera. */
+  actionHint?: string;
   onClick?: () => void;
   className?: string;
 }
@@ -25,8 +29,20 @@ interface Props {
 //
 // El "footer" se renderiza fuera del área clickeable: ahí van botones reales
 // (Comprar, Equipar...) y anidar un <button> dentro de otro no es válido HTML.
-export default function ItemCard({ item, title, stackCount, selected, locked, footer, onClick, className = "" }: Props) {
+export default function ItemCard({
+  item,
+  title,
+  stackCount,
+  selected,
+  locked,
+  footer,
+  actionHint,
+  onClick,
+  className = "",
+}: Props) {
+  const [zoomOpen, setZoomOpen] = useState(false);
   const label = title ?? item?.name ?? "Item";
+  const imageUrl: string | undefined = item?.imageUrl || item?.previewUrl || item?.thumbnailUrl;
   const classes = [styles.card, selected ? styles.selected : "", locked ? styles.locked : "", className]
     .filter(Boolean)
     .join(" ");
@@ -52,8 +68,28 @@ export default function ItemCard({ item, title, stackCount, selected, locked, fo
         <span className={styles.title} title={label}>
           {label}
         </span>
+        {actionHint && <span className={styles.actionHint}>{actionHint}</span>}
       </button>
+
+      {imageUrl && (
+        <button
+          type="button"
+          className={styles.zoomBtn}
+          aria-label={`Ver ${label} en grande`}
+          onClick={(event) => {
+            event.stopPropagation();
+            setZoomOpen(true);
+          }}
+        >
+          🔍
+        </button>
+      )}
+
       {footer && <div className={styles.footer}>{footer}</div>}
+
+      {zoomOpen && imageUrl && (
+        <ImagePreviewModal title={label} imageUrl={imageUrl} onClose={() => setZoomOpen(false)} />
+      )}
     </div>
   );
 }

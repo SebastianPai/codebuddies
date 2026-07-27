@@ -3,6 +3,8 @@
 import { memo, useEffect, useState } from "react";
 import { getSharedAuthToken } from "../../network/auth";
 import { showGameAlert } from "../../utils/dialog";
+import Modal from "../shared/Modal";
+import Button from "../shared/Button";
 import "./RightSidebar.css";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
@@ -190,71 +192,56 @@ function RightSidebar() {
       </div>
 
       {visibleMissionList.length > 0 && (
-        <div className="pixel-window-overlay">
-          <div className="pixel-window">
-            <div className="pixel-titlebar">
-              <div className="pixel-title-left">
-                <div className="pixel-app-icon" />
-                <span className="pixel-window-title">Mission.exe</span>
-              </div>
-              <div className="pixel-window-actions">
-                <button
-                  className="pixel-action-btn close"
-                  onClick={() => {
-                    setSelectedMission(null);
-                    setShowAllMissions(false);
-                  }}
-                >
-                  ×
-                </button>
-              </div>
-            </div>
+        <Modal
+          title="Misiones"
+          onClose={() => {
+            setSelectedMission(null);
+            setShowAllMissions(false);
+          }}
+        >
+          {visibleMissionList.map((mission) => (
+            <article key={mission.id} className="mission-detail-card">
+              <div className="mission-window-tag">Misión activa</div>
+              <h3 className="mission-window-title">{mission.name}</h3>
+              <p className="mission-window-description">{mission.description}</p>
 
-            <div className="pixel-window-content mission-scroll">
-              {visibleMissionList.map((mission) => (
-                <div key={mission.id} className="mission-detail-card">
-                  <div className="mission-window-tag">Misión activa</div>
-                  <h2 className="mission-window-title">{mission.name}</h2>
-                  <p className="mission-window-description">{mission.description}</p>
-
-                  <div className="objectives-box">
-                    <div className="objectives-title">Progreso</div>
-                    <div className="objective-item">
-                      <div className="objective-check" />
-                      <span>
-                        {mission.progress.currentValue} / {mission.progress.targetValue}
-                      </span>
-                    </div>
-                    <div className="mission-bar">
-                      <div
-                        className="mission-fill"
-                        style={{ width: `${mission.progress.percentage}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="reward-bar">
-                    <div className="reward-left">
-                      <span className="reward-label">Recompensa</span>
-                      <span className="reward-value">
-                        {mission.rewards
-                          ?.map((reward) => reward.label || `${reward.amount ?? ""} ${reward.type}`)
-                          .join(" · ") || "Sin recompensa"}
-                      </span>
-                    </div>
-                    <button
-                      className="reward-button"
-                      disabled={mission.progress.status !== "COMPLETED"}
-                      onClick={() => void claimMission(mission.id)}
-                    >
-                      {mission.progress.status === "CLAIMED" ? "Reclamada" : "Reclamar"}
-                    </button>
-                  </div>
+              <div className="objectives-box">
+                <div className="objectives-title">Progreso</div>
+                <div className="objective-item">
+                  <div className="objective-check" />
+                  <span>
+                    {mission.progress.currentValue} / {mission.progress.targetValue}
+                  </span>
                 </div>
-              ))}
-            </div>
-          </div>
-        </div>
+                <div className="mission-bar">
+                  <div
+                    className="mission-fill"
+                    style={{ width: `${mission.progress.percentage}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="reward-bar">
+                <div className="reward-left">
+                  <span className="reward-label">Recompensa</span>
+                  <span className="reward-value">
+                    {mission.rewards
+                      ?.map((reward) => reward.label || `${reward.amount ?? ""} ${reward.type}`)
+                      .join(" · ") || "Sin recompensa"}
+                  </span>
+                </div>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  disabled={mission.progress.status !== "COMPLETED"}
+                  onClick={() => void claimMission(mission.id)}
+                >
+                  {mission.progress.status === "CLAIMED" ? "Reclamada" : "Reclamar"}
+                </Button>
+              </div>
+            </article>
+          ))}
+        </Modal>
       )}
     </>
   );
