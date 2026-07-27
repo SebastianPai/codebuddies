@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { ArrowLeft, BarChart3, ClipboardList, Pencil, Rocket, X } from "lucide-react";
 import {
   createApp,
   getMyApps,
@@ -232,21 +233,21 @@ export default function PCWindow({ onClose }: PCWindowProps) {
                       className={`tab ${pcTab === "list" ? "active" : ""}`}
                       onClick={() => setPcTab("list")}
                     >
-                      📋 Mis Apps
+                      <ClipboardList size={14} /> Mis Apps
                     </button>
                     <button
                       className={`tab ${pcTab === "editor" ? "active" : ""}`}
                       onClick={() => setPcTab("editor")}
                       disabled={!selectedApp}
                     >
-                      ✏️ Editor
+                      <Pencil size={14} /> Editor
                     </button>
                     <button
                       className={`tab ${pcTab === "stats" ? "active" : ""}`}
                       onClick={() => setPcTab("stats")}
                       disabled={!selectedApp}
                     >
-                      📊 Estadísticas
+                      <BarChart3 size={14} /> Estadísticas
                     </button>
                   </div>
 
@@ -311,13 +312,14 @@ export default function PCWindow({ onClose }: PCWindowProps) {
                     <div className="editor-window">
                       <div className="editor-titlebar">
                         <div className="editor-title">
-                          ✏️ Editor - {selectedApp.type}
+                          <Pencil size={14} /> Editor - {selectedApp.type}
                         </div>
                         <button
                           className="editor-close"
+                          aria-label="Cerrar editor"
                           onClick={handleCloseApp}
                         >
-                          ✕
+                          <X size={14} />
                         </button>
                       </div>
 
@@ -333,13 +335,13 @@ export default function PCWindow({ onClose }: PCWindowProps) {
                             className="win11-btn success"
                             disabled={selectedApp.status === "PUBLISHED"}
                           >
-                            🚀 Publicar App
+                            <Rocket size={14} /> Publicar App
                           </button>
                           <button
                             onClick={handleCloseApp}
                             className="win11-btn"
                           >
-                            ← Cerrar Editor
+                            <ArrowLeft size={14} /> Cerrar Editor
                           </button>
                         </div>
                       </div>

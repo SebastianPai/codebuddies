@@ -1,3 +1,22 @@
+import {
+  BarChart3,
+  Building2,
+  Code2,
+  DollarSign,
+  FlaskConical,
+  GitBranch,
+  LayoutDashboard,
+  LayoutGrid,
+  ListChecks,
+  Megaphone,
+  Server,
+  Settings,
+  Trophy,
+  UserCheck,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
+
 export type Company = {
   id: string;
   name: string;
@@ -98,20 +117,20 @@ export type ViewKey =
 
 export type BacklogPriority = "Urgente" | "Alta" | "Media" | "Baja";
 
-export const nav: Array<{ key: ViewKey; label: string; icon: string }> = [
-  { key: "dashboard", label: "Dashboard", icon: "⌘" },
-  { key: "company", label: "Empresa", icon: "◆" },
-  { key: "apps", label: "Aplicaciones", icon: "▦" },
-  { key: "development", label: "Desarrollo", icon: "⚙" },
-  { key: "roadmap", label: "Roadmap", icon: "⇄" },
-  { key: "backlog", label: "Backlog", icon: "☰" },
-  { key: "employees", label: "Empleados", icon: "◎" },
-  { key: "clients", label: "Clientes", icon: "◉" },
-  { key: "marketing", label: "Marketing", icon: "◌" },
-  { key: "infrastructure", label: "Infraestructura", icon: "▣" },
-  { key: "research", label: "Investigacion", icon: "✦" },
-  { key: "finance", label: "Finanzas", icon: "$" },
-  { key: "analytics", label: "Analiticas", icon: "▱" },
-  { key: "ranking", label: "Ranking", icon: "▲" },
-  { key: "settings", label: "Config", icon: "⋯" },
+export const nav: Array<{ key: ViewKey; label: string; icon: LucideIcon }> = [
+  { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { key: "company", label: "Empresa", icon: Building2 },
+  { key: "apps", label: "Aplicaciones", icon: LayoutGrid },
+  { key: "development", label: "Desarrollo", icon: Code2 },
+  { key: "roadmap", label: "Roadmap", icon: GitBranch },
+  { key: "backlog", label: "Backlog", icon: ListChecks },
+  { key: "employees", label: "Empleados", icon: Users },
+  { key: "clients", label: "Clientes", icon: UserCheck },
+  { key: "marketing", label: "Marketing", icon: Megaphone },
+  { key: "infrastructure", label: "Infraestructura", icon: Server },
+  { key: "research", label: "Investigacion", icon: FlaskConical },
+  { key: "finance", label: "Finanzas", icon: DollarSign },
+  { key: "analytics", label: "Analiticas", icon: BarChart3 },
+  { key: "ranking", label: "Ranking", icon: Trophy },
+  { key: "settings", label: "Config", icon: Settings },
 ];

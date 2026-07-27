@@ -39,11 +39,19 @@ export default function ImagePreviewModal({ title, imageUrl, onClose }: Props) {
 
   const scale = zoom ?? (natural ? fitScale(natural.width, natural.height) : null);
 
+  // El modal crecía en alto con el zoom (el contenido lo empuja) pero se
+  // quedaba fijo en ancho (440px hardcodeado) — el ancho también debe seguir
+  // a la imagen escalada, con el mismo tope de viewport que ya tenía.
+  const modalWidth =
+    scale && natural
+      ? Math.max(320, natural.width * scale + 48)
+      : STAGE_WIDTH + 48;
+
   return (
     <Modal
       title={title}
       onClose={onClose}
-      style={{ width: "min(440px, 92vw)" }}
+      style={{ width: `min(${modalWidth}px, 92vw)` }}
       footer={
         <div className={styles.zoomControls}>
           <Button
@@ -80,7 +88,12 @@ export default function ImagePreviewModal({ title, imageUrl, onClose }: Props) {
           }}
           style={
             scale && natural
-              ? { width: natural.width * scale, height: natural.height * scale }
+              ? {
+                  width: natural.width * scale,
+                  height: natural.height * scale,
+                  maxWidth: "none",
+                  maxHeight: "none",
+                }
               : undefined
           }
         />

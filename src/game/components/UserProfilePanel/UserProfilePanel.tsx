@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { Coins, Gem, Star } from "lucide-react";
 import "./UserProfilePanel.css";
 import AvatarPreview from "../AvatarEditor/AvatarPreview";
 import { useAvatar } from "../../hooks/useAvatar";
@@ -40,7 +41,9 @@ export default function UserProfilePanel({
 
             <div className="level-row">
               <span className="level-number">NIVEL {level}</span>
-              <span className="star">⭐</span>
+              <span className="star">
+                <Star size={13} fill="currentColor" />
+              </span>
             </div>
 
             <div className="progress-bar-container">
@@ -51,11 +54,15 @@ export default function UserProfilePanel({
 
         <div className="panel currency-panel">
           <div className="currency-item">
-            <span className="currency-icon">💰</span>
+            <span className="currency-icon">
+              <Coins size={16} />
+            </span>
             <span className="currency-amount">{coins.toLocaleString()}</span>
           </div>
           <div className="currency-item">
-            <span className="currency-icon">💎</span>
+            <span className="currency-icon">
+              <Gem size={16} />
+            </span>
             <span className="currency-amount">{diamonds.toLocaleString()}</span>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Crown, Gem, Globe, Lock, ZoomIn } from "lucide-react";
 import { Room } from "../../../types/room";
 import styles from "./RoomCard.module.css";
 import CachedGameImage from "../../shared/CachedGameImage";
@@ -27,16 +28,24 @@ export default function RoomCard({ room, onJoin, onView }: RoomCardProps) {
   return (
     <div className={styles.roomCard}>
       <div className={styles.roomImage} onClick={() => onView(room)}>
-        <CachedGameImage src={thumbnail} alt={room.name} />
+        {/* Las salas son una colección chica y acotada (no miles de items en
+            scroll infinito): cargarlas "eager" evita que la carga diferida se
+            confunda con el scroll propio de la grilla y la imagen no aparezca. */}
+        <CachedGameImage src={thumbnail} alt={room.name} loading="eager" />
 
         <div className={styles.overlay} />
 
         <div className={styles.badges}>
           <span className={styles.publicBadge}>
-            {room.isPublic ? "🌍 PUBLICA" : "🔒 PRIVADA"}
+            {room.isPublic ? <Globe size={11} /> : <Lock size={11} />}
+            {room.isPublic ? "PUBLICA" : "PRIVADA"}
           </span>
 
-          {room.isVipOnly && <span className={styles.vipBadge}>💎 VIP</span>}
+          {room.isVipOnly && (
+            <span className={styles.vipBadge}>
+              <Gem size={11} /> VIP
+            </span>
+          )}
         </div>
 
         <button
@@ -48,7 +57,7 @@ export default function RoomCard({ room, onJoin, onView }: RoomCardProps) {
             setZoomOpen(true);
           }}
         >
-          🔍
+          <ZoomIn size={14} />
         </button>
       </div>
 
@@ -82,7 +91,7 @@ export default function RoomCard({ room, onJoin, onView }: RoomCardProps) {
             <span className={styles.statLabel}>CREADOR</span>
 
             <span className={styles.ownerName}>
-              👑 {room.owner?.username ?? "Desconocido"}
+              <Crown size={12} /> {room.owner?.username ?? "Desconocido"}
             </span>
           </div>
         </div>

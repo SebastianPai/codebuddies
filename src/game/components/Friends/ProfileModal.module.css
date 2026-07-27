@@ -136,7 +136,14 @@
 }
 
 .roomMeta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   font-family: "Inter", system-ui, sans-serif;
   font-size: 11px;
   color: var(--cb-muted);
+}
+
+.roomMetaIcon {
+  flex-shrink: 0;
 }

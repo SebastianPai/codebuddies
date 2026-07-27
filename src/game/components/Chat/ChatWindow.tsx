@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Send, X } from "lucide-react";
 
 import styles from "./ChatWindow.module.css";
 import {
@@ -144,7 +145,7 @@ export default function ChatWindow({
             onClose();
           }}
         >
-          ✕
+          <X size={14} />
         </button>
       </div>
 
@@ -183,7 +184,7 @@ export default function ChatWindow({
           onClick={() => void handleSend()}
           disabled={!draft.trim() || sending}
         >
-          ➤
+          <Send size={14} />
         </button>
       </div>
     </div>

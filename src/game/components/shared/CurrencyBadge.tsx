@@ -1,5 +1,7 @@
 "use client";
 
+import { Coins, Gem, Gift, Star, type LucideIcon } from "lucide-react";
+
 import styles from "./CurrencyBadge.module.css";
 
 type Currency = "coins" | "gems" | "premium" | "free";
@@ -11,11 +13,11 @@ interface Props {
   className?: string;
 }
 
-const ICON: Record<Currency, string> = {
-  coins: "🪙",
-  gems: "💎",
-  premium: "⭐",
-  free: "🎁",
+const ICON: Record<Currency, LucideIcon> = {
+  coins: Coins,
+  gems: Gem,
+  premium: Star,
+  free: Gift,
 };
 
 const LABEL: Record<Currency, string> = {
@@ -29,6 +31,7 @@ const LABEL: Record<Currency, string> = {
 // inventario y sidebar, en vez de que cada lugar arme su propio "🪙 {n}" a mano.
 export default function CurrencyBadge({ currency, amount, size = "md", className = "" }: Props) {
   const showAmount = currency === "coins" || currency === "gems";
+  const Icon = ICON[currency];
 
   return (
     <span
@@ -36,7 +39,7 @@ export default function CurrencyBadge({ currency, amount, size = "md", className
       aria-label={showAmount ? `${amount?.toLocaleString() ?? 0} ${LABEL[currency]}` : LABEL[currency]}
     >
       <span className={styles.icon} aria-hidden="true">
-        {ICON[currency]}
+        <Icon size={size === "sm" ? 12 : 15} />
       </span>
       {showAmount ? (
         <span className={styles.amount}>{(amount ?? 0).toLocaleString()}</span>

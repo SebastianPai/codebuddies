@@ -169,7 +169,9 @@ export default function CodeStudio() {
         <nav className="cs-nav">
           {nav.map((item) => (
             <button key={item.key} className={view === item.key ? "active" : ""} onClick={() => setView(item.key)}>
-              <span>{item.icon}</span>
+              <span>
+                <item.icon size={16} />
+              </span>
               {item.label}
             </button>
           ))}

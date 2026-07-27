@@ -47,11 +47,13 @@
 }
 
 .closeBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   border: none;
   color: #9ea5b4;
   cursor: pointer;
-  font-size: 14px;
 }
 
 .closeBtn:hover {
@@ -67,6 +69,10 @@
 
 .tab {
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   padding: 12px 6px;
   border: none;
   border-radius: 10px;

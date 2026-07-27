@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 
 import Draggable from "react-draggable";
+import { DoorOpen, Search } from "lucide-react";
 
 import RoomCard from "./RoomCard";
 import RoomCreateModal from "../RoomCreate/RoomCreateModal";
@@ -180,7 +181,7 @@ export default function RoomList({
 
               <div className={styles.toolbar}>
                 <div className={styles.searchBox}>
-                  <span>🔍</span>
+                  <Search size={15} />
 
                   <input
                     type="text"
@@ -220,7 +221,7 @@ export default function RoomList({
                   ))
                 ) : (
                   <div className={styles.empty}>
-                    <span className={styles.emptyIcon}>🚪</span>
+                    <DoorOpen size={28} className={styles.emptyIcon} />
                     <span>
                       {activeTab === "my"
                         ? "Todavía no tienes salas. Crea la primera arriba."

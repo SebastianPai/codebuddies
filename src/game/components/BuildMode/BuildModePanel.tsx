@@ -1,18 +1,49 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Armchair,
+  DoorOpen,
+  Gamepad2,
+  Package,
+  Paintbrush,
+  Sofa,
+  Sparkles,
+  Table2,
+  UserRound,
+  type LucideIcon,
+} from "lucide-react";
 import ItemPreview from "../UI/ItemPreview";
 import SharedItemGrid from "../shared/ItemGrid";
 import ItemCard from "../shared/ItemCard";
+import BackgroundSelector from "../RoomSystem/BackgroundSelector/BackgroundSelector";
+import type { Background } from "../../types/room";
 import styles from "./BuildModePanel.module.css";
 
-type BuildTab = "objects" | "inventory" | "textures" | "shop";
+type BuildTab = "objects" | "inventory" | "textures" | "background" | "shop" | "marketplace";
+
+// Orden y etiqueta/ícono de cada categoría de mueble (kind del item WORLD),
+// para no mezclar sillas, mesas, decoración, etc. en una sola lista larga.
+const OBJECT_CATEGORIES: Array<{ kind: string; label: string; icon: LucideIcon }> = [
+  { kind: "CHAIR", label: "Sillas", icon: Armchair },
+  { kind: "TABLE", label: "Mesas", icon: Table2 },
+  { kind: "FURNITURE", label: "Muebles", icon: Sofa },
+  { kind: "DECORATION", label: "Decoración", icon: Sparkles },
+  { kind: "DOOR", label: "Puertas", icon: DoorOpen },
+  { kind: "NPC", label: "NPCs", icon: UserRound },
+  { kind: "INTERACTIVE", label: "Interactivos", icon: Gamepad2 },
+];
+const OTHER_CATEGORY = { kind: "OTHER", label: "Otros", icon: Package };
 
 interface Props {
   inventory: any[];
   paintAllProgress?: { done: number; total: number } | null;
+  socket?: any;
+  roomId?: string;
+  currentBackgroundId?: string;
   onExit: () => void;
   onOpenShop: () => void;
+  onOpenMarketplace: () => void;
   onClearRoom: () => void;
   onPlaceWorldItem: (item: any) => void;
   onPaintSurfaceTexture: (item: any, width: number, height: number) => void;
@@ -24,8 +55,12 @@ interface Props {
 export default function BuildModePanel({
   inventory,
   paintAllProgress,
+  socket: socketProp,
+  roomId,
+  currentBackgroundId,
   onExit,
   onOpenShop,
+  onOpenMarketplace,
   onClearRoom,
   onPlaceWorldItem,
   onPaintSurfaceTexture,
@@ -33,6 +68,21 @@ export default function BuildModePanel({
   onCancelPainting,
   onCancelPlacement,
 }: Props) {
+  const socket =
+    socketProp ||
+    (typeof window !== "undefined" ? (window as any).phaserSocket : null);
+  const [backgrounds, setBackgrounds] = useState<Background[]>([]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.emit("getBackgrounds");
+    socket.on("backgrounds:list", setBackgrounds);
+
+    return () => {
+      socket.off("backgrounds:list", setBackgrounds);
+    };
+  }, [socket]);
   const isPaintingAll = !!paintAllProgress;
   const paintAllPercent =
     paintAllProgress && paintAllProgress.total > 0
@@ -51,7 +101,7 @@ export default function BuildModePanel({
     .split("x")
     .map((value) => Number(value) || 1);
 
-  const { objects, textures } = useMemo(() => {
+  const { objects, textures, objectGroups } = useMemo(() => {
     const term = search.trim().toLowerCase();
     const matches = (inv: any) =>
       !term ||
@@ -61,11 +111,26 @@ export default function BuildModePanel({
 
     const worldItems = inventory.filter((inv) => inv.item?.type === "WORLD");
 
+    const objectItems = worldItems.filter((inv) => {
+      const kind = inv.item?.worldData?.kind;
+      return kind !== "FLOOR" && kind !== "WALL" && matches(inv);
+    });
+
+    const groups = [...OBJECT_CATEGORIES, OTHER_CATEGORY]
+      .map((category) => ({
+        ...category,
+        items:
+          category.kind === "OTHER"
+            ? objectItems.filter(
+                (inv) => !OBJECT_CATEGORIES.some((c) => c.kind === inv.item?.worldData?.kind),
+              )
+            : objectItems.filter((inv) => inv.item?.worldData?.kind === category.kind),
+      }))
+      .filter((group) => group.items.length > 0);
+
     return {
-      objects: worldItems.filter((inv) => {
-        const kind = inv.item?.worldData?.kind;
-        return kind !== "FLOOR" && kind !== "WALL" && matches(inv);
-      }),
+      objects: objectItems,
+      objectGroups: groups,
       textures: worldItems.filter((inv) => {
         const kind = inv.item?.worldData?.kind;
         return (kind === "FLOOR" || kind === "WALL") && matches(inv);
@@ -77,7 +142,9 @@ export default function BuildModePanel({
     { id: "objects", label: "Objetos", count: objects.length },
     { id: "inventory", label: "Inventario", count: inventory.length },
     { id: "textures", label: "Texturas", count: textures.length },
+    { id: "background", label: "Fondo" },
     { id: "shop", label: "Tienda" },
+    { id: "marketplace", label: "Marketplace" },
   ];
 
   return (
@@ -92,15 +159,17 @@ export default function BuildModePanel({
         </button>
       </div>
 
-      <div className={styles.searchBox}>
-        <span>Buscar</span>
-        <input
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Muebles, texturas, categorias..."
-          aria-label="Buscar elementos de construccion"
-        />
-      </div>
+      {activeTab !== "shop" && activeTab !== "marketplace" && activeTab !== "background" && (
+        <div className={styles.searchBox}>
+          <span>Buscar</span>
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Muebles, texturas, categorias..."
+            aria-label="Buscar elementos de construccion"
+          />
+        </div>
+      )}
 
       <nav className={styles.tabs} aria-label="Categorias de construccion">
         {tabs.map((tab) => (
@@ -109,6 +178,7 @@ export default function BuildModePanel({
             className={`${styles.tab} ${activeTab === tab.id ? styles.active : ""}`}
             onClick={() => {
               if (tab.id === "shop") onOpenShop();
+              if (tab.id === "marketplace") onOpenMarketplace();
               setActiveTab(tab.id);
             }}
           >
@@ -142,6 +212,22 @@ export default function BuildModePanel({
             <strong>Tienda abierta</strong>
             <span>Compra muebles o texturas y vuelven aqui al inventario.</span>
           </div>
+        ) : activeTab === "marketplace" ? (
+          <div className={styles.empty}>
+            <strong>Marketplace abierto</strong>
+            <span>Compra objetos de otros jugadores y vuelven aqui al inventario.</span>
+          </div>
+        ) : activeTab === "background" ? (
+          <div className={styles.backgroundPanel}>
+            <BackgroundSelector
+              backgrounds={backgrounds}
+              selectedId={currentBackgroundId}
+              onSelect={(id) => {
+                if (!roomId) return;
+                socket?.emit("room:changeBackground", { roomId, backgroundId: id });
+              }}
+            />
+          </div>
         ) : activeTab === "textures" ? (
           <BuildItemGrid
             items={textures}
@@ -153,18 +239,33 @@ export default function BuildModePanel({
               onPaintSurfaceTexture(item, textureWidth, textureHeight);
             }}
           />
+        ) : objects.length === 0 ? (
+          <div className={styles.empty}>
+            <strong>No tienes muebles para colocar.</strong>
+            <span>Prueba buscando otro nombre o visita la tienda.</span>
+          </div>
         ) : (
-          <BuildItemGrid
-            items={objects}
-            empty="No tienes muebles para colocar."
-            actionLabel="Colocar"
-            onAction={(item) => {
-              setActivePaintItem(null);
-              onCancelPainting();
-              setActivePlacementItem(item);
-              onPlaceWorldItem(item);
-            }}
-          />
+          <div className={styles.categoryList}>
+            {objectGroups.map((group) => (
+              <section key={group.kind} className={styles.categorySection}>
+                <h3 className={styles.categoryTitle}>
+                  <group.icon size={14} /> {group.label}
+                  <b>{group.items.length}</b>
+                </h3>
+                <BuildItemGrid
+                  items={group.items}
+                  empty=""
+                  actionLabel="Colocar"
+                  onAction={(item) => {
+                    setActivePaintItem(null);
+                    onCancelPainting();
+                    setActivePlacementItem(item);
+                    onPlaceWorldItem(item);
+                  }}
+                />
+              </section>
+            ))}
+          </div>
         )}
       </div>
 
@@ -215,7 +316,7 @@ export default function BuildModePanel({
                     setActivePaintItem(null);
                   }}
                 >
-                  🎨 Pintar TODO el suelo
+                  <Paintbrush size={14} /> Pintar TODO el suelo
                 </button>
               )}
               <button
@@ -234,7 +335,9 @@ export default function BuildModePanel({
         {isPaintingAll && (
           <div className={styles.progressState} role="status" aria-live="polite">
             <div className={styles.progressLabel}>
-              <span>🎨 Pintando todo el suelo...</span>
+              <span className={styles.progressLabelText}>
+                <Paintbrush size={14} /> Pintando todo el suelo...
+              </span>
               <b>{paintAllPercent === null ? "..." : `${paintAllPercent}%`}</b>
             </div>
             <div className={styles.progressTrack}>

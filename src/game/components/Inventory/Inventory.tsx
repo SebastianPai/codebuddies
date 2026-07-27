@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Grid3x3, Paintbrush, Square, X } from "lucide-react";
 
 import styles from "./Inventory.module.css";
 import Modal from "../shared/Modal";
@@ -110,7 +111,7 @@ export default function Inventory({
                   onClose?.();
                 }}
               >
-                🎨 Pintar TODO el suelo
+                <Paintbrush size={14} /> Pintar TODO el suelo
               </Button>
             </div>
 
@@ -124,7 +125,7 @@ export default function Inventory({
                   onClose?.();
                 }}
               >
-                ✕ Cancelar
+                <X size={14} /> Cancelar
               </Button>
             </div>
           </div>
@@ -134,7 +135,8 @@ export default function Inventory({
               <ItemCard
                 key={inv.id}
                 item={inv.item}
-                title={inv.item.worldData?.kind === "WALL" ? "🧱 Pared" : "🟫 Suelo"}
+                title={inv.item.worldData?.kind === "WALL" ? "Pared" : "Suelo"}
+                titleIcon={inv.item.worldData?.kind === "WALL" ? Square : Grid3x3}
                 stackCount={inv.amount ?? inv.quantity ?? 1}
                 footer={
                   <Button

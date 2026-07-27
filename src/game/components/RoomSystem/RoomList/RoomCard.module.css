@@ -106,6 +106,10 @@
 
 .publicBadge,
 .vipBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
   font-family: "Inter", system-ui, sans-serif;
   font-weight: 700;
 
@@ -193,6 +197,10 @@
 }
 
 .ownerName {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
   color: #ffd54a;
 
   font-weight: 700;

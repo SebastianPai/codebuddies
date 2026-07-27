@@ -65,12 +65,13 @@
 }
 
 .closeBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   border: none;
   color: #9ea5b4;
   cursor: pointer;
-  font-size: 16px;
-  line-height: 1;
   padding: 4px;
 }
 
@@ -166,15 +167,15 @@
 }
 
 .sendBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 0 16px;
   border-radius: 10px;
   border: none;
   background: #ffd34d;
   color: #17181c;
   cursor: pointer;
-  font-family: inherit;
-  font-size: 15px;
-  font-weight: 700;
 }
 
 .sendBtn:disabled {

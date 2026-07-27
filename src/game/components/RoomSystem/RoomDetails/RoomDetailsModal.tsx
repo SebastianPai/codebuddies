@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { Wrench } from "lucide-react";
 import { Background, Room } from "../../../types/room";
 import StarRating from "../../UI/StarRating";
 import BackgroundSelector from "../BackgroundSelector/BackgroundSelector";
@@ -138,7 +139,9 @@ export default function RoomDetailsModal({
         {/* OWNER ACTIONS */}
         {isOwner && (
           <div className={styles.ownerActions}>
-            <p className={styles.ownerLabel}>🔧 Eres el dueño de esta sala</p>
+            <p className={styles.ownerLabel}>
+              <Wrench size={13} /> Eres el dueño de esta sala
+            </p>
 
             {joinRequests.length > 0 && (
               <div className={styles.joinRequests}>

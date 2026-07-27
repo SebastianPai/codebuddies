@@ -6,6 +6,10 @@
 
 .tab {
   flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   padding: var(--cb-space-2);
   border: none;
   border-radius: var(--cb-radius-md);

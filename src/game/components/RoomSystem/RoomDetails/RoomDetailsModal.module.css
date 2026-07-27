@@ -26,6 +26,9 @@
 }
 
 .ownerLabel {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-family: "Inter", system-ui, sans-serif;
   font-size: 13px;
   color: var(--cb-muted);

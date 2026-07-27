@@ -163,6 +163,44 @@
   scrollbar-color: #facc15 rgba(255, 255, 255, 0.08);
 }
 
+.backgroundPanel {
+  padding-top: 2px;
+}
+
+.categoryList {
+  display: grid;
+  gap: 18px;
+}
+
+.categorySection {
+  display: grid;
+  gap: 10px;
+}
+
+.categoryTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: #9fb3cf;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.categoryTitle b {
+  display: grid;
+  min-width: 18px;
+  height: 18px;
+  place-items: center;
+  margin-left: 2px;
+  border-radius: 999px;
+  color: #07111f;
+  background: rgba(159, 179, 207, 0.55);
+  font-size: 10px;
+}
+
 .empty {
   display: grid;
   gap: 8px;
@@ -243,6 +281,10 @@
 }
 
 .paintState button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   border: 0;
   border-radius: 12px;
   padding: 10px 12px;
@@ -287,6 +329,12 @@
   color: #d3fbe9;
   font-size: 12px;
   font-weight: 800;
+}
+
+.progressLabelText {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .progressLabel b {

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Draggable from "react-draggable";
+import { X } from "lucide-react";
 
 import styles from "./NotificationsPanel.module.css";
 import {
@@ -10,6 +11,7 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
 } from "../../network/notifications";
+import { resolveNotificationIcon } from "../../utils/notificationIcons";
 
 type Props = {
   onClose: () => void;
@@ -79,7 +81,7 @@ export default function NotificationsPanel({ onClose }: Props) {
               </button>
             )}
             <button className={styles.closeBtn} aria-label="Cerrar notificaciones" onClick={onClose}>
-              ✕
+              <X size={14} />
             </button>
           </div>
         </div>
@@ -100,6 +102,7 @@ export default function NotificationsPanel({ onClose }: Props) {
           {!loading &&
             items.map((notification) => {
               const friendAvatar = notification.metadata?.friend?.avatarUrl;
+              const Icon = resolveNotificationIcon(notification.icon);
               return (
                 <button
                   key={notification.id}
@@ -110,7 +113,9 @@ export default function NotificationsPanel({ onClose }: Props) {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img className={styles.avatar} src={friendAvatar} alt="" />
                   ) : (
-                    <div className={styles.icon}>{notification.icon || "🔔"}</div>
+                    <div className={styles.icon}>
+                      <Icon size={17} />
+                    </div>
                   )}
                   <div className={styles.itemBody}>
                     <div className={styles.itemTitle}>{notification.title}</div>

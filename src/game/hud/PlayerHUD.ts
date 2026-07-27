@@ -54,7 +54,7 @@ export default class PlayerHUD {
 
     if (config.coins !== undefined) {
       this.coinsText = this.scene.add
-        .text(0, 0, `💰 ${config.coins}`, {
+        .text(0, 0, `${config.coins}`, {
           fontSize: "12px",
           color: "#ffd700",
         })

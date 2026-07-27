@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Socket } from "socket.io-client";
+import { Globe, Shirt } from "lucide-react";
 
 import styles from "./Shop.module.css";
 import { requestGameConfirm, showGameAlert } from "../../utils/dialog";
@@ -206,14 +207,14 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
           className={`${styles.tab} ${activeTab === "avatar" ? styles.active : ""}`}
           onClick={() => setActiveTab("avatar")}
         >
-          👤 Avatar (Ropa)
+          <Shirt size={14} /> Avatar (Ropa)
         </button>
 
         <button
           className={`${styles.tab} ${activeTab === "world" ? styles.active : ""}`}
           onClick={() => setActiveTab("world")}
         >
-          🌍 World Objects
+          <Globe size={14} /> World Objects
         </button>
         <button
           className={`${styles.tab} ${activeTab === "textures" ? styles.active : ""}`}

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Draggable from "react-draggable";
+import { X } from "lucide-react";
 
 import styles from "./MessagesPanel.module.css";
 import {
@@ -82,8 +83,8 @@ export default function MessagesPanel({ onClose }: Props) {
       <div ref={nodeRef} className={styles.window}>
         <div className={styles.windowHeader}>
           <span className={styles.title}>MENSAJES</span>
-          <button className={styles.closeBtn} onClick={onClose}>
-            ✕
+          <button className={styles.closeBtn} aria-label="Cerrar mensajes" onClick={onClose}>
+            <X size={14} />
           </button>
         </div>
 

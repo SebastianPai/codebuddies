@@ -1,4 +1,5 @@
 import React from "react";
+import { Star } from "lucide-react";
 import styles from "./StarRating.module.css";
 
 interface StarRatingProps {
@@ -18,7 +19,7 @@ export default function StarRating({
           className={styles.star}
           style={{ color: star <= Math.round(rating) ? "#ffd700" : "#444" }}
         >
-          ★
+          <Star size={14} fill={star <= Math.round(rating) ? "currentColor" : "none"} />
         </span>
       ))}
       <span className={styles.ratingText}>

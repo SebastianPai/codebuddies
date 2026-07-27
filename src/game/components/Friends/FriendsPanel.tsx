@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Draggable from "react-draggable";
+import { Mail, Search, Users, X } from "lucide-react";
 
 import styles from "./FriendsPanel.module.css";
 import PersonRow from "./PersonRow";
@@ -327,8 +328,8 @@ export default function FriendsPanel({ onClose }: Props) {
       <div ref={nodeRef} className={styles.window}>
         <div className={styles.windowHeader}>
           <span className={styles.title}>AMIGOS</span>
-          <button className={styles.closeBtn} onClick={onClose}>
-            ✕
+          <button className={styles.closeBtn} aria-label="Cerrar amigos" onClick={onClose}>
+            <X size={14} />
           </button>
         </div>
 
@@ -337,20 +338,20 @@ export default function FriendsPanel({ onClose }: Props) {
             className={`${styles.tab} ${activeTab === "friends" ? styles.active : ""}`}
             onClick={() => setActiveTab("friends")}
           >
-            👥 Amigos
+            <Users size={14} /> Amigos
           </button>
           <button
             className={`${styles.tab} ${activeTab === "requests" ? styles.active : ""}`}
             onClick={() => setActiveTab("requests")}
           >
-            📨 Solicitudes
+            <Mail size={14} /> Solicitudes
             {requestsBadge > 0 && <span className={styles.badge}>{requestsBadge}</span>}
           </button>
           <button
             className={`${styles.tab} ${activeTab === "search" ? styles.active : ""}`}
             onClick={() => setActiveTab("search")}
           >
-            🔍 Buscar
+            <Search size={14} /> Buscar
           </button>
         </div>
 

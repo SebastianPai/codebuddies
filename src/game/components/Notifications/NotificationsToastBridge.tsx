@@ -11,6 +11,7 @@ import { useEffect } from "react";
 import { sileo, Toaster } from "sileo";
 import { GameNotification, markNotificationRead } from "../../network/notifications";
 import { audioManager } from "../../audio/AudioManager";
+import { resolveNotificationIcon } from "../../utils/notificationIcons";
 
 const SUCCESS_TYPES = new Set([
   "ACHIEVEMENT_UNLOCKED",
@@ -42,6 +43,7 @@ export default function NotificationsToastBridge() {
       audioManager.play("notify");
 
       const friend = notification.metadata?.friend;
+      const Icon = resolveNotificationIcon(notification.icon);
 
       sileo[pickSileoMethod(notification.type)]({
         title: notification.title,
@@ -50,7 +52,7 @@ export default function NotificationsToastBridge() {
           // eslint-disable-next-line @next/next/no-img-element
           <img src={friend.avatarUrl} alt="" style={{ width: 32, height: 32, borderRadius: 999, objectFit: "cover" }} />
         ) : (
-          <span>{notification.icon || "🔔"}</span>
+          <Icon size={18} />
         ),
         button: {
           title: "Marcar leído",

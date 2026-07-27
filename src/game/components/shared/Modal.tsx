@@ -1,7 +1,9 @@
 "use client";
 
 import { ReactNode, useId, useRef } from "react";
+import { createPortal } from "react-dom";
 import Draggable from "react-draggable";
+import { X } from "lucide-react";
 
 import styles from "./Modal.module.css";
 import Button from "./Button";
@@ -69,7 +71,7 @@ export default function Modal({
         <div className={styles.headerActions}>
           {headerActions}
           <Button variant="ghost" size="sm" aria-label={closeLabel} onClick={onClose} className={styles.closeBtn}>
-            ✕
+            <X size={16} />
           </Button>
         </div>
       </div>
@@ -93,16 +95,27 @@ export default function Modal({
     // (flexbox, no transform: así no pelea con el translate() que aplica
     // react-draggable al moverlo). El resto de la pantalla sigue siendo
     // interactivo porque la capa no captura clicks, solo el panel.
-    return (
+    return portalToBody(
       <div className={styles.floatingLayer} style={{ zIndex: `var(--cb-z-${zTier})` }}>
         {dialog}
-      </div>
+      </div>,
     );
   }
 
-  return (
+  return portalToBody(
     <div className={styles.backdrop} style={{ zIndex: `var(--cb-z-${zTier})` }} onClick={onClose}>
       {dialog}
-    </div>
+    </div>,
   );
+}
+
+// Se renderiza directo en <body> en vez de quedar en el árbol de React donde
+// se llamó: un Modal abierto DENTRO de otro (ej. el zoom de un ItemCard
+// dentro del Shop) quedaba recortado por el "overflow: auto" del modal
+// padre pese a ser position:fixed — el clipping por overflow aplica a los
+// descendientes del DOM sin importar su position, así que la única forma de
+// escapar de verdad es no ser un descendiente del DOM en absoluto.
+function portalToBody(node: ReactNode) {
+  if (typeof document === "undefined") return null;
+  return createPortal(node, document.body);
 }

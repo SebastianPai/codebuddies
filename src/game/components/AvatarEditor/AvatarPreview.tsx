@@ -1,5 +1,7 @@
 "use client";
 
+import { User } from "lucide-react";
+
 interface AvatarPreviewSlot {
   slot: string;
   itemId?: string | null;
@@ -38,7 +40,11 @@ export default function AvatarPreview({
     .sort((a, b) => (a.layer ?? 0) - (b.layer ?? 0));
 
   if (visibleSlots.length === 0) {
-    return <div className="avatar-placeholder">👤</div>;
+    return (
+      <div className="avatar-placeholder" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <User size={Math.round(Math.min(width, height) * 0.5)} />
+      </div>
+    );
   }
 
   const toHex = (num: number) => "#" + num.toString(16).padStart(6, "0");

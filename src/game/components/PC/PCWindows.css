@@ -209,6 +209,10 @@
 }
 
 .tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   padding: 10px 24px;
   background: #1f1f1f;
   color: white;
@@ -245,16 +249,21 @@
 }
 
 .editor-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-weight: bold;
 }
 
 .editor-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: #c42b1c;
   color: white;
   border: none;
   width: 28px;
   height: 28px;
-  font-size: 16px;
   cursor: pointer;
   border-radius: 2px;
 }
@@ -329,6 +338,10 @@
 }
 
 .win11-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   padding: 8px 16px;
   background: #1f1f1f;
   color: white;

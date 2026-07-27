@@ -14,21 +14,14 @@
 }
 
 .icon {
-  line-height: 1;
+  display: inline-flex;
+  color: var(--cb-accent);
 }
 
 .sm {
   font-size: 11px;
 }
 
-.sm .icon {
-  font-size: 12px;
-}
-
 .md {
   font-size: 13px;
-}
-
-.md .icon {
-  font-size: 15px;
 }

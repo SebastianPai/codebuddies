@@ -83,7 +83,13 @@
 }
 
 .star {
-  font-size: 14px;
+  display: inline-flex;
+  color: #ffd700;
+}
+
+.currency-icon {
+  display: inline-flex;
+  color: #ffd700;
 }
 
 .progress-bar-container {

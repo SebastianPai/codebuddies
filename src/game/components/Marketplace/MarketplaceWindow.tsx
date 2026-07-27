@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Socket } from "socket.io-client";
-import ItemPreview from "../UI/ItemPreview";
+import { Heart } from "lucide-react";
 import { getSharedAuthToken } from "../../network/auth";
 import { requestGameConfirm, showGameAlert } from "../../utils/dialog";
-import { useDialogBehavior } from "../shared/useDialogBehavior";
+import Modal from "../shared/Modal";
 import Button from "../shared/Button";
-import ImagePreviewModal from "../shared/ImagePreviewModal";
+import ItemGrid from "../shared/ItemGrid";
+import ItemCard from "../shared/ItemCard";
 import styles from "./MarketplaceWindow.module.css";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
@@ -69,9 +70,6 @@ type Props = {
 };
 
 export default function MarketplaceWindow({ socket, onClose }: Props) {
-  const windowRef = useRef<HTMLElement>(null);
-  useDialogBehavior(windowRef, onClose);
-
   const [tab, setTab] = useState<Tab>("marketplace");
   const [items, setItems] = useState<MarketplaceItem[]>([]);
   const [favoriteItems, setFavoriteItems] = useState<MarketplaceItem[]>([]);
@@ -82,7 +80,6 @@ export default function MarketplaceWindow({ socket, onClose }: Props) {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [applicationMessage, setApplicationMessage] = useState("");
-  const [zoomItem, setZoomItem] = useState<MarketplaceItem | null>(null);
 
   const token = useMemo(() => getSharedAuthToken(), []);
 
@@ -213,24 +210,13 @@ export default function MarketplaceWindow({ socket, onClose }: Props) {
   const visibleItems = tab === "favorites" ? favoriteItems : items;
 
   return (
-    <section
-      ref={windowRef}
-      className={styles.window}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Marketplace de creadores"
+    <Modal
+      variant="floating"
+      title="Marketplace"
+      onClose={onClose}
+      style={{ width: "min(720px, calc(100vw - 24px))", height: "min(620px, calc(100dvh - 24px))" }}
     >
-      <header className={styles.header}>
-        <div>
-          <span>Creator Platform</span>
-          <h2>Marketplace</h2>
-        </div>
-        <Button variant="secondary" size="sm" onClick={onClose} aria-label="Cerrar Marketplace">
-          Cerrar
-        </Button>
-      </header>
-
-      <nav className={styles.tabs} aria-label="Secciones de Marketplace">
+      <div className={styles.tabs}>
         <button className={tab === "marketplace" ? styles.active : ""} onClick={() => setTab("marketplace")}>
           Comprar
         </button>
@@ -240,10 +226,10 @@ export default function MarketplaceWindow({ socket, onClose }: Props) {
         <button className={tab === "creator" ? styles.active : ""} onClick={() => setTab("creator")}>
           Crear
         </button>
-      </nav>
+      </div>
 
       {loading ? (
-        <div className={styles.grid}>
+        <div className={styles.skeletonGrid}>
           {Array.from({ length: 6 }).map((_, index) => (
             <div key={index} className={styles.skeleton} />
           ))}
@@ -256,77 +242,72 @@ export default function MarketplaceWindow({ socket, onClose }: Props) {
         </div>
       ) : tab === "marketplace" || tab === "favorites" ? (
         <div className={styles.body}>
-          {tab === "marketplace" && <div className={styles.toolbar}>
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") void loadMarketplace();
-              }}
-              placeholder="Buscar objetos de la comunidad..."
-              aria-label="Buscar en Marketplace"
-            />
-            <button onClick={() => void loadMarketplace()}>Buscar</button>
-          </div>}
-
-          {visibleItems.length ? (
-            <div className={styles.grid}>
-              {visibleItems.map((item) => {
-                const isFavorite = favoriteIds.has(item.id);
-                return (
-                <article key={item.id} className={styles.card}>
-                  <div className={styles.preview}>
-                    <ItemPreview
-                      item={{
-                        ...item.publishedItem,
-                        imageUrl: item.previewUrl || item.spriteUrl,
-                        type: item.publishedItem?.type || "WORLD",
-                      }}
-                      alt={item.title}
-                    />
-                    <button
-                      type="button"
-                      className={styles.zoomBtn}
-                      aria-label={`Ver ${item.title} en grande`}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setZoomItem(item);
-                      }}
-                    >
-                      🔍
-                    </button>
-                  </div>
-                  <h3>{item.title}</h3>
-                  <p>{item.description || "Contenido de la comunidad."}</p>
-                  <div className={styles.author}>
-                    por <b>{item.creator.user.username}</b>
-                    {item.creator.verified && <span>Verified</span>}
-                  </div>
-                  <div className={styles.metrics}>
-                    <span>{item.ratingAverage.toFixed(1)} estrellas</span>
-                    <span>{item.salesCount} ventas</span>
-                    <span>{item.favoritesCount} favs</span>
-                  </div>
-                  <div className={styles.actions}>
-                    <button
-                      className={isFavorite ? styles.favoriteActive : ""}
-                      onClick={() => void favorite(item)}
-                    >
-                      {isFavorite ? "♥ Quitar" : "♡ Favorito"}
-                    </button>
-                    <button className={styles.primary} onClick={() => void buy(item)}>
-                      {item.priceCoins} Coins
-                    </button>
-                  </div>
-                </article>
-              );})}
-            </div>
-          ) : (
-            <div className={styles.empty}>
-              <strong>Marketplace vacío</strong>
-              <span>Aun no hay objetos publicados por la comunidad.</span>
+          {tab === "marketplace" && (
+            <div className={styles.toolbar}>
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") void loadMarketplace();
+                }}
+                placeholder="Buscar objetos de la comunidad..."
+                aria-label="Buscar en Marketplace"
+              />
+              <button onClick={() => void loadMarketplace()}>Buscar</button>
             </div>
           )}
+
+          <ItemGrid
+            isEmpty={visibleItems.length === 0}
+            empty={
+              <>
+                <strong>Marketplace vacío</strong>
+                <span>Aun no hay objetos publicados por la comunidad.</span>
+              </>
+            }
+          >
+            {visibleItems.map((item) => {
+              const isFavorite = favoriteIds.has(item.id);
+              return (
+                <ItemCard
+                  key={item.id}
+                  item={{
+                    ...item.publishedItem,
+                    imageUrl: item.previewUrl || item.spriteUrl,
+                    type: item.publishedItem?.type || "WORLD",
+                  }}
+                  title={item.title}
+                  footer={
+                    <div className={styles.cardFooter}>
+                      <p className={styles.description}>{item.description || "Contenido de la comunidad."}</p>
+                      <div className={styles.author}>
+                        por <b>{item.creator.user.username}</b>
+                        {item.creator.verified && <span>Verified</span>}
+                      </div>
+                      <div className={styles.metrics}>
+                        <span>{item.ratingAverage.toFixed(1)} estrellas</span>
+                        <span>{item.salesCount} ventas</span>
+                        <span>{item.favoritesCount} favs</span>
+                      </div>
+                      <div className={styles.actions}>
+                        <Button
+                          variant={isFavorite ? "danger" : "secondary"}
+                          size="sm"
+                          onClick={() => void favorite(item)}
+                        >
+                          <Heart size={13} fill={isFavorite ? "currentColor" : "none"} />
+                          {isFavorite ? "Quitar" : "Favorito"}
+                        </Button>
+                        <Button variant="primary" size="sm" onClick={() => void buy(item)}>
+                          {item.priceCoins} Coins
+                        </Button>
+                      </div>
+                    </div>
+                  }
+                />
+              );
+            })}
+          </ItemGrid>
         </div>
       ) : (
         <CreatorPanel
@@ -338,15 +319,7 @@ export default function MarketplaceWindow({ socket, onClose }: Props) {
           onSubmit={submit}
         />
       )}
-
-      {zoomItem && (
-        <ImagePreviewModal
-          title={zoomItem.title}
-          imageUrl={zoomItem.previewUrl || zoomItem.spriteUrl || ""}
-          onClose={() => setZoomItem(null)}
-        />
-      )}
-    </section>
+    </Modal>
   );
 }
 

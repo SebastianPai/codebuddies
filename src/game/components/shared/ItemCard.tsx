@@ -1,6 +1,7 @@
 "use client";
 
 import { ReactNode, useState } from "react";
+import { Lock, ZoomIn, type LucideIcon } from "lucide-react";
 
 import styles from "./ItemCard.module.css";
 import ItemPreview from "../UI/ItemPreview";
@@ -9,6 +10,8 @@ import ImagePreviewModal from "./ImagePreviewModal";
 interface Props {
   item: any;
   title?: string;
+  /** Ícono chico antes del título (ej. distinguir "Pared" de "Suelo" en texturas). */
+  titleIcon?: LucideIcon;
   /** Insignia de cantidad, ej. "x3". */
   stackCount?: number;
   selected?: boolean;
@@ -32,6 +35,7 @@ interface Props {
 export default function ItemCard({
   item,
   title,
+  titleIcon: TitleIcon,
   stackCount,
   selected,
   locked,
@@ -61,12 +65,13 @@ export default function ItemCard({
           {!!stackCount && stackCount > 1 && <span className={styles.stack}>x{stackCount}</span>}
           {locked && (
             <span className={styles.lockIcon} aria-hidden="true">
-              🔒
+              <Lock size={13} />
             </span>
           )}
         </div>
         <span className={styles.title} title={label}>
-          {label}
+          {TitleIcon && <TitleIcon size={12} className={styles.titleIcon} />}
+          <span className={styles.titleText}>{label}</span>
         </span>
         {actionHint && <span className={styles.actionHint}>{actionHint}</span>}
       </button>
@@ -81,7 +86,7 @@ export default function ItemCard({
             setZoomOpen(true);
           }}
         >
-          🔍
+          <ZoomIn size={13} />
         </button>
       )}
 

@@ -16,6 +16,7 @@ import { requestGameConfirm, showGameAlert } from "../../utils/dialog";
 import { audioManager } from "../../audio/AudioManager";
 import Modal from "../shared/Modal";
 import Button from "../shared/Button";
+import { Globe, Lock, MessageCircle } from "lucide-react";
 
 type Props = {
   username: string;
@@ -201,7 +202,7 @@ export default function ProfileModal({ username, onClose, onOpenChat }: Props) {
               fullWidth
               onClick={() => onOpenChat(profile.id, profile.username, profile.avatarUrl)}
             >
-              💬 Mensaje
+              <MessageCircle size={14} /> Mensaje
             </Button>
             <Button variant="secondary" size="sm" fullWidth onClick={() => void handleFollowToggle()} disabled={busy}>
               {profile.isFollowing ? "Dejar de seguir" : "Seguir"}
@@ -225,7 +226,12 @@ export default function ProfileModal({ username, onClose, onOpenChat }: Props) {
                   <div className={styles.roomInfo}>
                     <span className={styles.roomName}>{room.name}</span>
                     <span className={styles.roomMeta}>
-                      {room.isPublic ? "🌍 Pública" : "🔒 Privada"} · {room._count.users}/{room.maxUsers}
+                      {room.isPublic ? (
+                        <Globe size={11} className={styles.roomMetaIcon} />
+                      ) : (
+                        <Lock size={11} className={styles.roomMetaIcon} />
+                      )}
+                      {room.isPublic ? "Pública" : "Privada"} · {room._count.users}/{room.maxUsers}
                     </span>
                   </div>
                   {room.canJoinDirectly ? (

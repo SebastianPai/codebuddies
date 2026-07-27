@@ -15,12 +15,52 @@ import ReactFlow, {
   Handle,
   Position,
 } from "reactflow";
+import {
+  Bell,
+  CheckCircle2,
+  CreditCard,
+  GitBranch,
+  Inbox,
+  MapPin,
+  Megaphone,
+  MessageCircleWarning,
+  Package,
+  Plus,
+  Repeat,
+  Save,
+  Star,
+  Truck,
+  UserCog,
+  type LucideIcon,
+} from "lucide-react";
 
 const nodeTypes = {
   action: ActionNode,
   decision: DecisionNode,
   while: WhileNode,
 };
+
+// Ícono por tipo de acción, resuelto por nodeType en vez de guardar el
+// componente dentro de "data": data.nodeType ya se guarda tal cual en el
+// backend (JSON.stringify no puede serializar un componente de React).
+const NODE_ICONS: Record<string, LucideIcon> = {
+  ORDER: Inbox,
+  PAYMENT: CreditCard,
+  NOTIFICATION: Bell,
+  UPDATE_STOCK: Package,
+  MARKETING: Megaphone,
+  ASSIGN_DRIVER: UserCog,
+  DELIVER: Truck,
+  TRACK_ORDER: MapPin,
+  VERIFY_PAYMENT: CheckCircle2,
+  SEND_REVIEW: Star,
+  HANDLE_COMPLAINT: MessageCircleWarning,
+};
+
+function NodeIcon({ nodeType }: { nodeType?: string }) {
+  const Icon = (nodeType && NODE_ICONS[nodeType]) || Package;
+  return <Icon size={16} style={{ flexShrink: 0 }} />;
+}
 
 function ActionNode({ data }: { data: any }) {
   return (
@@ -38,7 +78,10 @@ function ActionNode({ data }: { data: any }) {
       }}
     >
       <Handle type="target" position={Position.Top} />
-      <div>{data.label}</div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+        <NodeIcon nodeType={data.nodeType} />
+        <span>{data.label}</span>
+      </div>
       <Handle type="source" position={Position.Bottom} />
     </div>
   );
@@ -58,7 +101,10 @@ function DecisionNode({ data }: { data: any }) {
       }}
     >
       <Handle type="target" position={Position.Top} />
-      <div>🔀 {data.label}</div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+        <GitBranch size={16} />
+        <span>{data.label}</span>
+      </div>
       <div style={{ fontSize: "13px", marginTop: "8px" }}>
         {data.condition || "¿Condición?"}
       </div>
@@ -92,7 +138,10 @@ function WhileNode({ data }: { data: any }) {
       }}
     >
       <Handle type="target" position={Position.Top} />
-      <div>🔄 WHILE</div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+        <Repeat size={16} />
+        <span>WHILE</span>
+      </div>
       <div style={{ fontSize: "13px", marginTop: "6px" }}>
         {data.condition || "Mientras..."}
       </div>
@@ -107,31 +156,31 @@ const availableNodes = [
   {
     type: "action",
     nodeType: "ORDER",
-    label: "📥 Recibir Pedido",
+    label: "Recibir Pedido",
     color: "#4a90e2",
   },
   {
     type: "action",
     nodeType: "PAYMENT",
-    label: "💳 Procesar Pago",
+    label: "Procesar Pago",
     color: "#27ae60",
   },
   {
     type: "action",
     nodeType: "NOTIFICATION",
-    label: "🔔 Enviar Notificación",
+    label: "Enviar Notificación",
     color: "#e74c3c",
   },
   {
     type: "action",
     nodeType: "UPDATE_STOCK",
-    label: "📦 Actualizar Stock",
+    label: "Actualizar Stock",
     color: "#3498db",
   },
   {
     type: "action",
     nodeType: "MARKETING",
-    label: "📢 Campaña Marketing",
+    label: "Campaña Marketing",
     color: "#1abc9c",
   },
 
@@ -139,19 +188,19 @@ const availableNodes = [
   {
     type: "action",
     nodeType: "ASSIGN_DRIVER",
-    label: "👷 Asignar Repartidor",
+    label: "Asignar Repartidor",
     color: "#f39c12",
   },
   {
     type: "action",
     nodeType: "DELIVER",
-    label: "🚚 Entregar Pedido",
+    label: "Entregar Pedido",
     color: "#27ae60",
   },
   {
     type: "action",
     nodeType: "TRACK_ORDER",
-    label: "📍 Rastrear Pedido",
+    label: "Rastrear Pedido",
     color: "#9b59b6",
   },
 
@@ -159,19 +208,19 @@ const availableNodes = [
   {
     type: "action",
     nodeType: "VERIFY_PAYMENT",
-    label: "✅ Verificar Pago",
+    label: "Verificar Pago",
     color: "#2ecc71",
   },
   {
     type: "action",
     nodeType: "SEND_REVIEW",
-    label: "⭐ Pedir Review",
+    label: "Pedir Review",
     color: "#f1c40f",
   },
   {
     type: "action",
     nodeType: "HANDLE_COMPLAINT",
-    label: "😠 Gestionar Queja",
+    label: "Gestionar Queja",
     color: "#e67e22",
   },
 
@@ -179,13 +228,13 @@ const availableNodes = [
   {
     type: "decision",
     nodeType: "CONDITION",
-    label: "🔀 Decisión (If)",
+    label: "Decisión (If)",
     color: "#9b59b6",
   },
   {
     type: "while",
     nodeType: "WHILE",
-    label: "🔄 Bucle While",
+    label: "Bucle While",
     color: "#f39c12",
   },
 ];
@@ -271,15 +320,19 @@ export default function AppEditor({
           ))}
         </select>
 
-        <button onClick={addNode} className="btn btn-primary">
-          ➕ Agregar Nodo
+        <button
+          onClick={addNode}
+          className="btn btn-primary"
+          style={{ display: "flex", alignItems: "center", gap: "6px" }}
+        >
+          <Plus size={16} /> Agregar Nodo
         </button>
         <button
           onClick={handleSave}
           className="btn btn-success"
-          style={{ marginLeft: "auto" }}
+          style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "6px" }}
         >
-          💾 Guardar Lógica
+          <Save size={16} /> Guardar Lógica
         </button>
       </div>
 

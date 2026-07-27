@@ -31,12 +31,16 @@
   --cb-space-5: 20px;
   --cb-space-6: 24px;
 
-  /* Capas de apilamiento (z-index) por rol, no por pantalla. */
+  /* Capas de apilamiento (z-index) por rol, no por pantalla.
+     Modal/Toast quedan por encima de paneles con z-index propio a mano
+     (Marketplace/AvatarStudio en 10000, BuildModePanel en 12000) — si no,
+     al portar Modal a <body> (ver Modal.tsx) dejaba de heredar el orden por
+     anidación en el DOM y aparecía "detrás" de esos paneles. */
   --cb-z-sidebar: 200;
   --cb-z-panel: 400;
   --cb-z-dropdown: 600;
-  --cb-z-modal: 1000;
-  --cb-z-toast: 1200;
+  --cb-z-modal: 15000;
+  --cb-z-toast: 16000;
 
   --cb-shadow: 0 20px 60px rgba(0, 0, 0, 0.38);
   --background: var(--cb-bg);

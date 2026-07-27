@@ -87,6 +87,11 @@ export default function Game() {
     done: number;
     total: number;
   } | null>(null);
+  const [currentRoom, setCurrentRoom] = useState<{
+    id: string;
+    ownerId?: string;
+    background?: { id: string } | null;
+  } | null>(null);
 
   // =========================
   // INIT
@@ -192,7 +197,14 @@ export default function Game() {
               console.log("🚪 Entrando room:", data);
 
               setInGame(true);
+              setCurrentRoom(data?.room ?? null);
               window.dispatchEvent(new CustomEvent("game:missions:refresh"));
+            });
+
+            socketInstance?.on("room:backgroundChanged", (data: any) => {
+              setCurrentRoom((prev) =>
+                prev ? { ...prev, background: data?.background ?? null } : prev,
+              );
             });
 
           },
@@ -437,6 +449,9 @@ export default function Game() {
 
       {inGame && buildMode && (
         <BuildModePanel
+          socket={socket}
+          roomId={currentRoom?.id}
+          currentBackgroundId={currentRoom?.background?.id}
           inventory={inventory}
           paintAllProgress={paintAllProgress}
           onExit={() => {
@@ -447,6 +462,7 @@ export default function Game() {
             window.dispatchEvent(new CustomEvent("build:surface:cancel"));
           }}
           onOpenShop={() => openMajorPanel("shop")}
+          onOpenMarketplace={() => openMajorPanel("marketplace")}
           onClearRoom={clearCurrentRoom}
           onPlaceWorldItem={(item) => {
             window.dispatchEvent(
