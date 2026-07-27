@@ -1,12 +1,11 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 
 .window {
   position: absolute;
   top: 110px;
   right: 70px;
 
-  width: 400px;
-  height: 560px;
+  width: min(400px, calc(100vw - 24px));
+  height: min(560px, calc(100dvh - 24px));
 
   display: flex;
   flex-direction: column;
@@ -38,8 +37,9 @@
 }
 
 .title {
-  font-family: "Press Start 2P", monospace;
-  font-size: 12px;
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
 }
 
 .closeBtn {
@@ -187,11 +187,19 @@
   text-overflow: ellipsis;
 }
 
-.unreadDot {
-  width: 9px;
-  height: 9px;
+.unreadBadge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
   border-radius: 999px;
-  background: #ffd34d;
+  background: #ff5e5e;
+  color: white;
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex: none;
 }
 
@@ -202,4 +210,11 @@
   font-family: "Inter", system-ui, sans-serif;
   font-size: 13px;
   line-height: 1.5;
+}
+
+@media (max-width: 480px) {
+  .window {
+    top: 12px;
+    right: 12px;
+  }
 }

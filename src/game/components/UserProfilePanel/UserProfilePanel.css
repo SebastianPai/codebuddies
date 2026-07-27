@@ -1,5 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
-
 * {
   box-sizing: border-box;
   image-rendering: pixelated;
@@ -51,9 +49,10 @@
 }
 
 .username {
-  font-family: "Press Start 2P", cursive;
+  font-family: "Inter", system-ui, sans-serif;
+  font-weight: 700;
 
-  font-size: 12px;
+  font-size: 15px;
 
   color: white;
 
@@ -75,9 +74,10 @@
 }
 
 .level-number {
-  font-family: "Press Start 2P", cursive;
+  font-family: "Inter", system-ui, sans-serif;
+  font-weight: 700;
 
-  font-size: 10px;
+  font-size: 13px;
 
   color: #7dd3fc;
 }
@@ -166,9 +166,10 @@
 
   color: white;
 
-  font-family: "Press Start 2P", cursive;
+  font-family: "Inter", system-ui, sans-serif;
+  font-weight: 600;
 
-  font-size: 10px;
+  font-size: 13px;
 
   padding: 14px 12px;
 

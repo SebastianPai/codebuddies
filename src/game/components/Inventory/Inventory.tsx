@@ -57,7 +57,7 @@ export default function Inventory({
       variant="floating"
       title="Inventario"
       onClose={onClose ?? (() => {})}
-      style={{ width: 500, height: 450 }}
+      style={{ width: "min(500px, calc(100vw - 24px))", height: "min(450px, calc(100dvh - 24px))" }}
     >
       <div className={styles.tabs}>
         <button

@@ -195,7 +195,12 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
   }, [activeTab, search]);
 
   return (
-    <Modal variant="floating" title="Item Shop" onClose={onClose ?? (() => {})} style={{ width: 720, height: 620 }}>
+    <Modal
+      variant="floating"
+      title="Item Shop"
+      onClose={onClose ?? (() => {})}
+      style={{ width: "min(720px, calc(100vw - 24px))", height: "min(620px, calc(100dvh - 24px))" }}
+    >
       <div className={styles.tabs}>
         <button
           className={`${styles.tab} ${activeTab === "avatar" ? styles.active : ""}`}

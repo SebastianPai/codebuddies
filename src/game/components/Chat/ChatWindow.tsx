@@ -155,9 +155,14 @@ export default function ChatWindow({
           // remitente no es el partner, el mensaje es propio (evita tener
           // que conocer el propio userId aquí).
           const isOwn = message.senderId !== partnerId;
+          const time = new Date(message.createdAt).toLocaleTimeString("es-CO", {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
           return (
             <div key={message.id} className={`${styles.bubbleRow} ${isOwn ? styles.own : ""}`}>
               <div className={styles.bubble}>{message.body}</div>
+              <span className={styles.messageTime}>{time}</span>
             </div>
           );
         })}

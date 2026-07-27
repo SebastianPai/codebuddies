@@ -16,3 +16,10 @@
 .stack > * {
   pointer-events: auto;
 }
+
+@media (max-width: 480px) {
+  .stack {
+    right: 12px;
+    gap: 8px;
+  }
+}

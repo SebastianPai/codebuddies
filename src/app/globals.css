@@ -1,4 +1,5 @@
 @import "reactflow/dist/style.css";
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap");
 
 :root {
   --cb-bg: #0c0e12;
@@ -58,7 +59,7 @@ body {
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: "PixelifySans", Arial, Helvetica, sans-serif;
+  font-family: "Inter", system-ui, Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

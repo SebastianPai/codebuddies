@@ -142,7 +142,9 @@ export default function MessagesPanel({ onClose }: Props) {
                   <div className={styles.conversationPreview}>{conversation.lastMessage.body}</div>
                 )}
               </div>
-              {conversation.unreadCount > 0 && <div className={styles.unreadDot} />}
+              {conversation.unreadCount > 0 && (
+                <span className={styles.unreadBadge}>{conversation.unreadCount > 99 ? "99+" : conversation.unreadCount}</span>
+              )}
             </div>
           ))}
         </div>

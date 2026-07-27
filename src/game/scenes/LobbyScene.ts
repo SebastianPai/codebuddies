@@ -720,8 +720,11 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
 
     this.otherPlayers = this.add.group();
 
+    // x=350 deja el minimapa a la derecha del LeftSidebar (320px de ancho +
+    // margen); en (10,10) quedaba tapado por completo detrás del sidebar,
+    // que es un panel DOM permanente por encima del canvas.
     this.minimap = this.cameras
-      .add(10, 10, 180, 180)
+      .add(350, 10, 180, 180)
       .setZoom(0.15)
       .setName("minimap")
       .setBackgroundColor(0x002244);
