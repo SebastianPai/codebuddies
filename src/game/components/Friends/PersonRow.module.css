@@ -1,0 +1,140 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  padding: 10px 12px;
+  border-radius: 12px;
+
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(255, 255, 255, 0.06);
+
+  font-family: "Inter", system-ui, sans-serif;
+
+  transition: 0.15s;
+}
+
+.row.clickable {
+  cursor: pointer;
+}
+
+.row.clickable:hover {
+  border-color: rgba(255, 211, 77, 0.4);
+  transform: translateY(-1px);
+}
+
+.avatarWrap {
+  position: relative;
+  flex: none;
+}
+
+.avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  object-fit: cover;
+  background: #1a1f2d;
+}
+
+.avatarFallback {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  background: #2a3248;
+  color: #ffd34d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.onlineDot {
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: #565f77;
+  border: 2px solid #12151f;
+}
+
+.onlineDot.online {
+  background: #38d27a;
+}
+
+.info {
+  flex: 1;
+  min-width: 0;
+}
+
+.username {
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.subtitle {
+  margin-top: 3px;
+  font-size: 12px;
+  color: #9ea5b4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.actions {
+  flex: none;
+  display: flex;
+  gap: 6px;
+}
+
+.actionBtn {
+  padding: 8px 12px;
+
+  border-radius: 8px;
+  border: none;
+
+  cursor: pointer;
+
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+
+  transition: 0.15s;
+  white-space: nowrap;
+}
+
+.actionBtn:hover {
+  transform: translateY(-1px);
+}
+
+.actionBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+  transform: none;
+}
+
+.actionBtn.primary {
+  background: #ffd34d;
+  color: #17181c;
+}
+
+.actionBtn.danger {
+  background: #ff5e5e;
+  color: #17181c;
+}
+
+.actionBtn.ghost {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}

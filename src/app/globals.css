@@ -1,12 +1,51 @@
+@import "reactflow/dist/style.css";
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --cb-bg: #0c0e12;
+  --cb-surface: #141820;
+  --cb-surface-2: #1d2330;
+  --cb-border: rgba(148, 163, 184, 0.26);
+  --cb-text: #f8fafc;
+  --cb-muted: #94a3b8;
+  --cb-accent: #facc15;
+  --cb-accent-hover: #fde047;
+  --cb-danger: #f87171;
+  --cb-success: #22c55e;
+  --cb-info: #60a5fa;
+  --cb-warning: #fbbf24;
+
+  /* Radius scale. --cb-radius se conserva como alias de --cb-radius-lg
+     (uso previo en .cb-panel) para no romper a quien ya lo consuma. */
+  --cb-radius-sm: 8px;
+  --cb-radius-md: 12px;
+  --cb-radius-lg: 18px;
+  --cb-radius-pill: 999px;
+  --cb-radius: var(--cb-radius-lg);
+
+  /* Spacing scale, base 4px. */
+  --cb-space-1: 4px;
+  --cb-space-2: 8px;
+  --cb-space-3: 12px;
+  --cb-space-4: 16px;
+  --cb-space-5: 20px;
+  --cb-space-6: 24px;
+
+  /* Capas de apilamiento (z-index) por rol, no por pantalla. */
+  --cb-z-sidebar: 200;
+  --cb-z-panel: 400;
+  --cb-z-dropdown: 600;
+  --cb-z-modal: 1000;
+  --cb-z-toast: 1200;
+
+  --cb-shadow: 0 20px 60px rgba(0, 0, 0, 0.38);
+  --background: var(--cb-bg);
+  --foreground: var(--cb-text);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: var(--cb-bg);
+    --foreground: var(--cb-text);
   }
 }
 
@@ -19,9 +58,29 @@ body {
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "PixelifySans", Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.cb-panel {
+  border: 1px solid var(--cb-border);
+  border-radius: var(--cb-radius);
+  background: color-mix(in srgb, var(--cb-surface) 94%, transparent);
+  box-shadow: var(--cb-shadow);
+}
+
+.cb-button-primary {
+  border: 0;
+  border-radius: 14px;
+  background: var(--cb-accent);
+  color: #111827;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+* {
+  scrollbar-color: var(--cb-accent) var(--cb-surface);
 }
 
 * {

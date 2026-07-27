@@ -1,0 +1,18 @@
+.stack {
+  position: fixed;
+  bottom: 0;
+  right: 40px;
+
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+
+  /* Ahora libre: el botón mock "Chat Global" que ocupaba esta esquina se
+     quitó de RightSidebar (era 100% placeholder, sin funcionalidad real). */
+  z-index: 400;
+  pointer-events: none;
+}
+
+.stack > * {
+  pointer-events: auto;
+}

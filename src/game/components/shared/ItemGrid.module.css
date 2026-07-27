@@ -1,0 +1,18 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: var(--cb-space-3);
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--cb-space-1);
+  padding: var(--cb-space-6) var(--cb-space-4);
+  text-align: center;
+  color: var(--cb-muted);
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 13px;
+}

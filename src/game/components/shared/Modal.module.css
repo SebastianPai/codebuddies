@@ -1,0 +1,97 @@
+.floatingLayer {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.floatingLayer > * {
+  pointer-events: auto;
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(6, 8, 12, 0.6);
+  backdrop-filter: blur(2px);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--cb-space-5);
+}
+
+.dialog {
+  display: flex;
+  flex-direction: column;
+
+  background: var(--cb-surface);
+  color: var(--cb-text);
+  border: 1px solid var(--cb-border);
+  border-radius: var(--cb-radius-lg);
+  box-shadow: var(--cb-shadow);
+
+  max-height: 100%;
+}
+
+.dialog.overlay {
+  width: min(520px, 100%);
+}
+
+.dialog.floating {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cb-space-3);
+
+  padding: var(--cb-space-3) var(--cb-space-4);
+  border-bottom: 1px solid var(--cb-border);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+}
+
+.dialog.floating .header {
+  cursor: move;
+  user-select: none;
+}
+
+.title {
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: var(--cb-space-2);
+  flex: none;
+}
+
+.closeBtn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font-size: 14px;
+}
+
+.content {
+  padding: var(--cb-space-4);
+  overflow-y: auto;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--cb-space-2);
+  padding: var(--cb-space-3) var(--cb-space-4);
+  border-top: 1px solid var(--cb-border);
+}

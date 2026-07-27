@@ -1,0 +1,191 @@
+@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
+
+* {
+  box-sizing: border-box;
+  image-rendering: pixelated;
+}
+
+.profile-overlay {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  z-index: 100;
+  pointer-events: auto;
+}
+
+.profile-container {
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* =========================
+   AVATAR
+========================= */
+
+.avatar-frame {
+  width: 100px;
+  height: 100px;
+
+  background: rgba(0, 0, 0, 0.25);
+
+  border: 2px solid #4da3ff;
+
+  border-radius: 14px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+}
+
+/* =========================
+   INFO
+========================= */
+
+.info-section {
+  flex: 1;
+  min-width: 0;
+}
+
+.username {
+  font-family: "Press Start 2P", cursive;
+
+  font-size: 12px;
+
+  color: white;
+
+  margin-bottom: 12px;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  text-shadow: 0 0 10px rgba(77, 163, 255, 0.7);
+}
+
+.level-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  margin-bottom: 10px;
+}
+
+.level-number {
+  font-family: "Press Start 2P", cursive;
+
+  font-size: 10px;
+
+  color: #7dd3fc;
+}
+
+.star {
+  font-size: 14px;
+}
+
+.progress-bar-container {
+  width: 100%;
+  height: 12px;
+
+  background: rgba(0, 0, 0, 0.45);
+
+  border-radius: 999px;
+
+  overflow: hidden;
+
+  margin-bottom: 14px;
+
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.progress-bar {
+  height: 100%;
+
+  background: linear-gradient(90deg, #00c6ff, #0072ff);
+
+  border-radius: 999px;
+
+  box-shadow: 0 0 12px rgba(0, 140, 255, 0.6);
+}
+
+/* =========================
+   MONEDAS
+========================= */
+
+.currency-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.currency-item {
+  background: rgba(255, 255, 255, 0.06);
+
+  border: 1px solid rgba(255, 255, 255, 0.08);
+
+  border-radius: 10px;
+
+  padding: 8px 10px;
+
+  color: white;
+
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  font-size: 13px;
+
+  min-width: 95px;
+}
+
+/* =========================
+   MENU
+========================= */
+
+.menu-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.menu-btn {
+  width: 100%;
+
+  background: linear-gradient(
+    180deg,
+    rgba(20, 32, 58, 0.96),
+    rgba(9, 16, 34, 0.96)
+  );
+
+  border: 2px solid rgba(77, 163, 255, 0.5);
+
+  border-radius: 14px;
+
+  color: white;
+
+  font-family: "Press Start 2P", cursive;
+
+  font-size: 10px;
+
+  padding: 14px 12px;
+
+  text-align: left;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.15s ease,
+    border 0.15s ease,
+    background 0.15s ease;
+}
+
+.menu-btn:hover {
+  transform: translateX(4px);
+
+  border-color: #4da3ff;
+
+  background: linear-gradient(180deg, rgba(34, 52, 90, 1), rgba(14, 24, 48, 1));
+}

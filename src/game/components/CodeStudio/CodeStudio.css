@@ -1,0 +1,1135 @@
+.codestudio-shell {
+  height: 100%;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 238px minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "header header"
+    "sidebar workspace"
+    "footer footer";
+  color: #e5f6ff;
+  background:
+    radial-gradient(circle at 16% 0%, rgba(34, 211, 238, 0.18), transparent 28%),
+    radial-gradient(circle at 96% 8%, rgba(250, 204, 21, 0.13), transparent 22%),
+    linear-gradient(135deg, #050914 0%, #08111f 48%, #100f08 100%);
+  font-family: "Trebuchet MS", sans-serif;
+  overflow: hidden;
+}
+
+.codestudio-shell * {
+  box-sizing: border-box;
+}
+
+.codestudio-shell button,
+.codestudio-shell select,
+.codestudio-shell input {
+  font: inherit;
+}
+
+.codestudio-loading {
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.cs-sidebar,
+.cs-workspace,
+.cs-app-header,
+.cs-footer,
+.cs-panel,
+.codestudio-create,
+.cs-roadmap-column,
+.cs-empty-state {
+  border: 1px solid rgba(103, 232, 249, 0.18);
+  background: rgba(3, 7, 18, 0.78);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
+}
+
+.cs-sidebar {
+  grid-area: sidebar;
+  min-height: 0;
+  padding: 14px;
+  border-width: 0 1px 0 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(34, 211, 238, 0.75) rgba(15, 23, 42, 0.8);
+}
+
+.cs-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.16), rgba(250, 204, 21, 0.08));
+}
+
+.cs-brand > span,
+.cs-logo,
+.cs-avatar {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #22d3ee, #facc15);
+  color: #031018;
+  font-weight: 1000;
+  box-shadow: 0 0 28px rgba(34, 211, 238, 0.25);
+}
+
+.cs-brand b,
+.cs-brand small {
+  display: block;
+}
+
+.cs-brand small,
+.cs-company-switcher label,
+.cs-muted,
+.codestudio-error + p {
+  color: rgba(229, 246, 255, 0.58);
+}
+
+.cs-company-switcher {
+  margin-top: 14px;
+  display: grid;
+  gap: 7px;
+}
+
+.cs-company-switcher select,
+.codestudio-create input,
+.codestudio-create select,
+.cs-module-library input,
+.cs-backlog select {
+  width: 100%;
+  border: 1px solid rgba(103, 232, 249, 0.2);
+  border-radius: 12px;
+  background: rgba(2, 6, 23, 0.92);
+  color: white;
+  outline: none;
+  padding: 10px 12px;
+}
+
+.cs-company-switcher select:focus,
+.codestudio-create input:focus,
+.codestudio-create select:focus,
+.cs-module-library input:focus,
+.cs-backlog select:focus {
+  border-color: #facc15;
+  box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.12);
+}
+
+.cs-nav {
+  margin-top: 14px;
+  display: grid;
+  gap: 6px;
+}
+
+.cs-nav button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: transparent;
+  color: rgba(229, 246, 255, 0.76);
+  padding: 10px;
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.cs-nav button:hover,
+.cs-nav button.active {
+  transform: translateX(3px);
+  border-color: rgba(103, 232, 249, 0.28);
+  background: rgba(34, 211, 238, 0.1);
+  color: #ffffff;
+}
+
+.cs-nav button span {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.9);
+  color: #67e8f9;
+}
+
+.cs-workspace {
+  grid-area: workspace;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border: 0;
+  background: transparent;
+  overflow: hidden;
+}
+
+.cs-app-header,
+.cs-topbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1px solid rgba(103, 232, 249, 0.18);
+  border-radius: 24px;
+  background: rgba(3, 7, 18, 0.72);
+  padding: 14px 16px;
+}
+
+.cs-app-header {
+  grid-area: header;
+  border-width: 0 0 1px;
+  border-radius: 0;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+}
+
+.cs-footer {
+  grid-area: footer;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px;
+  border-width: 1px 0 0;
+  padding: 9px 14px;
+  color: rgba(229, 246, 255, 0.66);
+  font-size: 12px;
+}
+
+.codestudio-chip {
+  display: inline-flex;
+  border-radius: 999px;
+  background: #22d3ee;
+  color: #021018;
+  padding: 5px 10px;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.cs-app-header h2,
+.cs-topbar h2,
+.cs-panel h3,
+.cs-company-card h2 {
+  margin: 6px 0 3px;
+}
+
+.cs-app-header p,
+.cs-topbar p,
+.cs-panel p,
+.cs-panel small,
+.cs-company-card p {
+  color: rgba(229, 246, 255, 0.62);
+}
+
+.cs-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.cs-live-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(34, 197, 94, 0.28);
+  border-radius: 999px;
+  background: rgba(22, 101, 52, 0.18);
+  color: #bbf7d0;
+  padding: 9px 12px;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.cs-live-indicator i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.85);
+  animation: cs-live-pulse 1.2s infinite;
+}
+
+.cs-actions button,
+.codestudio-create button,
+.cs-quick-actions button,
+.cs-module-groups article > div button,
+.cs-roadmap-card,
+.cs-backlog button {
+  border: 0;
+  border-radius: 13px;
+  background: linear-gradient(135deg, #22d3ee, #facc15);
+  color: #06111f;
+  cursor: pointer;
+  font-weight: 900;
+  padding: 10px 12px;
+  transition: transform 0.18s ease, filter 0.18s ease;
+}
+
+.cs-actions button:nth-child(2),
+.cs-quick-actions button {
+  border: 1px solid rgba(103, 232, 249, 0.22);
+  background: rgba(15, 23, 42, 0.82);
+  color: #e5f6ff;
+}
+
+.cs-actions button:hover,
+.codestudio-create button:hover,
+.cs-quick-actions button:hover,
+.cs-module-groups article > div button:hover,
+.cs-roadmap-card:hover,
+.cs-backlog button:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.08);
+}
+
+.cs-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.codestudio-create {
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 10px;
+  border-radius: 18px;
+  padding: 10px;
+}
+
+.cs-view {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(250, 204, 21, 0.85) rgba(15, 23, 42, 0.8);
+}
+
+.cs-view::-webkit-scrollbar,
+.cs-sidebar::-webkit-scrollbar,
+.cs-panel::-webkit-scrollbar,
+.cs-roadmap-column > div::-webkit-scrollbar,
+.cs-module-library::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.cs-view::-webkit-scrollbar-thumb,
+.cs-sidebar::-webkit-scrollbar-thumb,
+.cs-panel::-webkit-scrollbar-thumb,
+.cs-roadmap-column > div::-webkit-scrollbar-thumb,
+.cs-module-library::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: linear-gradient(#22d3ee, #facc15);
+}
+
+.cs-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 12px;
+  animation: cs-rise 0.28s ease both;
+}
+
+.cs-panel,
+.cs-empty-state {
+  border-radius: 22px;
+  padding: 15px;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(34, 211, 238, 0.75) rgba(15, 23, 42, 0.8);
+}
+
+.cs-span-3 { grid-column: span 3; }
+.cs-span-4 { grid-column: span 4; }
+.cs-span-5 { grid-column: span 5; }
+.cs-span-6 { grid-column: span 6; }
+.cs-span-7 { grid-column: span 7; }
+.cs-span-8 { grid-column: span 8; }
+
+.cs-panel-header,
+.cs-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.cs-panel-header strong {
+  color: #facc15;
+  font-size: 24px;
+}
+
+.cs-kpis {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.cs-kpis div {
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.9), rgba(2, 6, 23, 0.84));
+  padding: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.cs-kpis span,
+.cs-progress-row span,
+.cs-feed span,
+.cs-campaign span {
+  display: block;
+  color: rgba(229, 246, 255, 0.58);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.cs-kpis b {
+  display: block;
+  margin-top: 5px;
+  color: #67e8f9;
+  font-size: 20px;
+}
+
+.cs-kpis small {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+}
+
+.cs-chart > div {
+  height: 170px;
+  display: flex;
+  align-items: end;
+  gap: 6px;
+  border-radius: 18px;
+  background:
+    linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px) 0 0 / 100% 25%,
+    rgba(2, 6, 23, 0.76);
+  padding: 12px;
+}
+
+.cs-chart i {
+  flex: 1;
+  min-width: 6px;
+  border-radius: 999px 999px 4px 4px;
+  background: linear-gradient(180deg, #facc15, #22d3ee);
+  animation: cs-grow 0.55s ease both;
+}
+
+.cs-feed {
+  display: grid;
+  gap: 10px;
+}
+
+.cs-timeline {
+  display: grid;
+  gap: 10px;
+}
+
+.cs-timeline-item {
+  display: grid;
+  grid-template-columns: 44px 12px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  position: relative;
+}
+
+.cs-timeline-item time {
+  color: rgba(229, 246, 255, 0.58);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.cs-timeline-item > span {
+  width: 12px;
+  height: 12px;
+  margin-top: 2px;
+  border-radius: 50%;
+  background: #67e8f9;
+  box-shadow: 0 0 0 5px rgba(34, 211, 238, 0.1);
+}
+
+.cs-timeline-item.warn > span { background: #facc15; }
+.cs-timeline-item.danger > span { background: #fb7185; }
+.cs-timeline-item.success > span { background: #22c55e; }
+
+.cs-timeline-item div {
+  border: 1px solid rgba(148, 163, 184, 0.13);
+  border-radius: 15px;
+  background: rgba(15, 23, 42, 0.65);
+  padding: 10px;
+}
+
+.cs-feed article,
+.cs-bug,
+.cs-version,
+.cs-dev-card,
+.cs-client-grid article,
+.cs-person-card,
+.cs-infra-node,
+.cs-ranking article,
+.cs-research-list article,
+.cs-backlog article {
+  border: 1px solid rgba(148, 163, 184, 0.13);
+  border-radius: 17px;
+  background: rgba(15, 23, 42, 0.65);
+  padding: 12px;
+}
+
+.cs-feed .success { color: #86efac; }
+.cs-feed .warn { color: #fde68a; }
+.cs-feed .danger { color: #fda4af; }
+.cs-feed .info { color: #67e8f9; }
+
+.cs-progress-row {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.cs-progress-row > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cs-progress {
+  height: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.16);
+}
+
+.cs-progress i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #22d3ee, #facc15);
+  transition: width 0.38s ease;
+}
+
+.cs-tags,
+.cs-quick-actions,
+.cs-settings,
+.cs-research-list {
+  display: grid;
+  gap: 9px;
+}
+
+.cs-briefing {
+  display: grid;
+  gap: 10px;
+}
+
+.cs-briefing article {
+  display: grid;
+  gap: 6px;
+  border: 1px solid rgba(148, 163, 184, 0.13);
+  border-radius: 16px;
+  background: rgba(15, 23, 42, 0.62);
+  padding: 10px;
+}
+
+.cs-briefing span {
+  color: rgba(229, 246, 255, 0.58);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cs-briefing button {
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #22d3ee, #facc15);
+  color: #06111f;
+  cursor: pointer;
+  font-weight: 900;
+  padding: 9px 10px;
+}
+
+.cs-tags button {
+  display: flex;
+  justify-content: space-between;
+  border: 1px solid rgba(103, 232, 249, 0.2);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.72);
+  color: #e5f6ff;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.cs-company-card {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.cs-logo {
+  width: 74px;
+  height: 74px;
+  border-radius: 24px;
+  font-size: 24px;
+}
+
+.cs-version ul {
+  margin: 8px 0 0 18px;
+  padding: 0;
+  color: rgba(229, 246, 255, 0.76);
+}
+
+.cs-tree {
+  display: flex;
+  align-items: stretch;
+  gap: 14px;
+  min-height: 210px;
+  overflow-x: auto;
+  padding: 18px 6px;
+}
+
+.cs-node-wrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.cs-node-wrap > i {
+  width: 48px;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #22d3ee, #facc15);
+  box-shadow: 0 0 18px rgba(34, 211, 238, 0.55);
+}
+
+.cs-node {
+  min-width: 150px;
+  border: 1px solid rgba(103, 232, 249, 0.28);
+  border-radius: 18px;
+  background: rgba(2, 6, 23, 0.82);
+  padding: 12px;
+}
+
+.cs-node span {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 10px;
+  background: #22d3ee;
+  color: #031018;
+  font-weight: 900;
+}
+
+.cs-node b,
+.cs-node small {
+  display: block;
+  margin-top: 7px;
+}
+
+.cs-dev-list,
+.cs-client-grid,
+.cs-people-grid,
+.cs-infra-map,
+.cs-ranking {
+  display: grid;
+  gap: 12px;
+}
+
+.cs-dev-card > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.cs-dev-card > div span {
+  border-radius: 999px;
+  background: rgba(34, 211, 238, 0.14);
+  color: #67e8f9;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.cs-dev-card footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 9px;
+}
+
+.cs-bug {
+  margin-bottom: 9px;
+}
+
+.cs-bug > span {
+  display: inline-flex;
+  border-radius: 999px;
+  padding: 4px 8px;
+  margin-bottom: 8px;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.cs-bug .critico { background: rgba(244, 63, 94, 0.2); color: #fda4af; }
+.cs-bug .alto { background: rgba(251, 146, 60, 0.2); color: #fdba74; }
+.cs-bug .medio { background: rgba(250, 204, 21, 0.18); color: #fde68a; }
+.cs-bug .bajo { background: rgba(34, 197, 94, 0.16); color: #86efac; }
+
+.cs-roadmap {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(190px, 1fr));
+  gap: 12px;
+  min-height: 0;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  animation: cs-rise 0.28s ease both;
+}
+
+.cs-roadmap-column {
+  display: flex;
+  flex-direction: column;
+  min-height: 430px;
+  max-height: 100%;
+  border-radius: 22px;
+  padding: 14px;
+}
+
+.cs-roadmap-column > div {
+  display: grid;
+  gap: 10px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.cs-roadmap-column.pending { border-color: rgba(250, 204, 21, 0.25); }
+.cs-roadmap-column.active { border-color: rgba(34, 211, 238, 0.35); }
+.cs-roadmap-column.qa { border-color: rgba(168, 85, 247, 0.3); }
+.cs-roadmap-column.release { border-color: rgba(244, 114, 182, 0.28); }
+.cs-roadmap-column.done { border-color: rgba(134, 239, 172, 0.28); }
+
+.cs-roadmap-card {
+  display: grid;
+  gap: 7px;
+  width: 100%;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  background: rgba(15, 23, 42, 0.78);
+  color: #e5f6ff;
+  text-align: left;
+}
+
+.cs-roadmap-card.done {
+  background: rgba(22, 101, 52, 0.22);
+}
+
+.cs-backlog {
+  display: grid;
+  gap: 9px;
+}
+
+.cs-backlog article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.cs-people-grid,
+.cs-client-grid,
+.cs-infra-map {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.cs-person-card {
+  display: grid;
+  gap: 8px;
+  min-height: 210px;
+}
+
+.cs-person-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cs-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+}
+
+.cs-person-head > span {
+  border-radius: 999px;
+  padding: 6px 9px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cs-person-head .busy {
+  background: rgba(34, 211, 238, 0.16);
+  color: #67e8f9;
+}
+
+.cs-person-head .idle {
+  background: rgba(250, 204, 21, 0.14);
+  color: #fde68a;
+}
+
+.cs-current-task {
+  display: grid;
+  gap: 7px;
+  border: 1px solid rgba(103, 232, 249, 0.16);
+  border-radius: 16px;
+  background: rgba(2, 6, 23, 0.55);
+  padding: 10px;
+}
+
+.cs-current-task small,
+.cs-current-task em {
+  color: rgba(229, 246, 255, 0.58);
+  font-size: 11px;
+}
+
+.cs-current-task em {
+  font-style: normal;
+}
+
+.cs-person-card > span,
+.cs-profit {
+  border-radius: 999px;
+  background: rgba(34, 211, 238, 0.13);
+  color: #67e8f9;
+  padding: 8px 10px;
+  width: max-content;
+  font-weight: 900;
+}
+
+.cs-profit.positive {
+  background: rgba(34, 197, 94, 0.16);
+  color: #86efac;
+}
+
+.cs-profit.negative {
+  background: rgba(244, 63, 94, 0.16);
+  color: #fda4af;
+}
+
+.cs-infra-node {
+  position: relative;
+  overflow: hidden;
+}
+
+.cs-infra-indicators {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.cs-infra-indicators article {
+  display: grid;
+  gap: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.13);
+  border-radius: 17px;
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.86), rgba(2, 6, 23, 0.72)),
+    radial-gradient(circle at 0% 0%, rgba(34, 211, 238, 0.16), transparent 40%);
+  padding: 12px;
+}
+
+.cs-infra-indicators span {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 13px;
+  background: rgba(34, 211, 238, 0.14);
+  color: #67e8f9;
+  font-size: 11px;
+  font-weight: 1000;
+}
+
+.cs-infra-indicators b {
+  color: #e5f6ff;
+}
+
+.cs-infra-node > div:first-child {
+  width: 54px;
+  height: 54px;
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(34, 211, 238, 0.9), rgba(250, 204, 21, 0.8)),
+    repeating-linear-gradient(90deg, transparent, transparent 6px, rgba(0,0,0,0.15) 6px, rgba(0,0,0,0.15) 8px);
+  box-shadow: 0 0 28px rgba(34, 211, 238, 0.28);
+}
+
+.cs-campaign {
+  min-height: 180px;
+}
+
+.cs-ranking article {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.cs-ranking article.you {
+  border-color: #facc15;
+  background: rgba(250, 204, 21, 0.1);
+}
+
+.cs-module-library {
+  margin-top: 12px;
+  max-height: 520px;
+  overflow: auto;
+}
+
+.cs-module-library input {
+  max-width: 260px;
+}
+
+.cs-module-groups {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.cs-module-groups article {
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 18px;
+  background: rgba(2, 6, 23, 0.52);
+  overflow: hidden;
+}
+
+.cs-module-groups article > button {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  border: 0;
+  background: rgba(15, 23, 42, 0.82);
+  color: #e5f6ff;
+  padding: 12px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.cs-module-groups article > div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  padding: 10px;
+}
+
+.cs-module-groups article > div button {
+  display: grid;
+  gap: 3px;
+  background: rgba(34, 211, 238, 0.1);
+  color: #e5f6ff;
+  border: 1px solid rgba(103, 232, 249, 0.18);
+  text-align: left;
+}
+
+.cs-tutorial {
+  background:
+    radial-gradient(circle at 18% 12%, rgba(250, 204, 21, 0.16), transparent 35%),
+    rgba(3, 7, 18, 0.78);
+}
+
+.cs-tutorial-next {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 12px;
+  border: 1px solid rgba(250, 204, 21, 0.22);
+  border-radius: 18px;
+  background: rgba(250, 204, 21, 0.08);
+  padding: 12px;
+}
+
+.cs-tutorial-next span,
+.cs-tutorial-steps button {
+  color: rgba(229, 246, 255, 0.64);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cs-tutorial-next b {
+  color: #facc15;
+}
+
+.cs-tutorial-next button {
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #facc15, #22d3ee);
+  color: #06111f;
+  cursor: pointer;
+  font-weight: 900;
+  padding: 9px 10px;
+}
+
+.cs-tutorial-steps {
+  display: grid;
+  gap: 7px;
+}
+
+.cs-tutorial-steps button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 13px;
+  background: rgba(15, 23, 42, 0.72);
+  color: rgba(229, 246, 255, 0.72);
+  cursor: pointer;
+  padding: 9px;
+  text-align: left;
+}
+
+.cs-tutorial-steps i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #64748b;
+}
+
+.cs-tutorial-steps .done i {
+  background: #22c55e;
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.14);
+}
+
+.cs-settings label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.cs-settings + pre {
+  margin-top: 14px;
+  border-radius: 16px;
+  background: #020617;
+  color: #86efac;
+  padding: 14px;
+  overflow: auto;
+}
+
+.codestudio-error {
+  border: 1px solid rgba(248, 113, 113, 0.5);
+  border-radius: 14px;
+  background: rgba(127, 29, 29, 0.6);
+  padding: 10px 12px;
+}
+
+.cs-empty-state {
+  display: grid;
+  place-items: center;
+  min-height: 320px;
+  text-align: center;
+}
+
+@keyframes cs-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes cs-grow {
+  from {
+    transform: scaleY(0.2);
+    opacity: 0.4;
+  }
+  to {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+@keyframes cs-live-pulse {
+  70% {
+    box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+  }
+}
+
+@media (max-width: 1000px) {
+  .codestudio-shell {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "header"
+      "sidebar"
+      "workspace"
+      "footer";
+  }
+
+  .cs-sidebar {
+    max-height: 240px;
+    border-width: 0 0 1px;
+  }
+
+  .cs-nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .codestudio-create,
+  .cs-roadmap,
+  .cs-people-grid,
+  .cs-client-grid,
+  .cs-infra-map,
+  .cs-backlog article,
+  .cs-module-groups article > div {
+    grid-template-columns: 1fr;
+  }
+
+  .cs-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cs-span-3,
+  .cs-span-4,
+  .cs-span-5,
+  .cs-span-6,
+  .cs-span-7,
+  .cs-span-8 {
+    grid-column: auto;
+  }
+
+  .cs-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cs-infra-indicators {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

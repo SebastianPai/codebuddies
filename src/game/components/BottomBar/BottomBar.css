@@ -1,0 +1,374 @@
+@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
+
+.bottom-bar-wrapper {
+  position: relative;
+
+  width: 100%;
+  height: 100px;
+
+  overflow: hidden;
+
+  z-index: 100;
+}
+
+.bottom-fade {
+  position: absolute;
+  inset: 0;
+
+  background: linear-gradient(
+    0deg,
+    rgba(8, 8, 8, 0.95) 0%,
+    rgba(10, 10, 10, 0.85) 40%,
+    rgba(12, 12, 12, 0.45) 75%,
+    transparent 100%
+  );
+
+  pointer-events: none;
+}
+
+/* ====================== */
+/* BARRA PRINCIPAL */
+/* ====================== */
+
+.bottom-bar {
+  position: absolute;
+
+  left: 0;
+  right: 0;
+  bottom: 10px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 0 20px;
+
+  z-index: 10;
+}
+
+/* ====================== */
+/* GROUPS */
+/* ====================== */
+
+.bottom-left,
+.bottom-center,
+.bottom-right {
+  display: flex;
+  align-items: center;
+}
+
+/* CHAT */
+
+.bottom-left {
+  flex: 1;
+
+  display: flex;
+  justify-content: flex-start;
+}
+
+/* REACCIONES PERFECTAMENTE CENTRADAS */
+
+.bottom-center {
+  position: absolute;
+
+  left: 50%;
+
+  transform: translateX(-50%);
+
+  width: fit-content;
+
+  display: flex;
+  justify-content: center;
+
+  flex-shrink: 0;
+}
+
+/* ONLINE */
+
+.bottom-right {
+  width: fit-content;
+
+  display: flex;
+  justify-content: flex-end;
+
+  flex-shrink: 0;
+}
+
+/* ====================== */
+/* CHAT */
+/* ====================== */
+
+.chat-shell {
+  width: min(100%, 360px);
+
+  display: flex;
+  align-items: center;
+
+  gap: 8px;
+
+  padding: 6px;
+
+  border-radius: 18px;
+
+  background: rgba(20, 20, 20, 0.85);
+
+  border: 1px solid rgba(255, 212, 0, 0.12);
+
+  backdrop-filter: blur(14px);
+}
+
+.chat-input {
+  flex: 1;
+
+  height: 38px;
+
+  border: none;
+  outline: none;
+
+  border-radius: 12px;
+
+  padding: 0 14px;
+
+  background: rgba(255, 255, 255, 0.06);
+
+  color: white;
+
+  font-size: 13px;
+
+  font-family: "Inter", sans-serif;
+}
+
+.chat-input::placeholder {
+  color: #94a3b8;
+}
+
+.send-btn {
+  height: 38px;
+
+  padding: 0 16px;
+
+  border: none;
+
+  border-radius: 12px;
+
+  background: #ffd400;
+
+  color: black;
+
+  font-family: "Inter", sans-serif;
+
+  font-size: 13px;
+
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition: all 0.2s ease;
+}
+
+.send-btn:hover {
+  background: #ffea80;
+
+  transform: translateY(-1px);
+}
+
+/* ====================== */
+/* REACTIONS */
+/* ====================== */
+
+.reaction-shell {
+  display: inline-flex;
+  align-items: center;
+
+  gap: 8px;
+
+  padding: 6px;
+
+  border-radius: 18px;
+
+  background: rgba(20, 20, 20, 0.85);
+
+  border: 1px solid rgba(255, 212, 0, 0.12);
+
+  backdrop-filter: blur(14px);
+
+  width: fit-content;
+}
+
+.reaction-btn {
+  width: 50px;
+  height: 50px;
+
+  border: none;
+
+  border-radius: 14px;
+
+  background: rgba(255, 255, 255, 0.05);
+
+  border: 1px solid rgba(255, 212, 0, 0.08);
+
+  color: white;
+
+  font-size: 20px;
+
+  cursor: pointer;
+
+  transition: all 0.2s ease;
+
+  position: relative;
+
+  flex-shrink: 0;
+}
+
+.reaction-btn:hover {
+  transform: translateY(-3px);
+
+  background: rgba(255, 212, 0, 0.18);
+}
+
+/* TOOLTIP */
+
+.reaction-btn::after {
+  content: attr(data-label);
+
+  position: absolute;
+
+  bottom: calc(100% + 8px);
+  left: 50%;
+
+  transform: translateX(-50%);
+
+  padding: 6px 10px;
+
+  border-radius: 8px;
+
+  background: #111;
+
+  border: 1px solid #ffd400;
+
+  color: white;
+
+  font-size: 9px;
+
+  font-family: "Press Start 2P", cursive;
+
+  opacity: 0;
+
+  pointer-events: none;
+
+  transition: 0.2s ease;
+
+  white-space: nowrap;
+}
+
+.reaction-btn:hover::after {
+  opacity: 1;
+}
+
+/* ====================== */
+/* ONLINE */
+/* ====================== */
+
+.online-shell {
+  height: 38px;
+
+  padding: 0 12px;
+
+  display: inline-flex;
+  align-items: center;
+
+  gap: 8px;
+
+  border-radius: 999px;
+
+  background: rgba(20, 20, 20, 0.88);
+
+  border: 1px solid rgba(255, 212, 0, 0.12);
+
+  backdrop-filter: blur(14px);
+
+  width: fit-content;
+
+  white-space: nowrap;
+}
+
+.online-dot {
+  width: 8px;
+  height: 8px;
+
+  border-radius: 999px;
+
+  background: #22ff88;
+
+  box-shadow: 0 0 10px rgba(34, 255, 136, 0.8);
+
+  flex-shrink: 0;
+}
+
+.online-shell span {
+  color: white;
+
+  font-size: 11px;
+
+  font-family: "Inter", sans-serif;
+
+  font-weight: 500;
+
+  white-space: nowrap;
+}
+
+/* ====================== */
+/* RESPONSIVE */
+/* ====================== */
+
+@media (max-width: 1100px) {
+  .bottom-bar {
+    flex-direction: column;
+
+    align-items: center;
+
+    gap: 12px;
+  }
+
+  .bottom-center {
+    position: relative;
+
+    left: unset;
+
+    transform: none;
+  }
+
+  .bottom-left,
+  .bottom-center,
+  .bottom-right {
+    width: 100%;
+
+    justify-content: center;
+  }
+
+  .bottom-bar-wrapper {
+    height: 210px;
+  }
+}
+
+@media (max-width: 700px) {
+  .bottom-bar-wrapper {
+    height: 230px;
+  }
+
+  .chat-shell {
+    width: 100%;
+  }
+
+  .reaction-shell {
+    flex-wrap: wrap;
+
+    justify-content: center;
+  }
+
+  .reaction-btn {
+    width: 46px;
+    height: 46px;
+  }
+}

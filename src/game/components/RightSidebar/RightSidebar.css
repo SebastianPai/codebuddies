@@ -1,0 +1,676 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
+.right-sidebar {
+  position: absolute;
+
+  top: 18px;
+  right: 18px;
+
+  width: 340px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  z-index: 120;
+}
+
+/* =========================
+   GENERIC
+========================= */
+
+.sidebar-block {
+  padding: 18px;
+
+  border-radius: 22px;
+
+  background:
+    radial-gradient(circle at 12% 0%, rgba(250, 204, 21, 0.1), transparent 36%),
+    rgba(18, 18, 18, 0.76);
+
+  backdrop-filter: blur(18px);
+
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-bottom: 16px;
+}
+
+.block-label {
+  font-size: 11px;
+
+  letter-spacing: 0.12em;
+
+  text-transform: uppercase;
+
+  color: rgba(255, 255, 255, 0.45);
+
+  font-weight: 600;
+}
+
+.block-title {
+  margin-top: 6px;
+
+  font-size: 18px;
+
+  color: white;
+
+  font-weight: 600;
+}
+
+.soft-button {
+  height: 34px;
+
+  padding: 0 14px;
+
+  border: none;
+
+  border-radius: 12px;
+
+  background: rgba(255, 255, 255, 0.06);
+
+  color: white;
+
+  font-size: 12px;
+
+  font-weight: 500;
+
+  cursor: pointer;
+
+  transition: 0.2s ease;
+}
+
+.soft-button:hover {
+  background: rgba(250, 204, 21, 0.16);
+  color: #fde047;
+}
+
+.soft-button.inline {
+  width: max-content;
+  margin-top: 10px;
+}
+
+/* =========================
+   ROOM
+========================= */
+
+.room-card {
+  overflow: hidden;
+
+  padding: 0;
+}
+
+.room-preview {
+  position: relative;
+
+  height: 210px;
+
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.7)),
+    url("/images/room-preview.png");
+
+  background-size: cover;
+  background-position: center;
+}
+
+.room-overlay {
+  position: absolute;
+  inset: 0;
+
+  padding: 22px;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.room-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.live-status {
+  padding: 8px 12px;
+
+  border-radius: 999px;
+
+  background: rgba(255, 255, 255, 0.08);
+
+  color: white;
+
+  font-size: 12px;
+
+  font-weight: 500;
+}
+
+.room-name {
+  margin: 8px 0 0 0;
+
+  color: white;
+
+  font-size: 22px;
+
+  font-weight: 700;
+}
+
+.room-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.room-online {
+  color: rgba(255, 255, 255, 0.75);
+
+  font-size: 13px;
+}
+
+/* =========================
+   MISSIONS
+========================= */
+
+.missions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mission-item {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 14px;
+
+  border-radius: 16px;
+
+  background: rgba(255, 255, 255, 0.055);
+  color: inherit;
+  cursor: pointer;
+  transition:
+    transform 150ms ease,
+    border-color 150ms ease,
+    background 150ms ease;
+}
+
+.mission-item:hover,
+.mission-item:focus-visible {
+  border-color: rgba(250, 204, 21, 0.45);
+  background: rgba(250, 204, 21, 0.09);
+  transform: translateY(-1px);
+}
+
+.mission-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  margin-bottom: 12px;
+}
+
+.mission-title {
+  color: white;
+
+  font-size: 14px;
+
+  font-weight: 500;
+}
+
+.mission-percent {
+  color: rgba(255, 255, 255, 0.5);
+
+  font-size: 13px;
+}
+
+.mission-bar {
+  height: 8px;
+
+  overflow: hidden;
+
+  border-radius: 999px;
+
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.mission-fill {
+  height: 100%;
+
+  border-radius: inherit;
+
+  background: linear-gradient(90deg, #facc15, #fde047);
+}
+
+.mission-empty {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 13px;
+}
+
+.mission-skeleton {
+  height: 78px;
+  border-radius: 16px;
+  background:
+    linear-gradient(90deg, transparent, rgba(250, 204, 21, 0.13), transparent),
+    rgba(255, 255, 255, 0.05);
+  background-size: 220% 100%;
+  animation: missionShimmer 1.4s ease-in-out infinite;
+}
+
+.mission-scroll {
+  max-height: 72vh;
+  overflow-y: auto;
+}
+
+.mission-detail-card + .mission-detail-card {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(79, 131, 209, 0.12);
+}
+
+.reward-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+}
+
+@keyframes missionShimmer {
+  from {
+    background-position: 180% 0;
+  }
+  to {
+    background-position: -80% 0;
+  }
+}
+
+/* =========================
+   EVENTS
+========================= */
+
+.events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.event-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 14px 16px;
+
+  border-radius: 16px;
+
+  background: rgba(255, 255, 255, 0.04);
+
+  transition: 0.2s ease;
+}
+
+.event-item:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.event-left {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.event-name {
+  color: white;
+
+  font-size: 14px;
+
+  font-weight: 500;
+}
+
+.event-time {
+  color: rgba(255, 255, 255, 0.45);
+
+  font-size: 12px;
+}
+
+.event-badge {
+  padding: 6px 10px;
+
+  border-radius: 999px;
+
+  background: rgba(255, 255, 255, 0.06);
+
+  color: rgba(255, 255, 255, 0.75);
+
+  font-size: 11px;
+
+  font-weight: 500;
+}
+
+/* =========================
+   XP / WINDOWS STYLE WINDOW
+========================= */
+
+.pixel-window-overlay {
+  position: fixed;
+  inset: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(0, 0, 0, 0.45);
+
+  backdrop-filter: blur(6px);
+
+  z-index: 1000;
+}
+
+.pixel-window {
+  position: relative;
+
+  width: 560px;
+
+  overflow: hidden;
+
+  border-radius: 16px;
+
+  border: 2px solid #4f83d1;
+
+  background: linear-gradient(
+    to bottom,
+    #4f83d1 0%,
+    #4f83d1 12%,
+    rgba(255, 255, 255, 0.92) 12%,
+    rgba(255, 255, 255, 0.92) 100%
+  );
+
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.35),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.35);
+
+  backdrop-filter: blur(10px);
+}
+
+/* =========================
+   TITLEBAR
+========================= */
+
+.pixel-titlebar {
+  height: 52px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 0 10px 0 16px;
+}
+
+.pixel-title-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pixel-app-icon {
+  width: 18px;
+  height: 18px;
+
+  border-radius: 4px;
+
+  background: linear-gradient(135deg, #ffffff, #9fc0ff);
+
+  border: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+.pixel-window-title {
+  color: white;
+
+  font-size: 14px;
+
+  font-weight: 700;
+
+  letter-spacing: 0.02em;
+
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* =========================
+   XP BUTTONS
+========================= */
+
+.pixel-window-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pixel-action-btn {
+  width: 28px;
+  height: 24px;
+
+  border-radius: 6px;
+
+  border: 1px solid rgba(255, 255, 255, 0.8);
+
+  color: white;
+
+  font-size: 12px;
+
+  font-weight: 700;
+
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 1px 2px rgba(0, 0, 0, 0.2);
+
+  transition: 0.15s ease;
+}
+
+.pixel-action-btn:hover {
+  transform: translateY(1px);
+}
+
+.pixel-action-btn.close {
+  background: linear-gradient(to bottom, #ff7b7b, #d63636);
+}
+
+/* =========================
+   CONTENT
+========================= */
+
+.pixel-window-content {
+  padding: 28px;
+
+  color: #2f3540;
+}
+
+.mission-window-tag {
+  display: inline-flex;
+  align-items: center;
+
+  padding: 8px 14px;
+
+  border-radius: 999px;
+
+  background: rgba(79, 131, 209, 0.08);
+
+  border: 1px solid rgba(79, 131, 209, 0.18);
+
+  color: #4f83d1;
+
+  font-size: 11px;
+
+  font-weight: 700;
+
+  letter-spacing: 0.08em;
+
+  text-transform: uppercase;
+
+  margin-bottom: 18px;
+}
+
+.mission-window-title {
+  margin: 0 0 16px 0;
+
+  color: #202632;
+
+  font-size: 30px;
+
+  font-weight: 700;
+}
+
+.mission-window-description {
+  margin: 0 0 24px 0;
+
+  color: #5b6472;
+
+  line-height: 1.7;
+
+  font-size: 15px;
+}
+
+/* =========================
+   OBJECTIVES
+========================= */
+
+.objectives-box {
+  padding: 18px;
+
+  border-radius: 16px;
+
+  background: rgba(79, 131, 209, 0.05);
+
+  border: 1px solid rgba(79, 131, 209, 0.12);
+}
+
+.objectives-title {
+  margin-bottom: 14px;
+
+  color: #2e4f87;
+
+  font-size: 13px;
+
+  font-weight: 700;
+
+  letter-spacing: 0.08em;
+
+  text-transform: uppercase;
+}
+
+.objective-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  margin-bottom: 14px;
+}
+
+.objective-check {
+  width: 18px;
+  height: 18px;
+
+  border-radius: 5px;
+
+  background: white;
+
+  border: 2px solid #6f95d6;
+
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.objective-item span {
+  color: #4f5865;
+
+  font-size: 14px;
+}
+
+/* =========================
+   REWARD
+========================= */
+
+.reward-bar {
+  margin-top: 22px;
+
+  padding: 18px;
+
+  border-radius: 18px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  background: linear-gradient(
+    135deg,
+    rgba(79, 131, 209, 0.08),
+    rgba(255, 255, 255, 0.65)
+  );
+
+  border: 1px solid rgba(79, 131, 209, 0.12);
+}
+
+.reward-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.reward-label {
+  color: #6a7480;
+
+  font-size: 11px;
+
+  font-weight: 700;
+
+  letter-spacing: 0.08em;
+
+  text-transform: uppercase;
+}
+
+.reward-value {
+  color: #263244;
+
+  font-size: 20px;
+
+  font-weight: 700;
+}
+
+.reward-button {
+  height: 44px;
+
+  padding: 0 22px;
+
+  border: none;
+
+  border-radius: 12px;
+
+  cursor: pointer;
+
+  color: white;
+
+  font-size: 14px;
+
+  font-weight: 700;
+
+  background: linear-gradient(to bottom, #74a5ff, #2f6fe0);
+
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 6px 16px rgba(47, 111, 224, 0.25);
+
+  transition: 0.15s ease;
+}
+
+.reward-button:hover {
+  transform: translateY(-1px);
+}

@@ -1,0 +1,80 @@
+.modal form {
+  display: grid;
+  gap: 14px;
+}
+
+.modal input,
+.modal textarea,
+.modal select {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 16px;
+  padding: 13px 14px;
+  color: #f7fbff;
+  background: rgba(255, 255, 255, 0.08);
+  outline: none;
+}
+
+.modal textarea {
+  min-height: 92px;
+  resize: vertical;
+}
+
+.modal input:focus,
+.modal textarea:focus,
+.modal select:focus {
+  outline: 3px solid rgba(250, 204, 21, 0.42);
+  outline-offset: 2px;
+}
+
+.modal label {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  color: #dce9ff;
+  font-weight: 800;
+}
+
+.modal label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #facc15;
+}
+
+.buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.buttons button {
+  border: 0;
+  border-radius: 16px;
+  padding: 14px 16px;
+  color: #07111f;
+  background: linear-gradient(135deg, #facc15, #fde047);
+  cursor: pointer;
+  font-weight: 950;
+  transition:
+    transform 150ms ease,
+    filter 150ms ease;
+}
+
+.buttons button:first-child {
+  color: #f7fbff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.buttons button:hover,
+.buttons button:focus-visible {
+  filter: brightness(1.08);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 680px) {
+  .buttons {
+    grid-template-columns: 1fr;
+  }
+}

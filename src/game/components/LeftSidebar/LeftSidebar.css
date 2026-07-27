@@ -1,0 +1,287 @@
+@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
+
+.left-sidebar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 320px;
+  max-height: calc(100dvh - 80px); /* No ocupa todo hacia abajo */
+  overflow-y: auto;
+  overflow-x: hidden;
+  z-index: 200;
+  scrollbar-width: none;
+  background: #0a0a0a;
+}
+
+.left-sidebar::-webkit-scrollbar {
+  display: none;
+}
+
+/* ====================== SHELL ====================== */
+.sidebar-shell {
+  background: rgba(15, 15, 15, 0.96);
+  border-right: 1px solid rgba(255, 212, 0, 0.1);
+}
+
+.top-shell {
+  padding-bottom: 12px;
+}
+.menu-shell {
+  padding: 8px 0;
+}
+
+/* ====================== HEADER ====================== */
+.sidebar-header {
+  padding: 20px 20px 10px;
+}
+
+.brand-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-logo {
+  width: 46px;
+  height: 46px;
+  image-rendering: pixelated;
+}
+
+.brand-main {
+  font-family: "Press Start 2P", cursive;
+  font-size: 11.5px;
+  display: flex;
+  gap: 5px;
+}
+
+.brand-code {
+  color: #fff;
+}
+.brand-buddies {
+  color: #ffd400;
+}
+
+.brand-sub {
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 10px;
+  color: #9a9a9a;
+  margin-top: 3px;
+  letter-spacing: 0.4px;
+}
+
+/* ====================== PROFILE ====================== */
+.profile-card {
+  margin: 0 16px 20px;
+  background: rgba(20, 20, 20, 0.9);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 212, 0, 0.1);
+  overflow: hidden;
+}
+
+.profile-top {
+  padding: 18px 18px 14px;
+  display: flex;
+  gap: 16px;
+}
+
+.avatar-container {
+  width: 92px;
+  height: 92px;
+  overflow: hidden;
+  background: transparent;
+  border-radius: 8px;
+}
+
+.avatar-zoom {
+  transition: transform 0.35s ease;
+}
+
+.avatar-zoom:hover {
+  transform: scale(1.12);
+}
+
+.profile-info h2 {
+  margin: 0 0 6px 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: white;
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.online-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #aaa;
+  font-size: 11px;
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.online-dot {
+  width: 8px;
+  height: 8px;
+  background: #22ff88;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #22ff88;
+}
+
+.special-tag {
+  margin-top: 10px;
+  background: #ffd400;
+  color: #111;
+  padding: 5px 12px;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: "Inter", system-ui, sans-serif;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+/* XP BAR */
+.profile-bottom {
+  padding: 0 18px 20px;
+}
+
+.xp-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #999;
+  margin-bottom: 8px;
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.xp-bar {
+  height: 10px;
+  background: #1f1f1f;
+  border-radius: 999px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.xp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ffd400, #ffcc00);
+  box-shadow: 0 0 8px rgba(255, 212, 0, 0.6);
+}
+
+/* CURRENCY */
+.currency-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.currency-card {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 9px 12px;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.currency-label {
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 9.5px;
+  color: #9a9a9a;
+  margin-bottom: 3px;
+  letter-spacing: 0.3px;
+}
+
+.currency-card strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: white;
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+/* ====================== MENU ====================== */
+.menu-card {
+  padding: 6px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.menu-btn {
+  height: 40px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: #bbb;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 0 16px;
+  border-radius: 6px;
+  font-family: "Inter", system-ui, sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  transition: all 0.2s ease;
+}
+
+.menu-btn:hover {
+  background: rgba(255, 212, 0, 0.1);
+  color: #fff;
+  border-color: rgba(255, 212, 0, 0.25);
+  transform: translateX(5px);
+}
+
+.menu-icon {
+  position: relative;
+  width: 19px;
+  height: 19px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.menu-icon svg {
+  width: 19px;
+  height: 19px;
+}
+
+.menu-badge {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+
+  min-width: 15px;
+  height: 15px;
+  padding: 0 4px;
+
+  border-radius: 999px;
+  background: #ff5e5e;
+  color: white;
+
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 2px solid #0a0a0a;
+}
+
+.danger-btn:hover {
+  background: rgba(255, 70, 70, 0.15);
+  color: #ff7777;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .left-sidebar {
+    width: 100%;
+    max-width: 300px;
+  }
+}
+
+@media (max-height: 680px) {
+  .left-sidebar {
+    max-height: calc(100dvh - 60px);
+  }
+}
