@@ -229,6 +229,17 @@
   display: grid;
 
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  /* Sin esto, con filas implícitas "auto" dentro de un contenedor con
+     overflow-y:auto y alto ya definido (flex:1 dentro de un padre de alto
+     fijo), el navegador repartía el alto del contenedor entre la cantidad
+     de filas en vez de medir el contenido real de cada tarjeta (confirmado
+     inspeccionando el DOM: con 2 filas, cada fila quedaba en exactamente
+     alto_del_contenedor/2, sin importar que la tarjeta necesitara más) — el
+     resto de la tarjeta (usuarios, creador, botón) quedaba recortado por el
+     overflow:hidden de .roomCard. max-content fuerza a cada fila a medirse
+     por su contenido real, no por el espacio disponible.
+  */
+  grid-auto-rows: max-content;
 
   gap: var(--cb-space-4);
   align-content: start;
