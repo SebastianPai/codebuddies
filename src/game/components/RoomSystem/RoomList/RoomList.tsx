@@ -32,7 +32,9 @@ export default function RoomList({
   const [showCreate, setShowCreate] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>("public");
   const [search, setSearch] = useState("");
-  const [sort, setSort] = useState<SortType>("recent");
+  // Por defecto se recomiendan las salas con más gente adentro primero (como
+  // en la mayoría de juegos con salas), no las más nuevas.
+  const [sort, setSort] = useState<SortType>("users");
   const [loading, setLoading] = useState(true);
 
   const nodeRef = useRef<HTMLDivElement>(null);
@@ -197,9 +199,9 @@ export default function RoomList({
                   value={sort}
                   onChange={(event) => setSort(event.target.value as SortType)}
                 >
+                  <option value="users">Recomendadas (más gente)</option>
                   <option value="recent">Más recientes</option>
                   <option value="popular">Más populares</option>
-                  <option value="users">Más usuarios</option>
                 </select>
               </div>
 

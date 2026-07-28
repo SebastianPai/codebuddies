@@ -85,11 +85,32 @@
 }
 
 .avatar-container {
+  position: relative;
   width: 92px;
   height: 92px;
+  flex-shrink: 0;
+}
+
+/* Anillo de progreso tipo "battle pass" alrededor del avatar: se llena con
+   el conic-gradient calculado en JS (color de rango + % hacia el próximo
+   nivel) en vez de solo mostrar "NIVEL X" como texto plano. */
+.avatar-ring {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  padding: 4px;
+  transition: background 0.4s ease;
+}
+
+.avatar-ring-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
   overflow: hidden;
-  background: transparent;
-  border-radius: 8px;
+  background: #0a0a0a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .avatar-zoom {
@@ -100,8 +121,34 @@
   transform: scale(1.12);
 }
 
+.level-chip {
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 999px;
+  border: 2px solid #0a0a0a;
+
+  color: #111;
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 800;
+}
+
 .profile-info h2 {
   margin: 0 0 6px 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
   font-size: 15px;
   font-weight: 700;
   color: white;

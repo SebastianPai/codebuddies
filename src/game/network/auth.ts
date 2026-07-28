@@ -76,6 +76,27 @@ export function redirectToWebLogin() {
   window.location.href = `${WEB_URL}/login?redirect=${returnTo}`;
 }
 
+export async function updateUsername(username: string): Promise<{ username: string }> {
+  const token = getSharedAuthToken();
+
+  const res = await fetch(`${API_URL}/identity/username`, {
+    method: "PATCH",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ username }),
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.message || "No se pudo actualizar el nombre de usuario.");
+  }
+
+  return res.json();
+}
+
 export async function getCurrentUser() {
   try {
     const token = getSharedAuthToken();

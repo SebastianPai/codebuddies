@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Draggable from "react-draggable";
-import { Mail, Search, Users, X } from "lucide-react";
+import { Mail, Search, Sparkles, Users, X } from "lucide-react";
 
 import styles from "./FriendsPanel.module.css";
 import PersonRow from "./PersonRow";
@@ -15,6 +15,7 @@ import {
   getFriendRequests,
   getFriends,
   getSentRequests,
+  getSuggestions,
   rejectFriendRequest,
   removeFriendship,
   searchUsers,
@@ -24,7 +25,7 @@ import { requestGameConfirm, showGameAlert } from "../../utils/dialog";
 import { audioManager } from "../../audio/AudioManager";
 import { useChat } from "../Chat/ChatProvider";
 
-type TabType = "friends" | "requests" | "search";
+type TabType = "friends" | "requests" | "suggestions" | "search";
 
 type Props = {
   onClose: () => void;
@@ -44,6 +45,9 @@ export default function FriendsPanel({ onClose }: Props) {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
 
+  const [suggestions, setSuggestions] = useState<SearchResult[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(true);
+
   const loadAll = async () => {
     setLoading(true);
     try {
@@ -61,6 +65,14 @@ export default function FriendsPanel({ onClose }: Props) {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    setLoadingSuggestions(true);
+    void getSuggestions()
+      .then(setSuggestions)
+      .catch(() => setSuggestions([]))
+      .finally(() => setLoadingSuggestions(false));
+  }, []);
 
   useEffect(() => {
     void loadAll();
@@ -194,13 +206,12 @@ export default function FriendsPanel({ onClose }: Props) {
   const handleSendRequest = async (userId: string) => {
     try {
       await sendFriendRequest(userId);
-      setSearchResults((current) =>
-        current.map((entry) =>
-          entry.id === userId
-            ? { ...entry, friendship: { ...entry.friendship, status: "PENDING", direction: "OUTGOING" } }
-            : entry,
-        ),
-      );
+      const markPending = (entry: SearchResult) =>
+        entry.id === userId
+          ? { ...entry, friendship: { ...entry.friendship, status: "PENDING" as const, direction: "OUTGOING" as const } }
+          : entry;
+      setSearchResults((current) => current.map(markPending));
+      setSuggestions((current) => current.map(markPending));
       audioManager.play("click");
     } catch {
       await showGameAlert({
@@ -213,6 +224,11 @@ export default function FriendsPanel({ onClose }: Props) {
   };
 
   const searchActionFor = (result: SearchResult) => {
+    // Defensivo: si algún endpoint (ej. sugerencias) no manda friendship,
+    // se trata como "sin relación" en vez de romper el panel entero.
+    if (!result.friendship) {
+      return { label: "Agregar", onClick: () => void handleSendRequest(result.id), tone: "primary" as const };
+    }
     if (result.friendship.status === "ACCEPTED") {
       return { label: "Ya son amigos", onClick: () => {}, tone: "ghost" as const, disabled: true };
     }
@@ -294,6 +310,31 @@ export default function FriendsPanel({ onClose }: Props) {
       );
     }
 
+    if (activeTab === "suggestions") {
+      if (loadingSuggestions) {
+        return (
+          <>
+            <div className={styles.skeleton} />
+            <div className={styles.skeleton} />
+          </>
+        );
+      }
+      if (!suggestions.length) {
+        return <div className={styles.empty}>No tenemos sugerencias para vos todavía.</div>;
+      }
+      return suggestions.map((result) => (
+        <PersonRow
+          key={result.id}
+          username={result.username}
+          avatarUrl={result.avatarUrl}
+          online={result.online}
+          subtitle={result.mutualCount > 0 ? `${result.mutualCount} amigos en común` : undefined}
+          onClick={() => openProfile(result.username)}
+          actions={[searchActionFor(result)]}
+        />
+      ));
+    }
+
     // search
     if (!search.trim()) {
       return <div className={styles.empty}>Escribe un nombre de usuario para buscar.</div>;
@@ -321,7 +362,7 @@ export default function FriendsPanel({ onClose }: Props) {
       />
     ));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, loading, friends, received, sent, search, searching, searchResults]);
+  }, [activeTab, loading, friends, received, sent, search, searching, searchResults, loadingSuggestions, suggestions]);
 
   return (
     <Draggable nodeRef={nodeRef} handle={`.${styles.windowHeader}`}>
@@ -346,6 +387,12 @@ export default function FriendsPanel({ onClose }: Props) {
           >
             <Mail size={14} /> Solicitudes
             {requestsBadge > 0 && <span className={styles.badge}>{requestsBadge}</span>}
+          </button>
+          <button
+            className={`${styles.tab} ${activeTab === "suggestions" ? styles.active : ""}`}
+            onClick={() => setActiveTab("suggestions")}
+          >
+            <Sparkles size={14} /> Sugerencias
           </button>
           <button
             className={`${styles.tab} ${activeTab === "search" ? styles.active : ""}`}

@@ -16,7 +16,15 @@
     0 8px 25px rgba(0, 0, 0, 0.5),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
 
-  height: 100%;
+  /* No "height: 100%" acá: dentro de una grilla con filas auto (ver .grid en
+     RoomList.module.css), un alto en porcentaje sobre una fila de tamaño
+     indefinido termina resolviéndose contra el alto TOTAL del contenedor
+     dividido entre la cantidad de filas (confirmado inspeccionando el DOM:
+     con 2 filas, cada fila quedaba en ~270px en vez de los ~490px reales
+     que necesita la tarjeta) — la tarjeta quedaba demasiado baja y el
+     flexbox aplastaba .roomImage a 0px de alto para poder encajar el resto.
+     align-items: stretch (default de grid) ya estira la tarjeta a la altura
+     real de la fila sin necesidad de este height:100%. */
 }
 
 .roomCard:hover {
@@ -33,6 +41,10 @@
   position: relative;
 
   height: 220px;
+  /* Sin esto, si algún día el contenido de la tarjeta vuelve a no entrar en
+     el alto disponible, flexbox achica la imagen antes que el texto — el
+     resultado visual es justo "la sala pierde la imagen". */
+  flex-shrink: 0;
 
   cursor: pointer;
 

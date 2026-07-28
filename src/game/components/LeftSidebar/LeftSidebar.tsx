@@ -5,10 +5,25 @@ import type { ReactElement } from "react";
 import "./LeftSidebar.css";
 
 import AvatarPreview from "../AvatarEditor/AvatarPreview";
+import UserBadges from "../shared/UserBadges";
 import { useAvatar } from "../../hooks/useAvatar";
 import { useSocket } from "../../hooks/useSocket";
 import { getNotifications } from "../../network/notifications";
 import { getInbox, getMessageRequests } from "../../network/messages";
+
+// Anillo alrededor del avatar tipo "battle pass": el color cambia de rango
+// cada 10 niveles (bronce/plata/oro/diamante) además de llenarse con el
+// progreso hacia el próximo nivel, en vez de solo texto "NIVEL X".
+const LEVEL_TIERS = [
+  { min: 30, color: "#5eead4", label: "DIAMANTE" },
+  { min: 20, color: "#facc15", label: "ORO" },
+  { min: 10, color: "#cbd5e1", label: "PLATA" },
+  { min: 0, color: "#cd7f32", label: "BRONCE" },
+];
+
+function getLevelTier(level: number) {
+  return LEVEL_TIERS.find((tier) => level >= tier.min) ?? LEVEL_TIERS[LEVEL_TIERS.length - 1];
+}
 
 type Props = {
   username: string;
@@ -24,6 +39,7 @@ type Props = {
   onOpenShop: () => void;
   onOpenMarketplace: () => void;
   onOpenBuildMode: () => void;
+  onOpenSettings: () => void;
   onExitGame: () => void;
 };
 
@@ -40,6 +56,7 @@ function LeftSidebar({
   onOpenShop,
   onOpenMarketplace,
   onOpenBuildMode,
+  onOpenSettings,
   onExitGame,
 }: Props) {
   const socket = useSocket();
@@ -48,6 +65,11 @@ function LeftSidebar({
   const progress = (level % 10) * 10;
   const currentXp = progress * 10;
   const nextXp = 1000;
+  const levelTier = getLevelTier(level);
+  const ringDeg = (progress / 100) * 360;
+  const ringStyle = {
+    background: `conic-gradient(${levelTier.color} ${ringDeg}deg, rgba(255,255,255,0.14) ${ringDeg}deg)`,
+  };
 
   // =========================
   // BADGES: mensajes / notificaciones sin leer
@@ -269,6 +291,7 @@ function LeftSidebar({
     },
     {
       name: "Ajustes",
+      onClick: onOpenSettings,
       icon: (
         <svg
           viewBox="0 0 24 24"
@@ -328,22 +351,34 @@ function LeftSidebar({
         <div className="profile-card">
           <div className="profile-top">
             <div className="avatar-container">
-              <div className="avatar-zoom">
-                <AvatarPreview
-                  avatarSlots={avatar?.slots || []}
-                  skinColor={avatar?.skinColor}
-                  width={88}
-                  height={88}
-                />
+              <div className="avatar-ring" style={ringStyle}>
+                <div className="avatar-ring-inner">
+                  <div className="avatar-zoom">
+                    <AvatarPreview
+                      avatarSlots={avatar?.slots || []}
+                      skinColor={avatar?.skinColor}
+                      width={78}
+                      height={78}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="level-chip" style={{ background: levelTier.color }}>
+                {level}
               </div>
             </div>
 
             <div className="profile-info">
-              <h2>{username}</h2>
+              <h2>
+                {username}
+                <UserBadges username={username} size={13} />
+              </h2>
               <div className="online-row">
                 <div className="online-dot" /> ONLINE
               </div>
-              <div className="special-tag">SENIOR DEV</div>
+              <div className="special-tag" style={{ background: levelTier.color }}>
+                {levelTier.label}
+              </div>
             </div>
           </div>
 

@@ -34,6 +34,7 @@ import ChatProvider from "./components/Chat/ChatProvider";
 import MessagesPanel from "./components/Chat/MessagesPanel";
 import NotificationsPanel from "./components/Notifications/NotificationsPanel";
 import NotificationsToastBridge from "./components/Notifications/NotificationsToastBridge";
+import SettingsWindow from "./components/Settings/SettingsWindow";
 import {
   GameDialogRequest,
   requestGameConfirm,
@@ -75,6 +76,7 @@ export default function Game() {
   const [showFriends, setShowFriends] = useState(false);
   const [showMessages, setShowMessages] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   const [currentUser, setCurrentUser] = useState<any>(null);
 
@@ -378,6 +380,7 @@ export default function Game() {
   const handleOpenFriends = useCallback(() => setShowFriends(true), []);
   const handleOpenMessages = useCallback(() => setShowMessages(true), []);
   const handleOpenNotifications = useCallback(() => setShowNotifications(true), []);
+  const handleOpenSettings = useCallback(() => setShowSettings(true), []);
   const handleOpenShop = useCallback(() => openMajorPanel("shop"), [openMajorPanel]);
   const handleOpenMarketplace = useCallback(() => openMajorPanel("marketplace"), [openMajorPanel]);
   const handleOpenBuildMode = useCallback(() => {
@@ -422,6 +425,7 @@ export default function Game() {
               onOpenShop={handleOpenShop}
               onOpenMarketplace={handleOpenMarketplace}
               onOpenBuildMode={handleOpenBuildMode}
+              onOpenSettings={handleOpenSettings}
               onExitGame={handleExitGame}
             />
           )}
@@ -532,6 +536,18 @@ export default function Game() {
       {/* ================= NOTIFICACIONES ================= */}
 
       {showNotifications && <NotificationsPanel onClose={() => setShowNotifications(false)} />}
+
+      {/* ================= AJUSTES ================= */}
+
+      {showSettings && currentUser && (
+        <SettingsWindow
+          username={currentUser.username}
+          onClose={() => setShowSettings(false)}
+          onUsernameChanged={(username) =>
+            setCurrentUser((current: any) => (current ? { ...current, username } : current))
+          }
+        />
+      )}
 
       {currentUser && <NotificationsToastBridge />}
 

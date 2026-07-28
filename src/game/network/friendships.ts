@@ -27,7 +27,7 @@ export type FriendRequest = {
 };
 
 export type SearchResult = PersonSummary & {
-  friendship: { id?: string; status: FriendshipStatus; direction?: FriendshipDirection };
+  friendship?: { id?: string; status: FriendshipStatus; direction?: FriendshipDirection };
   mutualCount: number;
 };
 
