@@ -1,9 +1,22 @@
 import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
-import { BadgeType } from '@prisma/client';
+import {
+  BadgeAnimationDirection,
+  BadgeIconMode,
+  BadgeType,
+} from '@prisma/client';
 import { JwtAuthGuard } from '../identity/guards/jwt.guard';
 import { RolesGuard } from '../identity/guards/roles.guard';
 import { Roles } from '../identity/decorators/roles.decorator';
 import { BadgesService } from './badges.service';
+
+type SetConfigBody = {
+  iconUrl?: string | null;
+  mode?: BadgeIconMode;
+  size?: number;
+  frameCount?: number;
+  direction?: BadgeAnimationDirection;
+  frameRate?: number;
+};
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('ADMIN')
@@ -17,8 +30,8 @@ export class AdminBadgesController {
   }
 
   @Patch('config/:type')
-  setConfig(@Param('type') type: BadgeType, @Body() body: { iconUrl: string | null }) {
-    return this.badgesService.setConfig(type, body.iconUrl ?? null);
+  setConfig(@Param('type') type: BadgeType, @Body() body: SetConfigBody) {
+    return this.badgesService.setConfig(type, body);
   }
 
   @Get('creators')

@@ -497,6 +497,10 @@ export class FriendshipsService {
     return users
       .map((user) => ({
         ...user,
+        // Siempre 'NONE': suggestions() ya excluyó arriba a cualquiera con
+        // una relación existente (amigo, pendiente o bloqueado). Mismo
+        // shape que search() para que el frontend use el mismo tipo/render.
+        friendship: { status: 'NONE' as const },
         mutualCount: mutualScore.get(user.id) ?? 0,
         online: this.realtimeService.isOnline(user.id),
       }))

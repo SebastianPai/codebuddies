@@ -12,6 +12,7 @@ import { IdentityService } from './identity.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { UpdateUsernameDto } from './dto/update-username.dto';
 import { JwtAuthGuard } from './guards/jwt.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { Roles } from './decorators/roles.decorator';
@@ -60,6 +61,15 @@ export class IdentityController {
     @Body() dto: UpdateProfileDto,
   ) {
     return this.identityService.updateProfile(req.user.userId, dto);
+  }
+
+  @Patch('username')
+  @UseGuards(JwtAuthGuard)
+  updateUsername(
+    @Req() req: { user: { userId: string } },
+    @Body() dto: UpdateUsernameDto,
+  ) {
+    return this.identityService.updateUsername(req.user.userId, dto.username);
   }
 
   @Get('admin')

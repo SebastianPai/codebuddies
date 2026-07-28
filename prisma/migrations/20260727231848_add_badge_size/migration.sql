@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "BadgeConfig" ADD COLUMN     "size" INTEGER NOT NULL DEFAULT 16;

@@ -1,4 +1,9 @@
-import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
@@ -119,6 +124,34 @@ export class IdentityService {
       },
       select: { birthDate: true, country: true },
     });
+  }
+
+  async updateUsername(userId: string, username: string) {
+    const trimmed = username.trim();
+
+    const existing = await this.prisma.user.findUnique({
+      where: { username: trimmed },
+      select: { id: true },
+    });
+
+    if (existing && existing.id !== userId) {
+      throw new ConflictException('Ese nombre de usuario ya está en uso.');
+    }
+
+    try {
+      return await this.prisma.user.update({
+        where: { id: userId },
+        data: { username: trimmed },
+        select: { username: true },
+      });
+    } catch (err: any) {
+      // Red de seguridad ante una carrera entre el chequeo de arriba y el
+      // update (dos personas cambiando al mismo nombre casi al mismo tiempo).
+      if (err?.code === 'P2002') {
+        throw new ConflictException('Ese nombre de usuario ya está en uso.');
+      }
+      throw err;
+    }
   }
 
   async getProfile(userId: string) {

@@ -2339,6 +2339,11 @@ model CreatorProfile {
   featured       Boolean         @default(false)
   joinedAt       DateTime        @default(now())
   suspendedUntil DateTime?
+  // Cuáles insignias eligió mostrar el jugador (de las que realmente
+  // califica) — el máximo permitido depende de su nivel: gratis 1, premium
+  // 3, admin sin límite (ver BadgesService.getMaxSelectableBadges). Vacío =
+  // todavía no eligió, se autocompletan por prioridad al mostrarlas.
+  selectedBadgeTypes BadgeType[] @default([])
 
   totalSales      Int @default(0)
   totalCoinsGross Int @default(0)
@@ -2371,10 +2376,35 @@ enum BadgeType {
   CREATOR
 }
 
+// STATIC = una sola imagen fija (insignias básicas).
+// SPRITE = tira horizontal de `frameCount` cuadros iguales, animada
+// (insignias pro/premium) — mismo ancho total / frameCount = ancho de cada
+// cuadro.
+enum BadgeIconMode {
+  STATIC
+  SPRITE
+}
+
+// PINGPONG: 1,2,3,4,5,6,5,4,3,2,1,2... (ida y vuelta, Phaser "yoyo").
+// LOOP: 1,2,3,4,5,6,1,2,3... (corte directo del último cuadro al primero).
+enum BadgeAnimationDirection {
+  PINGPONG
+  LOOP
+}
+
 model BadgeConfig {
-  id      String    @id @default(uuid())
-  type    BadgeType @unique
+  id      String        @id @default(uuid())
+  type    BadgeType     @unique
   iconUrl String?
+  mode    BadgeIconMode @default(STATIC)
+  // Alto en pixeles al que se renderiza la insignia (el ancho sigue la
+  // proporción real del ícono/frame) — configurable porque el tamaño fijo
+  // por defecto (14px) se veía "como un punto".
+  size    Int           @default(16)
+
+  frameCount Int                     @default(6)
+  direction  BadgeAnimationDirection @default(PINGPONG)
+  frameRate  Int                     @default(10)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
