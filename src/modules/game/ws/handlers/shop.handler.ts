@@ -3,6 +3,11 @@ import { Socket } from 'socket.io';
 
 import { ItemsService } from '../../items/items.service';
 import { BackgroundsService } from '../../backgrounds/backgrounds.service';
+import {
+  BuyBackgroundDto,
+  BuyItemDto,
+  ShopItemsRequestDto,
+} from '../dto/shop.dto';
 
 @Injectable()
 export class ShopHandler {
@@ -14,15 +19,7 @@ export class ShopHandler {
   ) {}
 
   // ====================== OBTENER ITEMS DE LA TIENDA ======================
-  async handleShopItemsRequest(
-    socket: Socket,
-    data: {
-      sort?: 'new' | 'old' | 'cheap' | 'expensive' | 'popular';
-      category?: string;
-      minPrice?: number;
-      maxPrice?: number;
-    },
-  ) {
+  async handleShopItemsRequest(socket: Socket, data: ShopItemsRequestDto) {
     try {
       const items = await this.itemsService.getShopItems(data || {});
       const userId = socket.data.user?.userId;
@@ -94,7 +91,7 @@ export class ShopHandler {
   }
 
   // ====================== COMPRAR ITEM ======================
-  async handleBuyItem(socket: Socket, data: { itemId: string }) {
+  async handleBuyItem(socket: Socket, data: BuyItemDto) {
     const userId = socket.data.user?.userId;
     if (!userId) {
       return socket.emit('shop:item:error', { message: 'No autenticado' });
@@ -126,7 +123,7 @@ export class ShopHandler {
     }
   }
 
-  async handleBuyBackground(socket: Socket, data: { backgroundId: string }) {
+  async handleBuyBackground(socket: Socket, data: BuyBackgroundDto) {
     const userId = socket.data.user?.userId;
     if (!userId) {
       return socket.emit('shop:item:error', { message: 'No autenticado' });

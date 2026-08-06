@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -324,12 +325,27 @@ export class MarketplaceService {
       }
 
       const amount = wallet.availableBalance;
-      const updatedWallet = await tx.creatorWallet.update({
-        where: { id: wallet.id },
+
+      // Compare-and-swap: solo aplica si el saldo sigue siendo exactamente el
+      // que acabamos de leer. Si dos retiros llegan a la vez, el segundo ve
+      // el saldo ya en 0 (puesto por el primero) y esta condición falla, en
+      // vez de que ambos capturen el mismo "amount" y acrediten el doble.
+      const claimed = await tx.creatorWallet.updateMany({
+        where: { id: wallet.id, availableBalance: amount },
         data: {
           availableBalance: 0,
           totalWithdrawn: { increment: amount },
         },
+      });
+
+      if (claimed.count === 0) {
+        throw new ConflictException(
+          'El saldo cambió mientras se procesaba el retiro, intenta de nuevo',
+        );
+      }
+
+      const updatedWallet = await tx.creatorWallet.findUniqueOrThrow({
+        where: { id: wallet.id },
       });
 
       await tx.user.update({
@@ -743,19 +759,24 @@ export class MarketplaceService {
     const creatorEarnings = content.priceCoins - platformFee;
 
     return this.prisma.$transaction(async (tx) => {
-      const user = await tx.user.findUnique({ where: { id: userId } });
-      if (!user || user.coins < content.priceCoins) {
-        throw new BadRequestException('Coins insuficientes');
-      }
       const existing = await tx.marketplacePurchase.findUnique({
         where: { buyerId_contentId: { buyerId: userId, contentId } },
       });
       if (existing) throw new BadRequestException('Ya tienes este contenido');
 
-      await tx.user.update({
-        where: { id: userId },
+      // Débito condicional en una sola sentencia UPDATE...WHERE (mismo
+      // patrón que ItemsService.buyItem): antes se leía el saldo aparte y se
+      // decrementaba sin re-chequear, así que comprar dos contenidos
+      // distintos a la vez podía dejar el saldo en negativo.
+      const debited = await tx.user.updateMany({
+        where: { id: userId, coins: { gte: content.priceCoins } },
         data: { coins: { decrement: content.priceCoins } },
       });
+
+      if (debited.count === 0) {
+        throw new BadRequestException('Coins insuficientes');
+      }
+
       await tx.coinTransaction.create({
         data: {
           userId,

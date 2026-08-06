@@ -1,3 +1,12 @@
+import { Type } from 'class-transformer';
+import {
+  IsArray,
+  IsNumber,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
+
 export interface ParsedSlot {
   slot: string;
   itemId: string | null;
@@ -23,21 +32,45 @@ export interface ParsedAvatar {
   skinColor: number;
 }
 
-// ====================== DTOs para requests ======================
+// ====================== DTOs para requests (con validación real) ======================
 
-export interface EquipItemDto {
-  slot: string;
-  itemId: string;
+export class EquipItemDto {
+  @IsString()
+  slot!: string;
+
+  // string para equipar, null/undefined para desequipar (equivalente a "0").
+  @IsOptional()
+  @IsString()
+  itemId?: string | null;
+
+  @IsOptional()
+  @IsNumber()
   color?: number | null;
 }
 
-export interface UpdateAvatarDto {
+export class AvatarSlotEntryDto {
+  @IsString()
+  slot!: string;
+
+  @IsOptional()
+  @IsString()
+  itemId?: string | null;
+
+  @IsOptional()
+  @IsNumber()
+  color?: number | null;
+}
+
+export class UpdateAvatarDto {
+  @IsOptional()
+  @IsNumber()
   skinColor?: number;
-  slots?: Array<{
-    slot: string;
-    itemId: string;
-    color?: number | null;
-  }>;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AvatarSlotEntryDto)
+  slots?: AvatarSlotEntryDto[];
 }
 
 export interface AvatarResponse {

@@ -1,4 +1,4 @@
-import { IsString, IsInt, IsEnum } from 'class-validator';
+import { IsString, IsInt, IsEnum, IsOptional } from 'class-validator';
 import { Direction } from '@prisma/client';
 
 export class CreateItemSpriteDto {
@@ -22,4 +22,8 @@ export class CreateItemSpriteDto {
 
   @IsInt()
   framesCount: number;
+
+  @IsOptional()
+  @IsInt()
+  row?: number;
 }

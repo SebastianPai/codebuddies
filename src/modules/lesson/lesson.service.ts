@@ -1,13 +1,32 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { ReorderDto } from '../../common/dto/reorder.dto';
 import { CreateLessonDto } from './dto/create-lesson.dto';
-import { LessonType } from '@prisma/client';
+import { UpdateLessonDto } from './dto/update-lesson.dto';
+import { PremiumAccessService } from '../premium-access/premium-access.service';
+
+export interface LessonRequester {
+  userId?: string;
+  role?: Role;
+}
 
 @Injectable()
 export class LessonService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private readonly premiumAccessService: PremiumAccessService,
+  ) {}
 
   async createLesson(dto: CreateLessonDto) {
+    const course = await this.prisma.course.findUnique({
+      where: { id: dto.courseId },
+      select: { id: true },
+    });
+    if (!course) {
+      throw new NotFoundException(`Curso ${dto.courseId} no encontrado`);
+    }
+
     return this.prisma.lesson.create({
       data: {
         course: {
@@ -15,6 +34,9 @@ export class LessonService {
         },
         order: dto.order,
         type: dto.type || 'TEXT',
+        status: dto.status,
+        experience: dto.experience ?? 50,
+        coins: dto.coins ?? 10,
 
         translations: {
           create: dto.translations.map((t) => ({
@@ -23,7 +45,7 @@ export class LessonService {
             },
             title: t.title,
             description: t.description ?? null,
-            content: t.content ?? null, // null está permitido en Json?
+            content: (t.content as Prisma.InputJsonValue) ?? undefined, // null está permitido en Json?
           })),
         },
       },
@@ -87,13 +109,18 @@ export class LessonService {
   }
 
   async getAllLessons(lang: string = 'es') {
+    // Sin guard de auth en esta ruta (GET /lessons es 100% pública): siempre
+    // filtra a publicado, sin excepción para admins — para vista de admin
+    // usar GET /lessons/admin, que sí trae todo sin filtrar.
     const lessons = await this.prisma.lesson.findMany({
+      where: { status: 'PUBLISHED', course: { status: 'PUBLISHED' } },
       include: {
         translations: {
           include: { language: true },
         },
         course: true,
         exercises: {
+          where: { status: 'PUBLISHED' },
           orderBy: { order: 'asc' },
         },
       },
@@ -120,15 +147,28 @@ export class LessonService {
     });
   }
 
-  async getLessonsByCourse(courseId: string, lang: string = 'es') {
+  async getLessonsByCourse(
+    courseId: string,
+    lang: string = 'es',
+    requester: LessonRequester = {},
+  ) {
+    const isAdmin = requester.role === Role.ADMIN;
+
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+      select: { freeLimit: true },
+    });
+    if (!course) throw new NotFoundException('Curso no encontrado');
+
     const lessons = await this.prisma.lesson.findMany({
-      where: { courseId },
+      where: isAdmin ? { courseId } : { courseId, status: 'PUBLISHED' },
       orderBy: { order: 'asc' },
       include: {
         translations: {
           include: { language: true },
         },
         exercises: {
+          where: isAdmin ? undefined : { status: 'PUBLISHED' },
           orderBy: { order: 'asc' },
         },
       },
@@ -140,6 +180,8 @@ export class LessonService {
         lesson.translations.find((t) => t.language.code === 'es') ||
         lesson.translations[0];
 
+      const locked = false;
+
       return {
         id: lesson.id,
         courseId: lesson.courseId,
@@ -147,13 +189,18 @@ export class LessonService {
         type: lesson.type,
         title: translation?.title ?? null,
         description: translation?.description ?? null,
-        content: translation?.content ?? null,
+        content: locked ? null : (translation?.content ?? null),
+        locked,
         exercises: lesson.exercises,
       };
     });
   }
 
-  async getLessonById(id: string, lang: string = 'es') {
+  async getLessonById(
+    id: string,
+    lang: string = 'es',
+    requester: LessonRequester = {},
+  ) {
     const lesson = await this.prisma.lesson.findUnique({
       where: { id },
       include: {
@@ -167,7 +214,7 @@ export class LessonService {
       },
     });
 
-    if (!lesson) {
+    if (!lesson || (lesson.status !== 'PUBLISHED' && requester.role !== Role.ADMIN)) {
       throw new NotFoundException('Lección no encontrada');
     }
 
@@ -176,6 +223,14 @@ export class LessonService {
       lesson.translations.find((t) => t.language.code === 'es') ||
       lesson.translations[0];
 
+    const locked = await this.premiumAccessService.isLessonLocked({
+      courseId: lesson.courseId,
+      lessonOrder: lesson.order,
+      freeLimit: lesson.course.freeLimit,
+      userId: requester.userId,
+      role: requester.role,
+    });
+
     return {
       id: lesson.id,
       courseId: lesson.courseId,
@@ -183,30 +238,32 @@ export class LessonService {
       type: lesson.type,
       title: translation?.title ?? null,
       description: translation?.description ?? null,
-      content: translation?.content ?? null,
+      // El contenido de lectura solo viaja si no está bloqueada — evita que
+      // alguien la lea pegándole directo a este endpoint sin haber pasado
+      // por el gating de la vista de curso.
+      content: locked ? null : (translation?.content ?? null),
+      locked,
       course: lesson.course,
       exercises: lesson.exercises,
     };
   }
 
-  async updateLesson(id: string, dto: any) {
+  async updateLesson(id: string, dto: UpdateLessonDto) {
     const { translations, ...lessonData } = dto;
 
     if (translations) {
       for (const t of translations) {
-        const languageCode = t.language?.code || t.languageCode;
-
         await this.prisma.lessonTranslation.updateMany({
           where: {
             lessonId: id,
             language: {
-              code: languageCode,
+              code: t.languageCode,
             },
           },
           data: {
             title: t.title,
             description: t.description ?? null,
-            content: t.content ?? null,
+            content: (t.content as Prisma.InputJsonValue) ?? undefined,
           },
         });
       }
@@ -217,6 +274,9 @@ export class LessonService {
       data: {
         order: lessonData.order,
         type: lessonData.type,
+        status: lessonData.status,
+        experience: lessonData.experience,
+        coins: lessonData.coins,
       },
       include: {
         translations: {
@@ -231,5 +291,19 @@ export class LessonService {
     return this.prisma.lesson.delete({
       where: { id },
     });
+  }
+
+  // Sin constraint único en (courseId, order) — no hace falta un "swap" de
+  // dos pasos para evitar colisiones, un update en paralelo por fila alcanza.
+  async reorderLessons(dto: ReorderDto) {
+    await this.prisma.$transaction(
+      dto.items.map((item) =>
+        this.prisma.lesson.update({
+          where: { id: item.id },
+          data: { order: item.order },
+        }),
+      ),
+    );
+    return { success: true };
   }
 }

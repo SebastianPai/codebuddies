@@ -132,4 +132,41 @@ export class InventoryHandler {
       message: 'Mover items dentro del inventario aún no está implementado',
     });
   }
+
+  // ====================== FAVORITOS DE CONSTRUCCIÓN ======================
+  async handleListBuildFavorites(socket: Socket) {
+    const userId = socket.data.user?.userId;
+    if (!userId) return;
+
+    try {
+      const itemIds = await this.itemsService.listBuildFavorites(userId);
+      socket.emit('build:favorites:list', { itemIds });
+    } catch (err: any) {
+      socket.emit('inventory:error', { message: err.message });
+    }
+  }
+
+  async handleAddBuildFavorite(socket: Socket, data: { itemId: string }) {
+    const userId = socket.data.user?.userId;
+    if (!userId || !data?.itemId) return;
+
+    try {
+      const itemIds = await this.itemsService.addBuildFavorite(userId, data.itemId);
+      socket.emit('build:favorites:list', { itemIds });
+    } catch (err: any) {
+      socket.emit('inventory:error', { message: err.message });
+    }
+  }
+
+  async handleRemoveBuildFavorite(socket: Socket, data: { itemId: string }) {
+    const userId = socket.data.user?.userId;
+    if (!userId || !data?.itemId) return;
+
+    try {
+      const itemIds = await this.itemsService.removeBuildFavorite(userId, data.itemId);
+      socket.emit('build:favorites:list', { itemIds });
+    } catch (err: any) {
+      socket.emit('inventory:error', { message: err.message });
+    }
+  }
 }

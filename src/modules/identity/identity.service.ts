@@ -1,16 +1,30 @@
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { Role } from '@prisma/client';
+import { PremiumSubscriptionStatus, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { computeStreakUpdate } from '../../common/utils/streak.util';
+
+// Espejo de CHAT_BUBBLE_THEMES en apps/game/.../hud/nameplateStyles.ts — el
+// DTO ya valida que sea un id conocido (@IsIn), esto solo decide cuáles de
+// esos ids exigen una suscripción Premium activa.
+const PREMIUM_CHAT_BUBBLE_THEMES = new Set([
+  'gold',
+  'violet',
+  'electricBlue',
+  'emerald',
+  'rose',
+  'sunset',
+]);
 import { attachReferralToRegistration } from '../referrals/referrals.registration';
 import { GamificationService } from '../gamification/gamification.service';
 import { EmailService } from '../email/email.service';
@@ -27,6 +41,9 @@ type AuthUser = {
   bestStreak?: number;
   lastLoginAt?: Date | null;
   marketingEmailsEnabled?: boolean;
+  uiLanguage?: string;
+  pcTheme?: string;
+  chatBubbleThemeId?: string | null;
 };
 
 @Injectable()
@@ -111,18 +128,54 @@ export class IdentityService {
       bestStreak: loginUser.bestStreak,
       lastLoginAt: loginUser.lastLoginAt,
       marketingEmailsEnabled: loginUser.marketingEmailsEnabled,
+      uiLanguage: loginUser.uiLanguage,
+      pcTheme: loginUser.pcTheme,
+      chatBubbleThemeId: loginUser.chatBubbleThemeId,
     };
     return this.generateAuthResponse(userSafe);
   }
 
+  async hasPremium(userId: string): Promise<boolean> {
+    const sub = await this.prisma.premiumSubscription.findFirst({
+      where: {
+        userId,
+        status: PremiumSubscriptionStatus.ACTIVE,
+        expiresAt: { gt: new Date() },
+      },
+      select: { id: true },
+    });
+    return Boolean(sub);
+  }
+
   async updateProfile(userId: string, dto: UpdateProfileDto) {
+    // El DTO ya validó que sea un id conocido (@IsIn) — acá solo falta
+    // confirmar que, si es un tema Premium, el usuario realmente lo tenga.
+    if (
+      dto.chatBubbleThemeId &&
+      PREMIUM_CHAT_BUBBLE_THEMES.has(dto.chatBubbleThemeId)
+    ) {
+      const premium = await this.hasPremium(userId);
+      if (!premium) {
+        throw new ForbiddenException('Este tema de chat requiere Premium');
+      }
+    }
+
     return this.prisma.user.update({
       where: { id: userId },
       data: {
         birthDate: dto.birthDate ? new Date(dto.birthDate) : undefined,
         country: dto.country,
+        uiLanguage: dto.uiLanguage,
+        pcTheme: dto.pcTheme,
+        chatBubbleThemeId: dto.chatBubbleThemeId,
       },
-      select: { birthDate: true, country: true },
+      select: {
+        birthDate: true,
+        country: true,
+        uiLanguage: true,
+        pcTheme: true,
+        chatBubbleThemeId: true,
+      },
     });
   }
 
@@ -176,6 +229,8 @@ export class IdentityService {
 
     if (!user) throw new UnauthorizedException('Usuario no encontrado');
 
+    const isPremium = await this.hasPremium(userId);
+
     return {
       id: user.id,
       userId: user.id,
@@ -189,6 +244,10 @@ export class IdentityService {
       bestStreak: user.bestStreak,
       lastLoginAt: user.lastLoginAt,
       marketingEmailsEnabled: user.marketingEmailsEnabled,
+      uiLanguage: user.uiLanguage,
+      pcTheme: user.pcTheme,
+      chatBubbleThemeId: user.chatBubbleThemeId,
+      isPremium,
       birthDate: user.birthDate,
       country: user.country,
       completions: user._count.completions,
@@ -210,55 +269,54 @@ export class IdentityService {
       bestStreak: true,
       lastLoginAt: true,
       marketingEmailsEnabled: true,
+      uiLanguage: true,
+      pcTheme: true,
+      chatBubbleThemeId: true,
     } as const;
   }
 
   private async applyDailyLoginStreak(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: this.authUserSelect(),
+      select: {
+        ...this.authUserSelect(),
+        lastLearningActivityAt: true,
+      },
     });
 
     if (!user) throw new UnauthorizedException('Usuario no encontrado');
 
     const now = new Date();
-    const today = this.startOfUtcDay(now);
-    const lastLoginDay = user.lastLoginAt
-      ? this.startOfUtcDay(user.lastLoginAt)
-      : null;
+    // La racha se comparte con progress.service.ts (completar una lección o
+    // ejercicio también cuenta): un mismo campo (lastLearningActivityAt) y
+    // una misma definición de "día" (UTC) para ambos triggers, para que
+    // loguearse y luego completar un ejercicio el mismo día no la resetee.
+    const update = computeStreakUpdate({
+      streak: user.streak,
+      bestStreak: user.bestStreak ?? 0,
+      lastActivityAt: user.lastLearningActivityAt,
+    });
 
-    if (lastLoginDay?.getTime() === today.getTime()) {
-      return user;
+    if (!update) {
+      // Ya se contó actividad hoy — igual actualizamos lastLoginAt (es
+      // informativo, no maneja la racha) sin tocar streak/bestStreak.
+      return this.prisma.user.update({
+        where: { id: userId },
+        data: { lastLoginAt: now },
+        select: this.authUserSelect(),
+      });
     }
-
-    const yesterday = new Date(today);
-    yesterday.setUTCDate(yesterday.getUTCDate() - 1);
-    const nextStreak =
-      lastLoginDay?.getTime() === yesterday.getTime() ? user.streak + 1 : 1;
 
     return this.prisma.user.update({
       where: { id: userId },
       data: {
-        streak: nextStreak,
-        bestStreak: Math.max(user.bestStreak ?? 0, nextStreak),
+        streak: update.streak,
+        bestStreak: update.bestStreak,
+        lastLearningActivityAt: update.lastActivityAt,
         lastLoginAt: now,
       },
       select: this.authUserSelect(),
     });
-  }
-
-  private startOfUtcDay(date: Date) {
-    return new Date(
-      Date.UTC(
-        date.getUTCFullYear(),
-        date.getUTCMonth(),
-        date.getUTCDate(),
-        0,
-        0,
-        0,
-        0,
-      ),
-    );
   }
 
   private generateAuthResponse(user: AuthUser) {

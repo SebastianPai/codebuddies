@@ -2,6 +2,15 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 
 import { RoomItemsService } from '../../room-items/room-items.service';
+import {
+  ClearRoomDto,
+  MoveItemDto,
+  PaintAllSurfaceDto,
+  PaintSurfaceDto,
+  PlaceItemDto,
+  RemoveItemDto,
+  RotateItemDto,
+} from '../dto/room-items.dto';
 
 @Injectable()
 export class RoomItemsHandler {
@@ -14,15 +23,7 @@ export class RoomItemsHandler {
     server: Server,
     socket: Socket,
     userId: string,
-    data: {
-      roomId: string;
-      itemId: string;
-      x: number;
-      y: number;
-      rotation?: number;
-      wallSide?: any;
-      wallOffset?: number;
-    },
+    data: PlaceItemDto,
   ) {
     try {
       const roomItem = await this.roomItemsService.placeItem(
@@ -58,12 +59,7 @@ export class RoomItemsHandler {
     server: Server,
     socket: Socket,
     userId: string,
-    data: {
-      roomItemId: string;
-      x: number;
-      y: number;
-      rotation?: number;
-    },
+    data: MoveItemDto,
   ) {
     try {
       const updatedItem = await this.roomItemsService.moveItem(
@@ -88,7 +84,7 @@ export class RoomItemsHandler {
     server: Server,
     socket: Socket,
     userId: string,
-    data: { roomItemId: string },
+    data: RotateItemDto,
   ) {
     try {
       const updatedItem = await this.roomItemsService.rotateItem(
@@ -110,7 +106,7 @@ export class RoomItemsHandler {
     server: Server,
     socket: Socket,
     userId: string,
-    data: { roomItemId: string },
+    data: RemoveItemDto,
   ) {
     try {
       const item = await this.roomItemsService.getSingleItem(data.roomItemId);
@@ -142,15 +138,7 @@ export class RoomItemsHandler {
     server: Server,
     socket: Socket,
     userId: string,
-    data: {
-      roomId: string;
-      itemId: string;
-      x: number;
-      y: number;
-      width?: number;
-      height?: number;
-      wallSide?: any;
-    },
+    data: PaintSurfaceDto,
   ) {
     try {
       const result = await this.roomItemsService.paintSurface(
@@ -178,12 +166,7 @@ export class RoomItemsHandler {
     server: Server,
     socket: Socket,
     userId: string,
-    data: {
-      roomId: string;
-      itemId: string;
-      width?: number;
-      height?: number;
-    },
+    data: PaintAllSurfaceDto,
   ) {
     try {
       // Throttleado por tiempo (no por cantidad de tiles): salas grandes
@@ -225,7 +208,7 @@ export class RoomItemsHandler {
     server: Server,
     socket: Socket,
     userId: string,
-    data: { roomId: string },
+    data: ClearRoomDto,
   ) {
     try {
       const result = await this.roomItemsService.clearRoom(userId, data.roomId);

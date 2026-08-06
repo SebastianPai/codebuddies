@@ -1,6 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateModuleDto } from './dto/create-module.dto';
+import { UpdateModuleDto } from './dto/update-module.dto';
 
 @Injectable()
 export class ModuleService {
@@ -8,7 +13,7 @@ export class ModuleService {
 
   async createModule(dto: CreateModuleDto) {
     if (!dto.translations?.length) {
-      throw new Error(
+      throw new BadRequestException(
         'Se requiere al menos una traducción para crear un módulo',
       );
     }
@@ -40,10 +45,12 @@ export class ModuleService {
           include: { language: true },
         },
         courses: {
+          where: { status: 'PUBLISHED' },
           include: {
             translations: {
               include: { language: true },
             },
+            categories: true,
           },
           orderBy: { createdAt: 'asc' },
         },
@@ -76,6 +83,7 @@ export class ModuleService {
             difficulty: course.difficulty,
             freeLimit: course.freeLimit,
             imageUrl: course.imageUrl,
+            categories: course.categories.map((c) => ({ id: c.id, slug: c.slug, name: c.name })),
           };
         }),
       };
@@ -158,7 +166,7 @@ export class ModuleService {
     };
   }
 
-  async updateModule(id: string, data: any) {
+  async updateModule(id: string, data: UpdateModuleDto) {
     const module = await this.prisma.module.findUnique({
       where: { id },
       include: {

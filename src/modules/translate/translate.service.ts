@@ -1,10 +1,15 @@
 // apps/api/src/modules/translate/translate.service.ts
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Translator, TargetLanguageCode } from 'deepl-node';
 
 @Injectable()
 export class TranslateService {
+  private readonly logger = new Logger(TranslateService.name);
   private translator: Translator;
 
   constructor(private configService: ConfigService) {
@@ -27,7 +32,10 @@ export class TranslateService {
       );
       return result.text;
     } catch (err) {
-      console.error(err);
+      this.logger.error(
+        'Error traduciendo el texto',
+        err instanceof Error ? err.stack : err,
+      );
       throw new InternalServerErrorException('Error traduciendo el texto');
     }
   }

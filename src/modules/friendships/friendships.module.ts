@@ -9,5 +9,6 @@ import { FriendshipsService } from './friendships.service';
   imports: [PrismaModule, NotificationsModule, RealtimeModule],
   controllers: [FriendshipsController],
   providers: [FriendshipsService],
+  exports: [FriendshipsService],
 })
 export class FriendshipsModule {}

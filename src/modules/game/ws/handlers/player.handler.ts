@@ -4,9 +4,16 @@ import { JwtService } from '@nestjs/jwt';
 
 import { AvatarService } from '../../avatar/avatar.service';
 import { PlayerService } from '../../player/player.service';
-import { createPlayer } from '../../../../game/engine';
+import { EnergyService } from '../../energy/energy.service';
 
 import { ParsedAvatar } from '../dto/avatar.dto';
+import {
+  ChatMessageDto,
+  PlayerAnimationChangeDto,
+  PlayerMoveDto,
+  PlayerReactionDto,
+} from '../dto/player.dto';
+import { GetItemSpritesDto } from '../dto/item-sprites.dto';
 import { JWT_SECRET } from '../../../../config/env';
 
 interface Player {
@@ -17,7 +24,14 @@ interface Player {
   username: string;
   avatar: ParsedAvatar;
   currentAnimation?: string;
+  lastMoveAt?: number;
 }
+
+// Límite generoso de velocidad (px/s) para el anti-teleport de handlePlayerMove:
+// bastante por encima de la velocidad real del cliente (180px/s en LobbyScene)
+// para absorber jitter de red, pero suficiente para bloquear un salto instantáneo
+// de un extremo a otro del mapa.
+const MAX_PLAYER_SPEED_PX_PER_SEC = 600;
 
 @Injectable()
 export class PlayerHandler {
@@ -26,6 +40,11 @@ export class PlayerHandler {
   // Estado compartido (se moverá a un servicio más adelante)
   private userToSocketId: Map<string, string> = new Map();
   private socketToUserId: Map<string, string> = new Map();
+  // Antes el JWT solo se validaba una vez, al conectar: una sesión WS podía
+  // sobrevivir hasta ~24h a su propio token ya vencido (la duración real del
+  // token). Este timer desconecta el socket exactamente cuando expira,
+  // en vez de confiar en que el cliente reconecte por su cuenta.
+  private sessionExpiryTimers: Map<string, NodeJS.Timeout> = new Map();
   public userAvatars: Record<string, ParsedAvatar> = {};
   public players: Record<string, Player> = {}; // público para que el gateway pueda acceder si es necesario
 
@@ -33,6 +52,7 @@ export class PlayerHandler {
     private readonly jwtService: JwtService,
     private readonly avatarService: AvatarService,
     private readonly playerService: PlayerService,
+    private readonly energyService: EnergyService,
   ) {}
 
   private readCookie(cookies: string | undefined, name: string) {
@@ -208,6 +228,23 @@ export class PlayerHandler {
         return;
       }
 
+      if (typeof payload.exp === 'number') {
+        const msUntilExpiry = payload.exp * 1000 - Date.now();
+        if (msUntilExpiry <= 0) {
+          socket.disconnect(true);
+          return;
+        }
+        // Node's setTimeout hace overflow (dispara de inmediato) con delays
+        // mayores a ~24.8 días (límite de un int32) — un clamp defensivo por
+        // si algún día el token dura más que eso.
+        const delay = Math.min(msUntilExpiry, 2_147_483_647);
+        const timer = setTimeout(() => {
+          this.logger.log(`Token expirado, desconectando a ${socket.id}`);
+          socket.disconnect(true);
+        }, delay);
+        this.sessionExpiryTimers.set(socket.id, timer);
+      }
+
       // Evitar doble conexión
       if (this.userToSocketId.has(userId)) {
         const oldSocketId = this.userToSocketId.get(userId)!;
@@ -233,6 +270,12 @@ export class PlayerHandler {
 
   // ====================== DESCONEXIÓN ======================
   handleDisconnect(socket: Socket) {
+    const expiryTimer = this.sessionExpiryTimers.get(socket.id);
+    if (expiryTimer) {
+      clearTimeout(expiryTimer);
+      this.sessionExpiryTimers.delete(socket.id);
+    }
+
     const userId = this.socketToUserId.get(socket.id);
     if (userId) {
       this.userToSocketId.delete(userId);
@@ -249,7 +292,7 @@ export class PlayerHandler {
   }
 
   // ====================== CHAT ======================
-  handleChat(server: Server, socket: Socket, data: { message: string }) {
+  handleChat(server: Server, socket: Socket, data: ChatMessageDto) {
     const player = this.players[socket.id];
     if (!player) return;
 
@@ -257,11 +300,12 @@ export class PlayerHandler {
       playerId: socket.id,
       username: player.username,
       message: data.message,
+      chatBubbleThemeId: data.chatBubbleThemeId ?? null,
     });
   }
 
   // ====================== REACCIÓN RÁPIDA ======================
-  handleReaction(server: Server, socket: Socket, data: { reaction: string }) {
+  handleReaction(server: Server, socket: Socket, data: PlayerReactionDto) {
     const player = this.players[socket.id];
     if (!player || !data?.reaction) return;
 
@@ -269,16 +313,42 @@ export class PlayerHandler {
       playerId: socket.id,
       username: player.username,
       reaction: data.reaction,
+      chatBubbleThemeId: data.chatBubbleThemeId ?? null,
     });
   }
 
   // ====================== MOVIMIENTO ======================
-  handlePlayerMove(server: Server, socket: Socket, data: any) {
+  // Antes se asignaba data.x/data.y directo, sin ningún límite: un cliente
+  // (o un bot) podía "teletransportarse" a cualquier punto del mapa en un
+  // solo mensaje. Ahora se acota la distancia contra el tiempo real
+  // transcurrido desde el último move aceptado: si implica una velocidad
+  // mayor a la físicamente posible, se recorta el desplazamiento en vez de
+  // rechazarlo (evita que un lag spike legítimo se sienta como un error).
+  handlePlayerMove(server: Server, socket: Socket, data: PlayerMoveDto) {
     const player = this.players[socket.id];
     if (!player) return;
 
-    player.x = data.x;
-    player.y = data.y;
+    const now = Date.now();
+    let nextX = data.x;
+    let nextY = data.y;
+
+    if (player.lastMoveAt) {
+      const elapsedSeconds = (now - player.lastMoveAt) / 1000;
+      const dx = data.x - player.x;
+      const dy = data.y - player.y;
+      const dist = Math.hypot(dx, dy);
+      const maxDist = Math.max(0, MAX_PLAYER_SPEED_PX_PER_SEC * elapsedSeconds);
+
+      if (dist > maxDist) {
+        const ratio = dist === 0 ? 0 : maxDist / dist;
+        nextX = player.x + dx * ratio;
+        nextY = player.y + dy * ratio;
+      }
+    }
+
+    player.x = nextX;
+    player.y = nextY;
+    player.lastMoveAt = now;
     player.currentAnimation = data.isMoving ? `walk_${data.direction}` : 'idle';
 
     server.to(player.room).emit('playerMoved', {
@@ -295,7 +365,7 @@ export class PlayerHandler {
   handleChangeAnimation(
     server: Server,
     socket: Socket,
-    data: { animationName: string },
+    data: PlayerAnimationChangeDto,
   ) {
     const player = this.players[socket.id];
     if (!player) return;
@@ -314,8 +384,11 @@ export class PlayerHandler {
     if (!userId) return;
 
     try {
-      const stats = await this.playerService.getStats(userId);
-      socket.emit('player:stats', stats);
+      const [stats, energy] = await Promise.all([
+        this.playerService.getStats(userId),
+        this.energyService.getStatus(userId),
+      ]);
+      socket.emit('player:stats', { ...stats, energy });
     } catch (err) {
       this.logger.error('Error obteniendo stats', err);
       socket.emit('player:stats:error', {
@@ -325,10 +398,7 @@ export class PlayerHandler {
   }
 
   // ====================== ITEM SPRITES ======================
-  async handleGetItemSprites(
-    socket: Socket,
-    data: { itemId: string; animationId?: string },
-  ) {
+  async handleGetItemSprites(socket: Socket, data: GetItemSpritesDto) {
     // Por ahora lo dejamos aquí, luego podemos moverlo a un handler separado
     // (necesitaríamos inyectar ItemSpritesService)
     socket.emit('itemSprites:error', { message: 'Handler en construcción' });

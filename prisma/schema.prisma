@@ -25,11 +25,23 @@ enum LessonType {
   LIVE
 }
 
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
 enum RoomRole {
   OWNER
   ADMIN
   EDITOR
   VISITOR
+}
+
+enum RoomAccessMode {
+  PUBLIC
+  PRIVATE_INVITE_ONLY
+  PRIVATE_REQUEST
 }
 
 enum ExerciseType {
@@ -147,6 +159,7 @@ enum JoinRequestStatus {
   PENDING
   APPROVED
   REJECTED
+  REVOKED
 }
 
 enum AnimationType {
@@ -165,12 +178,6 @@ enum Currency {
   COP
   CLP
   EUR
-}
-
-enum SubscriptionType {
-  FREE
-  PREMIUM
-  VIP
 }
 
 enum AcademyType {
@@ -200,12 +207,14 @@ enum PaymentProviderType {
   MOCK
   STRIPE
   PAYPAL
+  PADDLE
 }
 
 enum SubscriptionProviderType {
   MOCK
   STRIPE
   PAYPAL
+  PADDLE
 }
 
 enum FriendshipStatus {
@@ -248,6 +257,13 @@ enum NotificationType {
   REFERRAL_FRAUD_FLAGGED
   ROOM_JOIN_REQUEST
   ROOM_JOIN_APPROVED
+  ROOM_INVITE
+  STREAK_AT_RISK
+  // Preparados en la Fase 0 del rediseño de CodeStudio (ver plan de
+  // migración) para que Logros e Inversores, en fases futuras, puedan
+  // notificar de verdad en vez de vivir solo dentro de CodeStudio.
+  CODESTUDIO_ACHIEVEMENT_UNLOCKED
+  CODESTUDIO_INVESTOR_OFFER
 }
 
 enum MissionCadence {
@@ -292,6 +308,11 @@ enum RewardSourceType {
   EVENT
   ADMIN
   SPECIAL
+  // Preparado en la Fase 0 del rediseño de CodeStudio: los logros de
+  // CodeStudio (CodeStudioAchievement, hoy sin cablear) van a pagar via el
+  // mismo GamificationService.grantRewards/RewardLedgerEntry que usa el
+  // resto del juego, no un ledger propio.
+  CODESTUDIO
 }
 
 enum ReferralStatus {
@@ -480,19 +501,37 @@ enum CodeStudioDevelopmentStatus {
   CANCELLED
 }
 
+enum CodeStudioBugSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum CodeStudioBugStatus {
+  OPEN
+  FIXED
+}
+
 model User {
-  id            String    @id @default(uuid())
-  username      String    @unique
-  email         String    @unique
-  password      String
-  role          Role      @default(STUDENT)
-  emailVerified Boolean   @default(true)
-  avatarUrl     String?
-  avatarBorder  String?
-  location      String?
-  institution   String?
-  birthDate     DateTime?
-  country       String?
+  id              String    @id @default(uuid())
+  username        String    @unique
+  email           String    @unique
+  password        String
+  role            Role      @default(STUDENT)
+  // Cuenta controlada por el motor, no por una persona (competidores reales
+  // de CodeStudio en fases futuras del rediseño — ver plan de migración).
+  // Boolean aditivo en vez de un tercer valor de Role: nada del código
+  // actual que filtra por role asume que existan cuentas de sistema, asi que
+  // un enum nuevo hubiera sido mas arriesgado de auditar que un flag aparte.
+  isSystemAccount Boolean   @default(false)
+  emailVerified   Boolean   @default(true)
+  avatarUrl       String?
+  avatarBorder    String?
+  location        String?
+  institution     String?
+  birthDate       DateTime?
+  country         String?
 
   experience Int @default(0)
   coins      Int @default(0)
@@ -512,17 +551,40 @@ model User {
 
   preferredLanguageId String?
 
+  // Idioma de la interfaz (es/en-us/zh-Hans) — separado a propósito de
+  // preferredLanguage/Language (ese modelo es para el idioma del CONTENIDO
+  // de cursos/items, con sus propios códigos "en" sin "-us" y soporte RTL;
+  // mezclarlo con el idioma de la UI de apps/web y apps/game hubiera
+  // acoplado dos cosas con semántica distinta). Compartido entre apps/web y
+  // apps/game: cualquiera de las dos lee/escribe este mismo campo.
+  uiLanguage String @default("es")
+
+  // Tema claro/oscuro del simulador de PC — antes vivia solo en
+  // localStorage ("propio de esta ventana"), por eso no se veia igual en
+  // otro navegador/dispositivo. Mismo criterio que uiLanguage: la cuenta
+  // manda, localStorage es solo cache para pintar rapido.
+  pcTheme String @default("dark")
+
+  // Color/tema de la burbuja de chat flotante sobre el personaje (ver
+  // CHAT_BUBBLE_THEMES en apps/game). null = "classic" (default gratis).
+  // Algunos ids son Premium — se valida en IdentityService#updateProfile,
+  // no acá (Prisma no valida contra una suscripcion activa).
+  chatBubbleThemeId String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  enrollments Enrollment[]
-  completions Completion[]
+  enrollments      Enrollment[]
+  completions      Completion[]
+  exerciseAttempts ExerciseAttempt[]
 
-  userPowers   UserPower[]
-  achievements UserAchievement[]
-  rankings     Ranking[]
+  userPowers               UserPower[]
+  rankings                 Ranking[]
+  courseReviews            CourseReview[]
+  courseProjectSubmissions CourseProjectSubmission[]
+  contentComments          ContentComment[]
+  contentReports           ContentReport[]
 
-  subscription         Subscription[]
   premiumSubscriptions PremiumSubscription[]
   certificates         Certificate[]
   certificateOrders    CertificateOrder[]
@@ -583,11 +645,14 @@ model User {
   referralFraudLogs        ReferralFraudLog[]
   missionProgress          UserMissionProgress[]
   gamificationAchievements UserGamificationAchievement[]
+  gamificationBadges       UserGamificationBadge[]
+  gamificationTitles       UserGamificationTitle[]
   rewardLedger             RewardLedgerEntry[]
   rewardBundles            RewardBundle[]
   creatorProfile           CreatorProfile?
   creatorApplications      CreatorApplication[]
   marketplaceFavorites     MarketplaceFavorite[]
+  roomBuildFavorites       RoomBuildFavorite[]
   marketplacePurchases     MarketplacePurchase[]         @relation("MarketplaceBuyer")
   marketplaceRatings       MarketplaceRating[]
   marketplaceReports       MarketplaceReport[]
@@ -737,8 +802,9 @@ model Item {
   rewardLedgerEntries  RewardLedgerEntry[]
   marketplaceContents  MarketplaceContent[]  @relation("PublishedMarketplaceItem")
 
-  avatarSlots AvatarSlot[]
-  roomItems   RoomItem[]
+  avatarSlots    AvatarSlot[]
+  roomItems      RoomItem[]
+  buildFavorites RoomBuildFavorite[]
 }
 
 model AvatarItemData {
@@ -816,6 +882,13 @@ model WorldItemData {
 
   teleportTargetX Int?
   teleportTargetY Int?
+
+  // Base para "muebles que emiten luz" (ver plan de iluminación ambiental) —
+  // sin ningún renderer todavía la lee, puro groundwork aditivo para no
+  // tener que volver a tocar el esquema cuando se implemente.
+  emitsLight  Boolean @default(false)
+  lightRadius Int?
+  lightColor  String?
 
   item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
 }
@@ -920,9 +993,21 @@ model Room {
 
   name        String
   description String?
+  // Categoría/etiquetas libres para la pestaña "General" de Editar Mundo —
+  // sin uso todavía en filtros de búsqueda, solo metadata descriptiva.
+  category    String?
+  tags        String[] @default([])
 
   isPublic  Boolean @default(true)
   isVipOnly Boolean @default(false)
+
+  // Reemplaza gradualmente a isPublic para el control de acceso: PUBLIC se
+  // mantiene en sync con isPublic=true (getPublicRooms sigue filtrando por
+  // isPublic sin cambios); PRIVATE_REQUEST es el comportamiento que YA tenían
+  // todas las salas privadas (aceptar solicitudes de acceso); PRIVATE_INVITE_ONLY
+  // es nuevo (ni siquiera se puede pedir acceso, solo entra quien ya tiene
+  // permiso o invitación aprobada). Ver la migración para el backfill.
+  accessMode RoomAccessMode @default(PUBLIC)
 
   maxUsers Int @default(20)
 
@@ -937,6 +1022,10 @@ model Room {
   rating     Float @default(0)
   totalVotes Int   @default(0)
 
+  // Iluminación ambiental (Premium) — null/0 = apagada, sin cambio visual
+  // para ninguna sala existente hasta que su dueño la prenda explícitamente.
+  ambientLightIntensity Int?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -947,6 +1036,7 @@ model Room {
   permissions  RoomPermission[]
   joinRequests RoomJoinRequest[]
   invites      RoomInvite[]
+  customRoles  RoomCustomRole[]
 
   ratings RoomRating[]
 
@@ -1010,7 +1100,7 @@ model RoomItem {
 
   parentRoomItemId String?
 
-  parent RoomItem? @relation("RoomItemStack", fields: [parentRoomItemId], references: [id])
+  parent RoomItem? @relation("RoomItemStack", fields: [parentRoomItemId], references: [id], onDelete: SetNull)
 
   children RoomItem[] @relation("RoomItemStack")
 
@@ -1080,8 +1170,13 @@ model RoomInvite {
 
   room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
 
-  fromUser User @relation("SentInvites", fields: [fromUserId], references: [id])
-  toUser   User @relation("ReceivedInvites", fields: [toUserId], references: [id])
+  // Antes sin onDelete explícito, Prisma generó RESTRICT: borrar una cuenta
+  // con invitaciones pendientes (enviadas o recibidas) fallaba con un error
+  // de constraint de clave foránea sin manejar. Una invitación no tiene
+  // sentido sin el remitente o el destinatario, así que Cascade es correcto
+  // acá (igual que el resto de relaciones de Room hacia User en este schema).
+  fromUser User @relation("SentInvites", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser   User @relation("ReceivedInvites", fields: [toUserId], references: [id], onDelete: Cascade)
 
   @@unique([roomId, toUserId])
 }
@@ -1094,12 +1189,52 @@ model RoomPermission {
 
   role RoomRole
 
+  // Si se asigna, sus 11 flags reemplazan al mapeo fijo de `role` para este
+  // usuario (ver resolveEffectivePermissions en room-permissions.util.ts).
+  // Nullable a propósito: una fila sin customRoleId sigue comportándose
+  // exactamente como antes de que existiera este sistema.
+  customRoleId String?
+
   createdAt DateTime @default(now())
 
-  room Room @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  room       Room            @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  customRole RoomCustomRole? @relation(fields: [customRoleId], references: [id], onDelete: SetNull)
 
   @@unique([roomId, userId])
+  @@index([customRoleId])
+}
+
+// Plantilla de permisos reutilizable por sala ("Decorador", "Moderador"...):
+// se crea una vez y se asigna a varios invitados vía RoomPermission.customRoleId;
+// editarla actualiza a todos los que la tienen, porque el resolver la lee en
+// el momento de cada acción, no la copia al asignarla.
+model RoomCustomRole {
+  id     String @id @default(uuid())
+  roomId String
+  name   String
+
+  colorHex String?
+
+  canPlaceObjects      Boolean @default(false)
+  canMoveObjects       Boolean @default(false)
+  canRotateObjects     Boolean @default(false)
+  canDeleteObjects     Boolean @default(false)
+  canEditConfig        Boolean @default(false)
+  canChangeFloor       Boolean @default(false)
+  canChangeWalls       Boolean @default(false)
+  canChangeBackground  Boolean @default(false)
+  canManageGuests      Boolean @default(false)
+  canManagePermissions Boolean @default(false)
+  canModifyLighting    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  room        Room             @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  assignments RoomPermission[]
+
+  @@unique([roomId, name])
 }
 
 model RoomBackground {
@@ -1316,11 +1451,14 @@ model ModuleTranslation {
 }
 
 model Course {
-  id         String     @id @default(uuid())
+  id         String        @id @default(uuid())
   moduleId   String?
   imageUrl   String?
-  difficulty Difficulty @default(EASY)
-  freeLimit  Int        @default(5)
+  difficulty Difficulty    @default(EASY)
+  freeLimit  Int           @default(5)
+  // PUBLISHED por defecto: el contenido existente antes de este campo no
+  // debe desaparecer del catálogo público al aplicar la migración.
+  status     ContentStatus @default(PUBLISHED)
 
   createdAt DateTime @default(now())
 
@@ -1328,7 +1466,6 @@ model Course {
 
   lessons             Lesson[]
   enrollments         Enrollment[]
-  achievements        Achievement[]
   completions         Completion[]
   certificates        Certificate[]
   certificateOrders   CertificateOrder[]
@@ -1339,6 +1476,191 @@ model Course {
   // Relación bidireccional añadida
   friendChallenges       FriendChallenge[]
   referralProgramConfigs ReferralProgramConfig[]
+
+  learningPathCourses LearningPathCourse[]
+  categories          CourseCategory[]     @relation("CourseToCourseCategory")
+
+  // Self-relation many-to-many (NF2): "prerequisites" son los cursos que
+  // ESTE curso requiere; "requiredFor" son los cursos que requieren a este.
+  // Informativo por ahora (se muestra antes de inscribirse), no bloquea la
+  // inscripción — igual que recomienda el propio audit para un v1.
+  prerequisites CoursePrerequisite[] @relation("CourseToPrerequisite")
+  requiredFor   CoursePrerequisite[] @relation("PrerequisiteToCourse")
+
+  reviews CourseReview[]
+  project CourseProject?
+}
+
+// NF40/NF41: preguntas y respuestas por lección + comentarios por
+// ejercicio — mismo modelo para ambos (exactamente uno de lessonId/
+// exerciseId va seteado), con un nivel de anidado vía parentId (pregunta +
+// respuestas, como Udemy).
+model ContentComment {
+  id         String   @id @default(uuid())
+  userId     String
+  lessonId   String?
+  exerciseId String?
+  parentId   String?
+  body       String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson   Lesson?          @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  exercise Exercise?        @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  parent   ContentComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  ContentComment[] @relation("CommentReplies")
+
+  @@index([lessonId, createdAt])
+  @@index([exerciseId, createdAt])
+  @@index([parentId])
+}
+
+// NF42: reportar contenido con error tipográfico/de código.
+model ContentReport {
+  id          String              @id @default(uuid())
+  userId      String
+  lessonId    String?
+  exerciseId  String?
+  reason      String
+  description String?
+  status      ContentReportStatus @default(OPEN)
+  createdAt   DateTime            @default(now())
+  resolvedAt  DateTime?
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson   Lesson?   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  exercise Exercise? @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+}
+
+enum ContentReportStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
+}
+
+// NF28: proyecto final evaluado, distinto de una lección/ejercicio suelto —
+// un solo proyecto por curso, con entregas revisadas por un admin.
+model CourseProject {
+  id           String   @id @default(uuid())
+  courseId     String   @unique
+  title        String
+  instructions String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  course      Course                    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  submissions CourseProjectSubmission[]
+}
+
+model CourseProjectSubmission {
+  id             String                  @id @default(uuid())
+  projectId      String
+  userId         String
+  submissionUrl  String?
+  submissionText String?
+  status         ProjectSubmissionStatus @default(PENDING)
+  reviewNote     String?
+  submittedAt    DateTime                @default(now())
+  reviewedAt     DateTime?
+  reviewedById   String?
+
+  project CourseProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+  @@index([projectId, status])
+}
+
+enum ProjectSubmissionStatus {
+  PENDING
+  APPROVED
+  CHANGES_REQUESTED
+}
+
+// HI13: reseñas y calificaciones de curso.
+model CourseReview {
+  id        String   @id @default(uuid())
+  userId    String
+  courseId  String
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@index([courseId])
+}
+
+model CoursePrerequisite {
+  id                   String @id @default(uuid())
+  courseId             String
+  prerequisiteCourseId String
+
+  course             Course @relation("CourseToPrerequisite", fields: [courseId], references: [id], onDelete: Cascade)
+  prerequisiteCourse Course @relation("PrerequisiteToCourse", fields: [prerequisiteCourseId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, prerequisiteCourseId])
+}
+
+// HI8/NF1: secuencias curadas de cursos con un orden recomendado.
+model LearningPath {
+  id        String   @id @default(uuid())
+  slug      String   @unique
+  imageUrl  String?
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  translations LearningPathTranslation[]
+  courses      LearningPathCourse[]
+
+  @@index([active, sortOrder])
+}
+
+model LearningPathTranslation {
+  id             String  @id @default(uuid())
+  learningPathId String
+  languageId     String
+  title          String
+  description    String?
+
+  learningPath LearningPath @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
+  language     Language     @relation(fields: [languageId], references: [id], onDelete: Cascade)
+
+  @@unique([learningPathId, languageId])
+}
+
+// NF6: categorías/tags de curso, filtro combinable en el catálogo.
+model CourseCategory {
+  id        String   @id @default(uuid())
+  slug      String   @unique
+  name      String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  courses Course[] @relation("CourseToCourseCategory")
+
+  @@index([sortOrder])
+}
+
+model LearningPathCourse {
+  id             String @id @default(uuid())
+  learningPathId String
+  courseId       String
+  order          Int    @default(1)
+
+  learningPath LearningPath @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
+  course       Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([learningPathId, courseId])
+  @@index([learningPathId, order])
 }
 
 model CourseTranslation {
@@ -1357,10 +1679,11 @@ model CourseTranslation {
 }
 
 model Lesson {
-  id       String     @id @default(uuid())
+  id       String        @id @default(uuid())
   courseId String
   order    Int
-  type     LessonType @default(TEXT)
+  type     LessonType    @default(TEXT)
+  status   ContentStatus @default(PUBLISHED)
 
   experience Int @default(50)
   coins      Int @default(10)
@@ -1375,6 +1698,8 @@ model Lesson {
   completions Completion[]
 
   translations LessonTranslation[]
+  comments     ContentComment[]
+  reports      ContentReport[]
 }
 
 model LessonTranslation {
@@ -1392,10 +1717,11 @@ model LessonTranslation {
 }
 
 model Exercise {
-  id       String       @id @default(uuid())
+  id       String        @id @default(uuid())
   lessonId String
   order    Int
-  type     ExerciseType @default(CODE)
+  type     ExerciseType  @default(CODE)
+  status   ContentStatus @default(PUBLISHED)
 
   content Json?
 
@@ -1408,9 +1734,12 @@ model Exercise {
 
   lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 
-  completions Completion[]
+  completions      Completion[]
+  exerciseAttempts ExerciseAttempt[]
 
   translations ExerciseTranslation[]
+  comments     ContentComment[]
+  reports      ContentReport[]
 
   duels Duel[]
 }
@@ -1447,6 +1776,14 @@ model Completion {
   lessonId   String?
   exerciseId String?
 
+  // DB7: cuántos intentos (correctos + fallidos) le tomó al usuario llegar a
+  // este completion, el puntaje del intento que lo logró (% de tests/quiz
+  // acertados) y cuánto tiempo pasó trabajando en el ejercicio. Alimentado
+  // desde ExerciseAttempt en exercise.service.ts.
+  attempts         Int  @default(1)
+  score            Int?
+  timeSpentSeconds Int?
+
   createdAt DateTime @default(now())
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1457,42 +1794,25 @@ model Completion {
   @@unique([userId, courseId, lessonId, exerciseId])
 }
 
-model Achievement {
-  id          String @id @default(uuid())
-  courseId    String
-  rewardXP    Int    @default(0)
-  rewardCoins Int    @default(0)
+// Registra cada envío de respuesta (correcto o no) a un ejercicio, no solo
+// el que finalmente lo completa. Completion solo guarda un hecho final por
+// usuario/ejercicio (constraint único), así que sin esta tabla no hay forma
+// de saber cuántos intentos fallidos hubo ni en qué ejercicios se traban más
+// los estudiantes (CUR8).
+model ExerciseAttempt {
+  id               String   @id @default(uuid())
+  userId           String
+  exerciseId       String
+  correct          Boolean
+  score            Int?
+  timeSpentSeconds Int?
+  createdAt        DateTime @default(now())
 
-  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
 
-  userAchievements UserAchievement[]
-  translations     AchievementTranslation[]
-}
-
-model AchievementTranslation {
-  id            String  @id @default(uuid())
-  achievementId String
-  languageId    String
-  title         String
-  description   String?
-
-  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
-  language    Language    @relation(fields: [languageId], references: [id], onDelete: Cascade)
-
-  @@unique([achievementId, languageId])
-}
-
-model UserAchievement {
-  id            String @id @default(uuid())
-  userId        String
-  achievementId String
-
-  createdAt DateTime @default(now())
-
-  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, achievementId])
+  @@index([exerciseId, correct])
+  @@index([userId, exerciseId])
 }
 
 model MissionCategory {
@@ -1640,6 +1960,26 @@ model GamificationBadge {
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  unlockedBy UserGamificationBadge[]
+}
+
+// RewardLedgerEntry.itemId es FK estricta a Item (objetos del mundo
+// virtual) — nunca pudo apuntar a una insignia, por eso el catálogo de
+// GamificationBadge quedaba modelado pero sin forma real de "pertenecer" a
+// un usuario. Esta tabla es la que faltaba (mismo patrón que
+// UserGamificationAchievement).
+model UserGamificationBadge {
+  id         String   @id @default(uuid())
+  userId     String
+  badgeId    String
+  unlockedAt DateTime @default(now())
+
+  user  User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge GamificationBadge @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+  @@index([userId, unlockedAt])
 }
 
 model GamificationPet {
@@ -1661,6 +2001,21 @@ model GamificationTitle {
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  unlockedBy UserGamificationTitle[]
+}
+
+model UserGamificationTitle {
+  id         String   @id @default(uuid())
+  userId     String
+  titleId    String
+  unlockedAt DateTime @default(now())
+
+  user  User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title GamificationTitle @relation(fields: [titleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, titleId])
+  @@index([userId, unlockedAt])
 }
 
 model GamificationEvent {
@@ -1726,18 +2081,6 @@ model Ranking {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model Subscription {
-  id     String @id @default(uuid())
-  userId String
-
-  type   SubscriptionType @default(FREE) // 🔥 CLAVE
-  active Boolean          @default(true)
-
-  expiresAt DateTime
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
 model Academy {
   id       String      @id @default(uuid())
   name     String
@@ -1755,14 +2098,17 @@ model Academy {
 }
 
 model Certificate {
-  id                String   @id @default(uuid())
-  certificateNumber String   @unique
+  id                String    @id @default(uuid())
+  certificateNumber String    @unique
   userId            String
   courseId          String
   academyId         String?
-  verificationCode  String   @unique
+  verificationCode  String    @unique
   verificationUrl   String
-  issuedAt          DateTime @default(now())
+  issuedAt          DateTime  @default(now())
+  revoked           Boolean   @default(false)
+  revokedAt         DateTime?
+  revokedReason     String?
 
   user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
@@ -1770,6 +2116,7 @@ model Certificate {
 
   @@unique([userId, courseId])
   @@index([academyId])
+  @@index([revoked])
 }
 
 model CertificateOrder {
@@ -1812,6 +2159,25 @@ model CertificateAccess {
   @@index([accessType])
 }
 
+// Rastro de auditoría de acciones administrativas sensibles (cambios de rol,
+// altas/bajas de premium, accesos de certificado, ajustes de XP/monedas).
+// Sin relación formal a User: debe sobrevivir aunque se borre la cuenta
+// involucrada, para no perder el historial de qué pasó.
+model AdminActionLog {
+  id           String   @id @default(uuid())
+  adminId      String
+  action       String
+  targetUserId String?
+  targetType   String?
+  targetId     String?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  @@index([adminId, createdAt])
+  @@index([targetUserId, createdAt])
+  @@index([action, createdAt])
+}
+
 model PremiumSubscription {
   id                     String                    @id @default(uuid())
   userId                 String
@@ -1827,6 +2193,35 @@ model PremiumSubscription {
   @@index([expiresAt])
 }
 
+// Planes mostrados en /pricing, editables desde el panel admin en vez de
+// hardcodeados en el frontend. Nombre/descripcion/features/CTA se guardan
+// como JSON {es,en,zh} directamente en la fila para no acoplar esto al
+// pipeline de i18n de namespaces estaticos usado por el resto del sitio.
+model PricingPlan {
+  id              String                 @id @default(uuid())
+  key             String                 @unique
+  priceUsd        Decimal                @db.Decimal(10, 2)
+  billingInterval PricingBillingInterval @default(NONE)
+  featured        Boolean                @default(false)
+  active          Boolean                @default(true)
+  sortOrder       Int                    @default(0)
+  ctaHref         String
+  icon            String                 @default("Sparkles")
+  name            Json
+  features        Json
+  ctaLabel        Json
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  @@index([active, sortOrder])
+}
+
+enum PricingBillingInterval {
+  NONE
+  MONTHLY
+  YEARLY
+}
+
 model Language {
   id        String @id @default(uuid())
   code      String @unique
@@ -1837,12 +2232,12 @@ model Language {
 
   users User[]
 
-  moduleTranslations      ModuleTranslation[]
-  courseTranslations      CourseTranslation[]
-  lessonTranslations      LessonTranslation[]
-  exerciseTranslations    ExerciseTranslation[]
-  achievementTranslations AchievementTranslation[]
-  powerTranslations       PowerTranslation[]
+  moduleTranslations       ModuleTranslation[]
+  courseTranslations       CourseTranslation[]
+  lessonTranslations       LessonTranslation[]
+  exerciseTranslations     ExerciseTranslation[]
+  powerTranslations        PowerTranslation[]
+  learningPathTranslations LearningPathTranslation[]
 
   // Relaciones bidireccionales añadidas (las que faltaban)
   postTranslations    PostTranslation[]
@@ -2027,6 +2422,8 @@ model CoinTransaction {
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model ColorPalette {
@@ -2046,6 +2443,8 @@ model XPTransaction {
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model EmailTemplate {
@@ -2333,17 +2732,17 @@ model CreatorProfile {
   bio         String?
   avatarUrl   String?
 
-  status         CreatorStatus   @default(ACTIVE)
-  level          CreatorLevelKey @default(BRONZE)
-  verified       Boolean         @default(false)
-  featured       Boolean         @default(false)
-  joinedAt       DateTime        @default(now())
-  suspendedUntil DateTime?
+  status             CreatorStatus   @default(ACTIVE)
+  level              CreatorLevelKey @default(BRONZE)
+  verified           Boolean         @default(false)
+  featured           Boolean         @default(false)
+  joinedAt           DateTime        @default(now())
+  suspendedUntil     DateTime?
   // Cuáles insignias eligió mostrar el jugador (de las que realmente
   // califica) — el máximo permitido depende de su nivel: gratis 1, premium
   // 3, admin sin límite (ver BadgesService.getMaxSelectableBadges). Vacío =
   // todavía no eligió, se autocompletan por prioridad al mostrarlas.
-  selectedBadgeTypes BadgeType[] @default([])
+  selectedBadgeTypes BadgeType[]     @default([])
 
   totalSales      Int @default(0)
   totalCoinsGross Int @default(0)
@@ -2408,6 +2807,59 @@ model BadgeConfig {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Enums separados de BadgeIconMode/BadgeAnimationDirection a propósito: son
+// idénticos hoy pero pertenecen a un dominio distinto (imágenes generales del
+// juego tipo logo/puerta, no insignias de perfil) y no queremos que cambiar
+// uno afecte al otro.
+enum ThemeAssetIconMode {
+  STATIC
+  SPRITE
+}
+
+enum ThemeAssetAnimationDirection {
+  PINGPONG
+  LOOP
+}
+
+// Un "slot" es una imagen administrable del juego (el logo, la puerta de
+// Salas, etc.) — la key la referencia el código, el resto es solo para
+// mostrar en el admin. Se crean por seed (ThemeAssetsService.SLOT_REGISTRY),
+// no desde la UI, porque cada slot nuevo necesita código que lo consuma.
+model ThemeAssetSlot {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  label     String
+  category  String   @default("General")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  variants ThemeAssetVariant[]
+}
+
+// Hasta 5 variantes por slot (límite validado en el service, no acá) — ej.
+// "Default" + "Navidad 2026" + "Halloween" — de las cuales como máximo una
+// tiene isActive: true a la vez. Ninguna activa = el frontend usa el
+// fallback hardcodeado que ya existía antes de este sistema.
+model ThemeAssetVariant {
+  id         String                       @id @default(uuid())
+  slotId     String
+  slot       ThemeAssetSlot               @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  name       String
+  imageUrl   String
+  mode       ThemeAssetIconMode           @default(STATIC)
+  frameCount Int                          @default(6)
+  direction  ThemeAssetAnimationDirection @default(PINGPONG)
+  frameRate  Int                          @default(10)
+  isActive   Boolean                      @default(false)
+  order      Int                          @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([slotId, name])
+  @@index([slotId])
 }
 
 model CreatorWallet {
@@ -2608,6 +3060,21 @@ model MarketplaceFavorite {
   @@index([contentId])
 }
 
+// Favoritos del inventario de construcción (distinto de MarketplaceFavorite,
+// que es sobre publicaciones del marketplace) — mismo patrón userId+itemId.
+model RoomBuildFavorite {
+  id        String   @id @default(uuid())
+  userId    String
+  itemId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, itemId])
+  @@index([itemId])
+}
+
 model MarketplaceRating {
   id        String   @id @default(uuid())
   userId    String
@@ -2658,6 +3125,13 @@ model CodeStudioAppType {
   order       Int     @default(0)
   visible     Boolean @default(true)
   metadata    Json?
+
+  // Perfil que hace que el TIPO de app cambie la simulacion de verdad, no
+  // solo el nombre/icono: { growthMultiplier, retentionBase,
+  // infraCostMultiplier, networkEffect, bugTolerance, channelEffectiveness }
+  // — leido por codestudio-engine.service.ts en cada tick y por
+  // launchCampaign al calcular usuarios ganados por canal.
+  simulationProfile Json?
 
   blueprint CodeStudioBlueprint?
   companies CodeStudioCompany[]
@@ -2714,7 +3188,26 @@ model CodeStudioTechnology {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  companies CodeStudioCompanyTechnology[]
+
   @@index([category, active, order])
+}
+
+// Arbol de tecnologia real: cada nodo desbloqueado por una empresa queda
+// registrado aca. requirements.requires (en CodeStudioTechnology) exige que
+// los slugs listados ya esten en esta tabla para esa empresa antes de poder
+// desbloquear el siguiente nodo de la rama — asi cada categoria forma una
+// cadena de nodos, no una lista plana de compras sueltas.
+model CodeStudioCompanyTechnology {
+  id           String   @id @default(uuid())
+  companyId    String
+  technologyId String
+  unlockedAt   DateTime @default(now())
+
+  company    CodeStudioCompany    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  technology CodeStudioTechnology @relation(fields: [technologyId], references: [id])
+
+  @@unique([companyId, technologyId])
 }
 
 model CodeStudioResearch {
@@ -2749,6 +3242,27 @@ model CodeStudioCampaign {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  runs CodeStudioCampaignRun[]
+}
+
+// Cada vez que un jugador lanza una campana real (paga baseCost, gana
+// usuarios atribuidos a ese canal especifico) queda un registro aca — asi se
+// puede comparar canal contra canal ("gracias a TikTok +45 usuarios, a
+// Facebook +12") en vez de que marketing sea solo una barra decorativa.
+model CodeStudioCampaignRun {
+  id          String   @id @default(uuid())
+  companyId   String
+  campaignId  String
+  channel     String
+  cost        Int
+  gainedUsers Int
+  createdAt   DateTime @default(now())
+
+  company  CodeStudioCompany  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  campaign CodeStudioCampaign @relation(fields: [campaignId], references: [id])
+
+  @@index([companyId, channel])
 }
 
 model CodeStudioEventTemplate {
@@ -2890,9 +3404,12 @@ model CodeStudioCompany {
   blueprintSnapshot Json?
   stats             Json?
   metadata          Json?
-  lastSimulatedAt   DateTime @default(now())
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  lastSimulatedAt   DateTime  @default(now())
+  // Cooldown para los eventos de mercado reales (CodeStudioEventTemplate,
+  // revivido en Fase 1) — evita que roleen todo el tiempo.
+  lastMarketEventAt DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   user    User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   appType CodeStudioAppType @relation(fields: [appTypeId], references: [id])
@@ -2903,6 +3420,9 @@ model CodeStudioCompany {
   development    CodeStudioDevelopmentTask[]
   snapshots      CodeStudioAnalyticsSnapshot[]
   events         CodeStudioEventLog[]
+  bugReports     CodeStudioBug[]
+  campaignRuns   CodeStudioCampaignRun[]
+  technologies   CodeStudioCompanyTechnology[]
 
   @@index([userId, updatedAt])
   @@index([valuation])
@@ -3027,4 +3547,28 @@ model CodeStudioEventLog {
   template CodeStudioEventTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
 
   @@index([companyId, createdAt])
+}
+
+// Incidentes reales que el motor detecta por umbral (errores de trafico,
+// latencia, estabilidad — mismas condiciones que ya disparaban un
+// CodeStudioEventLog informativo) y que el jugador puede resolver pagando
+// cash o asignando un empleado. Mientras siguen OPEN, el motor les aplica un
+// castigo pasivo a rating/estabilidad en cada tick (ver
+// codestudio-engine.service.ts) — ignorarlos tiene costo real, no es solo
+// decorativo.
+model CodeStudioBug {
+  id          String                @id @default(uuid())
+  companyId   String
+  kind        String
+  title       String
+  description String
+  severity    CodeStudioBugSeverity
+  status      CodeStudioBugStatus   @default(OPEN)
+  fixCost     Int
+  createdAt   DateTime              @default(now())
+  fixedAt     DateTime?
+
+  company CodeStudioCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, status])
 }

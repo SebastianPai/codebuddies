@@ -7,7 +7,36 @@ import { RoomItemsService } from '../../room-items/room-items.service';
 
 import { PlayerHandler } from './player.handler';
 import { ParsedAvatar } from '../dto/avatar.dto';
-import { createPlayer } from '../../../../game/engine';
+import {
+  AcceptInviteDto,
+  ApproveJoinRequestDto,
+  AssignCustomRoleDto,
+  ChangeBackgroundDto,
+  CreateCustomRoleDto,
+  CreateRoomDto,
+  DeclineInviteDto,
+  DeleteCustomRoleDto,
+  GetLightingStatusDto,
+  GetRoomDetailsDto,
+  GivePermissionDto,
+  InviteDto,
+  InviteFriendsSearchDto,
+  JoinRequestsListDto,
+  JoinRoomDto,
+  KickGuestDto,
+  ListCustomRolesDto,
+  ListGuestsDto,
+  ListRoomInvitesDto,
+  RateRoomDto,
+  RejectJoinRequestDto,
+  RequestJoinDto,
+  RevokeInviteDto,
+  RevokePermissionDto,
+  SetAmbientLightDto,
+  UpdateCustomRoleDto,
+  UpdateRoomDto,
+  UpdateThumbnailDto,
+} from '../dto/room.dto';
 
 interface Player {
   id: string;
@@ -31,7 +60,7 @@ export class RoomHandler {
   ) {}
 
   // ====================== CREAR SALA ======================
-  async handleCreateRoom(socket: Socket, data: any) {
+  async handleCreateRoom(socket: Socket, data: CreateRoomDto) {
     const userId = socket.data.user?.userId;
     if (!userId) {
       return socket.emit('room:error', { message: 'No autenticado' });
@@ -77,18 +106,9 @@ export class RoomHandler {
   }
 
   // ====================== UNIRSE A SALA ======================
-  async handleJoinRoom(
-    server: Server,
-    socket: Socket,
-    data: { roomId: string },
-  ) {
+  async handleJoinRoom(server: Server, socket: Socket, data: JoinRoomDto) {
     const userId = socket.data.user?.userId;
-    const roomId =
-      typeof data === 'string'
-        ? data
-        : typeof data === 'object'
-          ? data?.roomId
-          : undefined;
+    const roomId = data?.roomId;
 
     if (!userId) {
       return socket.emit('room:join:error', { reason: 'No autenticado' });
@@ -132,9 +152,6 @@ export class RoomHandler {
       );
       this.playerHandler.players[socket.id] = player;
 
-      // Crear jugador en el motor del juego
-      createPlayer(socket.id); // Si usas engine
-
       // Obtener jugadores actuales en la sala
       const roomPlayers = Object.values(this.playerHandler.players).filter(
         (p: any) => p.room === roomId,
@@ -142,6 +159,14 @@ export class RoomHandler {
 
       // Obtener items de la sala
       const roomItems = await this.roomItemsService.getRoomItems(roomId);
+
+      // Permisos efectivos del usuario que entra — el cliente los necesita
+      // para decidir qué mostrar (botones de mueble, pestañas de Editar
+      // Mundo) sin tener que preguntarle al servidor acción por acción.
+      const myPermissions = await this.roomsService.getMyPermissions(
+        roomId,
+        userId,
+      );
 
       // Enviar información completa al usuario que se une
       socket.emit('room:joined', {
@@ -154,9 +179,14 @@ export class RoomHandler {
           height: room.height,
           layout: room.layout,
           background: room.background,
+          // Antes esto nunca viajaba en room:joined — un jugador que entraba
+          // a una sala con iluminación ya configurada nunca la veía aplicada
+          // hasta que (si tenía permiso) abría la pestaña de Iluminación.
+          ambientLightIntensity: room.ambientLightIntensity ?? null,
         },
         players: roomPlayers,
         items: roomItems,
+        myPermissions,
       });
 
       // Notificar a los demás jugadores
@@ -186,7 +216,7 @@ export class RoomHandler {
   }
 
   // ====================== SOLICITUD PARA UNIRSE ======================
-  async handleRequestJoin(socket: Socket, data: { roomId: string }) {
+  async handleRequestJoin(socket: Socket, data: RequestJoinDto) {
     const userId = socket.data.user?.userId;
     if (!userId) return;
 
@@ -199,7 +229,7 @@ export class RoomHandler {
   }
 
   // ====================== SOLICITUDES PENDIENTES (DUEÑO) ======================
-  async handleGetJoinRequests(socket: Socket, data: { roomId: string }) {
+  async handleGetJoinRequests(socket: Socket, data: JoinRequestsListDto) {
     const userId = socket.data.user?.userId;
     if (!userId) return;
 
@@ -214,7 +244,7 @@ export class RoomHandler {
     }
   }
 
-  async handleApproveJoinRequest(socket: Socket, data: { requestId: string }) {
+  async handleApproveJoinRequest(socket: Socket, data: ApproveJoinRequestDto) {
     const userId = socket.data.user?.userId;
     if (!userId) return;
 
@@ -229,7 +259,7 @@ export class RoomHandler {
     }
   }
 
-  async handleRejectJoinRequest(socket: Socket, data: { requestId: string }) {
+  async handleRejectJoinRequest(socket: Socket, data: RejectJoinRequestDto) {
     const userId = socket.data.user?.userId;
     if (!userId) return;
 
@@ -245,10 +275,7 @@ export class RoomHandler {
   }
 
   // ====================== INVITAR USUARIO ======================
-  async handleInvite(
-    socket: Socket,
-    data: { roomId: string; toUserId: string },
-  ) {
+  async handleInvite(socket: Socket, data: InviteDto) {
     const fromUserId = socket.data.user?.userId;
     if (!fromUserId) return;
 
@@ -264,15 +291,153 @@ export class RoomHandler {
     }
   }
 
+  // ====================== RESPONDER UNA INVITACIÓN (lado del invitado) ======================
+  async handleAcceptInvite(socket: Socket, data: AcceptInviteDto) {
+    const userId = socket.data.user?.userId;
+    if (!userId) return;
+
+    try {
+      const invite = await this.roomsService.acceptInvite(data.inviteId, userId);
+      socket.emit('room:invite:accepted', invite);
+    } catch (err: any) {
+      socket.emit('room:error', { message: err.message });
+    }
+  }
+
+  async handleDeclineInvite(socket: Socket, data: DeclineInviteDto) {
+    const userId = socket.data.user?.userId;
+    if (!userId) return;
+
+    try {
+      const invite = await this.roomsService.declineInvite(data.inviteId, userId);
+      socket.emit('room:invite:declined', invite);
+    } catch (err: any) {
+      socket.emit('room:error', { message: err.message });
+    }
+  }
+
+  async handleFriendsSearch(socket: Socket, data: InviteFriendsSearchDto) {
+    const callerUserId = socket.data.user?.userId;
+    if (!callerUserId) return;
+
+    try {
+      const friends = await this.roomsService.listInvitableFriends(
+        data.roomId,
+        callerUserId,
+        data.query,
+      );
+      socket.emit('room:invite:friends-search:result', {
+        roomId: data.roomId,
+        friends,
+      });
+    } catch (err: any) {
+      socket.emit('room:error', { message: err.message });
+    }
+  }
+
+  // ====================== INVITADOS Y PERMISOS OTORGADOS ======================
+  async handleListGuests(socket: Socket, data: ListGuestsDto) {
+    const callerUserId = socket.data.user?.userId;
+    if (!callerUserId) return;
+
+    try {
+      const guests = await this.roomsService.listGuests(
+        data.roomId,
+        callerUserId,
+      );
+      socket.emit('room:guests:list', { roomId: data.roomId, guests });
+    } catch (err: any) {
+      socket.emit('room:error', { message: err.message });
+    }
+  }
+
+  async handleListInvites(socket: Socket, data: ListRoomInvitesDto) {
+    const callerUserId = socket.data.user?.userId;
+    if (!callerUserId) return;
+
+    try {
+      const invites = await this.roomsService.listInvites(
+        data.roomId,
+        callerUserId,
+      );
+      socket.emit('room:invites:list', { roomId: data.roomId, invites });
+    } catch (err: any) {
+      socket.emit('room:error', { message: err.message });
+    }
+  }
+
+  async handleRevokeInvite(socket: Socket, data: RevokeInviteDto) {
+    const callerUserId = socket.data.user?.userId;
+    if (!callerUserId) return;
+
+    try {
+      const invite = await this.roomsService.revokeInvite(
+        data.inviteId,
+        callerUserId,
+      );
+      socket.emit('room:invite:revoked', invite);
+    } catch (err: any) {
+      socket.emit('room:error', { message: err.message });
+    }
+  }
+
+  async handleRevokePermission(socket: Socket, data: RevokePermissionDto) {
+    const callerUserId = socket.data.user?.userId;
+    if (!callerUserId) return;
+
+    try {
+      await this.roomsService.revokePermission(
+        data.roomId,
+        data.targetUserId,
+        callerUserId,
+      );
+      socket.emit('room:permission:revoked', {
+        roomId: data.roomId,
+        userId: data.targetUserId,
+      });
+    } catch (err: any) {
+      socket.emit('room:error', { message: err.message });
+    }
+  }
+
+  // Expulsa al invitado AHORA de la sala (si está conectado, fuerza a su
+  // socket a salir de la room de Socket.IO y avisa a los demás como si se
+  // hubiera desconectado) — no revoca su invitación ni sus permisos.
+  async handleKickGuest(server: Server, socket: Socket, data: KickGuestDto) {
+    const callerUserId = socket.data.user?.userId;
+    if (!callerUserId) return;
+
+    try {
+      await this.roomsService.kickGuest(
+        data.roomId,
+        data.targetUserId,
+        callerUserId,
+      );
+
+      const roomSockets = await server.in(data.roomId).fetchSockets();
+      const targetSocket = roomSockets.find(
+        (remoteSocket) => remoteSocket.data.user?.userId === data.targetUserId,
+      );
+
+      if (targetSocket) {
+        targetSocket.leave(data.roomId);
+        targetSocket.data.currentRoom = null;
+        delete this.playerHandler.players[targetSocket.id];
+        targetSocket.emit('room:kicked', { roomId: data.roomId });
+        server.to(data.roomId).emit('playerDisconnected', targetSocket.id);
+      }
+
+      socket.emit('room:guest:kicked', {
+        roomId: data.roomId,
+        userId: data.targetUserId,
+      });
+    } catch (err: any) {
+      socket.emit('room:error', { message: err.message });
+    }
+  }
+
   // ====================== DAR PERMISOS ======================
-  async handleGivePermission(
-    socket: Socket,
-    data: {
-      roomId: string;
-      userId: string;
-      role: 'ADMIN' | 'EDITOR' | 'VISITOR';
-    },
-  ) {
+  async handleGivePermission(socket: Socket, data: GivePermissionDto) {
     const fromUserId = socket.data.user?.userId;
     if (!fromUserId) return;
 
@@ -281,6 +446,7 @@ export class RoomHandler {
         data.roomId,
         data.userId,
         data.role,
+        fromUserId,
       );
       socket.emit('room:permissionUpdated');
     } catch (err: any) {
@@ -292,7 +458,7 @@ export class RoomHandler {
   async handleChangeBackground(
     server: Server,
     socket: Socket,
-    data: { roomId: string; backgroundId: string },
+    data: ChangeBackgroundDto,
   ) {
     const userId = socket.data.user?.userId;
     if (!userId) return;
@@ -315,7 +481,7 @@ export class RoomHandler {
   async handleUpdateThumbnail(
     server: Server,
     socket: Socket,
-    data: { roomId: string; thumbnailUrl: string },
+    data: UpdateThumbnailDto,
   ) {
     const userId = socket.data.user?.userId;
     if (!userId) return;
@@ -333,12 +499,67 @@ export class RoomHandler {
     }
   }
 
-  // ====================== CALIFICAR SALA ======================
-  async handleRateRoom(
+  // ====================== EDITAR MUNDO (General/Acceso/Límites) ======================
+  async handleUpdateRoom(server: Server, socket: Socket, data: UpdateRoomDto) {
+    const userId = socket.data.user?.userId;
+    if (!userId) return;
+
+    try {
+      const { roomId, ...patch } = data;
+      const room = await this.roomsService.updateRoom(roomId, userId, patch);
+      server.to(roomId).emit('room:updated', room);
+    } catch (err: any) {
+      socket.emit('room:error', { message: err.message });
+    }
+  }
+
+  // ====================== ILUMINACIÓN AMBIENTAL ======================
+  async handleGetLightingStatus(socket: Socket, data: GetLightingStatusDto) {
+    const userId = socket.data.user?.userId;
+    if (!userId) return;
+
+    try {
+      const status = await this.roomsService.getLightingStatus(
+        data.roomId,
+        userId,
+      );
+      socket.emit('room:lighting:status', { roomId: data.roomId, ...status });
+    } catch (err: any) {
+      socket.emit('room:error', { message: err.message });
+    }
+  }
+
+  async handleSetAmbientLight(
     server: Server,
     socket: Socket,
-    data: { roomId: string; value: number },
+    data: SetAmbientLightDto,
   ) {
+    const userId = socket.data.user?.userId;
+    if (!userId) return;
+
+    try {
+      const result = await this.roomsService.setAmbientLight(
+        data.roomId,
+        userId,
+        data.intensity,
+      );
+
+      if (!result.canUse) {
+        socket.emit('room:lighting:status', { roomId: data.roomId, ...result });
+        return;
+      }
+
+      server.to(data.roomId).emit('room:lighting:changed', {
+        roomId: data.roomId,
+        ambientLightIntensity: result.ambientLightIntensity,
+      });
+    } catch (err: any) {
+      socket.emit('room:error', { message: err.message });
+    }
+  }
+
+  // ====================== CALIFICAR SALA ======================
+  async handleRateRoom(server: Server, socket: Socket, data: RateRoomDto) {
     const userId = socket.data.user?.userId;
     if (!userId) return;
 
@@ -355,7 +576,7 @@ export class RoomHandler {
   }
 
   // ====================== DETALLES DE SALA ======================
-  async handleGetRoomDetails(socket: Socket, data: { roomId: string }) {
+  async handleGetRoomDetails(socket: Socket, data: GetRoomDetailsDto) {
     try {
       const room = await this.roomsService.getRoomDetails(data.roomId);
       socket.emit('room:details', room);
@@ -366,11 +587,94 @@ export class RoomHandler {
     }
   }
 
+  // ====================== ROLES PERSONALIZADOS ======================
+  async handleListCustomRoles(socket: Socket, data: ListCustomRolesDto) {
+    const userId = socket.data.user?.userId;
+    if (!userId) return;
+
+    try {
+      const roles = await this.roomsService.listCustomRoles(
+        data.roomId,
+        userId,
+      );
+      socket.emit('room:role:list', { roomId: data.roomId, roles });
+    } catch (err: any) {
+      socket.emit('room:error', { message: err.message });
+    }
+  }
+
+  async handleCreateCustomRole(socket: Socket, data: CreateCustomRoleDto) {
+    const userId = socket.data.user?.userId;
+    if (!userId) return;
+
+    try {
+      const { roomId, ...flags } = data;
+      const role = await this.roomsService.createCustomRole(
+        roomId,
+        userId,
+        flags,
+      );
+      socket.emit('room:role:created', role);
+    } catch (err: any) {
+      socket.emit('room:error', { message: err.message });
+    }
+  }
+
+  async handleUpdateCustomRole(socket: Socket, data: UpdateCustomRoleDto) {
+    const userId = socket.data.user?.userId;
+    if (!userId) return;
+
+    try {
+      const { roleId, ...flags } = data;
+      const role = await this.roomsService.updateCustomRole(
+        roleId,
+        userId,
+        flags,
+      );
+      socket.emit('room:role:updated', role);
+    } catch (err: any) {
+      socket.emit('room:error', { message: err.message });
+    }
+  }
+
+  async handleDeleteCustomRole(socket: Socket, data: DeleteCustomRoleDto) {
+    const userId = socket.data.user?.userId;
+    if (!userId) return;
+
+    try {
+      const role = await this.roomsService.deleteCustomRole(
+        data.roleId,
+        userId,
+      );
+      socket.emit('room:role:deleted', { id: role.id, roomId: role.roomId });
+    } catch (err: any) {
+      socket.emit('room:error', { message: err.message });
+    }
+  }
+
+  async handleAssignCustomRole(socket: Socket, data: AssignCustomRoleDto) {
+    const userId = socket.data.user?.userId;
+    if (!userId) return;
+
+    try {
+      const permission = await this.roomsService.assignCustomRole(
+        data.roomId,
+        data.targetUserId,
+        data.roleId ?? null,
+        userId,
+      );
+      socket.emit('room:role:assigned', permission);
+    } catch (err: any) {
+      socket.emit('room:error', { message: err.message });
+    }
+  }
+
   // ====================== FONDOS ======================
   async handleGetBackgrounds(socket: Socket) {
     try {
       const userId = socket.data.user?.userId;
-      if (!userId) return socket.emit('room:error', { message: 'No autenticado' });
+      if (!userId)
+        return socket.emit('room:error', { message: 'No autenticado' });
       const backgrounds = await this.roomsService.getBackgrounds(userId);
       socket.emit(
         'backgrounds:list',

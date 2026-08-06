@@ -33,4 +33,14 @@ export class GamificationController {
   getRewardCenter(@CurrentUser() user: AuthUser, @Query() query: { sourceType?: string; rewardType?: string; page?: string; pageSize?: string }) {
     return this.gamificationService.getRewardCenter(user.userId, query);
   }
+
+  @Get('badges')
+  getBadges(@CurrentUser() user: AuthUser) {
+    return this.gamificationService.getBadgesForUser(user.userId);
+  }
+
+  @Get('titles')
+  getTitles(@CurrentUser() user: AuthUser) {
+    return this.gamificationService.getTitlesForUser(user.userId);
+  }
 }

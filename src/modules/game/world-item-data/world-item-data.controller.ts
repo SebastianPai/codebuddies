@@ -1,10 +1,26 @@
-import { Controller, Get, Patch, Delete, Param, Body } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Patch,
+  Delete,
+  Param,
+  Body,
+  UseGuards,
+} from '@nestjs/common';
 
 import { WorldItemDataService } from './world-item-data.service';
 
 import { UpdateWorldItemDto } from './dto/update-world-item.dto';
+import { JwtAuthGuard } from '../../identity/guards/jwt.guard';
+import { RolesGuard } from '../../identity/guards/roles.guard';
+import { Roles } from '../../identity/decorators/roles.decorator';
 
+// Reglas de colisión/apilamiento del mundo: solo el panel admin (apps/web)
+// las edita; el motor del juego las lee vía WorldItemDataService inyectado
+// directo en los handlers de WebSocket, nunca por esta API.
 @Controller('world-item-data')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('ADMIN')
 export class WorldItemDataController {
   constructor(private readonly worldItemDataService: WorldItemDataService) {}
 

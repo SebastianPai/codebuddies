@@ -7,7 +7,7 @@ import {
   Param,
   Body,
   Query,
-  NotFoundException,
+  UseGuards,
 } from '@nestjs/common';
 
 import { ItemsService } from './items.service';
@@ -16,8 +16,17 @@ import { UpdateItemDto } from './dto/update-item.dto';
 import { CreateAvatarItemDto } from './dto/create-avatar-item.dto';
 import { CreateWorldItemDto } from './dto/create-world-item.dto';
 import { AvatarSlotType, WorldItemKind } from '@prisma/client';
+import { JwtAuthGuard } from '../../identity/guards/jwt.guard';
+import { RolesGuard } from '../../identity/guards/roles.guard';
+import { Roles } from '../../identity/decorators/roles.decorator';
 
+// Catálogo de ítems/economía: solo lo consume el panel admin (apps/web).
+// El cliente del juego lee estos datos vía WebSocket (ItemsService inyectado
+// directo en los handlers de shop/inventory/room-items), nunca por esta API,
+// así que gatear todo el controlador con ADMIN no afecta al juego en vivo.
 @Controller('items')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('ADMIN')
 export class ItemsController {
   constructor(private itemsService: ItemsService) {}
 

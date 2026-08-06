@@ -127,6 +127,12 @@ export class NotificationsService {
     if (type === 'ROOM_JOIN_APPROVED') {
       return { category: 'SALAS', priority: 'NORMAL', icon: 'DoorOpen', link: '/notifications', actionLabel: 'Ver' };
     }
+    if (type === 'ROOM_INVITE') {
+      return { category: 'SALAS', priority: 'HIGH', icon: 'DoorOpen', link: '/notifications', actionLabel: 'Ver invitación' };
+    }
+    if (type === 'STREAK_AT_RISK') {
+      return { category: 'RACHA', priority: 'HIGH', icon: 'Flame', link: '/dashboard', actionLabel: 'Seguir aprendiendo' };
+    }
 
     return { category: 'SISTEMA', priority: 'NORMAL', icon: 'Bell', link: '/notifications', actionLabel: 'Ver' };
   }

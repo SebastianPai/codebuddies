@@ -17,10 +17,61 @@ import { AvatarHandler } from './ws/handlers/avatar.handler';
 import { RoomHandler } from './ws/handlers/room.handler';
 import { InventoryHandler } from './ws/handlers/inventory.handler';
 import { ShopHandler } from './ws/handlers/shop.handler';
-import { AppHandler } from './ws/handlers/app.handler';
 import { RoomItemsHandler } from './ws/handlers/room-items.handler';
 
-import { ParsedAvatar } from './ws/dto/avatar.dto'; // ← Recomiendo mover las interfaces aquí
+import { EquipItemDto, UpdateAvatarDto } from './ws/dto/avatar.dto';
+import {
+  ChatMessageDto,
+  PlayerAnimationChangeDto,
+  PlayerMoveDto,
+  PlayerReactionDto,
+} from './ws/dto/player.dto';
+import {
+  BuyBackgroundDto,
+  BuyItemDto,
+  ShopItemsRequestDto,
+} from './ws/dto/shop.dto';
+import { GetItemSpritesDto } from './ws/dto/item-sprites.dto';
+import { BuildFavoriteDto } from './ws/dto/inventory.dto';
+import {
+  AcceptInviteDto,
+  ApproveJoinRequestDto,
+  AssignCustomRoleDto,
+  ChangeBackgroundDto,
+  CreateCustomRoleDto,
+  CreateRoomDto,
+  DeclineInviteDto,
+  DeleteCustomRoleDto,
+  GetLightingStatusDto,
+  GetRoomDetailsDto,
+  GivePermissionDto,
+  InviteDto,
+  InviteFriendsSearchDto,
+  JoinRequestsListDto,
+  JoinRoomDto,
+  KickGuestDto,
+  ListCustomRolesDto,
+  ListGuestsDto,
+  ListRoomInvitesDto,
+  RateRoomDto,
+  RejectJoinRequestDto,
+  RequestJoinDto,
+  RevokeInviteDto,
+  RevokePermissionDto,
+  SetAmbientLightDto,
+  UpdateCustomRoleDto,
+  UpdateRoomDto,
+  UpdateThumbnailDto,
+} from './ws/dto/room.dto';
+import {
+  ClearRoomDto,
+  MoveItemDto,
+  PaintAllSurfaceDto,
+  PaintSurfaceDto,
+  PlaceItemDto,
+  RemoveItemDto,
+  RotateItemDto,
+} from './ws/dto/room-items.dto';
 
 @WebSocketGateway({
   cors: {
@@ -49,13 +100,11 @@ export class GameGateway
     private readonly roomHandler: RoomHandler,
     private readonly inventoryHandler: InventoryHandler,
     private readonly shopHandler: ShopHandler,
-    private readonly appHandler: AppHandler,
     private readonly roomItemsHandler: RoomItemsHandler,
   ) {}
 
   afterInit() {
     this.logger.log('🔥 GameGateway iniciado correctamente');
-    this.appHandler.startAppsSync(this.server);
   }
 
   // ====================== CONEXIÓN ======================
@@ -71,7 +120,7 @@ export class GameGateway
 
   @SubscribeMessage('playerChat')
   handleChat(
-    @MessageBody() data: { message: string },
+    @MessageBody() data: ChatMessageDto,
     @ConnectedSocket() socket: Socket,
   ) {
     this.playerHandler.handleChat(this.server, socket, data);
@@ -79,7 +128,7 @@ export class GameGateway
 
   @SubscribeMessage('playerMove')
   handlePlayerMove(
-    @MessageBody() data: any,
+    @MessageBody() data: PlayerMoveDto,
     @ConnectedSocket() socket: Socket,
   ) {
     this.playerHandler.handlePlayerMove(this.server, socket, data);
@@ -87,7 +136,7 @@ export class GameGateway
 
   @SubscribeMessage('playerAnimation:change')
   handleChangeAnimation(
-    @MessageBody() data: { animationName: string },
+    @MessageBody() data: PlayerAnimationChangeDto,
     @ConnectedSocket() socket: Socket,
   ) {
     this.playerHandler.handleChangeAnimation(this.server, socket, data);
@@ -95,7 +144,7 @@ export class GameGateway
 
   @SubscribeMessage('playerReaction')
   handleReaction(
-    @MessageBody() data: { reaction: string },
+    @MessageBody() data: PlayerReactionDto,
     @ConnectedSocket() socket: Socket,
   ) {
     this.playerHandler.handleReaction(this.server, socket, data);
@@ -103,7 +152,10 @@ export class GameGateway
 
   // ==================== AVATAR ====================
   @SubscribeMessage('avatar:equip')
-  handleEquipItem(@MessageBody() data: any, @ConnectedSocket() socket: Socket) {
+  handleEquipItem(
+    @MessageBody() data: EquipItemDto,
+    @ConnectedSocket() socket: Socket,
+  ) {
     this.avatarHandler.handleEquipItem(this.server, socket, data);
   }
 
@@ -114,7 +166,7 @@ export class GameGateway
 
   @SubscribeMessage('updateAvatar')
   handleUpdateAvatar(
-    @MessageBody() avatarData: any,
+    @MessageBody() avatarData: UpdateAvatarDto,
     @ConnectedSocket() socket: Socket,
   ) {
     this.avatarHandler.handleUpdateAvatar(this.server, socket, avatarData);
@@ -123,7 +175,7 @@ export class GameGateway
   // ==================== SHOP ====================
   @SubscribeMessage('shop:items:request')
   handleShopItemsRequest(
-    @MessageBody() data: any,
+    @MessageBody() data: ShopItemsRequestDto,
     @ConnectedSocket() socket: Socket,
   ) {
     this.shopHandler.handleShopItemsRequest(socket, data);
@@ -131,7 +183,7 @@ export class GameGateway
 
   @SubscribeMessage('shop:item:buy')
   handleBuyItem(
-    @MessageBody() data: { itemId: string },
+    @MessageBody() data: BuyItemDto,
     @ConnectedSocket() socket: Socket,
   ) {
     this.shopHandler.handleBuyItem(socket, data);
@@ -139,7 +191,7 @@ export class GameGateway
 
   @SubscribeMessage('shop:background:buy')
   handleBuyBackground(
-    @MessageBody() data: { backgroundId: string },
+    @MessageBody() data: BuyBackgroundDto,
     @ConnectedSocket() socket: Socket,
   ) {
     this.shopHandler.handleBuyBackground(socket, data);
@@ -151,6 +203,27 @@ export class GameGateway
     this.inventoryHandler.handleGetInventory(socket);
   }
 
+  @SubscribeMessage('build:favorites:list')
+  handleListBuildFavorites(@ConnectedSocket() socket: Socket) {
+    this.inventoryHandler.handleListBuildFavorites(socket);
+  }
+
+  @SubscribeMessage('build:favorite:add')
+  handleAddBuildFavorite(
+    @MessageBody() data: BuildFavoriteDto,
+    @ConnectedSocket() socket: Socket,
+  ) {
+    this.inventoryHandler.handleAddBuildFavorite(socket, data);
+  }
+
+  @SubscribeMessage('build:favorite:remove')
+  handleRemoveBuildFavorite(
+    @MessageBody() data: BuildFavoriteDto,
+    @ConnectedSocket() socket: Socket,
+  ) {
+    this.inventoryHandler.handleRemoveBuildFavorite(socket, data);
+  }
+
   // ==================== PLAYER STATS ====================
   @SubscribeMessage('player:stats:get')
   handleGetStats(@ConnectedSocket() socket: Socket) {
@@ -160,7 +233,7 @@ export class GameGateway
   // ==================== ITEM SPRITES ====================
   @SubscribeMessage('itemSprites:get')
   handleGetItemSprites(
-    @MessageBody() data: { itemId: string; animationId?: string },
+    @MessageBody() data: GetItemSpritesDto,
     @ConnectedSocket() socket: Socket,
   ) {
     this.playerHandler.handleGetItemSprites(socket, data); // o crea un ItemHandler si prefieres
@@ -169,7 +242,7 @@ export class GameGateway
   // ==================== ROOMS ====================
   @SubscribeMessage('createRoom')
   handleCreateRoom(
-    @MessageBody() data: any,
+    @MessageBody() data: CreateRoomDto,
     @ConnectedSocket() socket: Socket,
   ) {
     this.roomHandler.handleCreateRoom(socket, data);
@@ -187,7 +260,7 @@ export class GameGateway
 
   @SubscribeMessage('joinRoom')
   handleJoinRoom(
-    @MessageBody() data: { roomId: string },
+    @MessageBody() data: JoinRoomDto,
     @ConnectedSocket() socket: Socket,
   ) {
     this.roomHandler.handleJoinRoom(this.server, socket, data);
@@ -200,7 +273,7 @@ export class GameGateway
 
   @SubscribeMessage('room:requestJoin')
   handleRequestJoin(
-    @MessageBody() data: { roomId: string },
+    @MessageBody() data: RequestJoinDto,
     @ConnectedSocket() socket: Socket,
   ) {
     this.roomHandler.handleRequestJoin(socket, data);
@@ -208,15 +281,79 @@ export class GameGateway
 
   @SubscribeMessage('room:invite')
   handleInvite(
-    @MessageBody() data: { roomId: string; toUserId: string },
+    @MessageBody() data: InviteDto,
     @ConnectedSocket() socket: Socket,
   ) {
     this.roomHandler.handleInvite(socket, data);
   }
 
+  @SubscribeMessage('room:invite:friends-search')
+  handleFriendsSearch(
+    @MessageBody() data: InviteFriendsSearchDto,
+    @ConnectedSocket() socket: Socket,
+  ) {
+    this.roomHandler.handleFriendsSearch(socket, data);
+  }
+
+  @SubscribeMessage('room:guests:list')
+  handleListGuests(
+    @MessageBody() data: ListGuestsDto,
+    @ConnectedSocket() socket: Socket,
+  ) {
+    this.roomHandler.handleListGuests(socket, data);
+  }
+
+  @SubscribeMessage('room:invites:list')
+  handleListInvites(
+    @MessageBody() data: ListRoomInvitesDto,
+    @ConnectedSocket() socket: Socket,
+  ) {
+    this.roomHandler.handleListInvites(socket, data);
+  }
+
+  @SubscribeMessage('room:invite:revoke')
+  handleRevokeInvite(
+    @MessageBody() data: RevokeInviteDto,
+    @ConnectedSocket() socket: Socket,
+  ) {
+    this.roomHandler.handleRevokeInvite(socket, data);
+  }
+
+  @SubscribeMessage('room:invite:accept')
+  handleAcceptInvite(
+    @MessageBody() data: AcceptInviteDto,
+    @ConnectedSocket() socket: Socket,
+  ) {
+    this.roomHandler.handleAcceptInvite(socket, data);
+  }
+
+  @SubscribeMessage('room:invite:decline')
+  handleDeclineInvite(
+    @MessageBody() data: DeclineInviteDto,
+    @ConnectedSocket() socket: Socket,
+  ) {
+    this.roomHandler.handleDeclineInvite(socket, data);
+  }
+
+  @SubscribeMessage('room:permission:revoke')
+  handleRevokePermission(
+    @MessageBody() data: RevokePermissionDto,
+    @ConnectedSocket() socket: Socket,
+  ) {
+    this.roomHandler.handleRevokePermission(socket, data);
+  }
+
+  @SubscribeMessage('room:guest:kick')
+  handleKickGuest(
+    @MessageBody() data: KickGuestDto,
+    @ConnectedSocket() socket: Socket,
+  ) {
+    this.roomHandler.handleKickGuest(this.server, socket, data);
+  }
+
   @SubscribeMessage('room:joinRequests:list')
   handleGetJoinRequests(
-    @MessageBody() data: { roomId: string },
+    @MessageBody() data: JoinRequestsListDto,
     @ConnectedSocket() socket: Socket,
   ) {
     this.roomHandler.handleGetJoinRequests(socket, data);
@@ -224,7 +361,7 @@ export class GameGateway
 
   @SubscribeMessage('room:joinRequest:approve')
   handleApproveJoinRequest(
-    @MessageBody() data: { requestId: string },
+    @MessageBody() data: ApproveJoinRequestDto,
     @ConnectedSocket() socket: Socket,
   ) {
     this.roomHandler.handleApproveJoinRequest(socket, data);
@@ -232,7 +369,7 @@ export class GameGateway
 
   @SubscribeMessage('room:joinRequest:reject')
   handleRejectJoinRequest(
-    @MessageBody() data: { requestId: string },
+    @MessageBody() data: RejectJoinRequestDto,
     @ConnectedSocket() socket: Socket,
   ) {
     this.roomHandler.handleRejectJoinRequest(socket, data);
@@ -240,15 +377,55 @@ export class GameGateway
 
   @SubscribeMessage('room:givePermission')
   handleGivePermission(
-    @MessageBody() data: any,
+    @MessageBody() data: GivePermissionDto,
     @ConnectedSocket() socket: Socket,
   ) {
     this.roomHandler.handleGivePermission(socket, data);
   }
 
+  @SubscribeMessage('room:role:list')
+  handleListCustomRoles(
+    @MessageBody() data: ListCustomRolesDto,
+    @ConnectedSocket() socket: Socket,
+  ) {
+    this.roomHandler.handleListCustomRoles(socket, data);
+  }
+
+  @SubscribeMessage('room:role:create')
+  handleCreateCustomRole(
+    @MessageBody() data: CreateCustomRoleDto,
+    @ConnectedSocket() socket: Socket,
+  ) {
+    this.roomHandler.handleCreateCustomRole(socket, data);
+  }
+
+  @SubscribeMessage('room:role:update')
+  handleUpdateCustomRole(
+    @MessageBody() data: UpdateCustomRoleDto,
+    @ConnectedSocket() socket: Socket,
+  ) {
+    this.roomHandler.handleUpdateCustomRole(socket, data);
+  }
+
+  @SubscribeMessage('room:role:delete')
+  handleDeleteCustomRole(
+    @MessageBody() data: DeleteCustomRoleDto,
+    @ConnectedSocket() socket: Socket,
+  ) {
+    this.roomHandler.handleDeleteCustomRole(socket, data);
+  }
+
+  @SubscribeMessage('room:role:assign')
+  handleAssignCustomRole(
+    @MessageBody() data: AssignCustomRoleDto,
+    @ConnectedSocket() socket: Socket,
+  ) {
+    this.roomHandler.handleAssignCustomRole(socket, data);
+  }
+
   @SubscribeMessage('room:changeBackground')
   handleChangeBackground(
-    @MessageBody() data: any,
+    @MessageBody() data: ChangeBackgroundDto,
     @ConnectedSocket() socket: Socket,
   ) {
     this.roomHandler.handleChangeBackground(this.server, socket, data);
@@ -256,20 +433,47 @@ export class GameGateway
 
   @SubscribeMessage('room:thumbnail:update')
   handleUpdateThumbnail(
-    @MessageBody() data: { roomId: string; thumbnailUrl: string },
+    @MessageBody() data: UpdateThumbnailDto,
     @ConnectedSocket() socket: Socket,
   ) {
     this.roomHandler.handleUpdateThumbnail(this.server, socket, data);
   }
 
+  @SubscribeMessage('room:update')
+  handleUpdateRoom(
+    @MessageBody() data: UpdateRoomDto,
+    @ConnectedSocket() socket: Socket,
+  ) {
+    this.roomHandler.handleUpdateRoom(this.server, socket, data);
+  }
+
+  @SubscribeMessage('room:lighting:get')
+  handleGetLightingStatus(
+    @MessageBody() data: GetLightingStatusDto,
+    @ConnectedSocket() socket: Socket,
+  ) {
+    this.roomHandler.handleGetLightingStatus(socket, data);
+  }
+
+  @SubscribeMessage('room:lighting:set')
+  handleSetAmbientLight(
+    @MessageBody() data: SetAmbientLightDto,
+    @ConnectedSocket() socket: Socket,
+  ) {
+    this.roomHandler.handleSetAmbientLight(this.server, socket, data);
+  }
+
   @SubscribeMessage('room:rate')
-  handleRateRoom(@MessageBody() data: any, @ConnectedSocket() socket: Socket) {
+  handleRateRoom(
+    @MessageBody() data: RateRoomDto,
+    @ConnectedSocket() socket: Socket,
+  ) {
     this.roomHandler.handleRateRoom(this.server, socket, data);
   }
 
   @SubscribeMessage('getRoomDetails')
   handleGetRoomDetails(
-    @MessageBody() data: { roomId: string },
+    @MessageBody() data: GetRoomDetailsDto,
     @ConnectedSocket() socket: Socket,
   ) {
     this.roomHandler.handleGetRoomDetails(socket, data);
@@ -288,7 +492,7 @@ export class GameGateway
   // ==================== ROOM ITEMS ====================
   @SubscribeMessage('room:item:place')
   handlePlaceRoomItem(
-    @MessageBody() data: any,
+    @MessageBody() data: PlaceItemDto,
     @ConnectedSocket() socket: Socket,
   ) {
     this.roomItemsHandler.placeItem(
@@ -301,7 +505,7 @@ export class GameGateway
 
   @SubscribeMessage('room:item:move')
   handleMoveRoomItem(
-    @MessageBody() data: any,
+    @MessageBody() data: MoveItemDto,
     @ConnectedSocket() socket: Socket,
   ) {
     this.roomItemsHandler.moveItem(
@@ -314,7 +518,7 @@ export class GameGateway
 
   @SubscribeMessage('room:item:rotate')
   handleRotateRoomItem(
-    @MessageBody() data: any,
+    @MessageBody() data: RotateItemDto,
     @ConnectedSocket() socket: Socket,
   ) {
     this.roomItemsHandler.rotateItem(
@@ -327,7 +531,7 @@ export class GameGateway
 
   @SubscribeMessage('room:item:remove')
   handleRemoveRoomItem(
-    @MessageBody() data: any,
+    @MessageBody() data: RemoveItemDto,
     @ConnectedSocket() socket: Socket,
   ) {
     this.roomItemsHandler.removeItem(
@@ -340,7 +544,7 @@ export class GameGateway
 
   @SubscribeMessage('room:surface:paint')
   handlePaintRoomSurface(
-    @MessageBody() data: any,
+    @MessageBody() data: PaintSurfaceDto,
     @ConnectedSocket() socket: Socket,
   ) {
     this.roomItemsHandler.paintSurface(
@@ -353,7 +557,7 @@ export class GameGateway
 
   @SubscribeMessage('room:items:clear')
   handleClearRoomItems(
-    @MessageBody() data: any,
+    @MessageBody() data: ClearRoomDto,
     @ConnectedSocket() socket: Socket,
   ) {
     this.roomItemsHandler.clearRoom(
@@ -365,7 +569,10 @@ export class GameGateway
   }
 
   @SubscribeMessage('room:surface:paint-all')
-  paintAllSurface(@ConnectedSocket() socket: Socket, @MessageBody() data: any) {
+  paintAllSurface(
+    @ConnectedSocket() socket: Socket,
+    @MessageBody() data: PaintAllSurfaceDto,
+  ) {
     this.roomItemsHandler.paintAllSurface(
       this.server,
       socket,

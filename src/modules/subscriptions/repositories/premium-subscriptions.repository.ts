@@ -26,4 +26,14 @@ export class PremiumSubscriptionsRepository {
       where: { providerSubscriptionId },
     });
   }
+
+  updateStatus(
+    id: string,
+    data: { status: PremiumSubscriptionStatus; expiresAt?: Date },
+  ) {
+    return this.prisma.premiumSubscription.update({
+      where: { id },
+      data,
+    });
+  }
 }

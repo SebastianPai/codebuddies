@@ -5,6 +5,7 @@ import {
   IsString,
   IsBoolean,
   IsObject,
+  IsArray,
 } from 'class-validator';
 import {
   AvatarSlotType,
@@ -53,6 +54,11 @@ export class CreateItemDto {
   @IsOptional()
   @IsString()
   category?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  tags?: string[];
 
   @IsOptional()
   @IsEnum(ItemAccessType)
@@ -151,4 +157,18 @@ export class CreateItemDto {
   @IsOptional()
   @IsObject()
   surfaces?: any;
+
+  // Sprite animado rápido para avatar items, creado desde el editor admin
+  // (alternativa simplificada al editor dedicado en /admin/item-sprites,
+  // que soporta múltiples direcciones/animaciones).
+  @IsOptional()
+  @IsObject()
+  itemSprite?: {
+    imageUrl?: string;
+    frameWidth?: number;
+    frameHeight?: number;
+    framesCount?: number;
+    rowIndex?: number;
+    animation?: string;
+  };
 }

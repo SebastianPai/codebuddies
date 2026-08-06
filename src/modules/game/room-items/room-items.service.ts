@@ -6,6 +6,10 @@ import {
 } from '@nestjs/common';
 import { PlacementType, WallSide } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
+import {
+  EffectivePermissions,
+  resolveEffectivePermissions,
+} from '../rooms/room-permissions.util';
 
 @Injectable()
 export class RoomItemsService {
@@ -32,11 +36,15 @@ export class RoomItemsService {
     });
   }
 
-  private async canEditRoom(userId: string, roomId: string): Promise<boolean> {
+  // Único punto de lectura de permisos para este servicio — comparte el
+  // mismo resolver puro que rooms.service.ts (room-permissions.util.ts) en
+  // vez de repetir acá un chequeo de tier fijo por separado.
+  private async getEffectivePermissions(
+    userId: string,
+    roomId: string,
+  ): Promise<EffectivePermissions> {
     const room = await this.prisma.room.findUnique({
-      where: {
-        id: roomId,
-      },
+      where: { id: roomId },
     });
 
     if (!room) {
@@ -44,46 +52,17 @@ export class RoomItemsService {
     }
 
     if (room.ownerId === userId) {
-      return true;
+      return resolveEffectivePermissions(true, null);
     }
 
     const permission = await this.prisma.roomPermission.findUnique({
       where: {
-        roomId_userId: {
-          roomId,
-          userId,
-        },
+        roomId_userId: { roomId, userId },
       },
+      include: { customRole: true },
     });
 
-    return permission?.role === 'ADMIN' || permission?.role === 'EDITOR';
-  }
-
-  private async canClearRoom(userId: string, roomId: string): Promise<boolean> {
-    const room = await this.prisma.room.findUnique({
-      where: {
-        id: roomId,
-      },
-    });
-
-    if (!room) {
-      throw new NotFoundException('Sala no encontrada');
-    }
-
-    if (room.ownerId === userId) {
-      return true;
-    }
-
-    const permission = await this.prisma.roomPermission.findUnique({
-      where: {
-        roomId_userId: {
-          roomId,
-          userId,
-        },
-      },
-    });
-
-    return permission?.role === 'ADMIN';
+    return resolveEffectivePermissions(false, permission);
   }
 
   private getFootprint(worldData: any, rotation = 0, state?: any) {
@@ -155,7 +134,10 @@ export class RoomItemsService {
     }));
   }
 
-  private overlaps(a: Array<{ x: number; y: number }>, b: Array<{ x: number; y: number }>) {
+  private overlaps(
+    a: Array<{ x: number; y: number }>,
+    b: Array<{ x: number; y: number }>,
+  ) {
     const bSet = new Set(b.map((tile) => `${tile.x},${tile.y}`));
     return a.some((tile) => bSet.has(`${tile.x},${tile.y}`));
   }
@@ -165,6 +147,19 @@ export class RoomItemsService {
     const state = roomItem.state;
 
     return state?.surface || kind === 'FLOOR' || kind === 'WALL';
+  }
+
+  // Lock advisory de Postgres, scopeado a la transacción (se libera solo al
+  // hacer commit/rollback, sin unlock manual) y a este roomId puntual — no
+  // bloquea nada en otras salas. Sin esto, las comprobaciones de ocupación
+  // de placeItem/paintSurface/moveItem/rotateItem/clearRoom corrían bajo
+  // READ COMMITTED sin ningún SELECT...FOR UPDATE ni constraint única en
+  // (roomId,x,y): dos peticiones concurrentes sobre la misma sala podían
+  // leer ambas "sin ocupantes" antes de que ninguna confirmara, y las dos
+  // insertar — superponiendo muebles pese a que la validación decía que no
+  // se podía. hashtext() castea implícito de int4 a bigint.
+  private async lockRoomForWrite(tx: any, roomId: string) {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${roomId}))`;
   }
 
   private async getOccupyingItems(
@@ -194,8 +189,6 @@ export class RoomItemsService {
       },
     });
 
-    console.log('ROOM ITEMS IN DB', roomItems.length);
-
     const target = this.toWorldTiles(x, y, footprint);
 
     return roomItems.filter((roomItem) => {
@@ -224,13 +217,15 @@ export class RoomItemsService {
     wallSide?: WallSide,
     wallOffset?: number,
   ) {
-    const canEdit = await this.canEditRoom(userId, roomId);
+    const permissions = await this.getEffectivePermissions(userId, roomId);
 
-    if (!canEdit) {
+    if (!permissions.canPlaceObjects) {
       throw new ForbiddenException('No puedes modificar esta sala');
     }
 
     return this.prisma.$transaction(async (tx) => {
+      await this.lockRoomForWrite(tx, roomId);
+
       const inventoryItem = await tx.userItem.findUnique({
         where: {
           userId_itemId: {
@@ -269,25 +264,9 @@ export class RoomItemsService {
       const normalizedRotation = ((rotation % 4) + 4) % 4;
       const footprint = this.getFootprint(item.worldData, normalizedRotation);
 
-      console.log('WORLD DATA', {
-        width: item.worldData.width,
-        height: item.worldData.height,
-        directions: item.worldData.directions,
-      });
-
-      console.log('FOOTPRINT DATA', {
-        footprintWidth: item.worldData.footprintWidth,
-        footprintHeight: item.worldData.footprintHeight,
-      });
       const occupyingItems = wallSide
         ? []
-        : await this.getOccupyingItems(
-            tx,
-            roomId,
-            x,
-            y,
-            footprint,
-          );
+        : await this.getOccupyingItems(tx, roomId, x, y, footprint);
 
       let elevation = 0;
       let parentRoomItemId: string | undefined;
@@ -303,28 +282,6 @@ export class RoomItemsService {
           footprint.width !== 1 ||
           footprint.height !== 1
         ) {
-          console.log('PLACE DEBUG', {
-            itemId,
-            x,
-            y,
-            footprint,
-            occupyingItems: occupyingItems.length,
-            stackTarget: !!stackTarget,
-            canBeStacked: item.worldData.canBeStacked,
-          });
-
-          console.log(
-            'OCCUPYING ITEMS',
-            occupyingItems.map((i) => ({
-              id: i.id,
-              itemId: i.itemId,
-              x: i.x,
-              y: i.y,
-              rotation: i.rotation,
-              kind: i.item?.worldData?.kind,
-            })),
-          );
-
           throw new BadRequestException('No puedes colocar ese objeto ahí');
         }
 
@@ -423,9 +380,11 @@ export class RoomItemsService {
     // repetirlo por cada tile del loop.
     precomputedGrid?: { width: number; height: number },
   ) {
-    const canEdit = await this.canEditRoom(userId, roomId);
+    const permissions = await this.getEffectivePermissions(userId, roomId);
 
-    if (!canEdit) {
+    // Pintar una pared es un permiso distinto de pintar el piso — un rol
+    // "Decorador" podría tener uno sin el otro.
+    if (!(wallSide ? permissions.canChangeWalls : permissions.canChangeFloor)) {
       throw new ForbiddenException('No puedes modificar esta sala');
     }
 
@@ -444,6 +403,8 @@ export class RoomItemsService {
     }
 
     return this.prisma.$transaction(async (tx) => {
+      await this.lockRoomForWrite(tx, roomId);
+
       const inventoryItem = await tx.userItem.findUnique({
         where: {
           userId_itemId: {
@@ -586,13 +547,18 @@ export class RoomItemsService {
       throw new NotFoundException('Objeto no encontrado');
     }
 
-    const canEdit = await this.canEditRoom(userId, roomItem.roomId);
+    const permissions = await this.getEffectivePermissions(
+      userId,
+      roomItem.roomId,
+    );
 
-    if (!canEdit) {
+    if (!permissions.canMoveObjects) {
       throw new ForbiddenException('No puedes mover objetos aquí');
     }
 
     return this.prisma.$transaction(async (tx) => {
+      await this.lockRoomForWrite(tx, roomItem.roomId);
+
       const nextRotation =
         rotation === undefined ? roomItem.rotation : ((rotation % 4) + 4) % 4;
 
@@ -654,13 +620,18 @@ export class RoomItemsService {
       throw new NotFoundException('Objeto no encontrado');
     }
 
-    const canEdit = await this.canEditRoom(userId, roomItem.roomId);
+    const permissions = await this.getEffectivePermissions(
+      userId,
+      roomItem.roomId,
+    );
 
-    if (!canEdit) {
+    if (!permissions.canRotateObjects) {
       throw new ForbiddenException('No puedes rotar este objeto');
     }
 
     return this.prisma.$transaction(async (tx) => {
+      await this.lockRoomForWrite(tx, roomItem.roomId);
+
       const nextRotation = (roomItem.rotation + 1) % 4;
 
       if (!roomItem.wallSide && !this.isSurfaceRoomItem(roomItem)) {
@@ -712,9 +683,12 @@ export class RoomItemsService {
       throw new NotFoundException('Objeto no encontrado');
     }
 
-    const canEdit = await this.canEditRoom(userId, roomItem.roomId);
+    const permissions = await this.getEffectivePermissions(
+      userId,
+      roomItem.roomId,
+    );
 
-    if (!canEdit) {
+    if (!permissions.canDeleteObjects) {
       throw new ForbiddenException('No puedes retirar objetos aquí');
     }
 
@@ -752,13 +726,18 @@ export class RoomItemsService {
   }
 
   async clearRoom(userId: string, roomId: string) {
-    const canClear = await this.canClearRoom(userId, roomId);
+    const permissions = await this.getEffectivePermissions(userId, roomId);
 
-    if (!canClear) {
+    // Vaciar TODA la sala de un golpe es una acción destructiva a nivel
+    // administrativo — antes exclusiva de ADMIN (canClearRoom), ahora
+    // equivalente a canManagePermissions (el mismo tier "de confianza alta").
+    if (!permissions.canManagePermissions) {
       throw new ForbiddenException('No puedes vaciar esta sala');
     }
 
     return this.prisma.$transaction(async (tx) => {
+      await this.lockRoomForWrite(tx, roomId);
+
       const roomItems = await tx.roomItem.findMany({
         where: {
           roomId,
@@ -822,9 +801,11 @@ export class RoomItemsService {
     height = 1,
     onProgress?: (done: number, total: number) => void,
   ) {
-    const canEdit = await this.canEditRoom(userId, roomId);
+    const permissions = await this.getEffectivePermissions(userId, roomId);
 
-    if (!canEdit) {
+    // "Pintar todo" siempre pinta el piso (ver comentario de LobbyScene:
+    // "🎨 Pintando todo el suelo"), nunca paredes.
+    if (!permissions.canChangeFloor) {
       throw new ForbiddenException('No puedes modificar esta sala');
     }
 
@@ -920,11 +901,19 @@ export class RoomItemsService {
         // mapa real — el cliente (Phaser) siempre usa map.width/height leído
         // de este mismo JSON, así que validar contra otra cosa rechaza
         // posiciones que el jugador ve como perfectamente válidas.
-        const json = layout.layoutJson as { width?: number; height?: number } | null;
+        const json = layout.layoutJson as {
+          width?: number;
+          height?: number;
+        } | null;
         const jsonWidth = Number(json?.width);
         const jsonHeight = Number(json?.height);
 
-        if (Number.isFinite(jsonWidth) && jsonWidth > 0 && Number.isFinite(jsonHeight) && jsonHeight > 0) {
+        if (
+          Number.isFinite(jsonWidth) &&
+          jsonWidth > 0 &&
+          Number.isFinite(jsonHeight) &&
+          jsonHeight > 0
+        ) {
           return { width: jsonWidth, height: jsonHeight };
         }
 
@@ -954,7 +943,9 @@ export class RoomItemsService {
    * (mapas viejos donde la 1ra capa no es piso). Devuelve null si el layout
    * no trae capas utilizables, para que el caller decida un fallback seguro.
    */
-  private async getGroundFloorMask(roomId: string): Promise<Set<string> | null> {
+  private async getGroundFloorMask(
+    roomId: string,
+  ): Promise<Set<string> | null> {
     const room = await this.prisma.room.findUnique({
       where: { id: roomId },
       select: { layoutId: true },

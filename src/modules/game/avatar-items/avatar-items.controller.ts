@@ -6,11 +6,19 @@ import {
   Delete,
   Param,
   Body,
+  UseGuards,
 } from '@nestjs/common';
 import { AvatarItemsService } from './avatar-items.service';
 import { AvatarSlotType } from '@prisma/client';
+import { JwtAuthGuard } from '../../identity/guards/jwt.guard';
+import { RolesGuard } from '../../identity/guards/roles.guard';
+import { Roles } from '../../identity/decorators/roles.decorator';
 
+// Solo lo usa el panel admin (apps/web); el juego consume AvatarItemsService
+// directo por WebSocket, nunca esta API REST.
 @Controller('avatar-items')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('ADMIN')
 export class AvatarItemsController {
   constructor(private service: AvatarItemsService) {}
 

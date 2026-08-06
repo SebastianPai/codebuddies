@@ -1,6 +1,16 @@
-import { Controller, Get, Patch, Body, Req, Param, Res } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Patch,
+  Body,
+  Req,
+  Param,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { AvatarService } from './avatar.service';
 import { AvatarSlotType } from '@prisma/client';
+import { JwtAuthGuard } from '../../identity/guards/jwt.guard';
 
 import type { Response } from 'express';
 
@@ -34,8 +44,9 @@ export class AvatarController {
   ─────────────────────────────
   */
   @Get()
+  @UseGuards(JwtAuthGuard)
   async getAvatar(@Req() req) {
-    return this.avatarService.getUserAvatar(req.user.id);
+    return this.avatarService.getUserAvatar(req.user.userId);
   }
 
   /*
@@ -44,12 +55,13 @@ export class AvatarController {
   ─────────────────────────────
   */
   @Patch('equip')
+  @UseGuards(JwtAuthGuard)
   async equipItem(
     @Req() req,
     @Body() body: { slot: AvatarSlotType; avatarItemId: string }, // 🔥 ahora avatarItemId
   ) {
     return this.avatarService.equipItem(
-      req.user.id,
+      req.user.userId,
       body.slot,
       body.avatarItemId,
     );
@@ -61,8 +73,9 @@ export class AvatarController {
   ─────────────────────────────
   */
   @Patch('unequip')
+  @UseGuards(JwtAuthGuard)
   async unequipItem(@Req() req, @Body() body: { slot: AvatarSlotType }) {
-    return this.avatarService.unequipItem(req.user.id, body.slot);
+    return this.avatarService.unequipItem(req.user.userId, body.slot);
   }
 
   /*
@@ -71,7 +84,8 @@ export class AvatarController {
   ─────────────────────────────
   */
   @Patch('skin')
+  @UseGuards(JwtAuthGuard)
   async updateSkinColor(@Req() req, @Body() body: { skinColor: number }) {
-    return this.avatarService.updateSkinColor(req.user.id, body.skinColor);
+    return this.avatarService.updateSkinColor(req.user.userId, body.skinColor);
   }
 }

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AvatarSlotType } from '@prisma/client';
 
@@ -102,6 +106,17 @@ export class AvatarService {
         throw new NotFoundException('Item no encontrado');
       }
 
+      // Verificar que el usuario realmente posee este item (antes se podía
+      // equipar cualquier cosmético existente sin haberlo comprado nunca,
+      // saltándose por completo la tienda/marketplace).
+      const owned = await this.prisma.userItem.findUnique({
+        where: { userId_itemId: { userId, itemId } },
+      });
+
+      if (!owned || owned.amount <= 0) {
+        throw new ForbiddenException('No tienes este item en tu inventario');
+      }
+
       // Opcional: validar que el item esté diseñado para ese slot
       // if (item.avatarData?.slot !== parsedSlot) {
       //   throw new BadRequestException('Este item no corresponde al slot indicado');
@@ -185,6 +200,19 @@ export class AvatarService {
             where: { avatarId, slot },
           });
         } else {
+          // Misma verificación de propiedad que equipItem: esta ruta
+          // (actualización masiva de slots) equipaba items sin comprobar
+          // el inventario del usuario.
+          const owned = await this.prisma.userItem.findUnique({
+            where: { userId_itemId: { userId, itemId } },
+          });
+
+          if (!owned || owned.amount <= 0) {
+            throw new ForbiddenException(
+              `No tienes el item ${itemId} en tu inventario`,
+            );
+          }
+
           await this.prisma.avatarSlot.upsert({
             where: { avatarId_slot: { avatarId, slot } },
             update: {

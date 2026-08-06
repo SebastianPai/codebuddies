@@ -32,6 +32,63 @@ const appTypes = [
   { slug: 'ai-assistant', name: 'Asistente IA', icon: 'bot', color: '#06b6d4', category: 'IA', difficulty: 5 },
 ];
 
+// Lo que hace que el TIPO de app cambie la simulacion de verdad (leido por
+// codestudio-engine.service.ts y launchCampaign en codestudio.service.ts).
+// channelEffectiveness usa los mismos slugs que las campanas de marketing
+// (ver `campaigns` mas abajo: tiktok/instagram/google-ads/facebook/tv/
+// youtube/radio/influencers). Valores narrativos, no forzados a ser
+// "balanceados" al centavo — son el sabor de cada categoria.
+const appTypeSimulationProfiles: Record<string, Record<string, unknown>> = {
+  'social-network': {
+    growthMultiplier: 1.5,
+    retentionBase: 0.65,
+    infraCostMultiplier: 1.3,
+    networkEffect: 0.7,
+    bugTolerance: 0.9,
+    channelEffectiveness: { tiktok: 1.8, instagram: 1.6, influencers: 1.5, facebook: 1.1, 'google-ads': 0.7, youtube: 1.2, tv: 0.6, radio: 0.5 },
+  },
+  ecommerce: {
+    growthMultiplier: 1.0,
+    retentionBase: 0.7,
+    infraCostMultiplier: 1.1,
+    networkEffect: 0.1,
+    bugTolerance: 0.6,
+    channelEffectiveness: { 'google-ads': 1.6, facebook: 1.4, instagram: 1.3, influencers: 1.2, tiktok: 1.1, youtube: 0.9, tv: 0.8, radio: 0.6 },
+  },
+  delivery: {
+    growthMultiplier: 1.3,
+    retentionBase: 0.6,
+    infraCostMultiplier: 0.9,
+    networkEffect: 0.15,
+    bugTolerance: 0.65,
+    channelEffectiveness: { influencers: 1.4, 'google-ads': 1.3, facebook: 1.3, tiktok: 1.3, instagram: 1.2, tv: 1.0, radio: 0.9, youtube: 0.8 },
+  },
+  streaming: {
+    growthMultiplier: 1.3,
+    retentionBase: 0.75,
+    infraCostMultiplier: 2.0,
+    networkEffect: 0.2,
+    bugTolerance: 0.5,
+    channelEffectiveness: { youtube: 1.7, tiktok: 1.5, influencers: 1.4, instagram: 1.3, tv: 1.2, facebook: 1.0, 'google-ads': 0.8, radio: 0.5 },
+  },
+  saas: {
+    growthMultiplier: 0.75,
+    retentionBase: 0.9,
+    infraCostMultiplier: 0.8,
+    networkEffect: 0.05,
+    bugTolerance: 0.55,
+    channelEffectiveness: { 'google-ads': 1.6, facebook: 1.2, influencers: 1.1, youtube: 0.9, instagram: 0.8, tiktok: 0.6, tv: 0.5, radio: 0.4 },
+  },
+  'ai-assistant': {
+    growthMultiplier: 1.1,
+    retentionBase: 0.7,
+    infraCostMultiplier: 1.6,
+    networkEffect: 0.1,
+    bugTolerance: 0.6,
+    channelEffectiveness: { youtube: 1.5, tiktok: 1.4, influencers: 1.3, 'google-ads': 1.2, instagram: 1.1, facebook: 0.9, tv: 0.6, radio: 0.4 },
+  },
+};
+
 const technologies = [
   'Cloud', 'Docker', 'Microservicios', 'CDN', 'Cache', 'Balanceador', 'Compresion', 'Optimizacion',
   'Base de Datos', 'Seguridad', 'Observabilidad', 'Serverless', 'WebSockets', 'Machine Learning',
@@ -60,15 +117,23 @@ const employeeTypes: Array<[string, string, number]> = [
   ['community-manager', 'Community Manager', 700],
 ];
 
+// Costos escalados para que el stack completo (suma ~7100) supere el cash
+// inicial del blueprint (6000) — antes sumaban ~2070 y un jugador podia
+// comprar las 8 piezas de infraestructura de una sola vez apenas fundaba la
+// empresa, sin sentir ninguna decision economica real. Ahora las primeras
+// (Backup, Monitorizacion) siguen siendo desbloqueos rapidos y baratos, y las
+// de mayor impacto (Balanceador, Base de Datos, Servidor) quedan como metas
+// de mediano plazo que hay que ganarse con ingresos, no comprar todas de
+// entrada.
 const infrastructure: Array<[string, string, number, { capacity: number; latency: number; stability: number }]> = [
-  ['server', 'Servidor', 300, { capacity: 1200, latency: 130, stability: 98 }],
-  ['database', 'Base de Datos', 350, { capacity: 1000, latency: 90, stability: 98 }],
-  ['cache', 'Cache', 220, { capacity: 800, latency: 45, stability: 99 }],
-  ['cdn', 'CDN', 280, { capacity: 1500, latency: 55, stability: 99 }],
-  ['load-balancer', 'Balanceador', 320, { capacity: 1800, latency: 70, stability: 99 }],
-  ['firewall', 'Firewall', 260, { capacity: 900, latency: 110, stability: 99 }],
-  ['monitoring', 'Monitorizacion', 180, { capacity: 600, latency: 120, stability: 99 }],
-  ['backup', 'Backup', 160, { capacity: 500, latency: 180, stability: 99 }],
+  ['backup', 'Backup', 200, { capacity: 500, latency: 180, stability: 99 }],
+  ['monitoring', 'Monitorizacion', 260, { capacity: 600, latency: 120, stability: 99 }],
+  ['cache', 'Cache', 480, { capacity: 800, latency: 45, stability: 99 }],
+  ['firewall', 'Firewall', 620, { capacity: 900, latency: 110, stability: 99 }],
+  ['cdn', 'CDN', 780, { capacity: 1500, latency: 55, stability: 99 }],
+  ['server', 'Servidor', 1200, { capacity: 1200, latency: 130, stability: 98 }],
+  ['database', 'Base de Datos', 1350, { capacity: 1000, latency: 90, stability: 98 }],
+  ['load-balancer', 'Balanceador', 2200, { capacity: 1800, latency: 70, stability: 99 }],
 ];
 
 export async function seedCodeStudio(prisma: PrismaClient) {
@@ -77,11 +142,18 @@ export async function seedCodeStudio(prisma: PrismaClient) {
   const createdModules: Record<string, string> = {};
   let order = 0;
   for (const [category, names] of Object.entries(moduleCategories)) {
+    // Cada categoria es una cadena: la feature N exige tener ya INSTALADA
+    // (no solo en desarrollo) la feature N-1 de la misma categoria, sin
+    // importar cuanto cash tengas (mismo patron que el arbol de tecnologia).
+    // "Login" es la primera de Autenticacion, asi que OAuth/2FA/SSO quedan
+    // detras de ella en la cadena — es literalmente el ejemplo que pediste.
+    let previousSlug: string | null = null;
     for (const name of names) {
       const slug = slugify(`${category}-${name}`);
+      const requirements = { requires: previousSlug ? [previousSlug] : [] } as Prisma.InputJsonValue;
       const module = await prisma.codeStudioModule.upsert({
         where: { slug },
-        update: {},
+        update: { requirements },
         create: {
           slug,
           name,
@@ -93,6 +165,7 @@ export async function seedCodeStudio(prisma: PrismaClient) {
           developmentSeconds: 90 + (order % 12) * 35,
           experience: 10 + (order % 8) * 5,
           order,
+          requirements,
           effects: {
             growth: Number((0.005 + (order % 6) * 0.003).toFixed(3)),
             revenue: Number((0.002 + (order % 5) * 0.002).toFixed(3)),
@@ -101,19 +174,25 @@ export async function seedCodeStudio(prisma: PrismaClient) {
         },
       });
       createdModules[slug] = module.id;
+      previousSlug = slug;
       order++;
     }
   }
 
   for (const [index, type] of appTypes.entries()) {
+    const simulationProfile = appTypeSimulationProfiles[type.slug] as Prisma.InputJsonValue;
     const appType = await prisma.codeStudioAppType.upsert({
       where: { slug: type.slug },
-      update: {},
+      // simulationProfile SI se actualiza en cada seed (es balance, no
+      // contenido fijo) — mismo criterio que baseCost en infrastructure y
+      // requirements en technology/module.
+      update: { simulationProfile },
       create: {
         ...type,
         description: `Blueprint base para construir una startup tipo ${type.name}.`,
         order: index,
         metadata: { audience: type.category } as Prisma.InputJsonValue,
+        simulationProfile,
       },
     });
 
@@ -158,20 +237,35 @@ export async function seedCodeStudio(prisma: PrismaClient) {
     }
   }
 
+  // Cada categoria (Infraestructura / Plataforma) es una rama del arbol:
+  // el nodo N de una rama exige tener desbloqueado el nodo N-1 de la MISMA
+  // rama (requirements.requires), asi el jugador avanza en cadena en vez de
+  // comprar cualquier tecnologia suelta. cost/effects SI se actualizan en
+  // cada seed (a diferencia de la mayoria de upserts de este archivo) porque
+  // son valores de balance, igual que baseCost en infrastructure arriba.
+  const previousTechSlugByCategory: Record<string, string | null> = {};
   for (const [index, name] of technologies.entries()) {
+    const slug = slugify(name);
+    const category = index < 8 ? 'Infraestructura' : 'Plataforma';
+    const requiresSlug = previousTechSlugByCategory[category] ?? null;
+    const cost = 300 + index * 80;
+    const effects = { stability: 1 + index * 0.1, latency: -index } as Prisma.InputJsonValue;
+    const requirements = { requires: requiresSlug ? [requiresSlug] : [] } as Prisma.InputJsonValue;
     await prisma.codeStudioTechnology.upsert({
-      where: { slug: slugify(name) },
-      update: {},
+      where: { slug },
+      update: { cost, effects, requirements },
       create: {
-        slug: slugify(name),
+        slug,
         name,
         description: `${name} mejora la escalabilidad y calidad de las apps.`,
-        category: index < 8 ? 'Infraestructura' : 'Plataforma',
-        cost: 300 + index * 80,
+        category,
+        cost,
         order: index,
-        effects: { stability: 1 + index * 0.1, latency: -index } as Prisma.InputJsonValue,
+        effects,
+        requirements,
       },
     });
+    previousTechSlugByCategory[category] = slug;
   }
 
   for (const [index, name] of research.entries()) {
@@ -246,7 +340,15 @@ export async function seedCodeStudio(prisma: PrismaClient) {
   for (const [index, [slug, name, baseCost, scaling]] of infrastructure.entries()) {
     await prisma.codeStudioInfrastructureType.upsert({
       where: { slug: String(slug) },
-      update: {},
+      // A diferencia de los demas upserts de este archivo, este SI actualiza
+      // en cada seed: baseCost es un valor de balance economico pensado para
+      // ajustarse con el tiempo, no contenido fijo — sin esto, re-ejecutar el
+      // seed nunca aplicaria cambios de precio a una base de datos que ya
+      // tiene las filas creadas.
+      update: {
+        baseCost: Number(baseCost),
+        scaling: scaling as Prisma.InputJsonValue,
+      },
       create: {
         slug: String(slug),
         name: String(name),

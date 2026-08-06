@@ -8,10 +8,20 @@ import {
   Body,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import { LayoutsService } from './layouts.service';
+import { JwtAuthGuard } from '../../identity/guards/jwt.guard';
+import { RolesGuard } from '../../identity/guards/roles.guard';
+import { Roles } from '../../identity/decorators/roles.decorator';
 
+// Solo el panel admin (apps/web) gestiona layouts; el juego los consume vía
+// LayoutsService inyectado directo en RoomHandler/RoomsService, nunca por
+// esta API. Sin esto, cualquiera podía crear un layout con width/height
+// arbitrarios (ver módulo de DoS en room-items) sin autenticarse siquiera.
 @Controller('layouts')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('ADMIN')
 export class LayoutsController {
   constructor(private readonly layoutsService: LayoutsService) {}
 

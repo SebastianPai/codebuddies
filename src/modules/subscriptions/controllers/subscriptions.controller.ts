@@ -1,6 +1,7 @@
-import { Controller, Get, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../../identity/guards/jwt.guard';
 import { SubscriptionsService } from '../services/subscriptions.service';
+import type { AuthenticatedRequest } from '../../../common/types/authenticated-request.type';
 
 @Controller('subscriptions')
 export class SubscriptionsController {
@@ -8,9 +9,15 @@ export class SubscriptionsController {
 
   @Get('premium/me')
   @UseGuards(JwtAuthGuard)
-  getMyPremiumSubscription(@Req() req) {
+  getMyPremiumSubscription(@Req() req: AuthenticatedRequest) {
     return this.subscriptionsService.getActivePremiumSubscription(
       req.user.userId,
     );
+  }
+
+  @Post('premium/checkout')
+  @UseGuards(JwtAuthGuard)
+  createPremiumCheckout(@Req() req: AuthenticatedRequest) {
+    return this.subscriptionsService.createPremiumCheckout(req.user.userId);
   }
 }

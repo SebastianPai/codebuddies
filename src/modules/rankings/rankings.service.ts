@@ -73,7 +73,6 @@ export class RankingsService {
       select: {
         id: true,
         username: true,
-        email: true,
         experience: true,
         coins: true,
         streak: true,
@@ -84,7 +83,6 @@ export class RankingsService {
       rank: index + 1,
       userId: user.id,
       username: user.username,
-      email: user.email,
       value: user[field],
     }));
   }
@@ -96,7 +94,6 @@ export class RankingsService {
       select: {
         id: true,
         username: true,
-        email: true,
         _count: { select: { certificates: true } },
       },
     });
@@ -105,7 +102,6 @@ export class RankingsService {
       rank: index + 1,
       userId: user.id,
       username: user.username,
-      email: user.email,
       value: user._count.certificates,
     }));
   }
@@ -120,7 +116,7 @@ export class RankingsService {
     });
     const users = await this.prisma.user.findMany({
       where: { id: { in: grouped.map((row) => row.userId) } },
-      select: { id: true, username: true, email: true },
+      select: { id: true, username: true },
     });
     const usersById = new Map(users.map((user) => [user.id, user]));
 
@@ -130,7 +126,6 @@ export class RankingsService {
         rank: index + 1,
         userId: row.userId,
         username: user?.username ?? 'Unknown',
-        email: user?.email ?? '',
         value: Math.abs(row._sum.amount ?? 0),
       };
     });
@@ -141,7 +136,6 @@ export class RankingsService {
       rank: number;
       userId: string;
       username: string;
-      email: string;
       value: number;
     }>,
     metric: LeaderboardMetric,

@@ -9,6 +9,8 @@ export interface BaseExercise {
   experience: number;
   coins: number;
   completed: boolean;
+  locked: boolean;
+  status?: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
 }
 
 export interface QuizQuestion {

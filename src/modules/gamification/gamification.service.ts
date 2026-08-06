@@ -290,6 +290,56 @@ export class GamificationService {
     return { items, total, page, pageSize, summary };
   }
 
+  // NF20/NF25: catálogo de insignias/títulos ya existía en el schema
+  // (GamificationBadge/GamificationTitle) pero no tenía "dueño" real —
+  // RewardLedgerEntry.itemId es FK estricta a Item (mundo virtual), nunca
+  // pudo apuntar acá. UserGamificationBadge/UserGamificationTitle son las
+  // tablas de propiedad que faltaban; grantRewards() ya las escribe.
+  async getBadgesForUser(userId?: string) {
+    const [badges, earned] = await Promise.all([
+      this.prisma.gamificationBadge.findMany({
+        where: { active: true },
+        orderBy: { createdAt: 'asc' },
+      }),
+      userId
+        ? this.prisma.userGamificationBadge.findMany({ where: { userId }, select: { badgeId: true } })
+        : Promise.resolve([]),
+    ]);
+
+    const earnedIds = new Set(earned.map((e) => e.badgeId));
+
+    return badges.map((badge) => ({
+      id: badge.id,
+      name: badge.name,
+      description: badge.description,
+      icon: badge.icon,
+      rarity: badge.rarity,
+      earned: earnedIds.has(badge.id),
+    }));
+  }
+
+  async getTitlesForUser(userId?: string) {
+    const [titles, earned] = await Promise.all([
+      this.prisma.gamificationTitle.findMany({
+        where: { active: true },
+        orderBy: { createdAt: 'asc' },
+      }),
+      userId
+        ? this.prisma.userGamificationTitle.findMany({ where: { userId }, select: { titleId: true } })
+        : Promise.resolve([]),
+    ]);
+
+    const earnedIds = new Set(earned.map((e) => e.titleId));
+
+    return titles.map((title) => ({
+      id: title.id,
+      name: title.name,
+      description: title.description,
+      rarity: title.rarity,
+      earned: earnedIds.has(title.id),
+    }));
+  }
+
   async getAdminDashboard() {
     const [
       activeMissions,
@@ -644,6 +694,28 @@ export class GamificationService {
         });
       }
 
+      // BADGE/TITLE no son Item del mundo virtual — RewardLedgerEntry.itemId
+      // es FK estricta a Item, así que acá NUNCA va reward.itemId (rompería
+      // la constraint). La "propiedad" real vive en UserGamificationBadge /
+      // UserGamificationTitle; el ledger solo guarda el itemId original
+      // dentro de payload, a fines de historial legible.
+      if (rewardType === 'BADGE' && reward.itemId) {
+        await tx.userGamificationBadge.upsert({
+          where: { userId_badgeId: { userId, badgeId: reward.itemId } },
+          update: {},
+          create: { userId, badgeId: reward.itemId },
+        });
+      }
+
+      if (rewardType === 'TITLE' && reward.itemId) {
+        await tx.userGamificationTitle.upsert({
+          where: { userId_titleId: { userId, titleId: reward.itemId } },
+          update: {},
+          create: { userId, titleId: reward.itemId },
+        });
+      }
+
+      const isCatalogReward = rewardType === 'BADGE' || rewardType === 'TITLE';
       const entry = await tx.rewardLedgerEntry.create({
         data: {
           userId,
@@ -651,7 +723,7 @@ export class GamificationService {
           sourceId,
           rewardType,
           amount: amount || null,
-          itemId: reward.itemId ?? null,
+          itemId: isCatalogReward ? null : (reward.itemId ?? null),
           label,
           message: reward.message,
           payload: (reward.payload ?? reward) as Prisma.InputJsonValue,

@@ -10,13 +10,11 @@ import { AvatarService } from './avatar/avatar.service';
 import { ItemsController } from './items/items.controller';
 import { ItemsService } from './items/items.service';
 import { ItemSpritesService } from './item-sprites/item-sprites.service';
-import { AppsModule } from '../../game/apps/app.module';
 import { RoomsModule } from './rooms/rooms.module';
 import { LayoutsModule } from './layouts/layouts.module';
 import { PlayerModule } from './player/player.module';
 import { RoomItemsModule } from './room-items/room-items.module';
 import { RoomItemsHandler } from './ws/handlers/room-items.handler';
-import { AppHandler } from './ws/handlers/app.handler';
 import { RoomHandler } from './ws/handlers/room.handler';
 import { ShopHandler } from './ws/handlers/shop.handler';
 import { InventoryHandler } from './ws/handlers/inventory.handler';
@@ -32,7 +30,6 @@ import { JWT_SECRET } from '../../config/env';
       secret: JWT_SECRET,
       signOptions: { expiresIn: '1d' },
     }),
-    AppsModule,
     RoomsModule,
     LayoutsModule,
     PlayerModule,
@@ -48,7 +45,6 @@ import { JWT_SECRET } from '../../config/env';
     ItemsService,
     ItemSpritesService,
     RoomItemsHandler,
-    AppHandler,
     AvatarHandler,
     RoomHandler,
     InventoryHandler,

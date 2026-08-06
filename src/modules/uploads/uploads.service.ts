@@ -1,6 +1,10 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { SpacesStorage } from '../storage/spaces.storage';
-import { generateFileName } from '../utils/image.processor';
+import {
+  DetectedImage,
+  detectImage,
+  generateFileName,
+} from '../utils/image.processor';
 
 // Sólo letras, números, guiones y slash simple entre segmentos — bloquea "../" y rutas absolutas.
 const SAFE_FOLDER = /^[a-zA-Z0-9_-]+(\/[a-zA-Z0-9_-]+)*$/;
@@ -14,10 +18,23 @@ export class UploadsService {
       throw new BadRequestException('Invalid folder');
     }
 
-    const filename = generateFileName(file.originalname);
+    // El mimetype/extensión del cliente son solo una pista, no la verdad: se
+    // valida el contenido real del archivo antes de subirlo, y el nombre y
+    // el Content-Type que se guardan salen de lo detectado, no de lo que
+    // mandó el cliente.
+    let detected: DetectedImage;
+    try {
+      detected = await detectImage(file.buffer);
+    } catch (err) {
+      throw new BadRequestException(
+        err instanceof Error ? err.message : 'Archivo inválido',
+      );
+    }
+
+    const filename = generateFileName(file.originalname, detected.format);
     const path = `${folder}/${filename}`;
 
-    const url = await this.storage.upload(file.buffer, path, file.mimetype);
+    const url = await this.storage.upload(file.buffer, path, detected.mimetype);
 
     return url;
   }

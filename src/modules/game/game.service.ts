@@ -20,16 +20,24 @@ export class GameService {
     });
     if (!exercise) throw new NotFoundException('Exercise not found');
 
-    const energy = await this.energyService.regenerate(userId);
-    await this.energyService.consume(userId, energy);
+    // Idempotencia: solo se otorga recompensa la primera vez que este
+    // usuario completa este ejercicio. Antes se creaba un Completion y se
+    // sumaban XP/coins en cada llamada sin comprobar esto, permitiendo
+    // farmear XP/coins repitiendo la misma petición indefinidamente.
+    const alreadyCompleted = await this.prisma.completion.findFirst({
+      where: { userId, exerciseId },
+    });
+
+    await this.energyService.regenerateAndConsume(userId);
 
     const isCorrect = answer === (exercise.content as any)?.answer;
+    const grantsReward = isCorrect && !alreadyCompleted;
 
     let newXP = user.experience;
     let newCoins = user.coins;
     let newLevel = user.level;
 
-    if (isCorrect) {
+    if (grantsReward) {
       newXP = this.rewardService.calculateNewXP(
         user.experience,
         exercise.experience,
@@ -39,27 +47,37 @@ export class GameService {
       newLevel = this.rewardService.calculateLevel(newXP);
     }
 
-    await this.prisma.$transaction([
-      this.prisma.user.update({
-        where: { id: userId },
-        data: {
-          experience: newXP,
-          coins: newCoins,
-          level: newLevel,
-        },
-      }),
-      this.prisma.completion.create({
-        data: {
-          userId,
-          exerciseId,
-        },
-      }),
-    ]);
+    const operations: any[] = [];
+    if (grantsReward) {
+      operations.push(
+        this.prisma.user.update({
+          where: { id: userId },
+          data: {
+            experience: newXP,
+            coins: newCoins,
+            level: newLevel,
+          },
+        }),
+      );
+    }
+    if (!alreadyCompleted) {
+      operations.push(
+        this.prisma.completion.create({
+          data: {
+            userId,
+            exerciseId,
+          },
+        }),
+      );
+    }
+    if (operations.length) {
+      await this.prisma.$transaction(operations);
+    }
 
     return {
       correct: isCorrect,
-      xp: isCorrect ? exercise.experience : 0,
-      coins: isCorrect ? exercise.coins : 0,
+      xp: grantsReward ? exercise.experience : 0,
+      coins: grantsReward ? exercise.coins : 0,
       level: newLevel,
     };
   }

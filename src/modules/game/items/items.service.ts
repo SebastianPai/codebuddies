@@ -28,6 +28,7 @@ export class ItemsService {
       gemsPrice,
       shopVisible = true,
       category,
+      tags = [],
       accessType,
       colorable = false,
       slot,
@@ -52,6 +53,7 @@ export class ItemsService {
       syncDirections = true,
       footprints,
       surfaces,
+      itemSprite,
     } = dto;
 
     if (slot && kind) {
@@ -69,6 +71,7 @@ export class ItemsService {
         gemsPrice,
         shopVisible,
         category,
+        tags,
         ...(accessType && { accessType }),
         colorable,
         type: slot ? ItemType.AVATAR : kind ? ItemType.WORLD : undefined,
@@ -116,6 +119,36 @@ export class ItemsService {
           slot,
         },
       });
+
+      // Mismo enfoque simplificado (una sola dirección SOUTH) que el alta
+      // de items desde el marketplace de creadores — ver
+      // marketplace.service.ts#createPublishedItemFromContent.
+      if (itemSprite?.imageUrl) {
+        const animationName = String(itemSprite.animation || 'idle');
+        const animation = await this.prisma.animation.findFirst({
+          where: {
+            OR: [
+              { variant: animationName },
+              { name: { contains: animationName, mode: 'insensitive' } },
+            ],
+          },
+        });
+
+        if (animation) {
+          await this.prisma.itemSprite.create({
+            data: {
+              itemId: item.id,
+              animationId: animation.id,
+              direction: 'SOUTH',
+              imageUrl: String(itemSprite.imageUrl),
+              frameWidth: Number(itemSprite.frameWidth) || 64,
+              frameHeight: Number(itemSprite.frameHeight) || 64,
+              framesCount: Number(itemSprite.framesCount) || 1,
+              row: Number(itemSprite.rowIndex) || 0,
+            },
+          });
+        }
+      }
     }
 
     if (kind) {
@@ -239,6 +272,7 @@ export class ItemsService {
       syncDirections,
       footprints,
       surfaces,
+      itemSprite,
       name,
       description,
       languageCode,
@@ -330,6 +364,47 @@ export class ItemsService {
         update: { slot },
         create: { itemId: id, slot },
       });
+    }
+
+    if (itemSprite?.imageUrl) {
+      const animationName = String(itemSprite.animation || 'idle');
+      const animation = await this.prisma.animation.findFirst({
+        where: {
+          OR: [
+            { variant: animationName },
+            { name: { contains: animationName, mode: 'insensitive' } },
+          ],
+        },
+      });
+
+      if (animation) {
+        await this.prisma.itemSprite.upsert({
+          where: {
+            itemId_animationId_direction: {
+              itemId: id,
+              animationId: animation.id,
+              direction: 'SOUTH',
+            },
+          },
+          update: {
+            imageUrl: String(itemSprite.imageUrl),
+            frameWidth: Number(itemSprite.frameWidth) || 64,
+            frameHeight: Number(itemSprite.frameHeight) || 64,
+            framesCount: Number(itemSprite.framesCount) || 1,
+            row: Number(itemSprite.rowIndex) || 0,
+          },
+          create: {
+            itemId: id,
+            animationId: animation.id,
+            direction: 'SOUTH',
+            imageUrl: String(itemSprite.imageUrl),
+            frameWidth: Number(itemSprite.frameWidth) || 64,
+            frameHeight: Number(itemSprite.frameHeight) || 64,
+            framesCount: Number(itemSprite.framesCount) || 1,
+            row: Number(itemSprite.rowIndex) || 0,
+          },
+        });
+      }
     }
 
     if (Object.keys(worldData).length > 0) {
@@ -608,19 +683,22 @@ export class ItemsService {
 
     if (!user) throw new NotFoundException('Usuario no encontrado');
 
-    if (user.coins < item.coinsPrice) {
-      throw new BadRequestException('No tienes monedas suficientes');
-    }
+    await this.prisma.$transaction(async (tx) => {
+      // Debito condicional en una sola sentencia UPDATE...WHERE: si dos
+      // compras del mismo usuario llegan a la vez, la segunda ve el saldo
+      // ya descontado por la primera y no matchea el WHERE (count=0), en
+      // vez de que ambas lean el saldo viejo y decrementen igual (doble
+      // gasto / saldo negativo).
+      const debited = await tx.user.updateMany({
+        where: { id: userId, coins: { gte: item.coinsPrice! } },
+        data: { coins: { decrement: item.coinsPrice! } },
+      });
 
-    await this.prisma.$transaction([
-      this.prisma.user.update({
-        where: { id: userId },
-        data: {
-          coins: { decrement: item.coinsPrice },
-        },
-      }),
+      if (debited.count === 0) {
+        throw new BadRequestException('No tienes monedas suficientes');
+      }
 
-      this.prisma.userItem.upsert({
+      await tx.userItem.upsert({
         where: {
           userId_itemId: { userId, itemId },
         },
@@ -633,8 +711,8 @@ export class ItemsService {
           amount: 1,
           source: 'shop',
         },
-      }),
-    ]);
+      });
+    });
 
     return { success: true };
   }
@@ -690,5 +768,36 @@ export class ItemsService {
         },
       },
     });
+  }
+
+  // ───────────── FAVORITOS DEL INVENTARIO DE CONSTRUCCIÓN ─────────────
+  // Distinto de MarketplaceFavorite (que es sobre publicaciones del
+  // marketplace) — esto es "qué muebles marcaste con estrella en tu propio
+  // inventario de construcción", server-side para que persista entre
+  // sesiones/dispositivos (a diferencia de "recientes", que es solo
+  // localStorage).
+  async listBuildFavorites(userId: string) {
+    const favorites = await this.prisma.roomBuildFavorite.findMany({
+      where: { userId },
+      select: { itemId: true },
+    });
+
+    return favorites.map((favorite) => favorite.itemId);
+  }
+
+  async addBuildFavorite(userId: string, itemId: string) {
+    await this.prisma.roomBuildFavorite.upsert({
+      where: { userId_itemId: { userId, itemId } },
+      update: {},
+      create: { userId, itemId },
+    });
+
+    return this.listBuildFavorites(userId);
+  }
+
+  async removeBuildFavorite(userId: string, itemId: string) {
+    await this.prisma.roomBuildFavorite.deleteMany({ where: { userId, itemId } });
+
+    return this.listBuildFavorites(userId);
   }
 }

@@ -8,6 +8,7 @@ import {
   UseGuards,
   Res,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { IdentityService } from './identity.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -22,11 +23,15 @@ import type express from 'express'; // sólo se usa como tipo; 'express' no es u
 export class IdentityController {
   constructor(private readonly identityService: IdentityService) {}
 
+  // Límite más estricto que el default global (120/min): register/login son
+  // el blanco típico de fuerza bruta/credential stuffing.
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('register')
   register(@Body() dto: RegisterDto) {
     return this.identityService.register(dto);
   }
 
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('login')
   async login(
     @Body() dto: LoginDto,

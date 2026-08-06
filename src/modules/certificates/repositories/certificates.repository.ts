@@ -42,4 +42,39 @@ export class CertificatesRepository {
       orderBy: { issuedAt: 'desc' },
     });
   }
+
+  async findAllPaginated(page: number, limit: number) {
+    const [items, total] = await Promise.all([
+      this.prisma.certificate.findMany({
+        take: limit,
+        skip: (page - 1) * limit,
+        orderBy: { issuedAt: 'desc' },
+        include: {
+          user: { select: { id: true, username: true, email: true } },
+          course: { include: { translations: { include: { language: true }, take: 3 } } },
+          academy: true,
+        },
+      }),
+      this.prisma.certificate.count(),
+    ]);
+    return { items, total };
+  }
+
+  findById(id: string) {
+    return this.prisma.certificate.findUnique({ where: { id } });
+  }
+
+  revoke(id: string, reason: string | undefined) {
+    return this.prisma.certificate.update({
+      where: { id },
+      data: { revoked: true, revokedAt: new Date(), revokedReason: reason ?? null },
+    });
+  }
+
+  restore(id: string) {
+    return this.prisma.certificate.update({
+      where: { id },
+      data: { revoked: false, revokedAt: null, revokedReason: null },
+    });
+  }
 }

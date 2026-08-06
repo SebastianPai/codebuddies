@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { CertificateOrderStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 
 @Injectable()
@@ -8,6 +8,17 @@ export class CertificateOrdersRepository {
 
   create(data: Prisma.CertificateOrderUncheckedCreateInput) {
     return this.prisma.certificateOrder.create({ data });
+  }
+
+  markPaid(id: string, providerPaymentId: string | null) {
+    return this.prisma.certificateOrder.update({
+      where: { id },
+      data: {
+        status: CertificateOrderStatus.PAID,
+        paidAt: new Date(),
+        ...(providerPaymentId ? { providerPaymentId } : {}),
+      },
+    });
   }
 
   findById(id: string) {

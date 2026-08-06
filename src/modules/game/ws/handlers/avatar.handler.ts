@@ -3,7 +3,7 @@ import { Server, Socket } from 'socket.io';
 
 import { AvatarService } from '../../avatar/avatar.service';
 import { PlayerHandler } from './player.handler';
-import { ParsedAvatar } from '../dto/avatar.dto';
+import { EquipItemDto, ParsedAvatar, UpdateAvatarDto } from '../dto/avatar.dto';
 
 @Injectable()
 export class AvatarHandler {
@@ -89,11 +89,7 @@ export class AvatarHandler {
   }
 
   // ====================== EQUIPAR ITEM ======================
-  async handleEquipItem(
-    server: Server,
-    socket: Socket,
-    data: { slot: string; itemId: string; color?: number | null },
-  ) {
+  async handleEquipItem(server: Server, socket: Socket, data: EquipItemDto) {
     const userId = socket.data.user?.userId;
     if (!userId) return;
 
@@ -101,7 +97,7 @@ export class AvatarHandler {
       const updatedAvatarDb = await this.avatarService.equipItem(
         userId,
         data.slot,
-        data.itemId,
+        data.itemId ?? null,
         data.color,
       );
 
@@ -160,7 +156,11 @@ export class AvatarHandler {
   }
 
   // ====================== ACTUALIZAR AVATAR COMPLETO ======================
-  async handleUpdateAvatar(server: Server, socket: Socket, avatarData: any) {
+  async handleUpdateAvatar(
+    server: Server,
+    socket: Socket,
+    avatarData: UpdateAvatarDto,
+  ) {
     const userId = socket.data.user?.userId;
     if (!userId) return;
 
