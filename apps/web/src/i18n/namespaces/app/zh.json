@@ -1,0 +1,10 @@
+{
+  "nextLogoAlt": "Next.js 标志",
+  "starterTitle": "开始使用，请编辑 page.tsx 文件。",
+  "starterDescription": "需要起点或更多说明？请访问模板或学习中心。",
+  "templates": "模板",
+  "learning": "学习",
+  "deploy": "立即部署",
+  "documentation": "文档",
+  "vercelAlt": "Vercel 标志"
+}

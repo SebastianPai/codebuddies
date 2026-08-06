@@ -1,0 +1,304 @@
+@import "tailwindcss";
+
+:root {
+  /* CodeBuddies Dark Design System */
+  --cb-bg: 12 14 18;
+  --cb-surface: 20 24 31;
+  --cb-surface-2: 29 35 45;
+  --cb-border: 55 65 81;
+  --cb-text: 248 250 252;
+  --cb-muted: 148 163 184;
+  --cb-accent: 250 204 21;
+  --cb-accent-hover: 253 224 71;
+  --cb-success: 34 197 94;
+  --cb-danger: 248 113 113;
+  --cb-info: 96 165 250;
+  --cb-warning: 251 191 36;
+  --cb-radius: 18px;
+  --cb-shadow: 0 20px 60px rgba(0, 0, 0, 0.34);
+
+  /* Dark */
+  --background: var(--cb-bg);
+  --text: 255 255 255;
+  --secondary-text: 163 163 163; /* #a3a3a3 - Gris neutro claro */
+  --primary: 250 204 21; /* #facc15 amarillo gamificación (¡Ahora va a brillar más!) */
+  --accent: 250 204 21;
+  --accenttwo: 250 204 21;
+  /* --primary como texto sobre --card/--background: en dark ya contrasta bien */
+  --primary-text: 250 204 21;
+  --card: var(--cb-surface);
+  --border: var(--cb-border);
+  --button: 250 204 21;
+  --button-text: 0 0 0; /* Texto negro sobre botón amarillo = brutalismo 101 */
+  --success: 34 197 94; /* Un verde un poco más "neón/tóxico" para que resalte */
+  --error: 248 113 113;
+  /* Variantes legibles como texto sobre fondos claros/tintados: en dark los tonos base ya contrastan */
+  --success-text: 34 197 94;
+  --error-text: 248 113 113;
+  --warning-text: 251 191 36;
+  --code-background: 0 0 0; /* #000000 - Negro absoluto para el IDE/Terminal */
+  --code-text: 209 213 219;
+  --highlight-text: 250 204 21;
+  --secondary-button: 38 38 38; /* #262626 - Gris oscuro para botones secundarios */
+  --progress-background: 64 64 64;
+  --progress-fill: 250 204 21;
+  --disabled: 82 82 82; /* #525252 */
+}
+
+/* Light */
+[data-theme="light"] {
+  --background: 243 244 246; /* #f3f4f6 */
+  --text: 17 24 39;
+  --secondary-text: 55 65 81;
+  --primary: 37 99 235; /* #2563eb azul */
+  --accent: 124 58 237;
+  --accenttwo: 37 99 235;
+  --primary-text: 37 99 235;
+  --card: 255 255 255;
+  --border: 209 213 219;
+  --button: 37 99 235;
+  --button-text: 255 255 255;
+  --success: 76 175 80;
+  --error: 248 113 113;
+  /* Tonos oscurecidos para mantener AA cuando el color va como texto sobre fondos claros */
+  --success-text: 22 101 52;
+  --error-text: 185 28 28;
+  --warning-text: 146 64 14;
+  --code-background: 241 245 249;
+  --code-text: 31 41 55;
+  --highlight-text: 245 158 11;
+  --secondary-button: 107 114 128;
+  --progress-background: 209 213 219;
+  --progress-fill: 37 99 235;
+  --disabled: 156 163 175;
+}
+
+/* Pink */
+[data-theme="pink"] {
+  --background: 255 241 242; /* #fff1f2 */
+  --text: 75 28 70;
+  --secondary-text: 107 114 128;
+  --primary: 219 39 119; /* #db2777 rosa fuerte */
+  --accent: 236 72 153;
+  --accenttwo: 219 39 119;
+  /* --primary como texto sobre --card/--background falla AA aquí (~4.1:1); versión oscurecida */
+  --primary-text: 157 23 77;
+  --card: 252 231 243;
+  --border: 249 168 212;
+  --button: 236 72 153;
+  --button-text: 17 24 39; /* texto oscuro: blanco sobre este rosa no llega a AA (3.6:1) */
+  --success: 76 175 80;
+  --error: 248 113 113;
+  --success-text: 22 101 52;
+  --error-text: 185 28 28;
+  --warning-text: 146 64 14;
+  --code-background: 253 242 248;
+  --code-text: 131 24 67;
+  --highlight-text: 244 114 182;
+  --secondary-button: 157 23 77;
+  --progress-background: 249 168 212;
+  --progress-fill: 236 72 153;
+  --disabled: 251 207 232;
+}
+
+body {
+  @apply bg-[rgb(var(--background))] text-[rgb(var(--text))] min-h-screen antialiased;
+  font-family: "PixelifySans", system-ui, sans-serif;
+}
+
+.cb-panel {
+  border: 1px solid rgb(var(--cb-border) / 0.45);
+  border-radius: var(--cb-radius);
+  background: rgb(var(--cb-surface) / 0.94);
+  box-shadow: var(--cb-shadow);
+}
+
+.cb-card {
+  border: 1px solid rgb(var(--cb-border) / 0.35);
+  border-radius: 16px;
+  background: rgb(var(--cb-surface-2) / 0.72);
+}
+
+.cb-button-primary {
+  border: 0;
+  border-radius: 14px;
+  background: rgb(var(--cb-accent));
+  color: #111827;
+  font-weight: 900;
+  transition:
+    transform 140ms ease,
+    filter 140ms ease,
+    background 140ms ease;
+}
+
+.cb-button-primary:hover {
+  transform: translateY(-1px);
+  background: rgb(var(--cb-accent-hover));
+}
+
+.cb-input {
+  border: 1px solid rgb(var(--cb-border) / 0.5);
+  border-radius: 14px;
+  background: rgb(var(--cb-surface-2) / 0.74);
+  color: rgb(var(--cb-text));
+}
+
+* {
+  scrollbar-color: rgb(var(--cb-accent) / 0.75) rgb(var(--cb-surface));
+}
+
+/* Tus animaciones rainbow y sparkle */
+.border-rainbow {
+  border: 5px solid transparent;
+  background: conic-gradient(red, orange, yellow, green, blue, purple, red);
+  background-size: 400%;
+  animation: rainbow 3s linear infinite;
+}
+
+.border-sparkle {
+  border: 3px solid transparent;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.8) 10%,
+    transparent 10%
+  );
+  background-size: 200% 200%;
+  animation: sparkle 2s linear infinite;
+}
+
+@keyframes rainbow {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 400% 50%;
+  }
+}
+@keyframes sparkle {
+  0%,
+  100% {
+    background-position: 0% 0%;
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    background-position: 100% 100%;
+    transform: scale(1.2);
+    opacity: 0.5;
+  }
+}
+
+/* Hover lift para tarjetas (como en tu código viejo) */
+.course-card {
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+}
+.course-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25);
+}
+
+.newspaper-texture {
+  background-color: #e4e0d7; /* Color hueso/papel */
+  background-image: radial-gradient(
+    circle at 2px 2px,
+    rgba(0, 0, 0, 0.05) 1px,
+    transparent 0
+  );
+  background-size: 4px 4px;
+  color: #1a1a1a;
+  box-shadow:
+    inset 0 0 50px rgba(0, 0, 0, 0.1),
+    5px 5px 0px #000;
+}
+
+@keyframes rewardDrop {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin 4s linear infinite;
+}
+
+/* Vista previa en vivo del editor markdown (HI9) — sin plugin de tailwind
+   typography, así que los estilos de encabezados/listas/código se declaran
+   a mano acá en vez de depender de una clase `prose` que no existe. */
+.markdown-preview h1,
+.markdown-preview h2,
+.markdown-preview h3 {
+  font-weight: 800;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+}
+.markdown-preview h1 {
+  font-size: 1.5em;
+}
+.markdown-preview h2 {
+  font-size: 1.25em;
+}
+.markdown-preview h3 {
+  font-size: 1.1em;
+}
+.markdown-preview p {
+  margin-bottom: 0.75em;
+  line-height: 1.6;
+}
+.markdown-preview ul,
+.markdown-preview ol {
+  margin: 0.5em 0 0.75em 1.25em;
+}
+.markdown-preview ul {
+  list-style: disc;
+}
+.markdown-preview ol {
+  list-style: decimal;
+}
+.markdown-preview li {
+  margin-bottom: 0.25em;
+}
+.markdown-preview a {
+  color: rgb(var(--primary));
+  text-decoration: underline;
+}
+.markdown-preview code {
+  background: rgb(var(--border) / 0.3);
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+  font-size: 0.9em;
+}
+.markdown-preview pre {
+  background: rgb(var(--border) / 0.3);
+  border-radius: 8px;
+  padding: 0.75em 1em;
+  overflow-x: auto;
+  margin-bottom: 0.75em;
+}
+.markdown-preview pre code {
+  background: none;
+  padding: 0;
+}
+.markdown-preview blockquote {
+  border-left: 3px solid rgb(var(--primary) / 0.5);
+  padding-left: 0.75em;
+  color: rgb(var(--secondary-text));
+  margin-bottom: 0.75em;
+}
+.markdown-preview table {
+  border-collapse: collapse;
+  margin-bottom: 0.75em;
+  width: 100%;
+}
+.markdown-preview th,
+.markdown-preview td {
+  border: 1px solid rgb(var(--border));
+  padding: 0.4em 0.6em;
+}
