@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "WorldItemData" ADD COLUMN     "footprintHeight" INTEGER NOT NULL DEFAULT 1,
+ADD COLUMN     "footprintWidth" INTEGER NOT NULL DEFAULT 1,
+ALTER COLUMN "category" SET DEFAULT 'DECORATION';

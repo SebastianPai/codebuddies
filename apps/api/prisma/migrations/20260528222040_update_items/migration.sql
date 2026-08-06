@@ -1,0 +1,7 @@
+-- CreateEnum
+CREATE TYPE "ItemSortType" AS ENUM ('NEW', 'OLD', 'MOST_POPULAR', 'CHEAP', 'EXPENSIVE');
+
+-- AlterTable
+ALTER TABLE "Item" ADD COLUMN     "popularity" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "tags" TEXT[] DEFAULT ARRAY[]::TEXT[],
+ADD COLUMN     "views" INTEGER NOT NULL DEFAULT 0;
