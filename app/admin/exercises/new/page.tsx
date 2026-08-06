@@ -48,6 +48,9 @@ export default function AdminExerciseNew({
   const [type, setType] = useState<"CODE" | "QUIZ" | "VIDEO_THEORY" | "LIVE">(
     "CODE",
   );
+  const [status, setStatus] = useState<"DRAFT" | "PUBLISHED" | "ARCHIVED">(
+    "PUBLISHED",
+  );
   const [experience, setExperience] = useState(10);
   const [coins, setCoins] = useState(5);
   const [order, setOrder] = useState<number | "">(1);
@@ -168,6 +171,7 @@ export default function AdminExerciseNew({
 
         setLessonId(ex.lessonId);
         setType(ex.type);
+        setStatus(ex.status ?? "PUBLISHED");
         setExperience(ex.experience);
         setCoins(ex.coins);
         setOrder(ex.order);
@@ -264,6 +268,7 @@ export default function AdminExerciseNew({
       const payload: any = {
         lessonId,
         type,
+        status,
         experience,
         coins,
         translations: translationsPayload,
@@ -334,12 +339,14 @@ export default function AdminExerciseNew({
         <div className="bg-[#111] border border-zinc-800 rounded-lg p-6">
           <CommonFields
             type={type}
+            status={status}
             experience={experience}
             coins={coins}
             order={order}
             lessonId={lessonId}
             lessons={lessons}
             onChangeType={(e) => setType(e.target.value as any)}
+            onChangeStatus={(e) => setStatus(e.target.value as any)}
             onChangeExperience={(e) =>
               setExperience(Number(e.target.value) || 10)
             }

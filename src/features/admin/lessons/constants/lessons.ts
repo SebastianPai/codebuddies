@@ -7,6 +7,7 @@ export const INITIAL_CREATE_LESSON_VALUES: LessonFormValues = {
   courseId: "",
   order: 1,
   type: "TEXT",
+  status: "PUBLISHED",
   experience: 50,
   coins: 10,
   translations: [

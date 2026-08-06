@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { api } from "@/shared/api/client";
 import { useTranslation } from "../../../src/i18n/useTranslation";
 
 type Layout = {
@@ -18,9 +19,11 @@ export default function LayoutsPage() {
 
   async function loadLayouts() {
     try {
-      const res = await fetch("http://localhost:3001/layouts");
-      if (!res.ok) throw new Error(t("admin.loadLayoutsError"));
-      const data = await res.json();
+      // Antes: fetch() directo sin Authorization. LayoutsController ahora
+      // exige un admin autenticado (ver módulo de seguridad del backend) —
+      // el client compartido es el que sí manda el Bearer token guardado en
+      // localStorage.
+      const data = await api.get<Layout[]>("/layouts");
       setLayouts(data);
     } catch (err) {
       console.error(err);
@@ -31,7 +34,7 @@ export default function LayoutsPage() {
     if (!confirm(t("admin.confirmDeleteLayout"))) return;
 
     try {
-      await fetch(`http://localhost:3001/layouts/${id}`, { method: "DELETE" });
+      await api.delete(`/layouts/${id}`);
       loadLayouts();
     } catch (err) {
       console.error(err);

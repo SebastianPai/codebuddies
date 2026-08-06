@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { api } from "@/shared/api/client";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
 
 type Item = {
@@ -33,9 +34,7 @@ export default function ItemsPage() {
 
   async function loadItems() {
     try {
-      const res = await fetch("http://localhost:3001/items");
-      if (!res.ok) throw new Error(t("items.loadItemsError"));
-      const data = await res.json();
+      const data = await api.get<Item[]>("/items");
       setItems(data);
     } catch (err) {
       console.error(err);
@@ -46,9 +45,7 @@ export default function ItemsPage() {
     if (!confirm(t("items.confirmDeleteItem"))) return;
 
     try {
-      await fetch(`http://localhost:3001/items/${id}`, {
-        method: "DELETE",
-      });
+      await api.delete(`/items/${id}`);
       loadItems();
     } catch (err) {
       console.error(err);

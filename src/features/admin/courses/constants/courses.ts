@@ -7,5 +7,8 @@ export const INITIAL_COURSE_VALUES: CourseFormValues = {
   moduleId: "",
   difficulty: "EASY",
   freeLimit: 5,
+  status: "PUBLISHED",
   translations: [{ languageCode: "es", title: "", description: "" }],
+  prerequisiteCourseIds: [],
+  categoryIds: [],
 };

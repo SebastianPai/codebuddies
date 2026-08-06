@@ -1,36 +1,33 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Award, Check, Crown, Sparkles } from "lucide-react";
+import { Award, Check, Crown, Sparkles, type LucideIcon } from "lucide-react";
+import { useLanguage } from "../../../src/i18n/LanguageContext";
 import { useTranslation } from "../../../src/i18n/useTranslation";
+import { api } from "../../../src/shared/api";
+import { Skeleton } from "../../../src/shared/ui";
 
-const plans = [
-  {
-    nameKey: "site.planFreeName",
-    price: "$0",
-    icon: Sparkles,
-    ctaKey: "site.planFreeCta",
-    href: "/register",
-    featureKeys: ["site.planFreeFeature1", "site.planFreeFeature2", "site.planFreeFeature3", "site.planFreeFeature4"],
-  },
-  {
-    nameKey: "site.planPremiumName",
-    price: "$12/mo",
-    icon: Crown,
-    ctaKey: "site.planPremiumCta",
-    href: "/premium",
-    featured: true,
-    featureKeys: ["site.planPremiumFeature1", "site.planPremiumFeature2", "site.planPremiumFeature3", "site.planPremiumFeature4"],
-  },
-  {
-    nameKey: "site.planCertificateName",
-    price: "$19",
-    icon: Award,
-    ctaKey: "site.planCertificateCta",
-    href: "/certificates",
-    featureKeys: ["site.planCertificateFeature1", "site.planCertificateFeature2", "site.planCertificateFeature3", "site.planCertificateFeature4"],
-  },
-] as const;
+interface LocalizedText {
+  es: string;
+  en: string;
+  zh: string;
+}
+
+interface PricingPlan {
+  id: string;
+  key: string;
+  priceUsd: string;
+  billingInterval: "NONE" | "MONTHLY" | "YEARLY";
+  featured: boolean;
+  icon: string;
+  ctaHref: string;
+  name: LocalizedText;
+  ctaLabel: LocalizedText;
+  features: LocalizedText[];
+}
+
+const ICONS: Record<string, LucideIcon> = { Sparkles, Crown, Award };
 
 const faqs = [
   ["site.faq1Question", "site.faq1Answer"],
@@ -38,8 +35,43 @@ const faqs = [
   ["site.faq3Question", "site.faq3Answer"],
 ] as const;
 
+function localeKey(lang: string): keyof LocalizedText {
+  if (lang.startsWith("en")) return "en";
+  if (lang.startsWith("zh")) return "zh";
+  return "es";
+}
+
+function formatPrice(priceUsd: string, billingInterval: PricingPlan["billingInterval"]): string {
+  const value = Number(priceUsd);
+  const amount = Number.isInteger(value) ? `$${value}` : `$${value.toFixed(2)}`;
+  return billingInterval === "MONTHLY" ? `${amount}/mo` : amount;
+}
+
 export default function PricingPage() {
   const t = useTranslation();
+  const languageCtx = useLanguage();
+  const locale = localeKey(languageCtx?.lang ?? "es");
+  const [plans, setPlans] = useState<PricingPlan[]>([]);
+  const [status, setStatus] = useState<"loading" | "error" | "ready">("loading");
+
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .get<PricingPlan[]>("/pricing/plans")
+      .then((data) => {
+        if (cancelled) return;
+        setPlans(data);
+        setStatus("ready");
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setStatus("error");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <div className="py-12">
       <section className="text-center">
@@ -55,37 +87,47 @@ export default function PricingPage() {
       </section>
 
       <section className="mt-12 grid gap-6 lg:grid-cols-3">
-        {plans.map((plan) => {
-          const Icon = plan.icon;
-          return (
-            <div
-              key={plan.nameKey}
-              className={`rounded-lg border p-6 ${
-                plan.featured
-                  ? "border-[rgb(var(--primary))] bg-[rgb(var(--primary))]/10"
-                  : "border-[rgb(var(--border))] bg-[rgb(var(--card))]"
-              }`}
-            >
-              <Icon className="text-[rgb(var(--primary))]" />
-              <h2 className="mt-4 text-2xl font-black">{t(plan.nameKey)}</h2>
-              <p className="mt-2 text-4xl font-black">{plan.price}</p>
-              <ul className="mt-6 space-y-3 text-sm text-[rgb(var(--secondary-text))]">
-                {plan.featureKeys.map((featureKey) => (
-                  <li key={featureKey} className="flex gap-2">
-                    <Check size={18} className="text-[rgb(var(--primary))]" />
-                    {t(featureKey)}
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href={plan.href}
-                className="mt-6 block rounded-full bg-[rgb(var(--primary))] px-5 py-3 text-center font-bold text-black"
+        {status === "loading" ? (
+          <>
+            <Skeleton className="h-96 rounded-lg" />
+            <Skeleton className="h-96 rounded-lg" />
+            <Skeleton className="h-96 rounded-lg" />
+          </>
+        ) : status === "error" ? (
+          <p className="col-span-full text-center text-[rgb(var(--secondary-text))]">{t("common.unexpectedError")}</p>
+        ) : (
+          plans.map((plan) => {
+            const Icon = ICONS[plan.icon] ?? Sparkles;
+            return (
+              <div
+                key={plan.id}
+                className={`rounded-lg border p-6 ${
+                  plan.featured
+                    ? "border-[rgb(var(--primary))] bg-[rgb(var(--primary))]/10"
+                    : "border-[rgb(var(--border))] bg-[rgb(var(--card))]"
+                }`}
               >
-                {t(plan.ctaKey)}
-              </Link>
-            </div>
-          );
-        })}
+                <Icon className="text-[rgb(var(--primary))]" />
+                <h2 className="mt-4 text-2xl font-black">{plan.name[locale]}</h2>
+                <p className="mt-2 text-4xl font-black">{formatPrice(plan.priceUsd, plan.billingInterval)}</p>
+                <ul className="mt-6 space-y-3 text-sm text-[rgb(var(--secondary-text))]">
+                  {plan.features.map((feature) => (
+                    <li key={feature[locale]} className="flex gap-2">
+                      <Check size={18} className="text-[rgb(var(--primary))]" />
+                      {feature[locale]}
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href={plan.ctaHref}
+                  className="mt-6 block rounded-full bg-[rgb(var(--primary))] px-5 py-3 text-center font-bold text-black"
+                >
+                  {plan.ctaLabel[locale]}
+                </Link>
+              </div>
+            );
+          })
+        )}
       </section>
 
       <section className="mt-12 rounded-lg border border-[rgb(var(--border))] p-6">

@@ -1,20 +1,36 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ChevronRight, PlayCircle } from "lucide-react";
+import { BookOpen, ChevronRight, PlayCircle } from "lucide-react";
 import { useTranslation } from "@/i18n/useTranslation";
-import { CachedImage } from "@/shared/ui";
+import { CachedImage, EmptyState, Skeleton } from "@/shared/ui";
 import { classNames } from "@/shared/utils/class-names";
 import { FOCUS_RING } from "@/shared/ui/styles";
-import { DASHBOARD_COURSES } from "../constants/dashboard";
+import type { ContinueLearningCourse } from "../types/dashboard";
+
+type LoadStatus = "loading" | "error" | "ready";
 
 interface LearningSectionProps {
   level: number;
   xp: number;
   nextLevel: number;
   xpRemaining: number;
+  continueLearning: ContinueLearningCourse[];
+  continueLearningStatus: LoadStatus;
 }
 
-export function LearningSection({ level, xp, nextLevel, xpRemaining }: LearningSectionProps) {
+function courseHref(course: ContinueLearningCourse) {
+  if (!course.nextExercise) return `/courses/${course.courseId}`;
+  return `/learn/exercise/${course.nextExercise.type.toLowerCase()}/${course.nextExercise.id}`;
+}
+
+export function LearningSection({
+  level,
+  xp,
+  nextLevel,
+  xpRemaining,
+  continueLearning,
+  continueLearningStatus,
+}: LearningSectionProps) {
   const t = useTranslation();
   return (
     <div className="min-w-0 space-y-6">
@@ -65,50 +81,74 @@ export function LearningSection({ level, xp, nextLevel, xpRemaining }: LearningS
             {t("dashboard.viewAll")} <ChevronRight size={18} />
           </Link>
         </div>
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {DASHBOARD_COURSES.map((course) => (
-            <Link
-              key={course.titleKey}
-              href="/courses"
-              className={classNames(
-                "group overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--background))] transition-transform hover:-translate-y-1",
-                FOCUS_RING,
-              )}
-            >
-              <div className="relative aspect-video overflow-hidden">
-                <CachedImage
-                  src={course.image}
-                  alt={t(course.titleKey)}
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-all group-hover:opacity-100">
-                  <PlayCircle size={55} className="text-white" />
+
+        {continueLearningStatus === "loading" ? (
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            <Skeleton className="aspect-video rounded-2xl" />
+            <Skeleton className="aspect-video rounded-2xl" />
+            <Skeleton className="aspect-video rounded-2xl" />
+          </div>
+        ) : continueLearning.length === 0 ? (
+          <EmptyState
+            icon={<BookOpen size={28} />}
+            title={t("dashboard.noCoursesInProgress")}
+            action={
+              <Link
+                href="/courses"
+                className={classNames(
+                  "inline-flex items-center gap-2 rounded-2xl bg-[rgb(var(--button))] px-5 py-3 font-bold text-[rgb(var(--button-text))]",
+                  FOCUS_RING,
+                )}
+              >
+                {t("dashboard.exploreCoursesCta")}
+              </Link>
+            }
+          />
+        ) : (
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {continueLearning.map((course) => (
+              <Link
+                key={course.courseId}
+                href={courseHref(course)}
+                className={classNames(
+                  "group overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--background))] transition-transform hover:-translate-y-1",
+                  FOCUS_RING,
+                )}
+              >
+                <div className="relative aspect-video overflow-hidden">
+                  <CachedImage
+                    src={course.imageUrl ?? "https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=1200&auto=format&fit=crop"}
+                    alt={course.title ?? ""}
+                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-all group-hover:opacity-100">
+                    <PlayCircle size={55} className="text-white" />
+                  </div>
                 </div>
-              </div>
-              <div className="p-5">
-                <div className="mb-4 flex items-center justify-between gap-3">
-                  <span className="rounded-full bg-[rgb(var(--button))] px-3 py-1 text-xs font-bold uppercase text-[rgb(var(--button-text))]">
-                    {t(course.categoryKey)}
+                <div className="p-5">
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <span className="text-sm text-[rgb(var(--secondary-text))]">
+                      {t("dashboard.exercisesCount", { count: course.totalExercises })}
+                    </span>
+                  </div>
+                  <h3 className="text-2xl font-bold">{course.title}</h3>
+                  <div className="mt-5">
+                    <div className="mb-2 flex justify-between text-sm">
+                      <span className="text-[rgb(var(--secondary-text))]">{t("dashboard.progress")}</span>
+                      <span className="font-semibold">{course.progressPercent}%</span>
+                    </div>
+                    <div className="h-3 overflow-hidden rounded-full bg-[rgb(var(--border))]">
+                      <div className="h-full bg-[rgb(var(--button))]" style={{ width: `${course.progressPercent}%` }} />
+                    </div>
+                  </div>
+                  <span className="mt-6 flex w-full items-center justify-center rounded-xl bg-[rgb(var(--button))] py-3 font-bold text-[rgb(var(--button-text))]">
+                    {t("dashboard.continueCourse")}
                   </span>
-                  <span className="text-sm text-[rgb(var(--secondary-text))]">{t("dashboard.lessonsCount", { count: course.lessons })}</span>
                 </div>
-                <h3 className="text-2xl font-bold">{t(course.titleKey)}</h3>
-                <div className="mt-5">
-                  <div className="mb-2 flex justify-between text-sm">
-                    <span className="text-[rgb(var(--secondary-text))]">{t("dashboard.progress")}</span>
-                    <span className="font-semibold">{course.progress}%</span>
-                  </div>
-                  <div className="h-3 overflow-hidden rounded-full bg-[rgb(var(--border))]">
-                    <div className="h-full bg-[rgb(var(--button))]" style={{ width: `${course.progress}%` }} />
-                  </div>
-                </div>
-                <span className="mt-6 flex w-full items-center justify-center rounded-xl bg-[rgb(var(--button))] py-3 font-bold text-[rgb(var(--button-text))]">
-                  {t("dashboard.continueCourse")}
-                </span>
-              </div>
-            </Link>
-          ))}
-        </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

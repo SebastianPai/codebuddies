@@ -176,5 +176,15 @@
   "stackHeightLabel": "Altura de apilado",
   "stackHeightHint": "Altura visual (px) que suma este objeto cuando algo se coloca encima.",
   "maxStackHeightLabel": "Altura máx. de apilado",
-  "maxStackHeightHint": "Altura máxima acumulada permitida al apilar objetos sobre este."
+  "maxStackHeightHint": "Altura máxima acumulada permitida al apilar objetos sobre este.",
+  "spriteFilterLabel": "Filtrar por sprite:",
+  "spriteFilterAllLabel": "Todos",
+  "spriteFilterWithLabel": "Con sprite",
+  "spriteFilterWithoutLabel": "Sin sprite",
+  "withBodyLabel": "Con cuerpo",
+  "withoutBodyLabel": "Sin cuerpo",
+  "noBodyItemFound": "No hay ningún item de cuerpo (BODY) creado todavía",
+  "configureSpriteElsewhereHint": "El sprite animado (con vista previa del cuerpo real y las 8 direcciones) se configura en el editor dedicado.",
+  "configureSpriteButton": "Configurar sprite animado →",
+  "directionLabel": "Dirección"
 }

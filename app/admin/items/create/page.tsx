@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import ItemForm from "../components/ItemForm";
+import { api } from "@/shared/api/client";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
 
 export default function CreateItemPage() {
@@ -10,24 +11,13 @@ export default function CreateItemPage() {
 
   async function create(data: any) {
     try {
-      const res = await fetch("http://localhost:3001/items", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        alert(t("items.createErrorPrefix") + (err.message || t("items.unknownError")));
-        return;
-      }
-
-      router.push("/admin/items");
-    } catch (err) {
+      const item = await api.post<{ id: string; avatarData?: unknown }>("/items", data);
+      // Los items de avatar necesitan su sprite animado, que se configura
+      // en el editor dedicado (no acá, para no duplicar ese flujo).
+      router.push(item.avatarData ? `/admin/item-sprites?itemId=${item.id}` : "/admin/items");
+    } catch (err: any) {
       console.error(err);
-      alert(t("items.connectionError"));
+      alert(t("items.createErrorPrefix") + (err.message || t("items.unknownError")));
     }
   }
 

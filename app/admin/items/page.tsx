@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { api } from "@/shared/api/client";
 import { useTranslation } from "../../../src/i18n/useTranslation";
 
 type Item = {
@@ -30,15 +31,12 @@ export default function ItemsPage() {
   const [items, setItems] = useState<Item[]>([]);
 
   async function loadItems() {
-    const res = await fetch("http://localhost:3001/items");
-    const data = await res.json();
+    const data = await api.get<Item[]>("/items");
     setItems(data);
   }
 
   async function deleteItem(id: string) {
-    await fetch(`http://localhost:3001/items/${id}`, {
-      method: "DELETE",
-    });
+    await api.delete(`/items/${id}`);
 
     loadItems();
   }

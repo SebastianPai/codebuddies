@@ -1,15 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { Award, BadgeCheck, Search, Upload, X } from "lucide-react";
 import { toast } from "react-toastify";
 import { api } from "../../../utils/api";
 
 type BadgeType = "VERIFIED" | "CREATOR";
+type IconMode = "STATIC" | "SPRITE";
+type AnimationDirection = "PINGPONG" | "LOOP";
+
+type BadgeIconConfig = {
+  iconUrl: string | null;
+  mode: IconMode;
+  size: number;
+  frameCount: number;
+  direction: AnimationDirection;
+  frameRate: number;
+};
 
 type BadgeConfig = {
-  VERIFIED: { iconUrl: string | null };
-  CREATOR: { iconUrl: string | null };
+  VERIFIED: BadgeIconConfig;
+  CREATOR: BadgeIconConfig;
 };
 
 type Creator = {
@@ -35,6 +46,56 @@ const BADGE_META: Record<BadgeType, { title: string; hint: string; defaultColor:
     DefaultIcon: Award,
   },
 };
+
+// El mismo keyframe que usa <UserBadges> en apps/game (recorre la tira de
+// cuadros con background-position en pasos discretos) para que el preview
+// de acá se vea EXACTAMENTE igual que en el juego.
+const SPRITE_KEYFRAMES = `
+@keyframes admin-badge-sprite-slide {
+  from { background-position: 0% 0; }
+  to { background-position: 100% 0; }
+}
+`;
+
+// Un frame no siempre es cuadrado (frameWidth = anchoTotal/frameCount) — sin
+// esto el preview forzaba un cuadro width=height y la imagen se veía
+// aplastada verticalmente. Se mide una vez por (url, frameCount) y se
+// cachea, igual que hace apps/game con useSpriteFrameAspect.
+const frameAspectCache = new Map<string, number>();
+
+function useFrameAspect(url: string | null, frameCount: number): number {
+  const cacheKey = url ? `${url}::${frameCount}` : "";
+  const [aspect, setAspect] = useState(() => (cacheKey ? frameAspectCache.get(cacheKey) ?? 1 : 1));
+
+  useEffect(() => {
+    if (!url) {
+      setAspect(1);
+      return;
+    }
+
+    const cached = frameAspectCache.get(cacheKey);
+    if (cached) {
+      setAspect(cached);
+      return;
+    }
+
+    let cancelled = false;
+    const img = new window.Image();
+    img.onload = () => {
+      const frameWidth = img.naturalWidth / Math.max(1, frameCount);
+      const result = img.naturalHeight > 0 ? frameWidth / img.naturalHeight : 1;
+      frameAspectCache.set(cacheKey, result);
+      if (!cancelled) setAspect(result);
+    };
+    img.src = url;
+
+    return () => {
+      cancelled = true;
+    };
+  }, [url, frameCount, cacheKey]);
+
+  return aspect;
+}
 
 export default function AdminBadgesPage() {
   const [config, setConfig] = useState<BadgeConfig | null>(null);
@@ -83,6 +144,11 @@ export default function AdminBadgesPage() {
     toast.success("Se restableció el ícono por defecto");
   };
 
+  const patchAnimation = async (type: BadgeType, patch: Partial<BadgeIconConfig>) => {
+    const updated = await api.patch<BadgeConfig>(`/admin/badges/config/${type}`, patch);
+    setConfig(updated);
+  };
+
   const toggleVerified = async (creator: Creator) => {
     setSavingUserId(creator.userId);
     try {
@@ -107,11 +173,14 @@ export default function AdminBadgesPage() {
 
   return (
     <div className="p-6 text-white">
+      <style>{SPRITE_KEYFRAMES}</style>
+
       <div>
         <h1 className="text-3xl font-black text-yellow-400">Insignias</h1>
         <p className="mt-1 text-sm text-zinc-400">
           El ícono de verificado y de creador que aparece junto al nombre de un usuario en todo el juego. Podés dejar el
-          ícono por defecto o subir una imagen propia — se muestra reducida al tamaño real junto a un nombre de ejemplo.
+          ícono por defecto, subir una imagen fija, o subir una tira de varios cuadros para que se anime (para
+          insignias pro/premium) — el preview de acá se anima igual que se ve en el juego.
         </p>
       </div>
 
@@ -127,10 +196,11 @@ export default function AdminBadgesPage() {
             <BadgeCard
               key={type}
               type={type}
-              iconUrl={config[type].iconUrl}
+              config={config[type]}
               uploading={uploading === type}
               onUpload={(file) => void uploadIcon(type, file)}
               onReset={() => void resetIcon(type)}
+              onPatch={(patch) => void patchAnimation(type, patch)}
             />
           ))}
         </div>
@@ -216,18 +286,39 @@ export default function AdminBadgesPage() {
 
 function BadgeCard({
   type,
-  iconUrl,
+  config,
   uploading,
   onUpload,
   onReset,
+  onPatch,
 }: {
   type: BadgeType;
-  iconUrl: string | null;
+  config: BadgeIconConfig;
   uploading: boolean;
   onUpload: (file: File) => void;
   onReset: () => void;
+  onPatch: (patch: Partial<BadgeIconConfig>) => void;
 }) {
   const meta = BADGE_META[type];
+  const { iconUrl } = config;
+
+  const [size, setSize] = useState(config.size);
+  const [frameCount, setFrameCount] = useState(config.frameCount);
+  const [direction, setDirection] = useState<AnimationDirection>(config.direction);
+  const [frameRate, setFrameRate] = useState(config.frameRate);
+
+  useEffect(() => {
+    setSize(config.size);
+    setFrameCount(config.frameCount);
+    setDirection(config.direction);
+    setFrameRate(config.frameRate);
+  }, [config.size, config.frameCount, config.direction, config.frameRate]);
+
+  const sizeChanged = size !== config.size;
+  const animationChanged =
+    frameCount !== config.frameCount || direction !== config.direction || frameRate !== config.frameRate;
+
+  const bigAspect = useFrameAspect(config.mode === "SPRITE" ? iconUrl : null, config.frameCount);
 
   return (
     <div className="rounded-xl border border-zinc-800 bg-[#0c0c0c] p-5">
@@ -238,15 +329,19 @@ function BadgeCard({
         <span className="mb-2 block text-xs uppercase tracking-wide text-zinc-500">Así se ve junto al nombre</span>
         <div className="flex items-center gap-1.5 text-base font-bold text-white">
           <span>NombreDeJugador</span>
-          <BadgePreviewIcon iconUrl={iconUrl} DefaultIcon={meta.DefaultIcon} color={meta.defaultColor} />
+          <BadgePreviewIcon config={config} previewSize={size} DefaultIcon={meta.DefaultIcon} color={meta.defaultColor} />
         </div>
       </div>
 
       <div className="mt-4 flex items-center gap-4">
-        <div className="flex h-16 w-16 items-center justify-center rounded-lg border border-dashed border-zinc-700 bg-[#111]">
+        <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-lg border border-dashed border-zinc-700 bg-[#111]">
           {iconUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={iconUrl} alt={meta.title} className="h-12 w-12 rounded object-contain" />
+            config.mode === "SPRITE" ? (
+              <div style={spriteStyle(config, 48, bigAspect)} aria-label={`${meta.title} (vista previa grande)`} />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={iconUrl} alt={meta.title} className="h-12 w-12 rounded object-contain" />
+            )
           ) : (
             <meta.DefaultIcon size={28} color={meta.defaultColor} />
           )}
@@ -283,22 +378,161 @@ function BadgeCard({
           <p className="mt-2 text-xs text-zinc-500">La imagen se reduce automáticamente al tamaño de la insignia.</p>
         </div>
       </div>
+
+      {iconUrl && (
+        <div className="mt-4 rounded-lg border border-zinc-800 bg-black p-4">
+          <label className="block text-xs text-zinc-400">
+            Tamaño (alto en píxeles, el ancho sigue la proporción real)
+            <div className="mt-1 flex items-center gap-3">
+              <input
+                type="range"
+                min={10}
+                max={48}
+                value={size}
+                onChange={(event) => setSize(Number(event.target.value))}
+                className="flex-1 accent-yellow-400"
+              />
+              <input
+                type="number"
+                min={10}
+                max={64}
+                value={size}
+                onChange={(event) => setSize(Math.max(10, Number(event.target.value) || 10))}
+                className="w-20 rounded-md border border-zinc-800 bg-[#111] px-2 py-1 text-white"
+              />
+              {sizeChanged && (
+                <button
+                  type="button"
+                  onClick={() => onPatch({ size })}
+                  className="rounded-md bg-yellow-400 px-3 py-1.5 text-xs font-black text-black"
+                >
+                  Guardar
+                </button>
+              )}
+            </div>
+          </label>
+
+          <div className="mt-4 flex gap-4">
+            <label className="flex flex-1 items-center gap-2 text-sm">
+              <input
+                type="radio"
+                checked={config.mode === "STATIC"}
+                onChange={() => onPatch({ mode: "STATIC" })}
+                className="accent-yellow-400"
+              />
+              Imagen fija
+            </label>
+            <label className="flex flex-1 items-center gap-2 text-sm">
+              <input
+                type="radio"
+                checked={config.mode === "SPRITE"}
+                onChange={() => onPatch({ mode: "SPRITE", frameCount, direction, frameRate })}
+                className="accent-yellow-400"
+              />
+              Sprite animado (varios cuadros)
+            </label>
+          </div>
+
+          {config.mode === "SPRITE" && (
+            <div className="mt-4 grid gap-3 md:grid-cols-3">
+              <label className="block text-xs text-zinc-400">
+                Cuadros en la tira
+                <input
+                  type="number"
+                  min={2}
+                  max={24}
+                  value={frameCount}
+                  onChange={(event) => setFrameCount(Math.max(2, Number(event.target.value) || 2))}
+                  className="mt-1 w-full rounded-md border border-zinc-800 bg-[#111] px-3 py-2 text-white"
+                />
+              </label>
+
+              <label className="block text-xs text-zinc-400">
+                Dirección
+                <select
+                  value={direction}
+                  onChange={(event) => setDirection(event.target.value as AnimationDirection)}
+                  className="mt-1 w-full rounded-md border border-zinc-800 bg-[#111] px-3 py-2 text-white"
+                >
+                  <option value="PINGPONG">Ida y vuelta (1→N→1)</option>
+                  <option value="LOOP">Solo ida (1→N, salta a 1)</option>
+                </select>
+              </label>
+
+              <label className="block text-xs text-zinc-400">
+                Velocidad (cuadros/seg)
+                <input
+                  type="number"
+                  min={1}
+                  max={30}
+                  value={frameRate}
+                  onChange={(event) => setFrameRate(Math.max(1, Number(event.target.value) || 1))}
+                  className="mt-1 w-full rounded-md border border-zinc-800 bg-[#111] px-3 py-2 text-white"
+                />
+              </label>
+
+              {animationChanged && (
+                <button
+                  type="button"
+                  onClick={() => onPatch({ frameCount, direction, frameRate })}
+                  className="md:col-span-3 rounded-md bg-yellow-400 px-4 py-2 text-sm font-black text-black"
+                >
+                  Guardar animación
+                </button>
+              )}
+
+              <p className="text-xs text-zinc-500 md:col-span-3">
+                La imagen subida se divide en {frameCount} cuadros iguales (una tira horizontal, ej. una imagen de
+                1000px de ancho quedaría en cuadros de ~{Math.round(1000 / frameCount)}px).
+              </p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
+function spriteStyle(config: BadgeIconConfig, size: number, aspect: number): CSSProperties {
+  const steps = Math.max(1, config.frameCount - 1);
+  const duration = config.frameCount / Math.max(1, config.frameRate);
+
+  return {
+    width: size * aspect,
+    height: size,
+    backgroundImage: `url(${config.iconUrl})`,
+    backgroundRepeat: "no-repeat",
+    backgroundSize: `${config.frameCount * 100}% 100%`,
+    animationName: "admin-badge-sprite-slide",
+    animationIterationCount: "infinite",
+    animationDuration: `${duration}s`,
+    animationTimingFunction: `steps(${steps})`,
+    animationDirection: config.direction === "PINGPONG" ? "alternate" : "normal",
+  };
+}
+
 function BadgePreviewIcon({
-  iconUrl,
+  config,
+  previewSize,
   DefaultIcon,
   color,
 }: {
-  iconUrl: string | null;
+  config: BadgeIconConfig;
+  previewSize?: number;
   DefaultIcon: typeof BadgeCheck;
   color: string;
 }) {
-  if (iconUrl) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={iconUrl} alt="" className="h-4 w-4 rounded-sm object-contain" />;
+  const aspect = useFrameAspect(config.mode === "SPRITE" ? config.iconUrl : null, config.frameCount);
+  const size = previewSize ?? config.size;
+
+  if (!config.iconUrl) {
+    return <DefaultIcon size={16} color={color} />;
   }
-  return <DefaultIcon size={16} color={color} />;
+
+  if (config.mode === "SPRITE") {
+    return <div className="rounded-sm" style={spriteStyle(config, size, aspect)} />;
+  }
+
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={config.iconUrl} alt="" className="rounded-sm object-contain" style={{ width: size, height: size }} />;
 }

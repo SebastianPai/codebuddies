@@ -1083,7 +1083,7 @@ export default function AdminReferralsPage() {
                     {reward.scope} · {reward.rewardType} ·{" "}
                     {reward.threshold
                       ? t("admin.thresholdValueLabel", { value: reward.threshold })
-                      : t("admin.rankRangeLabel", { from: reward.rankFrom, to: reward.rankTo })}
+                      : t("admin.rankRangeLabel", { from: reward.rankFrom ?? 0, to: reward.rankTo ?? 0 })}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">

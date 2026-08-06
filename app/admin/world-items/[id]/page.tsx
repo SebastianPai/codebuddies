@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { api } from "@/shared/api/client";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
 
 export default function WorldItemDetailsPage() {
@@ -18,15 +19,7 @@ export default function WorldItemDetailsPage() {
 
   async function loadItem() {
     try {
-      const res = await fetch(
-        `http://localhost:3001/world-item-data/${itemId}`,
-      );
-
-      if (!res.ok) {
-        throw new Error(t("items.loadWorldItemError"));
-      }
-
-      const data = await res.json();
+      const data = await api.get<any>(`/world-item-data/${itemId}`);
 
       setWorldItem(data);
     } catch (err) {
@@ -101,20 +94,7 @@ export default function WorldItemDetailsPage() {
         directions: Number(worldItem.directions),
       };
 
-      const res = await fetch(
-        `http://localhost:3001/world-item-data/${itemId}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        },
-      );
-
-      if (!res.ok) {
-        throw new Error(t("items.saveWorldItemError"));
-      }
+      await api.patch(`/world-item-data/${itemId}`, payload);
 
       alert(t("items.worldConfigSaved"));
     } catch (err) {

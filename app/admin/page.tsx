@@ -5,6 +5,7 @@ import { Award, BookOpen, Shield, Users, Zap } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { api } from "../../utils/api";
 import { useTranslation } from "../../src/i18n/useTranslation";
+import { Pagination } from "../../src/shared/ui";
 
 const userActionLabelKeys: Record<string, string> = {
   GRANT_ADMIN: "admin.actionGrantAdmin",
@@ -62,12 +63,20 @@ type CertificateAccess = {
   user: { username: string; email: string };
   course: { translations: Array<{ title: string }> };
 };
+type PaginatedResponse<T> = {
+  items: T[];
+  meta: { page: number; limit: number; total: number; totalPages: number };
+};
 
 export default function AdminDashboard() {
   const t = useTranslation();
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [usersPage, setUsersPage] = useState(1);
+  const [usersTotalPages, setUsersTotalPages] = useState(1);
   const [accesses, setAccesses] = useState<CertificateAccess[]>([]);
+  const [accessesPage, setAccessesPage] = useState(1);
+  const [accessesTotalPages, setAccessesTotalPages] = useState(1);
   const [selectedUserId, setSelectedUserId] = useState("");
   const [selectedCourseId, setSelectedCourseId] = useState("");
   const [amount, setAmount] = useState(100);
@@ -80,14 +89,16 @@ export default function AdminDashboard() {
   const loadAdminData = useCallback(async () => {
     const [dashboardData, userData, accessData] = await Promise.all([
       api.get<DashboardData>("/admin/dashboard"),
-      api.get<AdminUser[]>("/admin/users"),
-      api.get<CertificateAccess[]>("/admin/certificate-access"),
+      api.get<PaginatedResponse<AdminUser>>(`/admin/users?page=${usersPage}&limit=20`),
+      api.get<PaginatedResponse<CertificateAccess>>(`/admin/certificate-access?page=${accessesPage}&limit=20`),
     ]);
     setDashboard(dashboardData);
-    setUsers(userData);
-    setAccesses(accessData);
-    setSelectedUserId((current) => current || userData[0]?.id || "");
-  }, []);
+    setUsers(userData.items);
+    setUsersTotalPages(userData.meta.totalPages);
+    setAccesses(accessData.items);
+    setAccessesTotalPages(accessData.meta.totalPages);
+    setSelectedUserId((current) => current || userData.items[0]?.id || "");
+  }, [usersPage, accessesPage]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -215,6 +226,11 @@ export default function AdminDashboard() {
               </button>
             ))}
           </div>
+          {usersTotalPages > 1 && (
+            <div className="mt-4">
+              <Pagination currentPage={usersPage} totalPages={usersTotalPages} onPageChange={setUsersPage} />
+            </div>
+          )}
         </div>
 
         <div className="rounded-lg border border-zinc-800 bg-[#111] p-6">
@@ -246,6 +262,11 @@ export default function AdminDashboard() {
               </div>
             ))}
           </div>
+          {accessesTotalPages > 1 && (
+            <div className="mt-4">
+              <Pagination currentPage={accessesPage} totalPages={accessesTotalPages} onPageChange={setAccessesPage} />
+            </div>
+          )}
         </div>
       </section>
 

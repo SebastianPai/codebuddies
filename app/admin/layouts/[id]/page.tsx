@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import LayoutCompositionEditor from "../../../../components/layout-composition/LayoutCompositionEditor";
+import { api } from "@/shared/api/client";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
 
 export default function EditLayoutPage() {
@@ -16,8 +17,8 @@ export default function EditLayoutPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetch(`http://localhost:3001/layouts/${id}`)
-      .then((res) => res.json())
+    api
+      .get<{ name?: string; previewImageUrl?: string; layoutJson: unknown }>(`/layouts/${id}`)
       .then((data) => {
         setName(data.name || "");
         setPreviewImageUrl(data.previewImageUrl || "");
@@ -35,14 +36,10 @@ export default function EditLayoutPage() {
     setLoading(true);
 
     try {
-      await fetch(`http://localhost:3001/layouts/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          previewImageUrl,
-          layoutJson: JSON.parse(json),
-        }),
+      await api.patch(`/layouts/${id}`, {
+        name,
+        previewImageUrl,
+        layoutJson: JSON.parse(json),
       });
 
       alert(t("admin.layoutUpdatedSuccess"));

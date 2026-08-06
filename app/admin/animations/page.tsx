@@ -2,16 +2,14 @@
 
 import useSWR from "swr";
 import Link from "next/link";
+import { api } from "@/shared/api/client";
 import { useTranslation } from "../../../src/i18n/useTranslation";
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+const fetcher = (url: string) => api.get<any[]>(url);
 
 export default function Page() {
   const t = useTranslation();
-  const { data, isLoading } = useSWR(
-    "http://localhost:3001/animations",
-    fetcher,
-  );
+  const { data, isLoading } = useSWR("/animations", fetcher);
 
   if (isLoading) return <div className="p-6">{t("animations.loading")}</div>;
 

@@ -11,6 +11,7 @@ interface Certificate {
   certificateNumber: string;
   verificationCode: string;
   issuedAt: string;
+  revoked?: boolean;
   academy?: { name: string } | null;
   course?: {
     translations?: Array<{
@@ -85,8 +86,13 @@ export default function MyCertificatesPage() {
             >
               <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                  <h2 className="text-2xl font-black uppercase">
+                  <h2 className="flex items-center gap-3 text-2xl font-black uppercase">
                     {getCourseTitle(certificate, t("site.courseWithoutTitleFallback"))}
+                    {certificate.revoked && (
+                      <span className="rounded-full border-2 border-red-500 bg-red-500/10 px-2 py-0.5 text-xs font-black text-red-400">
+                        {t("site.certificateRevokedBadge")}
+                      </span>
+                    )}
                   </h2>
                   <p className="mt-2 font-mono text-sm text-[rgb(var(--secondary-text))]">
                     {certificate.academy?.name ?? "CodeBuddies"} ·{" "}

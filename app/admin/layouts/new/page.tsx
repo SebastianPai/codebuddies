@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import LayoutCompositionEditor from "../../../../components/layout-composition/LayoutCompositionEditor";
+import { api } from "@/shared/api/client";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
 
 export default function NewLayoutPage() {
@@ -62,16 +63,7 @@ export default function NewLayoutPage() {
     form.append("file", file);
     form.append("folder", "layouts"); // ← carpeta en Digital Ocean
 
-    const res = await fetch("http://localhost:3001/uploads", {
-      method: "POST",
-      body: form,
-    });
-
-    if (!res.ok) {
-      throw new Error(t("items.imageUploadError"));
-    }
-
-    const data = await res.json();
+    const data = await api.post<{ url: string }>("/uploads", form);
     return data.url;
   };
 
@@ -93,24 +85,14 @@ export default function NewLayoutPage() {
         finalPreviewUrl = await uploadImage();
       }
 
-      const res = await fetch("http://localhost:3001/layouts", {
-        // ← Cambié a 3001 para que coincida con tu Items
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          previewImageUrl: finalPreviewUrl,
-          layoutJson: JSON.parse(json),
-          width: 10,
-          height: 10,
-          tileSize: 64,
-        }),
+      await api.post("/layouts", {
+        name,
+        previewImageUrl: finalPreviewUrl,
+        layoutJson: JSON.parse(json),
+        width: 10,
+        height: 10,
+        tileSize: 64,
       });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || t("admin.createLayoutError"));
-      }
 
       alert(t("admin.layoutCreatedSuccess"));
       router.push("/admin/layouts");

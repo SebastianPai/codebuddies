@@ -228,3 +228,77 @@ body {
 .animate-spin-slow {
   animation: spin 4s linear infinite;
 }
+
+/* Vista previa en vivo del editor markdown (HI9) — sin plugin de tailwind
+   typography, así que los estilos de encabezados/listas/código se declaran
+   a mano acá en vez de depender de una clase `prose` que no existe. */
+.markdown-preview h1,
+.markdown-preview h2,
+.markdown-preview h3 {
+  font-weight: 800;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+}
+.markdown-preview h1 {
+  font-size: 1.5em;
+}
+.markdown-preview h2 {
+  font-size: 1.25em;
+}
+.markdown-preview h3 {
+  font-size: 1.1em;
+}
+.markdown-preview p {
+  margin-bottom: 0.75em;
+  line-height: 1.6;
+}
+.markdown-preview ul,
+.markdown-preview ol {
+  margin: 0.5em 0 0.75em 1.25em;
+}
+.markdown-preview ul {
+  list-style: disc;
+}
+.markdown-preview ol {
+  list-style: decimal;
+}
+.markdown-preview li {
+  margin-bottom: 0.25em;
+}
+.markdown-preview a {
+  color: rgb(var(--primary));
+  text-decoration: underline;
+}
+.markdown-preview code {
+  background: rgb(var(--border) / 0.3);
+  border-radius: 4px;
+  padding: 0.1em 0.35em;
+  font-size: 0.9em;
+}
+.markdown-preview pre {
+  background: rgb(var(--border) / 0.3);
+  border-radius: 8px;
+  padding: 0.75em 1em;
+  overflow-x: auto;
+  margin-bottom: 0.75em;
+}
+.markdown-preview pre code {
+  background: none;
+  padding: 0;
+}
+.markdown-preview blockquote {
+  border-left: 3px solid rgb(var(--primary) / 0.5);
+  padding-left: 0.75em;
+  color: rgb(var(--secondary-text));
+  margin-bottom: 0.75em;
+}
+.markdown-preview table {
+  border-collapse: collapse;
+  margin-bottom: 0.75em;
+  width: 100%;
+}
+.markdown-preview th,
+.markdown-preview td {
+  border: 1px solid rgb(var(--border));
+  padding: 0.4em 0.6em;
+}

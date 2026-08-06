@@ -4,8 +4,7 @@ import { useTranslation } from "@/i18n/useTranslation";
 import { Button, ProgressBar, Skeleton } from "@/shared/ui";
 import { classNames } from "@/shared/utils/class-names";
 import { FOCUS_RING, PRESSABLE } from "@/shared/ui/styles";
-import { TOP_PLAYERS } from "../constants/dashboard";
-import type { DashboardUser, ReferralOverview } from "../types/dashboard";
+import type { DailyMission, DashboardUser, ReferralOverview, TopPlayerEntry } from "../types/dashboard";
 
 type LoadStatus = "loading" | "error" | "ready";
 
@@ -16,6 +15,10 @@ interface DashboardSidebarProps {
   rank: number | null;
   referralTarget: number;
   referralMissing: number;
+  topPlayers: TopPlayerEntry[];
+  topPlayersStatus: LoadStatus;
+  dailyMission: DailyMission | null;
+  dailyMissionStatus: LoadStatus;
   onReferrals: () => void;
   onLogout: () => void;
 }
@@ -42,6 +45,10 @@ export function DashboardSidebar({
   rank,
   referralTarget,
   referralMissing,
+  topPlayers,
+  topPlayersStatus,
+  dailyMission,
+  dailyMissionStatus,
   onReferrals,
   onLogout,
 }: DashboardSidebarProps) {
@@ -52,6 +59,12 @@ export function DashboardSidebar({
       ? t("dashboard.missingFor", { count: referralMissing, name: referrals.nextReward.name })
       : t("dashboard.milestoneReached", { name: referrals.nextReward.name })
     : t("dashboard.noRewards");
+  const missionCtaLabel =
+    dailyMission?.progress.status === "COMPLETED"
+      ? t("dashboard.claimMission")
+      : dailyMission?.progress.status === "CLAIMED"
+        ? t("dashboard.missionClaimed")
+        : t("dashboard.startMission");
 
   return (
     <div className="min-w-0 space-y-6">
@@ -62,8 +75,28 @@ export function DashboardSidebar({
             {t("dashboard.dailyQuest")}
           </span>
         </div>
-        <h2 className="text-3xl font-black">{t("dashboard.sqlChallenge")}</h2>
-        <p className="mt-3 opacity-70">{t("dashboard.earnRewards")}</p>
+        {dailyMissionStatus === "loading" ? (
+          <div className="space-y-3">
+            <Skeleton className="h-8 w-3/4" />
+            <Skeleton className="h-4 w-full" />
+          </div>
+        ) : dailyMission ? (
+          <>
+            <h2 className="text-3xl font-black">{dailyMission.name}</h2>
+            <p className="mt-3 opacity-70">{dailyMission.description}</p>
+            <p className="mt-2 text-sm font-semibold opacity-90">
+              {t("dashboard.missionProgress", {
+                current: Math.min(dailyMission.progress.currentValue, dailyMission.progress.targetValue),
+                target: dailyMission.progress.targetValue,
+              })}
+            </p>
+          </>
+        ) : (
+          <>
+            <h2 className="text-3xl font-black">{t("dashboard.dailyQuest")}</h2>
+            <p className="mt-3 opacity-70">{t("dashboard.noMissionAvailable")}</p>
+          </>
+        )}
         <Link
           href="/missions"
           className={classNames(
@@ -72,7 +105,7 @@ export function DashboardSidebar({
             FOCUS_RING,
           )}
         >
-          {t("dashboard.startMission")}
+          {missionCtaLabel}
         </Link>
       </div>
 
@@ -129,20 +162,30 @@ export function DashboardSidebar({
           </Link>
         </div>
         <div className="space-y-4">
-          {TOP_PLAYERS.map((player, index) => (
-            <div key={player.name} className="flex items-center justify-between rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--background))] p-4">
-              <div className="flex items-center gap-4">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[rgb(var(--button))] font-black text-[rgb(var(--button-text))]">
-                  #{index + 1}
+          {topPlayersStatus === "loading" ? (
+            <>
+              <Skeleton className="h-16 rounded-2xl" />
+              <Skeleton className="h-16 rounded-2xl" />
+              <Skeleton className="h-16 rounded-2xl" />
+            </>
+          ) : topPlayers.length === 0 ? (
+            <p className="text-sm text-[rgb(var(--secondary-text))]">{t("dashboard.noPlayersYet")}</p>
+          ) : (
+            topPlayers.map((player) => (
+              <div key={player.userId} className="flex items-center justify-between rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--background))] p-4">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[rgb(var(--button))] font-black text-[rgb(var(--button-text))]">
+                    #{player.rank}
+                  </div>
+                  <div>
+                    <h3 className="font-bold">{player.username}</h3>
+                    <p className="text-sm text-[rgb(var(--secondary-text))]">{player.value.toLocaleString()} XP</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-bold">{player.name}</h3>
-                  <p className="text-sm text-[rgb(var(--secondary-text))]">{player.xp}</p>
-                </div>
+                <Trophy size={18} className="text-[rgb(var(--primary))]" />
               </div>
-              <Trophy size={18} className="text-[rgb(var(--primary))]" />
-            </div>
-          ))}
+            ))
+          )}
         </div>
         <div className="mt-6 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--background))] p-4">
           <p className="text-sm text-[rgb(var(--secondary-text))]">{t("dashboard.currentPosition")}</p>

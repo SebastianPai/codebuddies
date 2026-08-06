@@ -11,7 +11,6 @@ type RankingEntry = {
   rank: number;
   userId: string;
   username: string;
-  email: string;
   value: number;
 };
 

@@ -7,10 +7,21 @@ import type {
   ModuleOption,
 } from "../types/course";
 
+interface CourseLessonSummary {
+  id: string;
+  order: number;
+  title: string | null;
+}
+
 export const coursesApi = {
   getAll: () => api.get<CourseListItem[]>("/courses?lang=es"),
   getById: (courseId: string) => api.get<CourseDetails>(`/courses/admin/${courseId}`),
+  getLessons: (courseId: string) =>
+    api.get<CourseLessonSummary[]>(`/lessons/course/${courseId}?lang=es`),
+  reorderLessons: (items: Array<{ id: string; order: number }>) =>
+    api.patch("/lessons/reorder", { items }),
   getModules: () => api.get<ModuleOption[]>("/modules"),
+  getCategories: () => api.get<Array<{ id: string; slug: string; name: string }>>("/course-categories"),
   uploadImage: (file: File) => {
     const formData = new FormData();
     formData.append("file", file);

@@ -17,6 +17,15 @@ export const coursesService = {
   getModules(): Promise<ModuleOption[]> {
     return coursesApi.getModules();
   },
+  getCategories() {
+    return coursesApi.getCategories();
+  },
+  getLessons(courseId: string) {
+    return coursesApi.getLessons(courseId);
+  },
+  reorderLessons(items: Array<{ id: string; order: number }>) {
+    return coursesApi.reorderLessons(items);
+  },
   async uploadImage(file: File | null, fallback: string | null): Promise<string | null> {
     if (!file) return fallback;
     return (await coursesApi.uploadImage(file)).url;

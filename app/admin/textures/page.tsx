@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import ItemForm from "../items/components/ItemForm";
+import { api } from "@/shared/api/client";
 import { useTranslation } from "../../../src/i18n/useTranslation";
 
 export default function CreateTexturePage() {
@@ -9,21 +10,12 @@ export default function CreateTexturePage() {
   const t = useTranslation();
 
   async function create(data: any) {
-    const res = await fetch("http://localhost:3001/items", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    });
-
-    if (!res.ok) {
-      const err = await res.json();
+    try {
+      await api.post("/items", data);
+      router.push("/admin/items");
+    } catch (err: any) {
       alert(t("items.createTextureError") + (err.message || t("items.unknownError")));
-      return;
     }
-
-    router.push("/admin/items");
   }
 
   return (

@@ -20,5 +20,32 @@ export interface ReferralOverview {
   leaderboard?: { currentRank?: { currentRank?: number | null } | null };
 }
 
-export interface DashboardCourse { titleKey: string; categoryKey: string; progress: number; lessons: number; image: string; }
-export interface TopPlayer { name: string; xp: string; }
+export interface ContinueLearningCourse {
+  courseId: string;
+  title: string | null;
+  imageUrl: string | null;
+  totalExercises: number;
+  completedExercises: number;
+  progressPercent: number;
+  lastActivityAt: string;
+  nextExercise: { id: string; type: string; lessonId: string } | null;
+}
+
+export interface TopPlayerEntry {
+  rank: number;
+  userId: string;
+  username: string;
+  value: number;
+}
+
+export interface DailyMission {
+  id: string;
+  name: string;
+  description: string;
+  cadence: string;
+  progress: {
+    currentValue: number;
+    targetValue: number;
+    status: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "CLAIMED";
+  };
+}

@@ -176,5 +176,15 @@
   "stackHeightLabel": "堆叠高度",
   "stackHeightHint": "当物品被放置其上时，该物品增加的视觉高度（像素）。",
   "maxStackHeightLabel": "最大堆叠高度",
-  "maxStackHeightHint": "在此物品上堆叠时允许的最大累计高度。"
+  "maxStackHeightHint": "在此物品上堆叠时允许的最大累计高度。",
+  "spriteFilterLabel": "按精灵图筛选：",
+  "spriteFilterAllLabel": "全部",
+  "spriteFilterWithLabel": "已有精灵图",
+  "spriteFilterWithoutLabel": "无精灵图",
+  "withBodyLabel": "显示身体",
+  "withoutBodyLabel": "隐藏身体",
+  "noBodyItemFound": "尚未创建任何身体（BODY）物品",
+  "configureSpriteElsewhereHint": "动画精灵图（带真实身体预览和全部 8 个方向）请在专用编辑器中配置。",
+  "configureSpriteButton": "配置动画精灵图 →",
+  "directionLabel": "方向"
 }

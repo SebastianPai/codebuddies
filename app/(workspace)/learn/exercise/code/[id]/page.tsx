@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, memo, useCallback } from "react";
+import { useState, useEffect, useRef, memo, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import Editor from "@monaco-editor/react";
 
 import {
@@ -13,6 +14,7 @@ import {
   CheckCircle,
   Eye,
   Sparkles,
+  Lock,
 } from "lucide-react";
 
 import { Group, Panel, Separator } from "react-resizable-panels";
@@ -239,6 +241,8 @@ export default function FullWidthConfidentialWorkspace() {
 
   const [isMobile, setIsMobile] = useState(false);
 
+  const startedAtRef = useRef<number>(Date.now());
+
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
 
@@ -251,6 +255,8 @@ export default function FullWidthConfidentialWorkspace() {
 
   useEffect(() => {
     if (!id || authLoading) return;
+
+    startedAtRef.current = Date.now();
 
     const loadExercise = async () => {
       setLoading(true);
@@ -424,11 +430,24 @@ try {
     setSubmitting(true);
 
     try {
-      const res = (await api.post("/progress", {
-        userId: user.userId,
-        lessonId: exercise.lessonId,
-        exerciseId: exercise.id,
+      // El iframe ya corrió las mismas assertions para dar feedback
+      // instantáneo, pero eso es 100% client-side y un estudiante podría
+      // falsificar el postMessage — este POST vuelve a correr las
+      // assertions server-side (ver exercise.service.ts#submitCodeAnswer)
+      // y solo ahí se acredita el XP/monedas.
+      const timeSpentSeconds = Math.round(
+        (Date.now() - startedAtRef.current) / 1000,
+      );
+      const res = (await api.post(`/exercises/${exercise.id}/code/submit`, {
+        code: jsCode,
+        timeSpentSeconds,
       })) as any;
+
+      if (!res.correct) {
+        setCheckResult("fail");
+        setCheckMessage(res.results?.[0]?.error ?? null);
+        return;
+      }
 
       setCompleted(true);
       setXpGained(res.xpAdded ?? exercise.experience ?? 0);
@@ -459,6 +478,21 @@ try {
     return (
       <div className="fixed inset-0 bg-[#070707] flex items-center justify-center text-red-400">
         {t("site.codeExerciseLoadError")}
+      </div>
+    );
+  }
+
+  if (exercise.locked) {
+    return (
+      <div className="fixed inset-0 bg-[#070707] flex flex-col items-center justify-center gap-6 text-center px-6">
+        <Lock className="text-yellow-400" size={48} />
+        <p className="max-w-md text-white">{t("site.exerciseLockedMessage")}</p>
+        <Link
+          href="/premium"
+          className="rounded-lg bg-yellow-400 px-6 py-3 font-black text-black"
+        >
+          {t("site.premiumTitle")}
+        </Link>
       </div>
     );
   }

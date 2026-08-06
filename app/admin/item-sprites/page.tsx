@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useSearchParams } from "next/navigation";
 import { Combobox } from "@headlessui/react";
+import { api } from "@/shared/api/client";
 import { useTranslation } from "../../../src/i18n/useTranslation";
-
-const API_BASE = "http://localhost:3001";
 
 // Tipo real que devuelve el backend ahora
 type Item = {
@@ -15,10 +15,22 @@ type Item = {
   colorable: boolean;
   avatarData?: { slot: string };
   worldData?: { kind: string };
+  sprites?: Array<{ id: string }>;
   // ... otros campos que quieras
 };
 
+type SpriteFilter = "all" | "with" | "without";
+
 type Animation = { id: string; type: string; variant: string };
+
+type ItemSpriteRecord = {
+  imageUrl: string;
+  frameWidth: number;
+  frameHeight: number;
+  framesCount: number;
+  row: number;
+  direction: Direction;
+};
 
 type Direction =
   | "NORTH"
@@ -30,6 +42,19 @@ type Direction =
   | "SOUTH_WEST"
   | "NORTH_WEST";
 
+// D-pad de direcciones: fila/columna dentro de una grilla 3x3 (el centro
+// queda vacío) y flecha correspondiente.
+const DIRECTION_PAD: Array<{ value: Direction; arrow: string }> = [
+  { value: "NORTH_WEST", arrow: "↖" },
+  { value: "NORTH", arrow: "↑" },
+  { value: "NORTH_EAST", arrow: "↗" },
+  { value: "WEST", arrow: "←" },
+  { value: "EAST", arrow: "→" },
+  { value: "SOUTH_WEST", arrow: "↙" },
+  { value: "SOUTH", arrow: "↓" },
+  { value: "SOUTH_EAST", arrow: "↘" },
+];
+
 interface SpriteConfig {
   itemId: string;
   animationId: string;
@@ -40,8 +65,46 @@ interface SpriteConfig {
   rowIndex: number;
 }
 
-export default function ItemSpriteEditor() {
+function DirectionButton({
+  value,
+  arrow,
+  config,
+  setConfig,
+}: {
+  value: Direction;
+  arrow: string;
+  config: SpriteConfig;
+  setConfig: (updater: (c: SpriteConfig) => SpriteConfig) => void;
+}) {
+  const active = config.direction === value;
+  return (
+    <button
+      type="button"
+      title={value}
+      onClick={() => setConfig((c) => ({ ...c, direction: value }))}
+      className={`h-8 rounded flex items-center justify-center text-sm font-bold transition-colors ${
+        active
+          ? "bg-indigo-600 text-white"
+          : "bg-gray-800 text-gray-300 hover:bg-gray-700 border border-gray-700"
+      }`}
+    >
+      {arrow}
+    </button>
+  );
+}
+
+export default function ItemSpriteEditorPage() {
+  return (
+    <Suspense fallback={null}>
+      <ItemSpriteEditor />
+    </Suspense>
+  );
+}
+
+function ItemSpriteEditor() {
   const t = useTranslation();
+  const searchParams = useSearchParams();
+  const initialItemId = searchParams.get("itemId") ?? "";
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number | null>(null);
 
@@ -49,16 +112,17 @@ export default function ItemSpriteEditor() {
   const [animations, setAnimations] = useState<Animation[]>([]);
 
   const [config, setConfig] = useState<SpriteConfig>({
-    itemId: "",
+    itemId: initialItemId,
     animationId: "",
     direction: "SOUTH",
-    frameWidth: 64,
-    frameHeight: 64,
+    frameWidth: 128,
+    frameHeight: 224,
     framesCount: 8,
     rowIndex: 0,
   });
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [spriteFilter, setSpriteFilter] = useState<SpriteFilter>("all");
 
   const [fps, setFps] = useState(8);
   const [zoom, setZoom] = useState(2);
@@ -67,6 +131,12 @@ export default function ItemSpriteEditor() {
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [rows, setRows] = useState(1);
 
+  const [showBody, setShowBody] = useState(true);
+  const [bodyId, setBodyId] = useState("");
+  const [bodyImage, setBodyImage] = useState<HTMLImageElement | null>(null);
+  const [bodySprite, setBodySprite] = useState<ItemSpriteRecord | null>(null);
+  const [bodySpriteImage, setBodySpriteImage] = useState<HTMLImageElement | null>(null);
+
   const [currentFrame, setCurrentFrame] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -74,8 +144,8 @@ export default function ItemSpriteEditor() {
   // Cargar items y animaciones
   useEffect(() => {
     Promise.all([
-      fetch(`${API_BASE}/items`).then((r) => r.json()),
-      fetch(`${API_BASE}/animations`).then((r) => r.json()),
+      api.get<Item[]>("/items"),
+      api.get<Animation[]>("/animations"),
     ])
       .then(([itemsData, animData]) => {
         setItems(itemsData);
@@ -86,6 +156,10 @@ export default function ItemSpriteEditor() {
 
   // Filtrado inteligente para el combobox
   const filteredItems = items.filter((item) => {
+    const hasSprite = (item.sprites?.length ?? 0) > 0;
+    if (spriteFilter === "with" && !hasSprite) return false;
+    if (spriteFilter === "without" && hasSprite) return false;
+
     if (!searchQuery) return true;
 
     const q = searchQuery.toLowerCase();
@@ -95,6 +169,73 @@ export default function ItemSpriteEditor() {
 
     return slot.includes(q) || kind.includes(q) || idPart.includes(q);
   });
+
+  // Items de cuerpo (BODY) disponibles como referencia visual para el preview
+  const bodies = useMemo(
+    () => items.filter((item) => item.avatarData?.slot === "BODY" && item.imageUrl),
+    [items],
+  );
+
+  useEffect(() => {
+    if (!bodyId && bodies.length > 0) {
+      setBodyId(bodies[0].id);
+    }
+  }, [bodies, bodyId]);
+
+  // Cargar imagen del cuerpo de referencia seleccionado
+  useEffect(() => {
+    const body = bodies.find((b) => b.id === bodyId);
+    if (!body?.imageUrl) {
+      setBodyImage(null);
+      return;
+    }
+
+    const img = new Image();
+    img.onload = () => setBodyImage(img);
+    img.onerror = () => setBodyImage(null);
+    img.src = body.imageUrl;
+  }, [bodyId, bodies]);
+
+  // Buscar si el cuerpo ya tiene su propio sprite animado (caminar, etc.)
+  // para la animación + dirección elegidas, y animarlo junto con el item
+  // en vez de mostrarlo como imagen fija.
+  useEffect(() => {
+    if (!bodyId || !config.animationId) {
+      setBodySprite(null);
+      return;
+    }
+
+    let cancelled = false;
+    api
+      .get<ItemSpriteRecord[]>(
+        `/item-sprites?itemId=${bodyId}&animationId=${config.animationId}`,
+      )
+      .then((sprites) => {
+        if (cancelled) return;
+        const match = sprites.find((s) => s.direction === config.direction);
+        setBodySprite(match ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setBodySprite(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [bodyId, config.animationId, config.direction]);
+
+  // Cargar la imagen del spritesheet animado del cuerpo (si existe)
+  useEffect(() => {
+    if (!bodySprite?.imageUrl) {
+      setBodySpriteImage(null);
+      return;
+    }
+
+    const img = new Image();
+    img.onload = () => setBodySpriteImage(img);
+    img.onerror = () => setBodySpriteImage(null);
+    img.src = bodySprite.imageUrl;
+  }, [bodySprite]);
 
   // Obtener display name para cada item en el combobox
   const getItemDisplayName = (item: Item) => {
@@ -138,53 +279,87 @@ export default function ItemSpriteEditor() {
   // Dibujar frame
   const drawFrame = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !image) return;
+    if (!canvas) return;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const { frameWidth, frameHeight, rowIndex, framesCount } = config;
-    const scaledW = frameWidth * zoom;
-    const scaledH = frameHeight * zoom;
-
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const sx = currentFrame * frameWidth;
+    const { frameWidth, frameHeight, rowIndex } = config;
+    const scaledW = frameWidth * zoom;
+    const scaledH = frameHeight * zoom;
+    const destX = (canvas.width - scaledW) / 2;
+    const destY = (canvas.height - scaledH) / 2;
+
+    if (showBody) {
+      if (bodySprite && bodySpriteImage) {
+        // Cuerpo animado con su propio spritesheet (ej: caminar). Usa su
+        // tamaño nativo (frameWidth/frameHeight propios) * zoom, igual que
+        // el item: el zoom escala todas las capas por igual, ninguna queda
+        // fija ni desproporcionada respecto a las demás.
+        const bodyFrame = currentFrame % Math.max(1, bodySprite.framesCount);
+        const bW = bodySprite.frameWidth * zoom;
+        const bH = bodySprite.frameHeight * zoom;
+        ctx.drawImage(
+          bodySpriteImage,
+          bodyFrame * bodySprite.frameWidth,
+          bodySprite.row * bodySprite.frameHeight,
+          bodySprite.frameWidth,
+          bodySprite.frameHeight,
+          (canvas.width - bW) / 2,
+          (canvas.height - bH) / 2,
+          bW,
+          bH,
+        );
+      } else if (bodyImage) {
+        // Sin sprite animado para esta animación/dirección: mostrar el
+        // ícono estático del cuerpo en su tamaño original (natural) * zoom,
+        // igual criterio que las demás capas.
+        const bW = bodyImage.width * zoom;
+        const bH = bodyImage.height * zoom;
+
+        ctx.drawImage(
+          bodyImage,
+          (canvas.width - bW) / 2,
+          (canvas.height - bH) / 2,
+          bW,
+          bH,
+        );
+      }
+    }
+
+    if (!image) return;
+
+    const itemFrame = currentFrame % Math.max(1, config.framesCount);
+    const sx = itemFrame * frameWidth;
     const sy = rowIndex * frameHeight;
 
-    ctx.drawImage(
-      image,
-      sx,
-      sy,
-      frameWidth,
-      frameHeight,
-      (canvas.width - scaledW) / 2,
-      (canvas.height - scaledH) / 2,
-      scaledW,
-      scaledH,
-    );
+    ctx.drawImage(image, sx, sy, frameWidth, frameHeight, destX, destY, scaledW, scaledH);
 
     // Grid visual (opcional)
     ctx.strokeStyle = "rgba(0, 255, 0, 0.3)";
     ctx.lineWidth = 1;
-    ctx.strokeRect(
-      (canvas.width - scaledW) / 2,
-      (canvas.height - scaledH) / 2,
-      scaledW,
-      scaledH,
-    );
-  }, [image, currentFrame, zoom, config]);
+    ctx.strokeRect(destX, destY, scaledW, scaledH);
+  }, [image, currentFrame, zoom, config, showBody, bodyImage, bodySprite, bodySpriteImage]);
 
   // Animación loop
   useEffect(() => {
-    if (!isPlaying || !image) return;
+    const showBodyAnimation = showBody && !!bodySprite;
+    if (!isPlaying || (!image && !showBodyAnimation)) return;
+
+    const maxFrames = Math.max(
+      image ? config.framesCount : 1,
+      showBodyAnimation ? bodySprite!.framesCount : 1,
+      1,
+    );
 
     const intervalMs = 1000 / Math.max(1, fps);
     let lastTime = performance.now();
 
     const animate = (time: number) => {
       if (time - lastTime >= intervalMs) {
-        setCurrentFrame((prev) => (prev + 1) % config.framesCount);
+        setCurrentFrame((prev) => (prev + 1) % maxFrames);
         lastTime = time;
       }
       animationFrameRef.current = requestAnimationFrame(animate);
@@ -192,7 +367,7 @@ export default function ItemSpriteEditor() {
 
     animationFrameRef.current = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animationFrameRef.current!);
-  }, [isPlaying, fps, image, config.framesCount]);
+  }, [isPlaying, fps, image, config.framesCount, showBody, bodySprite]);
 
   useEffect(() => {
     drawFrame();
@@ -215,14 +390,7 @@ export default function ItemSpriteEditor() {
       formData.append("file", file);
       formData.append("folder", folder);
 
-      const uploadRes = await fetch(`${API_BASE}/uploads`, {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!uploadRes.ok) throw new Error(t("items.imageUploadError"));
-
-      const { url: imageUrl } = await uploadRes.json();
+      const { url: imageUrl } = await api.post<{ url: string }>("/uploads", formData);
 
       const spriteData = {
         itemId: config.itemId,
@@ -235,16 +403,7 @@ export default function ItemSpriteEditor() {
         row: config.rowIndex,
       };
 
-      const saveRes = await fetch(`${API_BASE}/item-sprites`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(spriteData),
-      });
-
-      if (!saveRes.ok) {
-        const err = await saveRes.json();
-        throw new Error(err.message || t("items.saveSpriteErrorFallback"));
-      }
+      await api.post("/item-sprites", spriteData);
 
       alert(t("items.spriteSavedSuccess"));
       setFile(null);
@@ -281,8 +440,33 @@ export default function ItemSpriteEditor() {
         </div>
       )}
 
+      {/* Filtro por estado de sprite */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs uppercase tracking-wide opacity-60">
+          {t("items.spriteFilterLabel")}
+        </span>
+        {(["all", "with", "without"] as SpriteFilter[]).map((option) => (
+          <button
+            key={option}
+            type="button"
+            onClick={() => setSpriteFilter(option)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+              spriteFilter === option
+                ? "border-indigo-500 bg-indigo-600/40 text-white"
+                : "border-gray-700 bg-gray-800/60 text-gray-300 hover:border-gray-500"
+            }`}
+          >
+            {option === "all"
+              ? t("items.spriteFilterAllLabel")
+              : option === "with"
+                ? t("items.spriteFilterWithLabel")
+                : t("items.spriteFilterWithoutLabel")}
+          </button>
+        ))}
+      </div>
+
       {/* Controles principales */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Combobox Items */}
         <Combobox
           value={config.itemId}
@@ -347,29 +531,6 @@ export default function ItemSpriteEditor() {
           {animations.map((anim) => (
             <option key={anim.id} value={anim.id}>
               {anim.type} — {anim.variant}
-            </option>
-          ))}
-        </select>
-
-        <select
-          value={config.direction}
-          onChange={(e) =>
-            setConfig((c) => ({ ...c, direction: e.target.value as Direction }))
-          }
-          className="bg-gray-800 border border-gray-700 rounded px-3 py-2"
-        >
-          {[
-            "NORTH",
-            "SOUTH",
-            "EAST",
-            "WEST",
-            "NORTH_EAST",
-            "SOUTH_EAST",
-            "SOUTH_WEST",
-            "NORTH_WEST",
-          ].map((d) => (
-            <option key={d} value={d}>
-              {d}
             </option>
           ))}
         </select>
@@ -458,14 +619,75 @@ export default function ItemSpriteEditor() {
         ))}
       </div>
 
+      {/* Preview con/sin cuerpo */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex rounded-full border border-gray-700 overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setShowBody(true)}
+            className={`px-4 py-1.5 text-xs font-medium transition-colors ${
+              showBody ? "bg-indigo-600 text-white" : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+            }`}
+          >
+            {t("items.withBodyLabel")}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowBody(false)}
+            className={`px-4 py-1.5 text-xs font-medium transition-colors ${
+              !showBody ? "bg-indigo-600 text-white" : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+            }`}
+          >
+            {t("items.withoutBodyLabel")}
+          </button>
+        </div>
+
+        {showBody && bodies.length > 0 && (
+          <select
+            value={bodyId}
+            onChange={(e) => setBodyId(e.target.value)}
+            className="bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-sm"
+          >
+            {bodies.map((body) => (
+              <option key={body.id} value={body.id}>
+                {t("items.baseItemFallback", { id: body.id.slice(0, 8) })}
+              </option>
+            ))}
+          </select>
+        )}
+
+        {showBody && bodies.length === 0 && (
+          <span className="text-xs opacity-60">{t("items.noBodyItemFound")}</span>
+        )}
+
+        <div className="flex items-center gap-2">
+          <span className="text-xs uppercase tracking-wide opacity-60">
+            {t("items.directionLabel")}
+          </span>
+          <div className="grid grid-cols-3 grid-rows-3 gap-1 w-27">
+            {DIRECTION_PAD.slice(0, 3).map(({ value, arrow }) => (
+              <DirectionButton key={value} value={value} arrow={arrow} config={config} setConfig={setConfig} />
+            ))}
+            <DirectionButton value={DIRECTION_PAD[3].value} arrow={DIRECTION_PAD[3].arrow} config={config} setConfig={setConfig} />
+            <div className="rounded bg-gray-800/40 flex items-center justify-center text-[10px] text-gray-500">
+              {config.direction}
+            </div>
+            <DirectionButton value={DIRECTION_PAD[4].value} arrow={DIRECTION_PAD[4].arrow} config={config} setConfig={setConfig} />
+            {DIRECTION_PAD.slice(5, 8).map(({ value, arrow }) => (
+              <DirectionButton key={value} value={value} arrow={arrow} config={config} setConfig={setConfig} />
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* Canvas */}
       <div className="space-y-3">
         <canvas
           ref={canvasRef}
-          width={Math.max(320, config.frameWidth * zoom * 6)}
-          height={Math.max(
-            240,
-            config.frameHeight * zoom * Math.min(5, rows + 1),
+          width={Math.min(900, Math.max(320, config.frameWidth * zoom * 3))}
+          height={Math.min(
+            650,
+            Math.max(240, config.frameHeight * zoom * Math.min(3, rows + 1)),
           )}
           className="border border-gray-700 bg-black/50 rounded-lg mx-auto block shadow-2xl"
         />

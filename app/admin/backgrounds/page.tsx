@@ -175,12 +175,7 @@ export default function AdminBackgroundsPage() {
       const body = new FormData();
       body.append("file", file);
       body.append("folder", "room-backgrounds");
-      const response = await fetch("http://localhost:3001/uploads", {
-        method: "POST",
-        body,
-      });
-      if (!response.ok) throw new Error("Upload failed");
-      const data = (await response.json()) as { url: string };
+      const data = await api.post<{ url: string }>("/uploads", body);
       setForm((current) => ({
         ...current,
         [target === "image" ? "imageUrl" : "previewUrl"]: data.url,

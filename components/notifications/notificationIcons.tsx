@@ -2,6 +2,7 @@ import {
   Award,
   Bell,
   BookOpen,
+  Flame,
   Gift,
   MessageSquare,
   Target,
@@ -18,6 +19,7 @@ export const notificationIconByName: Record<string, React.ReactNode> = {
   Award: <Award size={18} />,
   BookOpen: <BookOpen size={18} />,
   MessageSquare: <MessageSquare size={18} />,
+  Flame: <Flame size={18} />,
 };
 
 export function getNotificationIcon(name: string): React.ReactNode {

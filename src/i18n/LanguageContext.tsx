@@ -2,8 +2,9 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { dictionary } from "./dictionary";
+import { api } from "../shared/api/client";
 
-type Lang = "es" | "en-us" | "zh-Hans";
+export type Lang = "es" | "en-us" | "zh-Hans";
 
 type TranslationParams = Record<string, string | number>;
 type TranslationDictionary = Record<string, any>;
@@ -34,11 +35,27 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const saved = localStorage.getItem("lang") as Lang;
     if (saved) setLang(saved);
+
+    // La cuenta manda sobre el cache local: si el usuario ya eligió un
+    // idioma desde apps/game (o desde otro dispositivo), se aplica acá
+    // apenas responde /identity/me. Falla en silencio si no hay sesión.
+    api
+      .get<{ uiLanguage?: Lang }>("/identity/me")
+      .then((profile) => {
+        if (profile.uiLanguage && profile.uiLanguage !== saved) {
+          setLang(profile.uiLanguage);
+          localStorage.setItem("lang", profile.uiLanguage);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const changeLanguage = (newLang: Lang) => {
     localStorage.setItem("lang", newLang);
     setLang(newLang);
+    // Mismo campo (User.uiLanguage) que lee/escribe apps/game — así elegir
+    // el idioma acá también lo aplica en el juego, y viceversa.
+    api.patch("/identity/profile", { uiLanguage: newLang }).catch(() => {});
   };
 
   const translations = dictionary[lang] as TranslationDictionary;

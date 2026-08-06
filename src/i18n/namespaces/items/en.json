@@ -176,5 +176,15 @@
   "stackHeightLabel": "Stack height",
   "stackHeightHint": "Visual height (px) this object adds when something is placed on top.",
   "maxStackHeightLabel": "Max stack height",
-  "maxStackHeightHint": "Maximum accumulated height allowed when stacking objects on this one."
+  "maxStackHeightHint": "Maximum accumulated height allowed when stacking objects on this one.",
+  "spriteFilterLabel": "Filter by sprite:",
+  "spriteFilterAllLabel": "All",
+  "spriteFilterWithLabel": "With sprite",
+  "spriteFilterWithoutLabel": "Without sprite",
+  "withBodyLabel": "With body",
+  "withoutBodyLabel": "Without body",
+  "noBodyItemFound": "No BODY item has been created yet",
+  "configureSpriteElsewhereHint": "The animated sprite (with real body preview and all 8 directions) is configured in the dedicated editor.",
+  "configureSpriteButton": "Configure animated sprite →",
+  "directionLabel": "Direction"
 }

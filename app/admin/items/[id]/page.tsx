@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import ItemForm from "../components/ItemForm";
+import { api } from "@/shared/api/client";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
 
 export default function EditItemPage() {
@@ -13,8 +14,7 @@ export default function EditItemPage() {
 
   useEffect(() => {
     async function loadItem() {
-      const res = await fetch(`http://localhost:3001/items/${params.id}`);
-      const item = await res.json();
+      const item = await api.get<any>(`/items/${params.id}`);
       const translation = item.translations?.[0];
       const worldData = item.worldData;
       const formCategory = item.avatarData
@@ -39,21 +39,12 @@ export default function EditItemPage() {
   }, [params.id]);
 
   async function update(data: any) {
-    const res = await fetch(`http://localhost:3001/items/${params.id}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data),
-    });
-
-    if (!res.ok) {
-      const err = await res.json();
+    try {
+      await api.patch(`/items/${params.id}`, data);
+      router.push("/admin/items");
+    } catch (err: any) {
       alert(t("items.updateErrorPrefix") + (err.message || t("items.unknownError")));
-      return;
     }
-
-    router.push("/admin/items");
   }
 
   if (!initial) {

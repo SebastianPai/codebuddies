@@ -30,6 +30,8 @@ export function useCourseForm({ mode, courseId }: UseCourseFormOptions) {
   const [values, setValues] = useState<CourseFormValues>(INITIAL_COURSE_VALUES);
   const [course, setCourse] = useState<CourseDetails | null>(null);
   const [modules, setModules] = useState<Awaited<ReturnType<typeof coursesService.getModules>>>([]);
+  const [allCourses, setAllCourses] = useState<Awaited<ReturnType<typeof coursesService.getCourses>>>([]);
+  const [allCategories, setAllCategories] = useState<Awaited<ReturnType<typeof coursesService.getCategories>>>([]);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [isLoadingCourse, setIsLoadingCourse] = useState(mode === "edit");
   const [isLoadingModules, setIsLoadingModules] = useState(true);
@@ -60,6 +62,11 @@ export function useCourseForm({ mode, courseId }: UseCourseFormOptions) {
   }, [mode]);
 
   useEffect(() => {
+    coursesService.getCourses().then(setAllCourses).catch(() => {});
+    coursesService.getCategories().then(setAllCategories).catch(() => {});
+  }, []);
+
+  useEffect(() => {
     if (mode !== "edit" || !courseId) return;
 
     const loadCourse = async () => {
@@ -70,7 +77,10 @@ export function useCourseForm({ mode, courseId }: UseCourseFormOptions) {
           moduleId: loadedCourse.moduleId,
           difficulty: loadedCourse.difficulty,
           freeLimit: loadedCourse.freeLimit,
+          status: loadedCourse.status ?? "PUBLISHED",
           translations: loadedCourse.translations,
+          prerequisiteCourseIds: loadedCourse.prerequisites?.map((p) => p.id) ?? [],
+          categoryIds: loadedCourse.categoryIds ?? [],
         });
       } catch {
         setError(t("admin.loadCourseError"));
@@ -149,6 +159,8 @@ export function useCourseForm({ mode, courseId }: UseCourseFormOptions) {
     values,
     course,
     modules,
+    allCourses,
+    allCategories,
     imagePreview,
     isLoadingCourse,
     isLoadingModules,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { api } from "@/shared/api/client";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
 
 const DIRECTIONS = [
@@ -32,24 +33,15 @@ export default function SpriteUploader({ animation }: any) {
     formData.append("file", file);
     formData.append("folder", folder);
 
-    const res = await fetch("http://localhost:3001/uploads", {
-      method: "POST",
-      body: formData,
-    });
-
-    const { url } = await res.json();
+    const { url } = await api.post<{ url: string }>("/uploads", formData);
 
     // guardar en ItemSprite
-    await fetch("http://localhost:3001/item-sprites", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        animation: animation.type,
-        variant: animation.variant,
-        direction,
-        frame,
-        imageUrl: url,
-      }),
+    await api.post("/item-sprites", {
+      animation: animation.type,
+      variant: animation.variant,
+      direction,
+      frame,
+      imageUrl: url,
     });
 
     setLoading(false);

@@ -4,12 +4,27 @@ import { Button, ErrorState, Loader } from "@/shared/ui";
 import { DashboardHeader } from "./dashboard-header";
 import { DashboardSidebar } from "./dashboard-sidebar";
 import { LearningSection } from "./learning-section";
+import { RecommendedCourses } from "./recommended-courses";
 import { useDashboard } from "../hooks/use-dashboard";
 import { getDashboardMetrics } from "../utils/dashboard-metrics";
 
 export function DashboardPage() {
   const t = useTranslation();
-  const { user, userStatus, referrals, referralsStatus, logout, retry, goToReferrals } = useDashboard();
+  const {
+    user,
+    userStatus,
+    referrals,
+    referralsStatus,
+    continueLearning,
+    continueLearningStatus,
+    topPlayers,
+    topPlayersStatus,
+    dailyMission,
+    dailyMissionStatus,
+    logout,
+    retry,
+    goToReferrals,
+  } = useDashboard();
 
   if (userStatus === "error") {
     return (
@@ -41,7 +56,14 @@ export function DashboardPage() {
       <div className="relative z-10 mx-auto max-w-7xl px-4 py-6 md:px-8 md:py-8">
         <DashboardHeader user={user} xp={metrics.xp} coins={metrics.coins} streak={metrics.streak} rank={metrics.rank} />
         <section className="grid grid-cols-1 gap-6 lg:grid-cols-[1.6fr_0.8fr]">
-          <LearningSection level={metrics.level} xp={metrics.xp} nextLevel={metrics.nextLevel} xpRemaining={metrics.xpRemaining} />
+          <LearningSection
+            level={metrics.level}
+            xp={metrics.xp}
+            nextLevel={metrics.nextLevel}
+            xpRemaining={metrics.xpRemaining}
+            continueLearning={continueLearning}
+            continueLearningStatus={continueLearningStatus}
+          />
           <DashboardSidebar
             user={user}
             referrals={referrals}
@@ -49,10 +71,15 @@ export function DashboardPage() {
             rank={metrics.rank}
             referralTarget={metrics.referralTarget}
             referralMissing={metrics.referralMissing}
+            topPlayers={topPlayers}
+            topPlayersStatus={topPlayersStatus}
+            dailyMission={dailyMission}
+            dailyMissionStatus={dailyMissionStatus}
             onReferrals={goToReferrals}
             onLogout={logout}
           />
         </section>
+        <RecommendedCourses />
       </div>
     </div>
   );

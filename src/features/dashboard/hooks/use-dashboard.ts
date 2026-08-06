@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ApiException } from "@/shared/api";
 import { dashboardService } from "../services/dashboard-service";
-import type { DashboardUser, ReferralOverview } from "../types/dashboard";
+import type { ContinueLearningCourse, DailyMission, DashboardUser, ReferralOverview, TopPlayerEntry } from "../types/dashboard";
 
 type LoadStatus = "loading" | "error" | "ready";
 
@@ -13,6 +13,12 @@ export function useDashboard() {
   const [userStatus, setUserStatus] = useState<LoadStatus>("loading");
   const [referrals, setReferrals] = useState<ReferralOverview | null>(null);
   const [referralsStatus, setReferralsStatus] = useState<LoadStatus>("loading");
+  const [continueLearning, setContinueLearning] = useState<ContinueLearningCourse[]>([]);
+  const [continueLearningStatus, setContinueLearningStatus] = useState<LoadStatus>("loading");
+  const [topPlayers, setTopPlayers] = useState<TopPlayerEntry[]>([]);
+  const [topPlayersStatus, setTopPlayersStatus] = useState<LoadStatus>("loading");
+  const [dailyMission, setDailyMission] = useState<DailyMission | null>(null);
+  const [dailyMissionStatus, setDailyMissionStatus] = useState<LoadStatus>("loading");
   const [reloadToken, setReloadToken] = useState(0);
 
   useEffect(() => {
@@ -57,6 +63,60 @@ export function useDashboard() {
     };
   }, [reloadToken]);
 
+  useEffect(() => {
+    let cancelled = false;
+    dashboardService
+      .getContinueLearning()
+      .then((data) => {
+        if (cancelled) return;
+        setContinueLearning(data);
+        setContinueLearningStatus("ready");
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setContinueLearningStatus("error");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadToken]);
+
+  useEffect(() => {
+    let cancelled = false;
+    dashboardService
+      .getTopPlayers()
+      .then((data) => {
+        if (cancelled) return;
+        setTopPlayers(data);
+        setTopPlayersStatus("ready");
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setTopPlayersStatus("error");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadToken]);
+
+  useEffect(() => {
+    let cancelled = false;
+    dashboardService
+      .getDailyMission()
+      .then((data) => {
+        if (cancelled) return;
+        setDailyMission(data);
+        setDailyMissionStatus("ready");
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setDailyMissionStatus("error");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadToken]);
+
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("userId");
@@ -68,6 +128,9 @@ export function useDashboard() {
   const retry = useCallback(() => {
     setUserStatus("loading");
     setReferralsStatus("loading");
+    setContinueLearningStatus("loading");
+    setTopPlayersStatus("loading");
+    setDailyMissionStatus("loading");
     setReloadToken((value) => value + 1);
   }, []);
 
@@ -76,6 +139,12 @@ export function useDashboard() {
     userStatus,
     referrals,
     referralsStatus,
+    continueLearning,
+    continueLearningStatus,
+    topPlayers,
+    topPlayersStatus,
+    dailyMission,
+    dailyMissionStatus,
     logout,
     retry,
     goToReferrals: () => router.push("/referrals"),

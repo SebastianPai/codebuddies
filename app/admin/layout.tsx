@@ -25,6 +25,11 @@ import {
   Crown,
   Users,
   Target,
+  DollarSign,
+  GitBranch,
+  Shield,
+  AlertTriangle,
+  Activity,
 } from "lucide-react";
 import { useTranslation } from "../../src/i18n/useTranslation";
 
@@ -115,6 +120,18 @@ export default function AdminLayout({
               icon={<Terminal size={18} />}
               label={t("admin.languagesNav")}
             />
+
+            <SidebarLink
+              href="/admin/learning-paths"
+              icon={<GitBranch size={18} />}
+              label={t("admin.learningPathsNav")}
+            />
+
+            <SidebarLink
+              href="/admin/course-categories"
+              icon={<Tag size={18} />}
+              label={t("admin.courseCategoriesNav")}
+            />
           </SidebarSection>
 
           {/* GAMIFICACION */}
@@ -191,6 +208,12 @@ export default function AdminLayout({
             />
 
             <SidebarLink
+              href="/admin/theme-assets"
+              icon={<Image size={18} />}
+              label={t("admin.themeAssetsNav")}
+            />
+
+            <SidebarLink
               href="/admin/codestudio"
               icon={<BarChart3 size={18} />}
               label="CodeStudio"
@@ -216,6 +239,12 @@ export default function AdminLayout({
               href="/admin/premium"
               icon={<Crown size={18} />}
               label={t("admin.premiumStubTitle")}
+            />
+
+            <SidebarLink
+              href="/admin/pricing"
+              icon={<DollarSign size={18} />}
+              label={t("admin.pricingPlansNav")}
             />
 
             <SidebarLink
@@ -270,6 +299,24 @@ export default function AdminLayout({
               href="/admin/settings"
               icon={<Settings size={18} />}
               label={t("admin.settingsNav")}
+            />
+
+            <SidebarLink
+              href="/admin/audit-log"
+              icon={<Shield size={18} />}
+              label={t("admin.auditLogNav")}
+            />
+
+            <SidebarLink
+              href="/admin/content-reports"
+              icon={<AlertTriangle size={18} />}
+              label={t("admin.contentReportsNav")}
+            />
+
+            <SidebarLink
+              href="/admin/student-experience"
+              icon={<Activity size={18} />}
+              label={t("admin.studentExperienceNav")}
             />
           </SidebarSection>
 

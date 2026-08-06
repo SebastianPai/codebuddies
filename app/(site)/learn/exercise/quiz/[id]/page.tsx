@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
@@ -23,6 +23,7 @@ import {
   Rewind,
 } from "lucide-react";
 import { useTranslation } from "../../../../../../src/i18n/useTranslation";
+import { ContentDiscussion } from "@/features/courses/components/content-discussion";
 
 interface ExtendedQuizExercise extends QuizExercise {
   prevExerciseId?: string | null;
@@ -38,13 +39,15 @@ export default function BrutalistQuizExercisePage() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState<number[]>([]);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+  const [revealedCorrect, setRevealedCorrect] = useState<number[]>([]);
+  const [revealedExplanation, setRevealedExplanation] = useState("");
   const [showExplanation, setShowExplanation] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [xpGained, setXpGained] = useState(0);
   const [coinsGained, setCoinsGained] = useState(0);
-  const [levelUp, setLevelUp] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const startedAtRef = useRef<number>(Date.now());
 
   useEffect(() => {
     const token = localStorage.getItem("token")?.trim();
@@ -112,6 +115,21 @@ export default function BrutalistQuizExercisePage() {
   const questions = exercise.questions || [];
   const currentQuestion = questions[currentQuestionIndex];
 
+  if ((exercise as any).locked) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-6 bg-black text-white font-mono uppercase text-center p-6">
+        <ShieldAlert size={48} className="text-[rgb(var(--primary))]" />
+        <p className="text-xl max-w-md">{t("site.exerciseLockedMessage")}</p>
+        <Link
+          href="/premium"
+          className="rounded-lg bg-[rgb(var(--primary))] px-6 py-3 font-black text-black normal-case"
+        >
+          {t("site.premiumTitle")}
+        </Link>
+      </div>
+    );
+  }
+
   if (!currentQuestion) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-black text-white font-mono uppercase text-xl p-6 text-center">
@@ -122,7 +140,7 @@ export default function BrutalistQuizExercisePage() {
   }
 
   const isMultiple = currentQuestion.isMultiple;
-  const correctIndices = currentQuestion.correct || [];
+  const correctIndices = revealedCorrect;
 
   const toggleOption = (index: number) => {
     if (isCorrect !== null) return;
@@ -139,6 +157,8 @@ export default function BrutalistQuizExercisePage() {
     setSelectedOptions([]);
     setIsCorrect(null);
     setShowExplanation(false);
+    setRevealedCorrect([]);
+    setRevealedExplanation("");
   };
 
   const resetQuiz = () => {
@@ -147,42 +167,38 @@ export default function BrutalistQuizExercisePage() {
     setCompleted(false);
     setXpGained(0);
     setCoinsGained(0);
-    setLevelUp(false);
     setErrorMessage(null);
   };
 
   const handleSubmit = async () => {
     if (selectedOptions.length === 0) return;
-    const userAnswered = [...selectedOptions].sort((a, b) => a - b);
-    const sortedCorrect = [...correctIndices].sort((a, b) => a - b);
-    const isRight =
-      JSON.stringify(userAnswered) === JSON.stringify(sortedCorrect);
-
-    setIsCorrect(isRight);
-    setShowExplanation(true);
-
-    if (!isRight || completed) return;
-
-    const userId = localStorage.getItem("userId")?.trim();
-    if (!userId) return;
 
     try {
-      const res = await fetcher("/progress", {
+      const timeSpentSeconds = Math.round(
+        (Date.now() - startedAtRef.current) / 1000,
+      );
+      const res = await fetcher(`/exercises/${exercise.id}/quiz/answer`, {
         method: "POST",
         body: JSON.stringify({
-          userId,
-          lessonId: exercise.lessonId,
-          exerciseId: exercise.id,
+          questionIndex: currentQuestionIndex,
+          selectedOptions,
+          timeSpentSeconds,
         }),
       });
 
+      setIsCorrect(res.correct);
+      setRevealedCorrect(res.correctOptions || []);
+      setRevealedExplanation(res.explanation || "");
+      setShowExplanation(true);
+
+      if (!res.correct || completed) return;
+
       setCompleted(true);
-      const gainedXP = res.xpAdded || res.xp || exercise.experience || 0;
+      const gainedXP = res.xpAdded || exercise.experience || 0;
       const gainedCoins = res.coinsAdded || exercise.coins || 0;
       setXpGained(gainedXP);
       setCoinsGained(gainedCoins);
-      showReward({ xp: gainedXP, coins: gainedCoins, levelUp: res.leveledUp });
-      if (res.leveledUp) setLevelUp(true);
+      showReward({ xp: gainedXP, coins: gainedCoins });
     } catch (err: any) {
       setErrorMessage(t("site.networkErrorProgress"));
     }
@@ -342,12 +358,12 @@ export default function BrutalistQuizExercisePage() {
                   </div>
                 )}
 
-                {showExplanation && currentQuestion.explanation && (
+                {showExplanation && revealedExplanation && (
                   <div className="mt-6 bg-[rgb(var(--border))] bg-opacity-20 border-l-8 border-[rgb(var(--primary))] p-4 font-mono text-[rgb(var(--text))] text-sm md:text-base">
                     <p className="font-bold uppercase text-[10px] mb-2 opacity-50">
                       {t("site.logDecryptedLabel")}
                     </p>
-                    <p>{currentQuestion.explanation}</p>
+                    <p>{revealedExplanation}</p>
                   </div>
                 )}
               </motion.div>
@@ -417,6 +433,8 @@ export default function BrutalistQuizExercisePage() {
               )
             )}
           </div>
+
+          <ContentDiscussion target={{ exerciseId: id }} />
         </div>
       </div>
     </div>

@@ -1,4 +1,5 @@
 export type LessonType = "TEXT" | "CODE" | "QUIZ" | "LIVE";
+export type ContentStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
 
 export interface LessonTranslation {
   languageCode: string;
@@ -32,6 +33,7 @@ export interface LessonDetails {
   id: string;
   order: number;
   type: LessonType;
+  status?: ContentStatus;
   experience: number;
   coins: number;
   translations: Array<{
@@ -46,6 +48,7 @@ export interface LessonFormValues {
   courseId: string;
   order: number;
   type: LessonType;
+  status: ContentStatus;
   experience: number;
   coins: number;
   translations: LessonTranslation[];

@@ -26,4 +26,10 @@ export const lessonsService = {
   deleteLesson(lessonId: string): Promise<unknown> {
     return lessonsApi.delete(lessonId);
   },
+  getExercises(lessonId: string) {
+    return lessonsApi.getExercises(lessonId);
+  },
+  reorderExercises(items: Array<{ id: string; order: number }>) {
+    return lessonsApi.reorderExercises(items);
+  },
 };

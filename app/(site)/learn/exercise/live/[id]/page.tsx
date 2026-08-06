@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useTranslation } from "../../../../../src/i18n/useTranslation";
+import { useTranslation } from "../../../../../../src/i18n/useTranslation";
 
 export default function LiveExercisePlaceholderPage() {
   const t = useTranslation();

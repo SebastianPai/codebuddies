@@ -35,8 +35,11 @@ import { usePathname } from "next/navigation";
 import { useReward } from "../contexts/RewardContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "../src/i18n/useTranslation";
+import { useLanguage, type Lang } from "../src/i18n/LanguageContext";
 import { getRealtimeUrl } from "@/config/env";
 import { useGlobalNotifications } from "./notifications/GlobalNotificationsProvider";
+import { useThemeAsset } from "../hooks/useThemeAsset";
+import { ThemeImage, THEME_IMAGE_SPRITE_KEYFRAMES } from "./ThemeImage";
 
 const INACTIVE_MS = 5 * 60 * 1000;
 const PRESENCE_SESSION_KEY = "codebuddies:presence-session-id";
@@ -71,10 +74,12 @@ export default function Navbar() {
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
   const [rewardVisible, setRewardVisible] = useState(false);
 
-  const [lang, setLang] = useState("es");
+  const languageContext = useLanguage();
+  const lang = languageContext?.lang ?? "es";
 
   const { user, isAuthenticated, logout, loading } = useAuth();
   const { unreadCount, resetUnread } = useGlobalNotifications();
+  const logoAsset = useThemeAsset("LOGO");
   const pathname = usePathname();
   const { reward } = useReward();
   const menuRef = useRef<HTMLDivElement>(null);
@@ -82,18 +87,8 @@ export default function Navbar() {
   const presenceRef = useRef<EventSource | null>(null);
   const inactiveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      const savedLang = localStorage.getItem("lang");
-      if (savedLang) setLang(savedLang);
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, []);
-
   const changeLanguage = (newLang: string) => {
-    setLang(newLang);
-    localStorage.setItem("lang", newLang);
-    window.location.reload();
+    languageContext?.changeLanguage(newLang as Lang);
   };
 
   useEffect(() => {
@@ -290,11 +285,14 @@ export default function Navbar() {
         `}
       >
         <div className="flex justify-between items-center h-[72px] px-6 sm:px-10">
+          <style>{THEME_IMAGE_SPRITE_KEYFRAMES}</style>
           <Link href="/" className="flex items-center gap-3 group">
             <div className="relative w-10 h-10 overflow-hidden">
-              <img
-                src="/robot-head.png"
+              <ThemeImage
+                asset={logoAsset}
+                fallbackSrc="/robot-head.png"
                 alt={t("navbar.home")}
+                size={40}
                 className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
               />
             </div>
@@ -625,6 +623,7 @@ function AccountMenuContent({
       />
       <DropdownItem href="/missions" icon={<Target size={16} />} label={t("navbar.missions")} />
       <DropdownItem href="/achievements" icon={<Trophy size={16} />} label={t("navbar.achievements")} />
+      <DropdownItem href="/badges" icon={<Award size={16} />} label={t("navbar.badges")} />
       <DropdownItem href="/rewards" icon={<Gift size={16} />} label={t("navbar.rewardCenter")} />
       <DropdownItem href="/referrals" icon={<Users size={16} />} label={t("navbar.referrals")} />
       {isAdmin && <DropdownItem href="/admin" icon={<Shield size={16} />} label={t("navbar.adminPanel")} />}

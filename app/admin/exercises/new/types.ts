@@ -28,6 +28,7 @@ export interface AdminExerciseResponse {
   id: string;
   lessonId: string;
   type: "CODE" | "QUIZ" | "VIDEO_THEORY" | "LIVE";
+  status?: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   experience: number;
   coins: number;
   order: number;

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { api } from "@/shared/api/client";
 import { useTranslation } from "../../../src/i18n/useTranslation";
 
 type WorldItem = {
@@ -34,9 +35,7 @@ export default function WorldItemsPage() {
 
   async function loadItems() {
     try {
-      const res = await fetch("http://localhost:3001/world-item-data");
-
-      const data = await res.json();
+      const data = await api.get<WorldItem[]>("/world-item-data");
 
       console.log("WORLD ITEMS RESPONSE:", data);
 
@@ -64,9 +63,7 @@ export default function WorldItemsPage() {
     if (!ok) return;
 
     try {
-      await fetch(`http://localhost:3001/world-item-data/${itemId}`, {
-        method: "DELETE",
-      });
+      await api.delete(`/world-item-data/${itemId}`);
 
       loadItems();
     } catch (error) {

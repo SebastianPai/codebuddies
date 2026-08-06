@@ -27,6 +27,8 @@ import {
 import { fetcher } from "../../../../utils/fetcher";
 import { Exercise } from "../../../../src/types/exercise";
 import { EmptyState, ErrorState } from "@/shared/ui";
+import { CourseReviews } from "@/features/courses/components/course-reviews";
+import { CourseProjectSection } from "@/features/courses/components/course-project-section";
 
 interface CertificateStatus {
   completed: boolean;
@@ -81,8 +83,8 @@ export default function CourseDetailPage() {
           );
           setUserXP(totalXP);
 
-          // Placeholder: pending backend support for real consecutive-day streaks.
-          setStreak(7);
+          const me = await fetcher(`/identity/me`);
+          setStreak(me?.streak ?? 0);
 
           const status = await fetcher(`/certificates/course/${id}/status`);
           setCertificateStatus(status);
@@ -200,6 +202,24 @@ export default function CourseDetailPage() {
               <p className="mt-5 text-lg md:text-xl font-mono text-[rgb(var(--secondary-text))] max-w-3xl">
                 {course.description}
               </p>
+
+              {course.prerequisites?.length > 0 && (
+                <div className="mt-6 flex flex-wrap items-center gap-2 rounded-xl border-2 border-[rgb(var(--cb-warning))] bg-[rgb(var(--cb-warning)/0.1)] p-4">
+                  <Lock size={16} className="text-[rgb(var(--warning-text))]" />
+                  <span className="text-sm font-bold uppercase text-[rgb(var(--warning-text))]">
+                    {t("site.coursePrerequisitesTitle")}:
+                  </span>
+                  {course.prerequisites.map((prerequisite: { id: string; title: string | null }) => (
+                    <Link
+                      key={prerequisite.id}
+                      href={`/courses/${prerequisite.id}`}
+                      className="rounded-full border border-[rgb(var(--warning-text))] px-3 py-1 text-xs font-bold text-[rgb(var(--warning-text))] transition hover:opacity-80"
+                    >
+                      {prerequisite.title}
+                    </Link>
+                  ))}
+                </div>
+              )}
             </div>
           </header>
 
@@ -208,9 +228,14 @@ export default function CourseDetailPage() {
             <EmptyState title={t.courseDetail.noLessons} />
           ) : (
           <div className="space-y-5">
-            {course.lessons?.map((lesson: any, index: number) => {
+            {course.lessons?.map((lesson: any) => {
               const isOpen = openLesson === lesson.id;
-              const isLocked = !isLoggedIn && index >= (course.freeLimit || 1);
+              // El backend ya calcula esto (course.service.ts) contra la
+              // suscripción premium real del usuario — antes acá se
+              // re-derivaba solo mirando isLoggedIn, así que cualquier
+              // usuario logueado (sin importar si tenía premium) veía todo
+              // desbloqueado.
+              const isLocked = Boolean(lesson.locked);
               const completedCount =
                 lesson.exercises?.filter((ex: Exercise) =>
                   completedExercises.includes(ex.id),
@@ -221,7 +246,7 @@ export default function CourseDetailPage() {
                 <div
                   key={lesson.id}
                   className={`group rounded-xl overflow-hidden border-4 border-[rgb(var(--border))] bg-[rgb(var(--card))] transition-all duration-300 hover:border-[rgb(var(--primary)/0.6)] hover:shadow-xl hover:shadow-[rgb(var(--primary)/0.08)] ${
-                    isLocked ? "opacity-60 saturate-50 pointer-events-none" : ""
+                    isLocked ? "opacity-60 saturate-50" : ""
                   }`}
                   role="region"
                   aria-labelledby={`lesson-${lesson.id}`}
@@ -229,7 +254,7 @@ export default function CourseDetailPage() {
                   <button
                     disabled={isLocked}
                     onClick={() => setOpenLesson(isOpen ? null : lesson.id)}
-                    className="w-full flex items-center justify-between p-6 text-left transition"
+                    className="w-full flex items-center justify-between p-6 text-left transition disabled:cursor-not-allowed"
                     aria-expanded={isOpen}
                     aria-controls={`lesson-content-${lesson.id}`}
                   >
@@ -273,6 +298,16 @@ export default function CourseDetailPage() {
                       />
                     )}
                   </button>
+
+                  {isLocked && (
+                    <Link
+                      href="/premium"
+                      className="flex items-center justify-center gap-2 border-t-2 border-[rgb(var(--border))] bg-[rgb(var(--primary)/0.08)] px-6 py-3 text-xs font-black uppercase text-[rgb(var(--primary-text))] transition hover:bg-[rgb(var(--primary)/0.15)]"
+                    >
+                      <Lock size={14} />
+                      {t("site.premiumTitle")}
+                    </Link>
+                  )}
 
                   <AnimatePresence>
                     {isOpen && !isLocked && (
@@ -353,6 +388,9 @@ export default function CourseDetailPage() {
             })}
           </div>
           )}
+
+          <CourseReviews courseId={id} />
+          <CourseProjectSection courseId={id} />
         </div>
 
         {/* Sidebar – más compacto y profesional */}

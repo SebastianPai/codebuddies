@@ -27,6 +27,8 @@ export default function QuizExercisePage() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState<number[]>([]);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+  const [revealedCorrect, setRevealedCorrect] = useState<number[]>([]);
+  const [revealedExplanation, setRevealedExplanation] = useState("");
   const [showExplanation, setShowExplanation] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [xpGained, setXpGained] = useState(0);
@@ -112,7 +114,7 @@ export default function QuizExercisePage() {
   }
 
   const isMultiple = currentQuestion.isMultiple;
-  const correctIndices = currentQuestion.correct || [];
+  const correctIndices = revealedCorrect;
 
   const toggleOption = (index: number) => {
     if (isCorrect !== null) return;
@@ -130,6 +132,8 @@ export default function QuizExercisePage() {
     setSelectedOptions([]);
     setIsCorrect(null);
     setShowExplanation(false);
+    setRevealedCorrect([]);
+    setRevealedExplanation("");
   };
 
   const resetQuiz = () => {
@@ -144,36 +148,30 @@ export default function QuizExercisePage() {
   const handleSubmit = async () => {
     if (selectedOptions.length === 0) return;
 
-    const userAnswered = selectedOptions.sort((a, b) => a - b);
-    const sortedCorrect = [...correctIndices].sort((a, b) => a - b);
-    const isRight =
-      JSON.stringify(userAnswered) === JSON.stringify(sortedCorrect);
-
-    setIsCorrect(isRight);
-    setShowExplanation(true);
-
-    if (!isRight || completed) return;
-
     if (!user?.userId) {
       setErrorMessage(t("site.sessionLostRedirect"));
       setTimeout(() => router.push("/login"), 1500);
       return;
     }
 
-    console.log("[Submit] Enviando progreso con userId:", user.userId);
-
     try {
-      const res = await fetcher("/progress", {
+      const res = await fetcher(`/exercises/${exercise.id}/quiz/answer`, {
         method: "POST",
         body: JSON.stringify({
-          userId: user.userId,
-          lessonId: exercise.lessonId,
-          exerciseId: exercise.id,
+          questionIndex: currentQuestionIndex,
+          selectedOptions,
         }),
       });
 
+      setIsCorrect(res.correct);
+      setRevealedCorrect(res.correctOptions || []);
+      setRevealedExplanation(res.explanation || "");
+      setShowExplanation(true);
+
+      if (!res.correct || completed) return;
+
       setCompleted(true);
-      const gainedXP = res.xpAdded || res.xp || exercise.experience || 0;
+      const gainedXP = res.xpAdded || exercise.experience || 0;
       const gainedCoins = res.coinsAdded || exercise.coins || 0;
       setXpGained(gainedXP);
       setCoinsGained(gainedCoins);
@@ -298,13 +296,13 @@ export default function QuizExercisePage() {
                 </>
               )}
 
-              {showExplanation && currentQuestion.explanation && (
+              {showExplanation && revealedExplanation && (
                 <div className="bg-gray-900 p-8 rounded-2xl border border-gray-700 text-left max-w-2xl mx-auto">
                   <p className="text-2xl font-bold mb-4 text-white">
                     {t("site.explanationLabel")}
                   </p>
                   <p className="text-xl text-gray-300 leading-relaxed">
-                    {currentQuestion.explanation}
+                    {revealedExplanation}
                   </p>
                 </div>
               )}

@@ -5,12 +5,14 @@ import { useTranslation } from "../../../../../src/i18n/useTranslation";
 
 interface CommonFieldsProps {
   type: "CODE" | "QUIZ" | "VIDEO_THEORY" | "LIVE";
+  status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   experience: number;
   coins: number;
   order: number | "";
   lessonId: string;
   lessons: { id: string; title: string }[];
   onChangeType: (e: ChangeEvent<HTMLSelectElement>) => void;
+  onChangeStatus: (e: ChangeEvent<HTMLSelectElement>) => void;
   onChangeExperience: (e: ChangeEvent<HTMLInputElement>) => void;
   onChangeCoins: (e: ChangeEvent<HTMLInputElement>) => void;
   onChangeOrder: (e: ChangeEvent<HTMLInputElement>) => void;
@@ -19,12 +21,14 @@ interface CommonFieldsProps {
 
 export default function CommonFields({
   type,
+  status,
   experience,
   coins,
   order,
   lessonId,
   lessons,
   onChangeType,
+  onChangeStatus,
   onChangeExperience,
   onChangeCoins,
   onChangeOrder,
@@ -69,6 +73,22 @@ export default function CommonFields({
           <option value="QUIZ">{t("admin.quizTypeOption")}</option>
           <option value="VIDEO_THEORY">{t("admin.videoTheoryTypeOption")}</option>
           <option value="LIVE">{t("admin.liveSessionTypeOption")}</option>
+        </select>
+      </div>
+
+      {/* Estado del contenido */}
+      <div>
+        <label className="block text-sm font-medium text-gray-300 mb-2">
+          {t("admin.contentStatus")}
+        </label>
+        <select
+          value={status}
+          onChange={onChangeStatus}
+          className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        >
+          <option value="DRAFT">{t("admin.statusDraft")}</option>
+          <option value="PUBLISHED">{t("admin.statusPublished")}</option>
+          <option value="ARCHIVED">{t("admin.statusArchived")}</option>
         </select>
       </div>
 

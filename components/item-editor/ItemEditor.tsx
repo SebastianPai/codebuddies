@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { HelpCircle } from "lucide-react";
 import { api } from "../../utils/api";
 import FootprintEditor, {
@@ -145,10 +146,10 @@ export default function ItemEditor({
     initial?.itemSpriteUrl || initial?.avatarData?.itemSprite?.imageUrl || "",
   );
   const [itemSpriteFrameWidth, setItemSpriteFrameWidth] = useState(
-    initial?.itemSpriteFrameWidth || initial?.avatarData?.itemSprite?.frameWidth || 64,
+    initial?.itemSpriteFrameWidth || initial?.avatarData?.itemSprite?.frameWidth || 128,
   );
   const [itemSpriteFrameHeight, setItemSpriteFrameHeight] = useState(
-    initial?.itemSpriteFrameHeight || initial?.avatarData?.itemSprite?.frameHeight || 64,
+    initial?.itemSpriteFrameHeight || initial?.avatarData?.itemSprite?.frameHeight || 224,
   );
   const [itemSpriteFramesCount, setItemSpriteFramesCount] = useState(
     initial?.itemSpriteFramesCount || initial?.avatarData?.itemSprite?.framesCount || 1,
@@ -271,7 +272,7 @@ export default function ItemEditor({
     }
   };
 
-  const buildAdminPayload = (imageUrl: string | null, uploadedItemSpriteUrl = itemSpriteUrl) => {
+  const buildAdminPayload = (imageUrl: string | null) => {
     const baseData = {
       name: name.trim(),
       description: description.trim(),
@@ -288,18 +289,13 @@ export default function ItemEditor({
 
     if (category === "avatar") {
       const layer = SLOT_LAYERS[slot as keyof typeof SLOT_LAYERS] ?? 0;
+      // El sprite animado ya no se configura acá — se hace en
+      // /admin/item-sprites una vez creado el item (ver link en la sección
+      // de arriba), para no duplicar ese flujo.
       return {
         ...baseData,
         slot,
         layer,
-        itemSprite: {
-          imageUrl: uploadedItemSpriteUrl || imageUrl,
-          frameWidth: Number(itemSpriteFrameWidth),
-          frameHeight: Number(itemSpriteFrameHeight),
-          framesCount: Number(itemSpriteFramesCount),
-          rowIndex: Number(itemSpriteRowIndex),
-          animation: itemSpriteAnimation,
-        },
       };
     }
 
@@ -413,13 +409,13 @@ export default function ItemEditor({
     try {
       const imageUrl = await uploadImage();
       const uploadedItemSpriteUrl =
-        category === "avatar" && itemSpriteFile
+        mode === "creator" && category === "avatar" && itemSpriteFile
           ? await uploadItemSprite(itemSpriteFile)
           : itemSpriteUrl;
       await onSubmit(
         mode === "creator"
           ? buildCreatorPayload(imageUrl, uploadedItemSpriteUrl)
-          : buildAdminPayload(imageUrl, uploadedItemSpriteUrl),
+          : buildAdminPayload(imageUrl),
       );
     } catch (error) {
       setErrors([error instanceof Error ? error.message : t("items.saveItemErrorFallback")]);
@@ -555,88 +551,109 @@ export default function ItemEditor({
                   ))}
                 </select>
               </LabeledField>
-              <div className="rounded-2xl border border-dashed border-zinc-700 bg-black/60 p-3 md:col-span-2">
-                <div className="flex flex-col gap-3 md:flex-row md:items-center">
-                  <div className="grid h-24 w-24 shrink-0 place-items-center rounded-xl bg-[#111]">
-                    {itemSpriteUrl ? (
-                      <CachedImage src={itemSpriteUrl} alt={t("items.itemSprite")} className="max-h-20 max-w-20 object-contain [image-rendering:pixelated]" />
-                    ) : (
-                      <span className="text-xs text-zinc-500">{t("items.sprite")}</span>
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-black text-white">{t("items.itemSprite")}</p>
-                    <p className="mt-1 text-xs text-zinc-500">{t("items.spriteDescription")}</p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => itemSpriteInputRef.current?.click()}
-                        className="rounded-xl bg-yellow-400 px-4 py-2 text-sm font-black text-black"
-                      >
-                        {itemSpriteUploading ? t("items.uploadingEllipsis") : itemSpriteUrl ? t("items.replaceImageButton") : t("items.uploadImageButton")}
-                      </button>
-                      {itemSpriteUrl && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setItemSpriteUrl("");
-                            setItemSpriteFile(null);
-                            if (itemSpriteInputRef.current) itemSpriteInputRef.current.value = "";
-                          }}
-                          className="rounded-xl border border-zinc-700 px-4 py-2 text-sm font-black text-zinc-300"
-                        >
-                          {t("items.removeButton")}
-                        </button>
+
+              {mode === "admin" && initial?.id && (
+                <div className="rounded-2xl border border-dashed border-zinc-700 bg-black/60 p-4 md:col-span-2 flex flex-col justify-center gap-2">
+                  <p className="text-sm font-black text-white">{t("items.itemSprite")}</p>
+                  <p className="text-xs text-zinc-500">{t("items.configureSpriteElsewhereHint")}</p>
+                  <Link
+                    href={`/admin/item-sprites?itemId=${initial.id}`}
+                    className="w-fit rounded-xl bg-yellow-400 px-4 py-2 text-sm font-black text-black"
+                  >
+                    {t("items.configureSpriteButton")}
+                  </Link>
+                </div>
+              )}
+
+              {mode === "creator" && (
+                <div className="rounded-2xl border border-dashed border-zinc-700 bg-black/60 p-3 md:col-span-2">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center">
+                    <div className="grid h-24 w-24 shrink-0 place-items-center rounded-xl bg-[#111]">
+                      {itemSpriteUrl ? (
+                        <CachedImage src={itemSpriteUrl} alt={t("items.itemSprite")} className="max-h-20 max-w-20 object-contain [image-rendering:pixelated]" />
+                      ) : (
+                        <span className="text-xs text-zinc-500">{t("items.sprite")}</span>
                       )}
                     </div>
-                    <input
-                      ref={itemSpriteInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(event) => {
-                        const selectedFile = event.target.files?.[0];
-                        if (!selectedFile) return;
-                        if (!selectedFile.type.startsWith("image/")) {
-                          setErrors([t("items.onlyImagesForSpriteError")]);
-                          return;
-                        }
-                        setItemSpriteFile(selectedFile);
-                        setItemSpriteUrl(URL.createObjectURL(selectedFile));
-                      }}
-                    />
+                    <div className="flex-1">
+                      <p className="text-sm font-black text-white">{t("items.itemSprite")}</p>
+                      <p className="mt-1 text-xs text-zinc-500">{t("items.spriteDescription")}</p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => itemSpriteInputRef.current?.click()}
+                          className="rounded-xl bg-yellow-400 px-4 py-2 text-sm font-black text-black"
+                        >
+                          {itemSpriteUploading ? t("items.uploadingEllipsis") : itemSpriteUrl ? t("items.replaceImageButton") : t("items.uploadImageButton")}
+                        </button>
+                        {itemSpriteUrl && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setItemSpriteUrl("");
+                              setItemSpriteFile(null);
+                              if (itemSpriteInputRef.current) itemSpriteInputRef.current.value = "";
+                            }}
+                            className="rounded-xl border border-zinc-700 px-4 py-2 text-sm font-black text-zinc-300"
+                          >
+                            {t("items.removeButton")}
+                          </button>
+                        )}
+                      </div>
+                      <input
+                        ref={itemSpriteInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(event) => {
+                          const selectedFile = event.target.files?.[0];
+                          if (!selectedFile) return;
+                          if (!selectedFile.type.startsWith("image/")) {
+                            setErrors([t("items.onlyImagesForSpriteError")]);
+                            return;
+                          }
+                          setItemSpriteFile(selectedFile);
+                          setItemSpriteUrl(URL.createObjectURL(selectedFile));
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-              <LabeledField text={t("items.animationLabel")} hint={t("items.animationHint")}>
-                <select value={itemSpriteAnimation} onChange={(event) => setItemSpriteAnimation(event.target.value)} className={fieldClass}>
-                  {animations.length ? (
-                    animations.map((animation) => (
-                      <option key={animation.id} value={animation.variant || animation.name || animation.id}>
-                        {animation.name || `${animation.type ?? t("items.animationFallback")} ${animation.variant ?? ""}`}
-                      </option>
-                    ))
-                  ) : (
-                    <option value="idle">{t("items.idle")}</option>
-                  )}
-                </select>
-              </LabeledField>
-              <LabeledField text={t("items.frameWidth")} hint={t("items.frameWidthHint")}>
-                <input type="number" min="1" value={itemSpriteFrameWidth} onChange={(event) => setItemSpriteFrameWidth(Number(event.target.value))} className={fieldClass} />
-              </LabeledField>
-              <LabeledField text={t("items.frameHeight")} hint={t("items.frameHeightHint")}>
-                <input type="number" min="1" value={itemSpriteFrameHeight} onChange={(event) => setItemSpriteFrameHeight(Number(event.target.value))} className={fieldClass} />
-              </LabeledField>
-              <LabeledField text={t("items.frames")} hint={t("items.framesHint")}>
-                <input type="number" min="1" value={itemSpriteFramesCount} onChange={(event) => setItemSpriteFramesCount(Number(event.target.value))} className={fieldClass} />
-              </LabeledField>
-              <LabeledField text={t("items.row")} hint={t("items.rowHint")}>
-                <input type="number" min="0" value={itemSpriteRowIndex} onChange={(event) => setItemSpriteRowIndex(Number(event.target.value))} className={fieldClass} />
-              </LabeledField>
+              )}
+
+              {mode === "creator" && (
+                <>
+                  <LabeledField text={t("items.animationLabel")} hint={t("items.animationHint")}>
+                    <select value={itemSpriteAnimation} onChange={(event) => setItemSpriteAnimation(event.target.value)} className={fieldClass}>
+                      {animations.length ? (
+                        animations.map((animation) => (
+                          <option key={animation.id} value={animation.variant || animation.name || animation.id}>
+                            {animation.name || `${animation.type ?? t("items.animationFallback")} ${animation.variant ?? ""}`}
+                          </option>
+                        ))
+                      ) : (
+                        <option value="idle">{t("items.idle")}</option>
+                      )}
+                    </select>
+                  </LabeledField>
+                  <LabeledField text={t("items.frameWidth")} hint={t("items.frameWidthHint")}>
+                    <input type="number" min="1" value={itemSpriteFrameWidth} onChange={(event) => setItemSpriteFrameWidth(Number(event.target.value))} className={fieldClass} />
+                  </LabeledField>
+                  <LabeledField text={t("items.frameHeight")} hint={t("items.frameHeightHint")}>
+                    <input type="number" min="1" value={itemSpriteFrameHeight} onChange={(event) => setItemSpriteFrameHeight(Number(event.target.value))} className={fieldClass} />
+                  </LabeledField>
+                  <LabeledField text={t("items.frames")} hint={t("items.framesHint")}>
+                    <input type="number" min="1" value={itemSpriteFramesCount} onChange={(event) => setItemSpriteFramesCount(Number(event.target.value))} className={fieldClass} />
+                  </LabeledField>
+                  <LabeledField text={t("items.row")} hint={t("items.rowHint")}>
+                    <input type="number" min="0" value={itemSpriteRowIndex} onChange={(event) => setItemSpriteRowIndex(Number(event.target.value))} className={fieldClass} />
+                  </LabeledField>
+                </>
+              )}
             </div>
           </div>
           <AvatarItemPreview
-            itemSpriteUrl={itemSpriteUrl}
+            itemSpriteUrl={mode === "creator" ? itemSpriteUrl : ""}
             previewUrl={preview}
             slot={slot}
             layer={SLOT_LAYERS[slot as keyof typeof SLOT_LAYERS] ?? 0}

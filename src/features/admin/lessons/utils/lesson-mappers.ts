@@ -34,6 +34,7 @@ export function toLessonFormValues(lesson: LessonDetails): LessonFormValues {
     courseId: "",
     order: lesson.order,
     type: lesson.type,
+    status: lesson.status ?? "PUBLISHED",
     experience: lesson.experience,
     coins: lesson.coins,
     translations: lesson.translations.map((translation) => ({
@@ -52,6 +53,7 @@ export function toLessonPayload(
   const payload = {
     order: values.order,
     type: values.type,
+    status: values.status,
     experience: values.experience,
     coins: values.coins,
     translations: values.translations.map((translation) => ({

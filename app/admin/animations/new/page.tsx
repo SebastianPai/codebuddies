@@ -2,6 +2,7 @@
 
 import AnimationForm from "../components/AnimationForm";
 import { useRouter } from "next/navigation";
+import { api } from "@/shared/api/client";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
 
 export default function NewPage() {
@@ -9,11 +10,7 @@ export default function NewPage() {
   const router = useRouter();
 
   const handleCreate = async (data: any) => {
-    await fetch("http://localhost:3001/animations", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
+    await api.post("/animations", data);
 
     router.push("/admin/animations");
   };
