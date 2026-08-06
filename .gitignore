@@ -51,3 +51,7 @@ Thumbs.db
 .claude/
 .agents/
 .codex/
+
+# apps/game has its own separate git repo/history — deliberately excluded
+# from this monorepo, not part of this consolidation.
+/apps/game/
