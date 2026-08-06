@@ -1,0 +1,106 @@
+name: CI
+
+# Alcance intencional: apps/api y apps/web únicamente (el sistema de
+# cursos/aprendizaje). apps/game no está cubierto por este pipeline.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+env:
+  PNPM_VERSION: "10.30.2"
+  NODE_VERSION: "20"
+
+jobs:
+  api:
+    name: API (lint / typecheck / test / build)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: codebuddies
+          POSTGRES_PASSWORD: codebuddies
+          POSTGRES_DB: codebuddies_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://codebuddies:codebuddies@localhost:5432/codebuddies_db
+      JWT_SECRET: ci-only-secret-not-for-production
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Prisma generate
+        run: pnpm --filter api exec prisma generate
+
+      - name: Prisma migrate deploy
+        run: pnpm --filter api exec prisma migrate deploy
+
+      # No bloqueante todavía: hay ~1800 hallazgos de lint preexistentes en
+      # todo apps/api (sobre todo formateo) que no vienen de este pipeline.
+      # Se deja visible en el log del job para no perder la señal, pero no
+      # tumba el build hasta que se pague esa deuda a propósito.
+      - name: Lint (informational)
+        run: pnpm --filter api run lint:ci
+        continue-on-error: true
+
+      - name: Typecheck
+        run: pnpm --filter api run typecheck
+
+      # Excluye los specs de modules/game: son ejercicios de scaffolding sin
+      # terminar de un área fuera del alcance de este pipeline (ver nota de
+      # scope arriba), no algo que este CI deba bloquear.
+      - name: Test
+        run: pnpm --filter api exec jest --testPathIgnorePatterns="/node_modules/|modules/game/"
+
+      - name: Build
+        run: pnpm --filter api run build
+
+  web:
+    name: Web (lint / typecheck / build)
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # No bloqueante: mismo motivo que en el job de api (deuda de lint
+      # preexistente, no introducida por este pipeline).
+      - name: Lint (informational)
+        run: pnpm --filter web run lint
+        continue-on-error: true
+
+      - name: Typecheck
+        run: pnpm --filter web run typecheck
+
+      - name: Build
+        run: pnpm --filter web run build

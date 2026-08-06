@@ -1,0 +1,340 @@
+Listado de rutas de carpetas
+El número de serie del volumen es 00000284 0475:A69C
+C:\USERS\SEBASTIAN\DESKTOP\MONEY\CODEBUDDIES\APPS\API\SRC
+¦   app.controller.spec.ts
+¦   app.controller.ts
+¦   app.module.ts
+¦   app.service.ts
+¦   main.ts
+¦   test-engine.ts
+¦   
++---game
+¦   ¦   dispatch.ts
+¦   ¦   engine.ts
+¦   ¦   types.ts
+¦   ¦   
+¦   +---apps
+¦   ¦   ¦   app-simulation.service.ts
+¦   ¦   ¦   app-tick.service.ts
+¦   ¦   ¦   app-validation.service.ts
+¦   ¦   ¦   app.controller.ts
+¦   ¦   ¦   app.module.ts
+¦   ¦   ¦   apps.service.ts
+¦   ¦   ¦   apps.validation.ts
+¦   ¦   ¦   
+¦   ¦   +---dto
+¦   ¦           create-app.dto.ts
+¦   ¦           update-logic.dto.ts
+¦   ¦           
+¦   +---challenges
+¦   ¦       moveXPChallenge.ts
+¦   ¦       
+¦   +---scripts
+¦           exampleHook.ts
+¦           
++---modules
+¦   +---academies
+¦   ¦   ¦   academies.module.ts
+¦   ¦   ¦   
+¦   ¦   +---controllers
+¦   ¦   ¦       academies.controller.ts
+¦   ¦   ¦       
+¦   ¦   +---dto
+¦   ¦   ¦       create-academy.dto.ts
+¦   ¦   ¦       update-academy.dto.ts
+¦   ¦   ¦       
+¦   ¦   +---entities
+¦   ¦   ¦       academy.entity.ts
+¦   ¦   ¦       
+¦   ¦   +---repositories
+¦   ¦   ¦       academies.repository.ts
+¦   ¦   ¦       
+¦   ¦   +---services
+¦   ¦   ¦       academies.service.ts
+¦   ¦   ¦       
+¦   ¦   +---types
+¦   ¦           academy-query.types.ts
+¦   ¦           
+¦   +---admin
+¦   ¦   ¦   admin.module.ts
+¦   ¦   ¦   
+¦   ¦   +---controllers
+¦   ¦   ¦       admin.controller.ts
+¦   ¦   ¦       
+¦   ¦   +---dto
+¦   ¦   ¦       admin-user-action.dto.ts
+¦   ¦   ¦       certificate-access-action.dto.ts
+¦   ¦   ¦       
+¦   ¦   +---services
+¦   ¦           admin-dashboard.service.ts
+¦   ¦           admin-users.service.ts
+¦   ¦           
+¦   +---certificates
+¦   ¦   ¦   certificates.module.ts
+¦   ¦   ¦   
+¦   ¦   +---controllers
+¦   ¦   ¦       certificates-admin.controller.ts
+¦   ¦   ¦       certificates.controller.ts
+¦   ¦   ¦       
+¦   ¦   +---dto
+¦   ¦   ¦       create-certificate-access.dto.ts
+¦   ¦   ¦       issue-certificate.dto.ts
+¦   ¦   ¦       
+¦   ¦   +---entities
+¦   ¦   ¦       certificate-access.entity.ts
+¦   ¦   ¦       certificate.entity.ts
+¦   ¦   ¦       
+¦   ¦   +---repositories
+¦   ¦   ¦       certificate-access.repository.ts
+¦   ¦   ¦       certificates.repository.ts
+¦   ¦   ¦       
+¦   ¦   +---services
+¦   ¦   ¦       certificate-eligibility.service.ts
+¦   ¦   ¦       certificate-stats.service.ts
+¦   ¦   ¦       certificates.service.ts
+¦   ¦   ¦       
+¦   ¦   +---types
+¦   ¦           certificate-query.types.ts
+¦   ¦           certificate-status.types.ts
+¦   ¦           
+¦   +---course
+¦   ¦   ¦   course.controller.spec.ts
+¦   ¦   ¦   course.controller.ts
+¦   ¦   ¦   course.module.ts
+¦   ¦   ¦   course.service.spec.ts
+¦   ¦   ¦   course.service.ts
+¦   ¦   ¦   
+¦   ¦   +---dto
+¦   ¦           create-course.dto.ts
+¦   ¦           update-course.dto.ts
+¦   ¦           
+¦   +---exercise
+¦   ¦   ¦   exercise.controller.spec.ts
+¦   ¦   ¦   exercise.controller.ts
+¦   ¦   ¦   exercise.module.ts
+¦   ¦   ¦   exercise.service.spec.ts
+¦   ¦   ¦   exercise.service.ts
+¦   ¦   ¦   
+¦   ¦   +---dto
+¦   ¦   ¦       create-exercise.dto.ts
+¦   ¦   ¦       
+¦   ¦   +---types
+¦   ¦           exercise.interface.ts
+¦   ¦           
+¦   +---game
+¦   ¦   ¦   game-challenges.service.ts
+¦   ¦   ¦   game.controller.ts
+¦   ¦   ¦   game.gateway copy.ts
+¦   ¦   ¦   game.gateway.ts
+¦   ¦   ¦   game.module.ts
+¦   ¦   ¦   game.service.spec.ts
+¦   ¦   ¦   game.service.ts
+¦   ¦   ¦   
+¦   ¦   +---achievements
+¦   ¦   +---animations
+¦   ¦   ¦   ¦   animations.controller.ts
+¦   ¦   ¦   ¦   animations.module.ts
+¦   ¦   ¦   ¦   animations.service.ts
+¦   ¦   ¦   ¦   
+¦   ¦   ¦   +---dto
+¦   ¦   ¦           create-animation.dto.ts
+¦   ¦   ¦           update-animation.dto.ts
+¦   ¦   ¦           
+¦   ¦   +---avatar
+¦   ¦   ¦       avatar.controller.spec.ts
+¦   ¦   ¦       avatar.controller.ts
+¦   ¦   ¦       avatar.module.ts
+¦   ¦   ¦       avatar.service.spec.ts
+¦   ¦   ¦       avatar.service.ts
+¦   ¦   ¦       
+¦   ¦   +---avatar-items
+¦   ¦   ¦   ¦   avatar-items.controller.ts
+¦   ¦   ¦   ¦   avatar-items.service.ts
+¦   ¦   ¦   ¦   
+¦   ¦   ¦   +---dto
+¦   ¦   +---economy
+¦   ¦   +---energy
+¦   ¦   ¦       energy.service.spec.ts
+¦   ¦   ¦       energy.service.ts
+¦   ¦   ¦       
+¦   ¦   +---game-challenges
+¦   ¦   +---handlers
+¦   ¦   ¦       room-items.handler.ts
+¦   ¦   ¦       
+¦   ¦   +---inventory
+¦   ¦   +---item-sprites
+¦   ¦   ¦   ¦   item-sprites.controller.ts
+¦   ¦   ¦   ¦   item-sprites.module.ts
+¦   ¦   ¦   ¦   item-sprites.service.ts
+¦   ¦   ¦   ¦   
+¦   ¦   ¦   +---dto
+¦   ¦   ¦           create-item-sprite.dto.ts
+¦   ¦   ¦           update-item-sprite.dto.ts
+¦   ¦   ¦           
+¦   ¦   +---items
+¦   ¦   ¦   ¦   items.controller.ts
+¦   ¦   ¦   ¦   items.module.ts
+¦   ¦   ¦   ¦   items.service.ts
+¦   ¦   ¦   ¦   
+¦   ¦   ¦   +---dto
+¦   ¦   ¦           create-avatar-item.dto.ts
+¦   ¦   ¦           create-item.dto.ts
+¦   ¦   ¦           create-world-item.dto.ts
+¦   ¦   ¦           update-item.dto.ts
+¦   ¦   ¦           
+¦   ¦   +---layouts
+¦   ¦   ¦       layouts.controller.ts
+¦   ¦   ¦       layouts.module.ts
+¦   ¦   ¦       layouts.service.ts
+¦   ¦   ¦       
+¦   ¦   +---player
+¦   ¦   ¦       player.module.ts
+¦   ¦   ¦       player.service.ts
+¦   ¦   ¦       
+¦   ¦   +---rankings
+¦   ¦   +---reward
+¦   ¦   ¦       reward.service.spec.ts
+¦   ¦   ¦       reward.service.ts
+¦   ¦   ¦       
+¦   ¦   +---room-items
+¦   ¦   ¦       room-items.module.ts
+¦   ¦   ¦       room-items.service.ts
+¦   ¦   ¦       
+¦   ¦   +---rooms
+¦   ¦   ¦       rooms.controller.ts
+¦   ¦   ¦       rooms.module.ts
+¦   ¦   ¦       rooms.service.ts
+¦   ¦   ¦       
+¦   ¦   +---types
+¦   ¦   ¦       AvatarTypes.ts
+¦   ¦   ¦       
+¦   ¦   +---world-item-data
+¦   ¦       ¦   world-item-data.controller.ts
+¦   ¦       ¦   world-item-data.module.ts
+¦   ¦       ¦   world-item-data.service.ts
+¦   ¦       ¦   
+¦   ¦       +---dto
+¦   ¦               update-world-item.dto.ts
+¦   ¦               
+¦   +---identity
+¦   ¦   ¦   identity.controller.spec.ts
+¦   ¦   ¦   identity.controller.ts
+¦   ¦   ¦   identity.module.ts
+¦   ¦   ¦   identity.service.spec.ts
+¦   ¦   ¦   identity.service.ts
+¦   ¦   ¦   jwt.strategy.ts
+¦   ¦   ¦   
+¦   ¦   +---decorators
+¦   ¦   ¦       roles.decorator.ts
+¦   ¦   ¦       
+¦   ¦   +---dto
+¦   ¦   ¦       login.dto.ts
+¦   ¦   ¦       register.dto.ts
+¦   ¦   ¦       
+¦   ¦   +---guards
+¦   ¦           jwt.guard.ts
+¦   ¦           roles.guard.ts
+¦   ¦           
+¦   +---lesson
+¦   ¦   ¦   lesson.controller.spec.ts
+¦   ¦   ¦   lesson.controller.ts
+¦   ¦   ¦   lesson.module.ts
+¦   ¦   ¦   lesson.service.spec.ts
+¦   ¦   ¦   lesson.service.ts
+¦   ¦   ¦   
+¦   ¦   +---dto
+¦   ¦           create-lesson.dto.ts
+¦   ¦           
+¦   +---module
+¦   ¦   ¦   module.controller.ts
+¦   ¦   ¦   module.module.ts
+¦   ¦   ¦   module.service.ts
+¦   ¦   ¦   
+¦   ¦   +---dto
+¦   ¦           create-module.dto.ts
+¦   ¦           
+¦   +---payments
+¦   ¦   ¦   payments.module.ts
+¦   ¦   ¦   
+¦   ¦   +---controllers
+¦   ¦   ¦       payments.controller.ts
+¦   ¦   ¦       
+¦   ¦   +---dto
+¦   ¦   ¦       create-certificate-order.dto.ts
+¦   ¦   ¦       
+¦   ¦   +---entities
+¦   ¦   ¦       certificate-order.entity.ts
+¦   ¦   ¦       
+¦   ¦   +---providers
+¦   ¦   ¦       mock-payment.provider.ts
+¦   ¦   ¦       
+¦   ¦   +---repositories
+¦   ¦   ¦       certificate-orders.repository.ts
+¦   ¦   ¦       
+¦   ¦   +---services
+¦   ¦   ¦       payments.service.ts
+¦   ¦   ¦       
+¦   ¦   +---types
+¦   ¦           payment-provider.types.ts
+¦   ¦           
+¦   +---progress
+¦   ¦   ¦   progress.controller.ts
+¦   ¦   ¦   progress.module.ts
+¦   ¦   ¦   progress.service.ts
+¦   ¦   ¦   
+¦   ¦   +---dto
+¦   ¦   ¦       create-progress.dto.ts
+¦   ¦   ¦       update-progress.dto.ts
+¦   ¦   ¦       
+¦   ¦   +---entities
+¦   ¦           progress.entity.ts
+¦   ¦           
+¦   +---rankings
+¦   ¦       rankings.controller.ts
+¦   ¦       rankings.module.ts
+¦   ¦       rankings.service.ts
+¦   ¦       
+¦   +---storage
+¦   ¦       spaces.storage.ts
+¦   ¦       
+¦   +---subscriptions
+¦   ¦   ¦   subscriptions.module.ts
+¦   ¦   ¦   
+¦   ¦   +---controllers
+¦   ¦   ¦       subscriptions.controller.ts
+¦   ¦   ¦       
+¦   ¦   +---dto
+¦   ¦   ¦       create-premium-subscription.dto.ts
+¦   ¦   ¦       
+¦   ¦   +---entities
+¦   ¦   ¦       premium-subscription.entity.ts
+¦   ¦   ¦       
+¦   ¦   +---providers
+¦   ¦   ¦       mock-subscription.provider.ts
+¦   ¦   ¦       
+¦   ¦   +---repositories
+¦   ¦   ¦       premium-subscriptions.repository.ts
+¦   ¦   ¦       
+¦   ¦   +---services
+¦   ¦   ¦       subscriptions.service.ts
+¦   ¦   ¦       
+¦   ¦   +---types
+¦   ¦           subscription-provider.types.ts
+¦   ¦           
+¦   +---translate
+¦   ¦       translate.controller.ts
+¦   ¦       translate.module.ts
+¦   ¦       translate.service.ts
+¦   ¦       
+¦   +---uploads
+¦   ¦       uploads.controller.ts
+¦   ¦       uploads.module.ts
+¦   ¦       uploads.service.ts
+¦   ¦       
+¦   +---utils
+¦           image.processor.ts
+¦           
++---prisma
+        prisma.module.ts
+        prisma.service.ts
+        

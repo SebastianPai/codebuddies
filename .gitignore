@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+!**/.env.example
+process.env
+
+# Build output
+.next/
+out/
+dist/
+build/
+*.tsbuildinfo
+
+# Turbo / caches
+.turbo/
+.eslintcache
+
+# Prisma
+apps/api/node_modules/.prisma/
+apps/api/generated/prisma/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing / coverage
+coverage/
+.nyc_output/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+
+# AI tooling local/runtime state (not shared config)
+.claude/
+.agents/
+.codex/

@@ -1,0 +1,179 @@
+Listado de rutas de carpetas
+El número de serie del volumen es 000001BC 0475:A69C
+C:\USERS\SEBASTIAN\DESKTOP\MONEY\CODEBUDDIES\APPS\WEB\APP
+¦   globals.css
+¦   layout.tsx
+¦   
++---(site)
+¦   ¦   layout.tsx
+¦   ¦   page.tsx
+¦   ¦   
+¦   +---(auth)
+¦   ¦   +---login
+¦   ¦   ¦       page.tsx
+¦   ¦   ¦       
+¦   ¦   +---register
+¦   ¦           page.tsx
+¦   ¦           
+¦   +---certificates
+¦   ¦   ¦   page.tsx
+¦   ¦   ¦   
+¦   ¦   +---buy
+¦   ¦   ¦   +---[courseId]
+¦   ¦   ¦           page.tsx
+¦   ¦   ¦           
+¦   ¦   +---[certificateId]
+¦   ¦           page.tsx
+¦   ¦           
+¦   +---courses
+¦   ¦   ¦   page.tsx
+¦   ¦   ¦   
+¦   ¦   +---[id]
+¦   ¦           page.tsx
+¦   ¦           
+¦   +---dashboard
+¦   ¦       page.tsx
+¦   ¦       
+¦   +---learn
+¦   ¦   +---exercise
+¦   ¦       +---live
+¦   ¦       ¦   +---[id]
+¦   ¦       ¦           page.tsx
+¦   ¦       ¦           
+¦   ¦       +---quiz
+¦   ¦       ¦   +---[id]
+¦   ¦       ¦           page.tsx
+¦   ¦       ¦           
+¦   ¦       +---result
+¦   ¦       ¦       page.tsx
+¦   ¦       ¦       
+¦   ¦       +---[id]
+¦   ¦               page.tsx
+¦   ¦               
+¦   +---premium
+¦   ¦       page.tsx
+¦   ¦       
+¦   +---pricing
+¦   ¦       page.tsx
+¦   ¦       
+¦   +---privacy
+¦   ¦       page.tsx
+¦   ¦       
+¦   +---rankings
+¦   ¦       page.tsx
+¦   ¦       
+¦   +---refund-policy
+¦   ¦       page.tsx
+¦   ¦       
+¦   +---terms
+¦           page.tsx
+¦           
++---(workspace)
+¦   ¦   layout.tsx
+¦   ¦   
+¦   +---learn
+¦       +---exercise
+¦           +---code
+¦               +---[id]
+¦                       page.tsx
+¦                       
++---admin
+    ¦   layout.tsx
+    ¦   page.tsx
+    ¦   
+    +---animations
+    ¦   ¦   page.tsx
+    ¦   ¦   
+    ¦   +---components
+    ¦   ¦       AnimationEditor.tsx
+    ¦   ¦       AnimationForm.tsx
+    ¦   ¦       AnimationPreview.tsx
+    ¦   ¦       SpriteUploader.tsx
+    ¦   ¦       
+    ¦   +---new
+    ¦   ¦       page.tsx
+    ¦   ¦       
+    ¦   +---[id]
+    ¦           page.tsx
+    ¦           
+    +---courses
+    ¦   ¦   page.tsx
+    ¦   ¦   
+    ¦   +---new
+    ¦   ¦       page.tsx
+    ¦   ¦       
+    ¦   +---[id]
+    ¦           page.tsx
+    ¦           
+    +---exercises
+    ¦   ¦   page.tsx
+    ¦   ¦   
+    ¦   +---new
+    ¦   ¦   ¦   page.tsx
+    ¦   ¦   ¦   types.ts
+    ¦   ¦   ¦   
+    ¦   ¦   +---components
+    ¦   ¦           CodeExerciseForm.tsx
+    ¦   ¦           CommonFields.tsx
+    ¦   ¦           LiveExerciseForm.tsx
+    ¦   ¦           QuizExerciseForm.tsx
+    ¦   ¦           VideoTheoryExerciseForm.tsx
+    ¦   ¦           
+    ¦   +---[id]
+    ¦           page.tsx
+    ¦           
+    +---item-sprites
+    ¦       page.tsx
+    ¦       
+    +---items
+    ¦   ¦   page.tsx
+    ¦   ¦   
+    ¦   +---components
+    ¦   ¦       ItemForm.tsx
+    ¦   ¦       ItemsPage.tsx
+    ¦   ¦       
+    ¦   +---create
+    ¦   ¦       page.tsx
+    ¦   ¦       
+    ¦   +---[id]
+    ¦           page.tsx
+    ¦           
+    +---layouts
+    ¦   ¦   page.tsx
+    ¦   ¦   
+    ¦   +---new
+    ¦   ¦       page.tsx
+    ¦   ¦       
+    ¦   +---[id]
+    ¦           page.tsx
+    ¦           
+    +---lessons
+    ¦   ¦   page.tsx
+    ¦   ¦   
+    ¦   +---new
+    ¦   ¦       page.tsx
+    ¦   ¦       
+    ¦   +---[id]
+    ¦           page.tsx
+    ¦           
+    +---modules
+    ¦   ¦   page.tsx
+    ¦   ¦   
+    ¦   +---new
+    ¦   ¦       page.tsx
+    ¦   ¦       
+    ¦   +---[id]
+    ¦           page.tsx
+    ¦           
+    +---textures
+    ¦       page.tsx
+    ¦       
+    +---world-items
+        ¦   page.tsx
+        ¦   
+        +---create
+        ¦       page.tsx
+        ¦       
+        +---[id]
+                page.tsx
+                

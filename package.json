@@ -1,0 +1,24 @@
+{
+  "name": "codebuddies",
+  "private": true,
+  "version": "1.0.0",
+  "packageManager": "pnpm@10.30.2",
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "dev:web": "pnpm --filter web dev",
+    "dev:api": "pnpm --filter api dev",
+    "dev:game": "pnpm --filter game dev",
+    "build": "pnpm -r build",
+    "start": "pnpm -r start",
+    "lint": "pnpm -r lint",
+    "db:start": "docker compose up -d",
+    "db:stop": "docker compose down",
+    "prisma:generate": "pnpm --filter api prisma generate",
+    "prisma:migrate": "pnpm --filter api prisma migrate dev",
+    "prisma:studio": "pnpm --filter api prisma studio",
+    "clean": "pnpm -r exec rm -rf node_modules dist .next"
+  },
+  "dependencies": {
+    "framer-motion": "^12.34.3"
+  }
+}
