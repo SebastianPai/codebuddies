@@ -11,6 +11,24 @@ export class ReferralsService {
     private readonly rankingService: ReferralRankingService,
   ) {}
 
+  // NF43: el programa de referidos hoy es una config global única (ver
+  // referral.helpers.ts#getOrCreateReferralProgramConfig) con un
+  // requiredCourseId opcional como una regla de elegibilidad más, no un
+  // programa por-curso real. Esto solo expone si ESE curso puntual es el
+  // que la config exige (o si no exige ninguno en particular) para poder
+  // mostrar el banner de "invitá amigos" en la página del curso correcto.
+  async getProgramStatus(courseId?: string) {
+    const config = await getOrCreateReferralProgramConfig(this.prisma);
+
+    return {
+      enabled: config.enabled,
+      appliesToCourse:
+        config.enabled &&
+        (!config.requiredCourseId || config.requiredCourseId === courseId),
+      requiredCourseId: config.requiredCourseId,
+    };
+  }
+
   async ensureProfileForUser(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },

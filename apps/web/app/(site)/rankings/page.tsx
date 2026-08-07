@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Award, Coins, Flame, Trophy, Zap } from "lucide-react";
+import Link from "next/link";
+import { Award, Calendar, Coins, Flame, History, Trophy, Zap } from "lucide-react";
 import { api } from "../../../utils/api";
 import { useAuth } from "../../../hooks/useAuth";
 import { useTranslation } from "../../../src/i18n/useTranslation";
@@ -29,6 +30,27 @@ type RankingsResponse = {
 
 type LoadStatus = "loading" | "error" | "ready";
 
+interface SeasonEntry {
+  userId: string;
+  xpEarned: number;
+  coinsEarned: number;
+  rank: number;
+  user: { id: string; username: string } | null;
+}
+
+interface SeasonInfo {
+  id: string;
+  name: string;
+  startAt: string;
+  endAt: string | null;
+  status: "ACTIVE" | "FINALIZED";
+}
+
+interface CurrentSeasonResponse {
+  season: SeasonInfo | null;
+  entries: SeasonEntry[];
+}
+
 const boards = [
   ["site.topXp", "topXp", Zap],
   ["site.topCoins", "topCoins", Coins],
@@ -41,6 +63,7 @@ export default function RankingsPage() {
   const { user } = useAuth();
   const [rankings, setRankings] = useState<RankingsResponse | null>(null);
   const [status, setStatus] = useState<LoadStatus>("loading");
+  const [season, setSeason] = useState<CurrentSeasonResponse | null>(null);
   const t = useTranslation();
 
   const fetchRankings = useCallback(() => {
@@ -60,6 +83,13 @@ export default function RankingsPage() {
   useEffect(() => {
     fetchRankings();
   }, [fetchRankings]);
+
+  useEffect(() => {
+    api
+      .get<CurrentSeasonResponse>("/rankings/seasons/current")
+      .then(setSeason)
+      .catch(() => setSeason(null));
+  }, []);
 
   const retry = () => {
     setStatus("loading");
@@ -98,6 +128,56 @@ export default function RankingsPage() {
           {t("site.rankingsDescription")}
         </p>
       </section>
+
+      {season?.season && (
+        <section className="mb-10 rounded-lg border-2 border-[rgb(var(--primary))] bg-[rgb(var(--primary)/0.06)] p-5">
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Calendar className="text-[rgb(var(--primary))]" />
+              <div>
+                <h2 className="text-2xl font-black">{season.season.name}</h2>
+                <p className="text-xs text-[rgb(var(--secondary-text))]">
+                  {t("site.seasonActiveSince")}{" "}
+                  {new Date(season.season.startAt).toLocaleDateString()}
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/rankings/seasons"
+              className="flex items-center gap-2 text-sm font-bold text-[rgb(var(--primary))] hover:opacity-80"
+            >
+              <History size={16} /> {t("site.pastSeasonsLink")}
+            </Link>
+          </div>
+
+          {season.entries.length === 0 ? (
+            <EmptyState
+              title={t("site.noRankingEntriesTitle")}
+              description={t("site.noRankingEntriesDescription")}
+            />
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {season.entries.slice(0, 10).map((entry) => (
+                <div
+                  key={entry.userId}
+                  className={`flex items-center justify-between rounded-lg border p-3 ${
+                    entry.userId === user?.userId
+                      ? "border-[rgb(var(--primary))] bg-[rgb(var(--primary)/0.1)]"
+                      : "border-[rgb(var(--border))]"
+                  }`}
+                >
+                  <span className="truncate font-black">
+                    #{entry.rank} {entry.user?.username ?? "—"}
+                  </span>
+                  <span className="font-mono font-black text-[rgb(var(--primary))]">
+                    {entry.xpEarned.toLocaleString()} XP
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         {boards.map(([titleKey, key, Icon]) => {

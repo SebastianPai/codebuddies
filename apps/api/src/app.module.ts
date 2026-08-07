@@ -27,6 +27,7 @@ import { AdminModule } from './modules/admin/admin.module';
 import { RankingsModule } from './modules/rankings/rankings.module';
 import { ProfilesModule } from './modules/profiles/profiles.module';
 import { FriendshipsModule } from './modules/friendships/friendships.module';
+import { FriendChallengesModule } from './modules/friend-challenges/friend-challenges.module';
 import { MessagesModule } from './modules/messages/messages.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { EmailModule } from './modules/email/email.module';
@@ -88,6 +89,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     NotificationsModule,
     ProfilesModule,
     FriendshipsModule,
+    FriendChallengesModule,
     MessagesModule,
     EmailModule,
     CommunityModule,

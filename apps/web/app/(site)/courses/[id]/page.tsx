@@ -29,6 +29,7 @@ import { Exercise } from "../../../../src/types/exercise";
 import { EmptyState, ErrorState } from "@/shared/ui";
 import { CourseReviews } from "@/features/courses/components/course-reviews";
 import { CourseProjectSection } from "@/features/courses/components/course-project-section";
+import { ReferralCourseBanner } from "@/features/courses/components/referral-course-banner";
 
 interface CertificateStatus {
   completed: boolean;
@@ -220,6 +221,8 @@ export default function CourseDetailPage() {
                   ))}
                 </div>
               )}
+
+              <ReferralCourseBanner courseId={id} />
             </div>
           </header>
 

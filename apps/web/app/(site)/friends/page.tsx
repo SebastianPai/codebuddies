@@ -134,6 +134,12 @@ export default function FriendsPage() {
           </h1>
           <p className="mt-2 text-[rgb(var(--secondary-text))]">{t("site.friendsDescription")}</p>
         </div>
+        <Link
+          href="/friends/challenges"
+          className="rounded-lg border border-[rgb(var(--primary))] px-4 py-2 text-sm font-bold text-[rgb(var(--primary))] transition hover:bg-[rgb(var(--primary))] hover:text-black"
+        >
+          {t("site.challengesTitle")}
+        </Link>
       </div>
 
       <div className="mb-6 flex flex-wrap gap-2 border-b border-[rgb(var(--border))]">

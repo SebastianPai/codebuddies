@@ -276,6 +276,12 @@ export class ExerciseService {
       exercise.translations.find((t) => t.language.code === 'es') ||
       exercise.translations[0];
 
+    const adjacent = await this.getAdjacentExerciseIds(
+      { id: exercise.id, lessonId: exercise.lessonId },
+      exercise.lesson.courseId,
+      role === Role.ADMIN,
+    );
+
     const base: BaseExercise = {
       id: exercise.id,
       lessonId: exercise.lessonId,
@@ -287,6 +293,7 @@ export class ExerciseService {
       completed,
       locked,
       status: exercise.status,
+      ...adjacent,
     };
 
     switch (exercise.type) {
@@ -336,6 +343,73 @@ export class ExerciseService {
           language: 'js',
         } as CodingExercise;
     }
+  }
+
+  // El botón "siguiente ejercicio" del frontend dependía de un
+  // nextExerciseId/prevExerciseId que el backend nunca calculaba (siempre
+  // undefined) — por eso nunca avanzaba tras completar un ejercicio, sin
+  // importar el tipo. Busca el siguiente/anterior dentro de la misma
+  // lección por `order`, y si es el primero/último, cruza a la lección
+  // siguiente/anterior del curso.
+  private async getAdjacentExerciseIds(
+    exercise: { id: string; lessonId: string },
+    courseId: string,
+    isAdmin: boolean,
+  ): Promise<{
+    nextExerciseId: string | null;
+    nextExerciseType: 'QUIZ' | 'CODE' | 'LIVE' | null;
+    prevExerciseId: string | null;
+    prevExerciseType: 'QUIZ' | 'CODE' | 'LIVE' | null;
+  }> {
+    const statusFilter = isAdmin ? {} : { status: 'PUBLISHED' as const };
+
+    const siblings = await this.prisma.exercise.findMany({
+      where: { lessonId: exercise.lessonId, ...statusFilter },
+      orderBy: { order: 'asc' },
+      select: { id: true, type: true },
+    });
+
+    const index = siblings.findIndex((e) => e.id === exercise.id);
+    let next = index >= 0 ? siblings[index + 1] : undefined;
+    let prev = index >= 0 ? siblings[index - 1] : undefined;
+
+    if (!next || !prev) {
+      const lessons = await this.prisma.lesson.findMany({
+        where: { courseId, ...statusFilter },
+        orderBy: { order: 'asc' },
+        select: { id: true },
+      });
+      const lessonIndex = lessons.findIndex((l) => l.id === exercise.lessonId);
+
+      if (!next && lessonIndex >= 0) {
+        for (let i = lessonIndex + 1; i < lessons.length && !next; i += 1) {
+          next =
+            (await this.prisma.exercise.findFirst({
+              where: { lessonId: lessons[i].id, ...statusFilter },
+              orderBy: { order: 'asc' },
+              select: { id: true, type: true },
+            })) ?? undefined;
+        }
+      }
+
+      if (!prev && lessonIndex > 0) {
+        for (let i = lessonIndex - 1; i >= 0 && !prev; i -= 1) {
+          prev =
+            (await this.prisma.exercise.findFirst({
+              where: { lessonId: lessons[i].id, ...statusFilter },
+              orderBy: { order: 'desc' },
+              select: { id: true, type: true },
+            })) ?? undefined;
+        }
+      }
+    }
+
+    return {
+      nextExerciseId: next?.id ?? null,
+      nextExerciseType: next?.type ?? null,
+      prevExerciseId: prev?.id ?? null,
+      prevExerciseType: prev?.type ?? null,
+    };
   }
 
   // Corrige una respuesta de quiz server-side: la respuesta correcta nunca

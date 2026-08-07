@@ -133,6 +133,15 @@ export class NotificationsService {
     if (type === 'STREAK_AT_RISK') {
       return { category: 'RACHA', priority: 'HIGH', icon: 'Flame', link: '/dashboard', actionLabel: 'Seguir aprendiendo' };
     }
+    if (type === 'FRIEND_CHALLENGE_INVITE') {
+      return { category: 'RETOS', priority: 'HIGH', icon: 'Swords', link: '/friends/challenges', actionLabel: 'Ver reto' };
+    }
+    if (type === 'FRIEND_CHALLENGE_RESOLVED') {
+      return { category: 'RETOS', priority: 'HIGH', icon: 'Swords', link: '/friends/challenges', actionLabel: 'Ver resultado' };
+    }
+    if (String(type).startsWith('RANKING_SEASON')) {
+      return { category: 'RANKING', priority: 'NORMAL', icon: 'Trophy', link: '/rankings', actionLabel: 'Ver ranking' };
+    }
 
     return { category: 'SISTEMA', priority: 'NORMAL', icon: 'Bell', link: '/notifications', actionLabel: 'Ver' };
   }

@@ -27,6 +27,8 @@ import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useTranslation } from "../../../../../../src/i18n/useTranslation";
+import { exercisePath } from "@/shared/utils/exercise-path";
+import { useReward } from "../../../../../../contexts/RewardContext";
 
 const panelClass = `
 relative
@@ -198,6 +200,7 @@ export default function FullWidthConfidentialWorkspace() {
   const t = useTranslation();
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
+  const { showReward } = useReward();
 
   const { id } = useParams<{ id: string }>();
 
@@ -449,9 +452,12 @@ try {
         return;
       }
 
+      const xp = res.xpAdded ?? exercise.experience ?? 0;
+      const coins = res.coinsAdded ?? exercise.coins ?? 0;
       setCompleted(true);
-      setXpGained(res.xpAdded ?? exercise.experience ?? 0);
-      setCoinsGained(res.coinsAdded ?? exercise.coins ?? 0);
+      setXpGained(xp);
+      setCoinsGained(coins);
+      if (xp > 0 || coins > 0) showReward({ xp, coins });
     } catch (err) {
       console.error("[CodeExercise] Error guardando progreso:", err);
     } finally {
@@ -676,7 +682,14 @@ try {
 
           <div className="flex items-center gap-5 shrink-0">
             <button
-              disabled
+              onClick={() => {
+                if (exercise.prevExerciseId && exercise.prevExerciseType) {
+                  router.push(
+                    exercisePath(exercise.prevExerciseId, exercise.prevExerciseType),
+                  );
+                }
+              }}
+              disabled={!exercise.prevExerciseId}
               className="
                 h-12
                 px-6
@@ -684,10 +697,15 @@ try {
                 bg-white/[0.03]
                 border
                 border-white/[0.06]
-                text-gray-500
+                text-gray-300
                 flex
                 items-center
                 gap-2
+                hover:bg-white/8
+                transition-all
+                disabled:opacity-40
+                disabled:text-gray-500
+                disabled:hover:bg-white/3
               "
             >
               <ChevronLeft size={16} />
@@ -720,21 +738,38 @@ try {
             </button>
 
             <button
-              disabled
+              onClick={() => {
+                if (!completed) return;
+                if (exercise.nextExerciseId && exercise.nextExerciseType) {
+                  router.push(
+                    exercisePath(exercise.nextExerciseId, exercise.nextExerciseType),
+                  );
+                } else {
+                  router.push("/dashboard");
+                }
+              }}
+              disabled={!completed}
               className="
                 h-12
                 px-6
                 rounded-2xl
-                bg-white/[0.03]
-                border
-                border-white/[0.06]
-                text-gray-500
+                bg-yellow-400
+                text-black
+                font-semibold
                 flex
                 items-center
                 gap-2
+                hover:scale-[1.02]
+                transition-all
+                disabled:opacity-40
+                disabled:bg-white/3
+                disabled:text-gray-500
+                disabled:hover:scale-100
               "
             >
-              {t("common.next")}
+              {completed && !exercise.nextExerciseId
+                ? t("site.courseCompleteButton")
+                : t("common.next")}
               <ChevronRight size={16} />
             </button>
           </div>

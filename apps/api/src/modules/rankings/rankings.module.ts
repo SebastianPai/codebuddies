@@ -1,11 +1,14 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../prisma/prisma.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { RankingsController } from './rankings.controller';
 import { RankingsService } from './rankings.service';
+import { AdminRankingsController } from './admin-rankings.controller';
+import { RankingSeasonsService } from './ranking-seasons.service';
 
 @Module({
-  imports: [PrismaModule],
-  controllers: [RankingsController],
-  providers: [RankingsService],
+  imports: [PrismaModule, NotificationsModule],
+  controllers: [RankingsController, AdminRankingsController],
+  providers: [RankingsService, RankingSeasonsService],
 })
 export class RankingsModule {}

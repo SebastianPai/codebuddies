@@ -259,6 +259,10 @@ enum NotificationType {
   ROOM_JOIN_APPROVED
   ROOM_INVITE
   STREAK_AT_RISK
+  FRIEND_CHALLENGE_INVITE
+  FRIEND_CHALLENGE_RESOLVED
+  RANKING_SEASON_STARTED
+  RANKING_SEASON_FINALIZED
   // Preparados en la Fase 0 del rediseño de CodeStudio (ver plan de
   // migración) para que Logros e Inversores, en fases futuras, puedan
   // notificar de verdad en vez de vivir solo dentro de CodeStudio.
@@ -580,6 +584,7 @@ model User {
 
   userPowers               UserPower[]
   rankings                 Ranking[]
+  rankingSeasonEntries     RankingSeasonEntry[]
   courseReviews            CourseReview[]
   courseProjectSubmissions CourseProjectSubmission[]
   contentComments          ContentComment[]
@@ -609,6 +614,7 @@ model User {
   projectLikes           ProjectLike[]
   challengesAsChallenger FriendChallenge[] @relation("ChallengeChallenger")
   challengesAsOpponent   FriendChallenge[] @relation("ChallengeOpponent")
+  challengesWon          FriendChallenge[] @relation("ChallengeWinner")
 
   duelsAsPlayer1 Duel[] @relation("DuelPlayer1")
   duelsAsPlayer2 Duel[] @relation("DuelPlayer2")
@@ -2081,6 +2087,48 @@ model Ranking {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
+enum RankingSeasonStatus {
+  ACTIVE
+  FINALIZED
+}
+
+// NF23: el leaderboard general (RankingsService) se calcula en vivo sobre
+// totales acumulados de siempre (User.experience/coins) — no había concepto
+// de "temporada" ni reseteo periódico. Una temporada acota la ventana de
+// tiempo; mientras está ACTIVE el ranking se computa en vivo sumando
+// XPTransaction/CoinTransaction dentro de [startAt, ahora]. Al finalizar,
+// se congela un RankingSeasonEntry por usuario (historial real, no se
+// vuelve a recalcular).
+model RankingSeason {
+  id      String              @id @default(uuid())
+  name    String
+  startAt DateTime
+  endAt   DateTime?
+  status  RankingSeasonStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+
+  entries RankingSeasonEntry[]
+
+  @@index([status])
+}
+
+model RankingSeasonEntry {
+  id       String @id @default(uuid())
+  seasonId String
+  userId   String
+
+  xpEarned    Int @default(0)
+  coinsEarned Int @default(0)
+  rank        Int
+
+  season RankingSeason @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([seasonId, userId])
+  @@index([seasonId, rank])
+}
+
 model Academy {
   id       String      @id @default(uuid())
   name     String
@@ -2397,20 +2445,39 @@ model Notification {
   @@index([userId, readAt, createdAt])
 }
 
+enum FriendChallengeStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  COMPLETED
+  CANCELLED
+}
+
+// NF21: existía en el schema con un solo booleano `completed` (sin estado
+// pendiente/aceptado, sin ganador) y cero código que lo leyera o escribiera
+// en ningún lado — se rediseña acá porque nada dependía del shape anterior.
 model FriendChallenge {
   id           String  @id @default(uuid())
   challengerId String
   opponentId   String
-  courseId     String?
+  courseId     String
 
-  completed Boolean @default(false)
+  status FriendChallengeStatus @default(PENDING)
+
+  winnerId    String?
+  completedAt DateTime?
 
   createdAt DateTime @default(now())
 
-  challenger User @relation("ChallengeChallenger", fields: [challengerId], references: [id], onDelete: Cascade)
-  opponent   User @relation("ChallengeOpponent", fields: [opponentId], references: [id], onDelete: Cascade)
+  challenger User  @relation("ChallengeChallenger", fields: [challengerId], references: [id], onDelete: Cascade)
+  opponent   User  @relation("ChallengeOpponent", fields: [opponentId], references: [id], onDelete: Cascade)
+  winner     User? @relation("ChallengeWinner", fields: [winnerId], references: [id], onDelete: SetNull)
 
-  course Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([challengerId])
+  @@index([opponentId])
+  @@index([courseId])
 }
 
 model CoinTransaction {

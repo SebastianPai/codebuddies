@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState } from "react";
+import { refreshUserStats } from "../utils/auth";
 
 interface Reward {
   xp: number;
@@ -20,6 +21,9 @@ export function RewardProvider({ children }: { children: React.ReactNode }) {
 
   const showReward = (data: Reward) => {
     setReward(data);
+    // El total visible en el navbar (StatsPill) se queda desactualizado
+    // hasta el próximo login/recarga si no se refresca acá.
+    void refreshUserStats();
 
     setTimeout(() => {
       setReward(null);

@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "../../../../../../src/i18n/useTranslation";
 import { ContentDiscussion } from "@/features/courses/components/content-discussion";
+import { exercisePath } from "@/shared/utils/exercise-path";
 
 interface ExtendedQuizExercise extends QuizExercise {
   prevExerciseId?: string | null;
@@ -400,9 +401,9 @@ export default function BrutalistQuizExercisePage() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3">
-            {exercise.prevExerciseId && (
+            {exercise.prevExerciseId && exercise.prevExerciseType && (
               <Link
-                href={`/exercises/${exercise.prevExerciseId}`}
+                href={exercisePath(exercise.prevExerciseId, exercise.prevExerciseType)}
                 className="w-full"
               >
                 <button className="w-full flex items-center justify-center gap-2 bg-black text-white px-4 py-3 font-black uppercase border-2 border-[rgb(var(--border))] text-sm">
@@ -412,16 +413,23 @@ export default function BrutalistQuizExercisePage() {
             )}
 
             {(completed || isCorrect) &&
-            currentQuestionIndex === questions.length - 1 &&
-            exercise.nextExerciseId ? (
-              <Link
-                href={`/exercises/${exercise.nextExerciseId}`}
-                className="w-full"
-              >
-                <button className="w-full flex items-center justify-center gap-2 bg-[rgb(var(--primary))] text-black px-6 py-3 font-black uppercase border-2 border-black shadow-[4px_4px_0_0_#000] text-sm animate-bounce sm:animate-none">
-                  {t("site.nextMissionButton")} <FastForward size={18} />
-                </button>
-              </Link>
+            currentQuestionIndex === questions.length - 1 ? (
+              exercise.nextExerciseId && exercise.nextExerciseType ? (
+                <Link
+                  href={exercisePath(exercise.nextExerciseId, exercise.nextExerciseType)}
+                  className="w-full"
+                >
+                  <button className="w-full flex items-center justify-center gap-2 bg-[rgb(var(--primary))] text-black px-6 py-3 font-black uppercase border-2 border-black shadow-[4px_4px_0_0_#000] text-sm animate-bounce sm:animate-none">
+                    {t("site.nextMissionButton")} <FastForward size={18} />
+                  </button>
+                </Link>
+              ) : (
+                <Link href="/dashboard" className="w-full">
+                  <button className="w-full flex items-center justify-center gap-2 bg-[rgb(var(--primary))] text-black px-6 py-3 font-black uppercase border-2 border-black shadow-[4px_4px_0_0_#000] text-sm">
+                    {t("site.courseCompleteButton")} <FastForward size={18} />
+                  </button>
+                </Link>
+              )
             ) : (
               isCorrect === false && (
                 <button

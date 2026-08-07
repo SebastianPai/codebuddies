@@ -11,6 +11,12 @@ export interface BaseExercise {
   completed: boolean;
   locked: boolean;
   status?: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+  // Solo poblados en getExerciseById (vista de un ejercicio puntual) — un
+  // listado de ejercicios de una lección no los necesita.
+  nextExerciseId?: string | null;
+  nextExerciseType?: 'QUIZ' | 'CODE' | 'LIVE' | null;
+  prevExerciseId?: string | null;
+  prevExerciseType?: 'QUIZ' | 'CODE' | 'LIVE' | null;
 }
 
 export interface QuizQuestion {

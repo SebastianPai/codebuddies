@@ -28,6 +28,9 @@ import {
   Globe,
   ChevronDown,
   Shield,
+  Zap,
+  Coins,
+  Flame,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useCallback, useEffect, useState, useRef } from "react";
@@ -364,6 +367,8 @@ export default function Navbar() {
               </div>
             ) : isAuthenticated && user ? (
               <div className="relative flex items-center gap-3 ml-1" ref={menuRef}>
+                <StatsPill user={user} pulse={rewardVisible} />
+
                 <button
                   onClick={() => setIsUserMenuOpen((open) => !open)}
                   aria-haspopup="menu"
@@ -469,6 +474,9 @@ export default function Navbar() {
                         </span>
                       </span>
                     </Link>
+                    <div className="mt-2">
+                      <StatsPill user={user} pulse={rewardVisible} fullWidth />
+                    </div>
                   </motion.div>
                 )}
 
@@ -586,6 +594,52 @@ export default function Navbar() {
           )}
         </AnimatePresence>
       </nav>
+    </div>
+  );
+}
+
+// Total en vivo de nivel/XP/monedas/racha, siempre visible en el navbar
+// (antes solo existía en /dashboard y /u/[username], lejos del momento en
+// que se gana algo). `pulse` reacciona al mismo estado que ya usa el banner
+// de recompensa para que el número "salte" cuando cambia.
+function StatsPill({
+  user,
+  pulse,
+  fullWidth,
+}: {
+  user: { level?: number; experience?: number; coins?: number; streak?: number };
+  pulse: boolean;
+  fullWidth?: boolean;
+}) {
+  return (
+    <div
+      className={`
+        hidden lg:flex items-center gap-2 px-3 py-1.5
+        bg-[rgba(var(--background),0.6)] backdrop-blur-md rounded-full
+        text-xs font-black transition-all duration-300
+        ${fullWidth ? "!flex w-full justify-center" : ""}
+        ${pulse ? "scale-110 ring-2 ring-yellow-400/70 shadow-[0_0_20px_rgba(250,204,21,0.4)]" : ""}
+      `}
+    >
+      <span className="flex items-center gap-1 text-[rgb(var(--primary))]">
+        <Trophy size={13} /> {user.level ?? 1}
+      </span>
+      <span className="w-px h-3 bg-[rgb(var(--border))]" />
+      <span className="flex items-center gap-1 text-yellow-400">
+        <Zap size={13} /> {(user.experience ?? 0).toLocaleString()}
+      </span>
+      <span className="w-px h-3 bg-[rgb(var(--border))]" />
+      <span className="flex items-center gap-1 text-amber-400">
+        <Coins size={13} /> {(user.coins ?? 0).toLocaleString()}
+      </span>
+      {(user.streak ?? 0) > 0 && (
+        <>
+          <span className="w-px h-3 bg-[rgb(var(--border))]" />
+          <span className="flex items-center gap-1 text-orange-400">
+            <Flame size={13} /> {user.streak}
+          </span>
+        </>
+      )}
     </div>
   );
 }

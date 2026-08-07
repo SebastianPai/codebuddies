@@ -9,6 +9,10 @@ export interface BaseExercise {
   experience: number;
   coins: number;
   completed: boolean;
+  nextExerciseId?: string | null;
+  nextExerciseType?: "QUIZ" | "CODE" | "LIVE" | null;
+  prevExerciseId?: string | null;
+  prevExerciseType?: "QUIZ" | "CODE" | "LIVE" | null;
 }
 
 // Pregunta individual dentro de un quiz

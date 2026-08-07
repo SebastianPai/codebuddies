@@ -113,3 +113,13 @@ export async function refreshAuth(): Promise<boolean> {
   const currentUser = await getCurrentUser();
   return !!currentUser;
 }
+
+// Refresca level/experience/coins/streak desde el backend y avisa a
+// cualquier componente que use useAuth() (ej. el navbar) para que se
+// repinte con el total actualizado. Se llama tras cada recompensa
+// (ver RewardContext.showReward) — sin esto, "el total" solo se veía
+// recién en el próximo login o al recargar /dashboard.
+export async function refreshUserStats(): Promise<void> {
+  await getCurrentUser();
+  emitAuthChanged();
+}
