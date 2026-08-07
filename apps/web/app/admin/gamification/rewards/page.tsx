@@ -9,6 +9,7 @@ import { Field, Textarea, Toggle } from "../components/AdminFields";
 import RewardChips from "../../../../components/gamification/RewardChips";
 import type { AdminReward, RewardBundle } from "../components/admin-gamification-types";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
+import { useConfirm } from "@/shared/ui";
 
 type RewardHistory = {
   id: string;
@@ -21,6 +22,7 @@ type RewardHistory = {
 
 export default function AdminRewardsPage() {
   const t = useTranslation();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [bundles, setBundles] = useState<RewardBundle[]>([]);
   const [history, setHistory] = useState<RewardHistory[]>([]);
   const [name, setName] = useState("");
@@ -60,7 +62,7 @@ export default function AdminRewardsPage() {
   };
 
   const removeBundle = async (id: string) => {
-    if (!window.confirm(t("gamification.confirmDeletePack"))) return;
+    if (!(await confirm(t("gamification.confirmDeletePack")))) return;
     await api.delete(`/admin/gamification/reward-bundles/${id}`);
     toast.success(t("gamification.packDeleted"));
     await load();
@@ -122,6 +124,7 @@ export default function AdminRewardsPage() {
           </div>
         </div>
       </section>
+      {ConfirmDialog}
     </div>
   );
 }

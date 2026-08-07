@@ -2086,6 +2086,7 @@ model Ranking {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, type, period])
   @@index([type, period, score])
 }
 

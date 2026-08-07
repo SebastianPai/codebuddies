@@ -8,9 +8,11 @@ import { api } from "../../../../utils/api";
 import { findCondition } from "../components/condition-catalog";
 import type { AdminMission } from "../components/admin-gamification-types";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
+import { useConfirm } from "@/shared/ui";
 
 export default function AdminMissionsPage() {
   const t = useTranslation();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [missions, setMissions] = useState<AdminMission[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -30,7 +32,7 @@ export default function AdminMissionsPage() {
   }, []);
 
   const remove = async (id: string) => {
-    if (!window.confirm(t("gamification.confirmDeleteMission"))) return;
+    if (!(await confirm(t("gamification.confirmDeleteMission")))) return;
     await api.delete(`/admin/gamification/missions/${id}`);
     toast.success(t("gamification.missionDeleted"));
     await load();
@@ -74,6 +76,7 @@ export default function AdminMissionsPage() {
           );
         })}
       </div>
+      {ConfirmDialog}
     </div>
   );
 }

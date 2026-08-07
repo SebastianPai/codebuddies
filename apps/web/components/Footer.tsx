@@ -108,10 +108,15 @@ export default function Footer() {
                 {t.footer.social.follow}
               </h4>
               <div className="flex gap-4">
-                {[Twitter, Github, Linkedin].map((Icon, i) => (
+                {[
+                  { Icon: Twitter, label: "Twitter" },
+                  { Icon: Github, label: "GitHub" },
+                  { Icon: Linkedin, label: "LinkedIn" },
+                ].map(({ Icon, label }) => (
                   <a
-                    key={i}
+                    key={label}
                     href="#"
+                    aria-label={label}
                     className="p-3 border-2 border-white/20 hover:border-[rgb(var(--primary))] hover:text-[rgb(var(--primary))] hover:-translate-y-1 transition-all"
                   >
                     <Icon size={20} />

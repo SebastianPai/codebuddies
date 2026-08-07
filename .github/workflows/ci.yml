@@ -73,6 +73,28 @@ jobs:
       - name: Build
         run: pnpm --filter api run build
 
+  # SEC10: no había ningún escaneo de dependencias. Informational por
+  # ahora (continue-on-error) — recién arranca a correr, así que primero
+  # hay que ver qué hallazgos preexistentes trae antes de que bloquee PRs.
+  audit:
+    name: Dependency audit (informational)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: pnpm audit (high+ severity)
+        run: pnpm audit --audit-level=high
+        continue-on-error: true
+
   web:
     name: Web (lint / typecheck / build)
     runs-on: ubuntu-latest

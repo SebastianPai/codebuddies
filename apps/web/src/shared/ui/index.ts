@@ -27,3 +27,4 @@ export { AppToastContainer } from "./toast";
 export { ResourceTableActions } from "./resource-table-actions";
 export { TranslationsForm, type Translation } from "./translations-form";
 export { Tooltip } from "./tooltip";
+export { useConfirm } from "./use-confirm";

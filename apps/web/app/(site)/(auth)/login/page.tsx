@@ -152,7 +152,13 @@ export default function LoginPage() {
                 className="w-full bg-[rgb(var(--code-background))] border-2 border-[rgb(var(--border))] focus:border-[rgb(var(--primary))] p-4 pl-12 text-[rgb(var(--text))] outline-none transition-all font-mono"
               />
               <button
+                type="button"
                 onClick={() => setShowPassword(!showPassword)}
+                aria-label={
+                  showPassword
+                    ? t("auth.hidePasswordLabel")
+                    : t("auth.showPasswordLabel")
+                }
                 className="absolute right-4 top-[42px] text-[rgb(var(--secondary-text))] hover:text-[rgb(var(--primary))]"
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}

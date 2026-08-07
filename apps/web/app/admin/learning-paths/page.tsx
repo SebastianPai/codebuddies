@@ -6,6 +6,7 @@ import { Edit, Plus, Trash2 } from "lucide-react";
 import { toast } from "react-toastify";
 import { api } from "../../../utils/api";
 import { useTranslation } from "../../../src/i18n/useTranslation";
+import { useConfirm } from "@/shared/ui";
 
 interface AdminLearningPath {
   id: string;
@@ -17,6 +18,7 @@ interface AdminLearningPath {
 
 export default function AdminLearningPathsPage() {
   const t = useTranslation();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [items, setItems] = useState<AdminLearningPath[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -36,7 +38,7 @@ export default function AdminLearningPathsPage() {
   }, []);
 
   const remove = async (id: string) => {
-    if (!window.confirm(t("admin.learningPathConfirmDelete"))) return;
+    if (!(await confirm(t("admin.learningPathConfirmDelete")))) return;
     await api.delete(`/admin/learning-paths/${id}`);
     toast.success(t("admin.learningPathDeleted"));
     await load();
@@ -80,6 +82,7 @@ export default function AdminLearningPathsPage() {
           );
         })}
       </div>
+      {ConfirmDialog}
     </div>
   );
 }

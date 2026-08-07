@@ -6,6 +6,7 @@ import { toast } from "react-toastify";
 import { api } from "../../../utils/api";
 import { useTranslation } from "../../../src/i18n/useTranslation";
 import { Field, SelectField, Toggle } from "../gamification/components/AdminFields";
+import { useConfirm } from "@/shared/ui";
 
 interface LocalizedText {
   es: string;
@@ -58,6 +59,7 @@ function PlanForm({
   onCancelNew?: () => void;
 }) {
   const t = useTranslation();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [form, setForm] = useState<PlanFormState>(initial ? toFormState(initial) : emptyPlan);
   const [saving, setSaving] = useState(false);
 
@@ -96,7 +98,7 @@ function PlanForm({
 
   const remove = async () => {
     if (!initial) return;
-    if (!window.confirm(t("admin.pricingPlanConfirmDelete"))) return;
+    if (!(await confirm(t("admin.pricingPlanConfirmDelete")))) return;
     await api.delete(`/admin/pricing/plans/${initial.id}`);
     toast.success(t("admin.pricingPlanDeleted"));
     await onSaved();
@@ -230,6 +232,7 @@ function PlanForm({
           )
         )}
       </div>
+      {ConfirmDialog}
     </div>
   );
 }

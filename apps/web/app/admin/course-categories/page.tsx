@@ -5,6 +5,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { toast } from "react-toastify";
 import { api } from "../../../utils/api";
 import { useTranslation } from "../../../src/i18n/useTranslation";
+import { useConfirm } from "@/shared/ui";
 
 interface CourseCategory {
   id: string;
@@ -15,6 +16,7 @@ interface CourseCategory {
 
 export default function AdminCourseCategoriesPage() {
   const t = useTranslation();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [categories, setCategories] = useState<CourseCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [newSlug, setNewSlug] = useState("");
@@ -52,7 +54,7 @@ export default function AdminCourseCategoriesPage() {
   };
 
   const remove = async (id: string) => {
-    if (!window.confirm(t("admin.courseCategoryConfirmDelete"))) return;
+    if (!(await confirm(t("admin.courseCategoryConfirmDelete")))) return;
     await api.delete(`/admin/course-categories/${id}`);
     toast.success(t("admin.courseCategoryDeleted"));
     await load();
@@ -105,6 +107,7 @@ export default function AdminCourseCategoriesPage() {
           {categories.length === 0 && <p className="p-4 text-sm text-zinc-500">{t("common.noResults")}</p>}
         </div>
       )}
+      {ConfirmDialog}
     </div>
   );
 }

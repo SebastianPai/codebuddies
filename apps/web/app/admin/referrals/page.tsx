@@ -28,6 +28,7 @@ import type {
   ReferralRecord,
 } from "../../../components/referrals/referral-types";
 import { useTranslation } from "../../../src/i18n/useTranslation";
+import { useConfirm } from "@/shared/ui";
 
 type ItemOption = {
   id: string;
@@ -185,6 +186,7 @@ function buildMonthChart(records: ReferralRecord[]): SimpleChartPoint[] {
 
 export default function AdminReferralsPage() {
   const t = useTranslation();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [dashboard, setDashboard] = useState<DashboardPayload | null>(null);
   const [settings, setSettings] = useState<SettingsPayload | null>(null);
   const [rewards, setRewards] = useState<Reward[]>([]);
@@ -394,7 +396,7 @@ export default function AdminReferralsPage() {
   };
 
   const markFraud = async (id: string) => {
-    if (!confirm(t("admin.confirmMarkFraud"))) return;
+    if (!(await confirm(t("admin.confirmMarkFraud")))) return;
     try {
       await api.post(`/admin/referrals/records/${id}/flag-fraud`, {
         reasonCode: "MANUAL_REVIEW",
@@ -410,7 +412,7 @@ export default function AdminReferralsPage() {
   const finalizeSeason = async () => {
     const seasonId = ranking?.season?.id;
     if (!seasonId) return;
-    if (!confirm(t("admin.confirmFinalizeSeason"))) return;
+    if (!(await confirm(t("admin.confirmFinalizeSeason")))) return;
 
     try {
       await api.post("/admin/referrals/ranking/finalize", { seasonId });
@@ -1184,6 +1186,7 @@ export default function AdminReferralsPage() {
           </section>
         </section>
       </section>
+      {ConfirmDialog}
     </div>
   );
 }

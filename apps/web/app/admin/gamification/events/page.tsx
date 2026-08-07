@@ -6,6 +6,7 @@ import { toast } from "react-toastify";
 import { api } from "../../../../utils/api";
 import { Field, Textarea, Toggle } from "../components/AdminFields";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
+import { useConfirm } from "@/shared/ui";
 
 type EventItem = {
   id: string;
@@ -18,6 +19,7 @@ type EventItem = {
 
 export default function AdminEventsPage() {
   const t = useTranslation();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [items, setItems] = useState<EventItem[]>([]);
   const [form, setForm] = useState({ name: "", description: "", startsAt: "", endsAt: "", active: true });
 
@@ -39,7 +41,7 @@ export default function AdminEventsPage() {
   };
 
   const remove = async (id: string) => {
-    if (!window.confirm(t("gamification.confirmDeleteEvent"))) return;
+    if (!(await confirm(t("gamification.confirmDeleteEvent")))) return;
     await api.delete(`/admin/gamification/events/${id}`);
     await load();
   };
@@ -76,6 +78,7 @@ export default function AdminEventsPage() {
           ))}
         </div>
       </section>
+      {ConfirmDialog}
     </div>
   );
 }

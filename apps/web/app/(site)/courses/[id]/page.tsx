@@ -49,6 +49,7 @@ export default function CourseDetailPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [completedExercises, setCompletedExercises] = useState<string[]>([]);
   const [userXP, setUserXP] = useState(0);
+  const [userLevel, setUserLevel] = useState(1);
   const [streak, setStreak] = useState(0); // ← nuevo (puedes calcularlo real)
   const [certificateStatus, setCertificateStatus] =
     useState<CertificateStatus | null>(null);
@@ -77,15 +78,15 @@ export default function CourseDetailPage() {
 
           setCompletedExercises(completedExIds);
 
-          const totalXP = progress.reduce(
-            (acc: number, p: any) =>
-              acc + (p.exercise?.experience ?? 0) + (p.lesson?.experience ?? 0),
-            0,
-          );
-          setUserXP(totalXP);
-
+          // QW14: antes se recalculaba el nivel acá con una fórmula propia
+          // (Math.floor(xp/500)+1) que no coincidía con la real del backend
+          // (reward.service.ts::calculateLevel, floor(sqrt(xp/100))+1) — el
+          // mismo usuario veía dos niveles distintos según la página. Ahora
+          // usa el nivel/XP que ya devuelve /identity/me, autoritativo.
           const me = await fetcher(`/identity/me`);
           setStreak(me?.streak ?? 0);
+          setUserXP(me?.experience ?? 0);
+          setUserLevel(me?.level ?? 1);
 
           const status = await fetcher(`/certificates/course/${id}/status`);
           setCertificateStatus(status);
@@ -434,7 +435,7 @@ export default function CourseDetailPage() {
                       {t.courseDetail.sidebar.statusActive}
                     </h4>
                     <p className="font-mono text-sm text-[rgb(var(--secondary-text))]">
-                      {t("site.approximateLevelPrefix", { level: Math.floor(userXP / 500) + 1 })}
+                      {t("site.approximateLevelPrefix", { level: userLevel })}
                     </p>
                   </div>
                 </div>

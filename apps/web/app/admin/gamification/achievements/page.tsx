@@ -8,9 +8,11 @@ import { api } from "../../../../utils/api";
 import { findCondition } from "../components/condition-catalog";
 import type { AdminAchievement } from "../components/admin-gamification-types";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
+import { useConfirm } from "@/shared/ui";
 
 export default function AdminAchievementsPage() {
   const t = useTranslation();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [items, setItems] = useState<AdminAchievement[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -30,7 +32,7 @@ export default function AdminAchievementsPage() {
   }, []);
 
   const remove = async (id: string) => {
-    if (!window.confirm(t("gamification.confirmDeleteAchievement"))) return;
+    if (!(await confirm(t("gamification.confirmDeleteAchievement")))) return;
     await api.delete(`/admin/gamification/achievements/${id}`);
     toast.success(t("gamification.achievementDeleted"));
     await load();
@@ -74,6 +76,7 @@ export default function AdminAchievementsPage() {
           );
         })}
       </div>
+      {ConfirmDialog}
     </div>
   );
 }

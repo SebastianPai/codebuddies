@@ -6,11 +6,13 @@ import { toast } from "react-toastify";
 import { api } from "../../../../utils/api";
 import { Field, Textarea, Toggle } from "../components/AdminFields";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
+import { useConfirm } from "@/shared/ui";
 
 type Category = { id: string; name: string; description?: string; icon?: string; color?: string; active: boolean };
 
 export default function AdminMissionCategoriesPage() {
   const t = useTranslation();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [items, setItems] = useState<Category[]>([]);
   const [form, setForm] = useState({ name: "", description: "", icon: "Target", color: "#d5ff3f", active: true, sortOrder: 0 });
 
@@ -28,7 +30,7 @@ export default function AdminMissionCategoriesPage() {
   };
 
   const remove = async (id: string) => {
-    if (!window.confirm(t("gamification.confirmDeleteCategory"))) return;
+    if (!(await confirm(t("gamification.confirmDeleteCategory")))) return;
     await api.delete(`/admin/gamification/categories/${id}`);
     await load();
   };
@@ -61,6 +63,7 @@ export default function AdminMissionCategoriesPage() {
           ))}
         </div>
       </section>
+      {ConfirmDialog}
     </div>
   );
 }

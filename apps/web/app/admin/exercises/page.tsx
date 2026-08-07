@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { api } from "../../../utils/api";
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import { DataTable, ResourceTableActions } from "@/shared/ui";
+import { toast } from "react-toastify";
+import { DataTable, ResourceTableActions, useConfirm } from "@/shared/ui";
 import { useTranslation } from "../../../src/i18n/useTranslation";
 
 interface Exercise {
@@ -19,6 +20,7 @@ interface Exercise {
 
 export default function ExercisesAdminPage() {
   const t = useTranslation();
+  const { confirm, ConfirmDialog } = useConfirm();
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -39,14 +41,14 @@ export default function ExercisesAdminPage() {
   }, []);
 
   const deleteExercise = async (id: string) => {
-    if (!confirm(t("admin.confirmDeleteExercise"))) return;
+    if (!(await confirm(t("admin.confirmDeleteExercise")))) return;
 
     try {
       await api.delete(`/exercises/${id}`);
       setExercises((prev) => prev.filter((e) => e.id !== id));
     } catch (error) {
       console.error(error);
-      alert(t("admin.deleteExerciseError"));
+      toast.error(t("admin.deleteExerciseError"));
     }
   };
 
@@ -131,6 +133,7 @@ export default function ExercisesAdminPage() {
         defaultRowsPerPage={10}
         rowsPerPageOptions={[10, 20, 30, 40]}
       />
+      {ConfirmDialog}
     </div>
   );
 }
