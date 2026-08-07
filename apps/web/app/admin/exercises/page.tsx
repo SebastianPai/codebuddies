@@ -4,8 +4,7 @@ import { useEffect, useState } from "react";
 import { api } from "../../../utils/api";
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import DataTable from "../../../components/admin/DataTable";
-import TableActions from "../../../components/admin/TableActions";
+import { DataTable, ResourceTableActions } from "@/shared/ui";
 import { useTranslation } from "../../../src/i18n/useTranslation";
 
 interface Exercise {
@@ -121,10 +120,9 @@ export default function ExercisesAdminPage() {
             label: t("admin.actions"),
             key: "actions",
             render: (row) => (
-              <TableActions
-                id={row.id}
-                type="exercise"
-                onDelete={deleteExercise}
+              <ResourceTableActions
+                editHref={`/admin/exercises/${row.id}`}
+                onDelete={() => deleteExercise(row.id)}
               />
             ),
           },

@@ -1,14 +1,30 @@
 import { Injectable } from '@nestjs/common';
 import { ActivityType, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { CacheService } from '../../../cache/cache.service';
 
 type ChartPoint = { label: string; value: number };
 
+// HI12/PERF4: el dashboard admin corre ~8 queries agregadas en cada carga
+// — TTL corto (no es data que necesite estar al segundo, un admin
+// recargando la página 5 veces no debería pegarle a Postgres 5 veces).
+const DASHBOARD_CACHE_KEY = 'admin:dashboard';
+const DASHBOARD_CACHE_TTL_SECONDS = 30;
+
 @Injectable()
 export class AdminDashboardService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cacheService: CacheService,
+  ) {}
 
   async getDashboard() {
+    return this.cacheService.getOrSet(DASHBOARD_CACHE_KEY, DASHBOARD_CACHE_TTL_SECONDS, () =>
+      this.fetchDashboard(),
+    );
+  }
+
+  private async fetchDashboard() {
     const [
       totalUsers,
       activeUsers,

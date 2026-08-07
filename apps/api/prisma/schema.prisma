@@ -2085,6 +2085,8 @@ model Ranking {
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([type, period, score])
 }
 
 enum RankingSeasonStatus {
@@ -2428,6 +2430,7 @@ model Activity {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([createdAt])
+  @@index([userId, createdAt])
 }
 
 model Notification {

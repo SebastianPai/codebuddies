@@ -1,6 +1,11 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { HealthController } from './health.controller';
+import { CacheModule } from './cache/cache.module';
+import { MetricsModule } from './metrics/metrics.module';
 import { IdentityModule } from './modules/identity/identity.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { CourseModule } from './modules/course/course.module';
@@ -57,6 +62,8 @@ import { ScheduleModule } from '@nestjs/schedule';
     // sin ninguna fricción.
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
     PrismaModule,
+    CacheModule,
+    MetricsModule,
     IdentityModule,
     ModuleModule,
     CourseModule,
@@ -100,7 +107,13 @@ import { ScheduleModule } from '@nestjs/schedule';
     ThemeAssetsModule,
     CodeStudioModule,
   ],
+  // AppController/HealthController: AppController nunca había estado
+  // registrado acá (solo lo instanciaba su propio spec vía TestingModule,
+  // así que la ruta "/" jamás existió en la app real). BE5: tampoco había
+  // ningún /health.
+  controllers: [AppController, HealthController],
   providers: [
+    AppService,
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,

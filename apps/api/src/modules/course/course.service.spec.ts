@@ -4,6 +4,7 @@ import { CourseService } from './course.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PremiumAccessService } from '../premium-access/premium-access.service';
 import { AdminAuditService } from '../admin/services/admin-audit.service';
+import { CacheService } from '../../cache/cache.service';
 
 describe('CourseService', () => {
   let service: CourseService;
@@ -20,6 +21,10 @@ describe('CourseService', () => {
     log: jest.fn(),
     logStandalone: jest.fn(),
   };
+  const cacheService = {
+    getOrSet: jest.fn((_key: string, _ttl: number, load: () => unknown) => load()),
+    invalidate: jest.fn(),
+  };
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -29,6 +34,7 @@ describe('CourseService', () => {
         { provide: PrismaService, useValue: prisma },
         { provide: PremiumAccessService, useValue: premiumAccessService },
         { provide: AdminAuditService, useValue: adminAuditService },
+        { provide: CacheService, useValue: cacheService },
       ],
     }).compile();
 

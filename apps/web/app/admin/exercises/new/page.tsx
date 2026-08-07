@@ -7,9 +7,7 @@ import { useAuth } from "../../../../hooks/useAuth";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-import TranslationsForm, {
-  Translation,
-} from "../../../../components/admin/TranslationsForm";
+import { TranslationsForm, type Translation } from "@/shared/ui";
 import CommonFields from "./components/CommonFields";
 import CodeExerciseForm from "./components/CodeExerciseForm";
 import QuizExerciseForm from "./components/QuizExerciseForm";

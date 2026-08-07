@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CacheService } from '../../cache/cache.service';
 
 type LeaderboardMetric =
   | 'experience'
@@ -8,19 +9,33 @@ type LeaderboardMetric =
   | 'certificates'
   | 'coinsSpent';
 
+// HI12/PERF4: los top-10 (y las community-stats) son iguales para
+// cualquier visitante — solo el "currentUserRank" varía por usuario, así
+// que eso se calcula siempre fresco por fuera del cache. TTL corto porque
+// XP/coins cambian todo el rato; no vale la pena invalidar por escritura
+// en cada progress/exercise submit.
+const BOARDS_CACHE_KEY = 'rankings:boards';
+const COMMUNITY_STATS_CACHE_KEY = 'rankings:community-stats';
+const CACHE_TTL_SECONDS = 30;
+
 @Injectable()
 export class RankingsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cacheService: CacheService,
+  ) {}
 
   async getRankings(currentUserId?: string) {
     const [topXp, topCoins, topStreaks, topCertificates, topCoinsSpent] =
-      await Promise.all([
-        this.topUsersByField('experience'),
-        this.topUsersByField('coins'),
-        this.topUsersByField('streak'),
-        this.topUsersByRelation('certificates'),
-        this.topCoinsSpent(),
-      ]);
+      await this.cacheService.getOrSet(BOARDS_CACHE_KEY, CACHE_TTL_SECONDS, () =>
+        Promise.all([
+          this.topUsersByField('experience'),
+          this.topUsersByField('coins'),
+          this.topUsersByField('streak'),
+          this.topUsersByRelation('certificates'),
+          this.topCoinsSpent(),
+        ]),
+      );
 
     return {
       topXp: await this.withCurrentUserRank(topXp, 'experience', currentUserId),
@@ -48,22 +63,24 @@ export class RankingsService {
   }
 
   async getCommunityStats() {
-    const [users, certificates, xp, topLearners, streakLeaders] =
-      await Promise.all([
-        this.prisma.user.count(),
-        this.prisma.certificate.count(),
-        this.prisma.user.aggregate({ _sum: { experience: true } }),
-        this.topUsersByField('experience'),
-        this.topUsersByField('streak'),
-      ]);
+    return this.cacheService.getOrSet(COMMUNITY_STATS_CACHE_KEY, CACHE_TTL_SECONDS, async () => {
+      const [users, certificates, xp, topLearners, streakLeaders] =
+        await Promise.all([
+          this.prisma.user.count(),
+          this.prisma.certificate.count(),
+          this.prisma.user.aggregate({ _sum: { experience: true } }),
+          this.topUsersByField('experience'),
+          this.topUsersByField('streak'),
+        ]);
 
-    return {
-      users,
-      certificatesIssued: certificates,
-      totalXpEarned: xp._sum.experience ?? 0,
-      topLearners: topLearners.slice(0, 3),
-      streakLeaders: streakLeaders.slice(0, 3),
-    };
+      return {
+        users,
+        certificatesIssued: certificates,
+        totalXpEarned: xp._sum.experience ?? 0,
+        topLearners: topLearners.slice(0, 3),
+        streakLeaders: streakLeaders.slice(0, 3),
+      };
+    });
   }
 
   private async topUsersByField(field: 'experience' | 'coins' | 'streak') {

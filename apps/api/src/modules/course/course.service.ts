@@ -5,6 +5,10 @@ import { UpdateCourseDto } from './dto/update-course.dto';
 import { Difficulty, Role } from '@prisma/client';
 import { PremiumAccessService } from '../premium-access/premium-access.service';
 import { AdminAuditService } from '../admin/services/admin-audit.service';
+import { CacheService } from '../../cache/cache.service';
+
+const COURSE_LIST_CACHE_PREFIX = 'courses:list:';
+const COURSE_LIST_CACHE_TTL_SECONDS = 60;
 
 export interface CourseRequester {
   userId?: string;
@@ -17,9 +21,11 @@ export class CourseService {
     private prisma: PrismaService,
     private readonly premiumAccessService: PremiumAccessService,
     private readonly adminAuditService: AdminAuditService,
+    private readonly cacheService: CacheService,
   ) {}
 
   async createCourse(dto: CreateCourseDto, imageUrl: string | undefined) {
+    await this.cacheService.invalidate(COURSE_LIST_CACHE_PREFIX);
     const course = await this.prisma.course.create({
       data: {
         difficulty: dto.difficulty as Difficulty,
@@ -76,6 +82,27 @@ export class CourseService {
   ) {
     const isAdmin = requester.role === Role.ADMIN;
 
+    // Solo se cachea el catálogo público: el listado admin necesita ver
+    // borradores/cambios de estado al instante, y cachear por rol
+    // duplicaría claves sin ganar mucho (es un tráfico chico comparado con
+    // el catálogo público).
+    if (!isAdmin) {
+      const cacheKey = `${COURSE_LIST_CACHE_PREFIX}${lang}:${filters.search ?? ''}:${filters.categoryId ?? ''}`;
+      return this.cacheService.getOrSet(cacheKey, COURSE_LIST_CACHE_TTL_SECONDS, () =>
+        this.fetchAllCourses(lang, requester, filters),
+      );
+    }
+
+    return this.fetchAllCourses(lang, requester, filters);
+  }
+
+  private async fetchAllCourses(
+    lang: string,
+    requester: CourseRequester = {},
+    filters: { search?: string; categoryId?: string } = {},
+  ) {
+    const isAdmin = requester.role === Role.ADMIN;
+
     // NF7: búsqueda server-side real, antes 100% client-side sobre lo ya
     // cargado — ahora filtra en la consulta contra título/descripción de
     // CUALQUIER traducción (no solo la del idioma activo), para no esconder
@@ -121,11 +148,34 @@ export class CourseService {
           orderBy: { order: 'asc' },
           include: {
             translations: { include: { language: true } },
-            exercises: true,
           },
         },
       },
     });
+
+    // PERF2: antes `getAllCourses` traía TODOS los ejercicios completos
+    // (con todas sus columnas) de TODOS los cursos del catálogo solo para
+    // sumar dos números (xp/coins) y después descartaba el resto — el
+    // mismo costo de hidratación que el endpoint de detalle, multiplicado
+    // por cada curso listado. Un groupBy agrega esos dos números en la
+    // base sin traer las filas.
+    const allLessonIds = courses.flatMap((course) => course.lessons.map((l) => l.id));
+    const exerciseSums = allLessonIds.length
+      ? await this.prisma.exercise.groupBy({
+          by: ['lessonId'],
+          where: {
+            lessonId: { in: allLessonIds },
+            ...(isAdmin ? {} : { status: 'PUBLISHED' }),
+          },
+          _sum: { experience: true, coins: true },
+        })
+      : [];
+    const sumsByLesson = new Map(
+      exerciseSums.map((s) => [
+        s.lessonId,
+        { xp: s._sum.experience ?? 0, coins: s._sum.coins ?? 0 },
+      ]),
+    );
 
     return courses.map((course) => {
       const translation =
@@ -137,17 +187,13 @@ export class CourseService {
         course.module?.translations?.find((t) => t.language.code === lang) ||
         course.module?.translations?.[0];
 
-      const allExercises = course.lessons.flatMap((l) => l.exercises);
-
-      const xpTotal = allExercises.reduce(
-        (sum, ex) => sum + (ex.experience || 0),
-        0,
-      );
-
-      const coinsTotal = allExercises.reduce(
-        (sum, ex) => sum + (ex.coins || 0),
-        0,
-      );
+      let xpTotal = 0;
+      let coinsTotal = 0;
+      for (const lesson of course.lessons) {
+        const sums = sumsByLesson.get(lesson.id);
+        xpTotal += sums?.xp ?? 0;
+        coinsTotal += sums?.coins ?? 0;
+      }
 
       return {
         id: course.id,
@@ -328,6 +374,7 @@ export class CourseService {
   }
 
   async deleteCourse(id: string, adminId?: string) {
+    await this.cacheService.invalidate(COURSE_LIST_CACHE_PREFIX);
     return this.prisma.$transaction(async (tx) => {
       const courseTranslation = await tx.courseTranslation.findFirst({
         where: { courseId: id },
@@ -372,6 +419,7 @@ export class CourseService {
   }
 
   async updateCourse(id: string, data: UpdateCourseDto, adminId?: string) {
+    await this.cacheService.invalidate(COURSE_LIST_CACHE_PREFIX);
     const course = await this.prisma.course.findUnique({
       where: { id },
       include: {
