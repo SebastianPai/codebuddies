@@ -5,11 +5,16 @@
   "author": "",
   "private": true,
   "license": "UNLICENSED",
+  "engines": {
+    "node": "20.x"
+  },
   "scripts": {
     "dev": "nest start --watch",
     "build": "nest build",
     "start": "node dist/main",
     "start:debug": "nest start --debug --watch",
+    "postinstall": "prisma generate",
+    "prisma:deploy": "prisma migrate deploy",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "lint:ci": "eslint \"{src,apps,libs,test}/**/*.ts\"",

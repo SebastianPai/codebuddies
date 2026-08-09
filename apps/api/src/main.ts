@@ -18,6 +18,13 @@ async function bootstrap() {
     rawBody: true,
   });
 
+  // Detrás de un proxy real (Heroku router, etc.) en producción: hace que
+  // Express confíe en X-Forwarded-* para IP de cliente correcta (rate
+  // limiting por IP vía @nestjs/throttler) y detección de protocolo.
+  if (process.env.NODE_ENV === 'production') {
+    app.set('trust proxy', 1);
+  }
+
   // Cabeceras de seguridad estándar (HSTS, X-Content-Type-Options,
   // X-Frame-Options, etc.) — antes no había ninguna. crossOriginResourcePolicy
   // en "cross-origin" porque apps/game y apps/web (otros orígenes) cargan
@@ -74,6 +81,10 @@ async function bootstrap() {
     },
   });
 
-  await app.listen(3001);
+  // Heroku (y la mayoría de PaaS) asignan el puerto dinámicamente vía
+  // $PORT y solo enrutan tráfico externo a ese puerto — 3001 sigue siendo
+  // el fallback para desarrollo local sin esa variable seteada.
+  const port = process.env.PORT ?? 3001;
+  await app.listen(port);
 }
 bootstrap();
