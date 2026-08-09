@@ -5,8 +5,9 @@ import { getSharedAuthToken } from "./auth";
 import { showGameAlert } from "../utils/dialog";
 import { audioManager } from "../audio/AudioManager";
 import { translate } from "../../i18n/LanguageContext";
+import { getApiUrl } from "../../config/env";
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL!;
+const SOCKET_URL = getApiUrl();
 
 // Eventos de error que el gateway emite y que antes no tenían ningún listener en
 // el cliente: fallaban en silencio (compra, sala, avatar, inventario...).

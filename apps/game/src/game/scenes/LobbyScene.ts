@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { getApiUrl } from "../../config/env";
 import { Player } from "../types/player";
 import ModularPlayer from "../players/ModularPlayer";
 import PlayerHUD from "../hud/PlayerHUD";
@@ -619,7 +620,7 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
       formData.append("file", new File([blob], filename, { type: "image/jpeg" }));
       formData.append("folder", "room-thumbnails");
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+      const apiUrl = getApiUrl();
       const token = getSharedAuthToken();
       const response = await fetch(`${apiUrl}/uploads`, {
         method: "POST",

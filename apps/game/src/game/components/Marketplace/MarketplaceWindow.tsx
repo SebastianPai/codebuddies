@@ -13,9 +13,10 @@ import ItemCard from "../shared/ItemCard";
 import UserBadges from "../shared/UserBadges";
 import styles from "./MarketplaceWindow.module.css";
 import { useTranslation } from "../../../i18n/useTranslation";
+import { getApiUrl, getWebUrl } from "../../../config/env";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-const WEB_URL = process.env.NEXT_PUBLIC_WEB_URL || "http://localhost:3000";
+const API_URL = getApiUrl();
+const WEB_URL = getWebUrl();
 
 type Tab = "marketplace" | "favorites" | "creator";
 

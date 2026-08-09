@@ -7,9 +7,10 @@ import { showGameAlert } from "../../utils/dialog";
 import Modal from "../shared/Modal";
 import Button from "../shared/Button";
 import { useTranslation } from "../../../i18n/useTranslation";
+import { getApiUrl } from "../../../config/env";
 import "./RightSidebar.css";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API_URL = getApiUrl();
 
 type GameMission = {
   id: string;

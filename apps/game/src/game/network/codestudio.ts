@@ -1,6 +1,7 @@
 import { getSharedAuthToken, redirectToWebLogin } from "./auth";
+import { getApiUrl } from "../../config/env";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL!;
+const API_URL = getApiUrl();
 
 // Mismo guard que network/http.ts: sin esto, un token vencido hacía fallar
 // en silencio cada acción de CodeStudio para siempre, sin ningún camino de

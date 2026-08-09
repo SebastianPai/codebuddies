@@ -1,7 +1,9 @@
 // network/auth.ts
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL!;
-const WEB_URL = process.env.NEXT_PUBLIC_WEB_URL || "http://localhost:3000";
+import { getApiUrl, getWebUrl } from "../../config/env";
+
+const API_URL = getApiUrl();
+const WEB_URL = getWebUrl();
 
 export type GameUser = {
   userId: string;

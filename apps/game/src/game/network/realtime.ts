@@ -14,8 +14,9 @@
 // juego la conexión se mantiene abierta mientras dura la sesión de juego.
 
 import { getSharedAuthToken } from "./auth";
+import { getApiUrl } from "../../config/env";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API_URL = getApiUrl();
 const PRESENCE_SESSION_KEY = "codebuddies:presence-session-id";
 
 export const REALTIME_EVENTS = [
