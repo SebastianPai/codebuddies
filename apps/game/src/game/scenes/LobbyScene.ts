@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { getApiUrl } from "../../config/env";
+import { getApiUrl, getAssetsUrl } from "../../config/env";
 import { Player } from "../types/player";
 import ModularPlayer from "../players/ModularPlayer";
 import PlayerHUD from "../hud/PlayerHUD";
@@ -103,10 +103,7 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
 
   preload() {
     this.load.setCORS("anonymous");
-    this.load.image(
-      "tiles",
-      "https://codebuddies.sfo3.digitaloceanspaces.com/maps/rooms/tiles3.png",
-    );
+    this.load.image("tiles", `${getAssetsUrl()}/maps/rooms/tiles3.png`);
   }
 
   create() {

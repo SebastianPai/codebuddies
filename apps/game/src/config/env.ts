@@ -1,6 +1,7 @@
 type PublicEnvironment = {
   apiUrl: string;
   webUrl: string;
+  assetsUrl: string;
 };
 
 function normalizeUrl(value: string | undefined): string {
@@ -13,6 +14,7 @@ const DEV_WEB_URL = "http://localhost:3000";
 export const env: PublicEnvironment = {
   apiUrl: normalizeUrl(process.env.NEXT_PUBLIC_API_URL),
   webUrl: normalizeUrl(process.env.NEXT_PUBLIC_WEB_URL),
+  assetsUrl: normalizeUrl(process.env.NEXT_PUBLIC_ASSETS_URL),
 };
 
 // Punto único de acceso a NEXT_PUBLIC_API_URL para todo apps/game (antes
@@ -37,4 +39,13 @@ export function getApiUrl(): string {
 // al comportamiento previo).
 export function getWebUrl(): string {
   return env.webUrl || DEV_WEB_URL;
+}
+
+// Base pública de los assets estáticos del juego (tiles, sprites, etc.) en
+// Cloudflare R2 — equivalente en el cliente de R2_PUBLIC_URL en apps/api.
+// Sin throw a propósito: se usa también a nivel de módulo (p. ej. como
+// fallback de imagen), donde tirar rompería el render entero en vez de
+// solo la carga de ese asset puntual.
+export function getAssetsUrl(): string {
+  return env.assetsUrl;
 }

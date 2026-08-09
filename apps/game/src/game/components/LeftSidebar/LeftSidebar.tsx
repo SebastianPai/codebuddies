@@ -14,9 +14,9 @@ import { getInbox, getMessageRequests } from "../../network/messages";
 import { useThemeAsset } from "../../network/themeAssets";
 import { ThemeImage } from "../ThemeImage/ThemeImage";
 import { useTranslation } from "../../../i18n/useTranslation";
+import { getAssetsUrl } from "../../../config/env";
 
-const DEFAULT_LOGO_URL =
-  "https://codebuddies-assets.sfo3.cdn.digitaloceanspaces.com/items/1778904692125-bv0f5z.png";
+const DEFAULT_LOGO_URL = `${getAssetsUrl()}/items/logo.png`;
 
 // TODO(producto): reemplazar por el link real de invitación — no hay ninguno
 // configurado todavía en ningún .env del monorepo. Mientras tanto el botón

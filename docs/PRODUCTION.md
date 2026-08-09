@@ -103,8 +103,9 @@ para la lista completa con comentarios.
 | `DATABASE_URL` | Sí | Conexión Postgres (Prisma). La inyecta el add-on de Postgres automáticamente. |
 | `JWT_SECRET` | Sí | Firma/verifica JWT. La app falla al arrancar sin ella. |
 | `CORS_ORIGINS` | Recomendada | `https://codebuddies.tech,https://game.codebuddies.tech` |
-| `DEEPL_API_KEY` | Solo si se usa traducción | — |
-| `SPACES_KEY` / `SPACES_SECRET` / `SPACES_REGION` / `SPACES_ENDPOINT` / `SPACES_BUCKET` / `CDN_URL` | Solo si se sube contenido | DigitalOcean Spaces |
+| `DEEPL_API_KEY` | **Sí** | `TranslateModule` está importado en `AppModule` y `TranslateService` lee esta variable en su constructor, lanzando si falta — se instancia al bootear, no al primer uso. Corregido: antes documentada acá como opcional, no lo es. |
+| `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` | **Sí** | `UploadsModule` está importado en `AppModule`; `UploadsService` crea `new R2Storage()` como inicializador de campo (corre en el constructor), y el constructor de `R2Storage` lanza si falta cualquiera de las tres. Igual que arriba: se instancia al bootear, no es lazy. `R2_ACCOUNT_ID` se usa para armar el endpoint S3-compatible (`https://<account>.r2.cloudflarestorage.com`), sin hardcodear el account id. |
+| `R2_BUCKET` / `R2_PUBLIC_URL` | Opcional | Se usan dentro de `R2Storage`/al armar URLs, pero no están guardadas por ningún throw — sin ellas el arranque no falla, aunque subir/servir archivos sí podría fallar en tiempo de uso. |
 | `RESEND_API_KEY` / `EMAIL_FROM` | Opcional | Sin la key, solo loguea el email en vez de enviarlo |
 | `REDIS_URL` | Opcional | Adapter Socket.IO multi-dyno + cache. Sin ella, degrada solo a un adapter en memoria |
 | `PADDLE_*` | Opcional | Sin `PADDLE_API_KEY`, usa providers mock |
@@ -118,6 +119,7 @@ para la lista completa con comentarios.
 | `NEXT_PUBLIC_API_URL` | Sí | `https://api.codebuddies.tech` — se hornea en el build |
 | `NEXT_PUBLIC_REALTIME_URL` | Opcional | Cae a `NEXT_PUBLIC_API_URL` |
 | `NEXT_PUBLIC_GAME_URL` | Recomendada | `https://game.codebuddies.tech` — usada por el login para reconocer una redirección al juego |
+| `NEXT_PUBLIC_ASSETS_URL` | Opcional | Base pública de los assets en Cloudflare R2 (`R2_PUBLIC_URL` del lado del cliente). Sin ella cae a string vacío — `next.config.ts` tampoco agrega el hostname a `images.remotePatterns` y las imágenes remotas de R2 no cargan vía `next/image`. |
 
 ### apps/game (Heroku app `codebuddies-game`)
 
@@ -126,10 +128,41 @@ para la lista completa con comentarios.
 | `NEXT_PUBLIC_API_URL` | Sí en producción | `https://api.codebuddies.tech` — sin ella, `getApiUrl()` lanza un error explícito en vez de degradar en silencio |
 | `NEXT_PUBLIC_WEB_URL` | Recomendada | `https://codebuddies.tech` — a dónde volver si no hay sesión |
 | `NEXT_PUBLIC_DISCORD_URL` | Opcional | Tiene default en código |
+| `NEXT_PUBLIC_ASSETS_URL` | **Sí** | Base pública de los assets en Cloudflare R2 (`R2_PUBLIC_URL` del lado del cliente) — usada para el tileset del lobby (`LobbyScene.preload`) y el logo del sidebar. Sin ella esas imágenes no cargan (URL relativa vacía) y `next.config.ts` no agrega el hostname a `images.remotePatterns`. |
 
 Las variables `NEXT_PUBLIC_*` se hornean en el bundle en **build time** —
 hay que tenerlas seteadas como config vars de Heroku *antes* de que corra
 el build, no solo en runtime.
+
+### Cloudflare R2 (almacenamiento)
+
+`apps/api` sube archivos (avatares/items del editor, vía `UploadsModule` →
+`R2Storage`, `apps/api/src/modules/storage/r2.storage.ts`) a un bucket de
+Cloudflare R2 usando el SDK de S3 (`@aws-sdk/client-s3`) contra el endpoint
+S3-compatible de R2. No queda ninguna dependencia de DigitalOcean Spaces en
+el código.
+
+Pasos manuales en Cloudflare (no automatizados, ninguno hecho todavía):
+
+1. Crear un bucket de R2 (nombre → `R2_BUCKET`).
+2. Crear un API Token de R2 con permiso de lectura/escritura sobre ese
+   bucket (R2 → Manage API Tokens) → `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY`.
+3. Anotar el Account ID de Cloudflare → `R2_ACCOUNT_ID`. El endpoint S3 se
+   arma en código como `https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com`
+   — no hay `R2_ENDPOINT` como variable separada.
+4. Habilitar acceso público al bucket: conectar un dominio propio (p. ej.
+   `assets.codebuddies.tech`, sin configurar todavía) o, mientras tanto,
+   usar el subdominio público `r2.dev` que Cloudflare genera para el
+   bucket → esa URL base es `R2_PUBLIC_URL` (server, `apps/api`) y
+   `NEXT_PUBLIC_ASSETS_URL` (cliente, `apps/web` y `apps/game`) — ambas
+   deben apuntar al mismo valor.
+5. R2 no soporta ACLs por objeto (a diferencia de S3/Spaces) — la
+   visibilidad pública se resuelve enteramente a nivel de bucket/dominio en
+   el paso anterior, no en el código de subida.
+
+El bucket todavía no existe — hasta crearlo, `apps/api` no arranca sin
+`R2_ACCOUNT_ID`/`R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY` configuradas (ver
+tabla de arriba).
 
 ## 5. Heroku — una app de Heroku por app del monorepo
 
@@ -261,7 +294,9 @@ para que este flujo funcione en producción.
 - [x] `dist/main.js` se genera en la ruta correcta (bug real encontrado y corregido)
 - [x] Build de las 3 apps verificado con variables de entorno de producción
 - [x] Arranque de las 3 apps verificado (incluye conexión real a Postgres y `prisma migrate deploy` de punta a punta contra una base vacía)
-- [ ] Config vars reales cargadas en cada app de Heroku (paso manual, próxima sesión)
+- [x] Migración de almacenamiento de DigitalOcean Spaces a Cloudflare R2 (código listo, sin dependencia funcional de DigitalOcean)
+- [ ] Bucket de Cloudflare R2 creado + API token + dominio/subdominio público configurado (paso manual, ver sección "Cloudflare R2" arriba)
+- [ ] Config vars reales cargadas en cada app de Heroku (paso manual, próxima sesión) — incluye las nuevas `R2_*` / `NEXT_PUBLIC_ASSETS_URL`
 - [ ] Dominios y DNS configurados (paso manual, próxima sesión)
 - [ ] Primer `git push heroku main` (no realizado a propósito en esta sesión)
 

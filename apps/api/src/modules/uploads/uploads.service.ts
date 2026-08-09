@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { SpacesStorage } from '../storage/spaces.storage';
+import { R2Storage } from '../storage/r2.storage';
 import {
   DetectedImage,
   detectImage,
@@ -11,7 +11,7 @@ const SAFE_FOLDER = /^[a-zA-Z0-9_-]+(\/[a-zA-Z0-9_-]+)*$/;
 
 @Injectable()
 export class UploadsService {
-  private storage = new SpacesStorage();
+  private storage = new R2Storage();
 
   async upload(file: Express.Multer.File, folder: string) {
     if (!SAFE_FOLDER.test(folder)) {

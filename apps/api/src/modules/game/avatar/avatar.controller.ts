@@ -22,7 +22,7 @@ export class AvatarController {
   @Get('image/:fileName')
   async getImage(@Param('fileName') fileName: string, @Res() res: Response) {
     try {
-      const url = `https://codebuddies-assets.sfo3.cdn.digitaloceanspaces.com/items/${fileName}`;
+      const url = `${process.env.R2_PUBLIC_URL}/items/${fileName}`;
       const response = await fetch(url);
       if (!response.ok) {
         res.status(response.status).send('No se pudo cargar la imagen');
