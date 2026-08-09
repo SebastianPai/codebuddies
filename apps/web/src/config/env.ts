@@ -1,6 +1,7 @@
 type PublicEnvironment = {
   apiUrl: string;
   realtimeUrl: string;
+  gameUrl: string;
 };
 
 function normalizeUrl(value: string | undefined): string {
@@ -10,6 +11,7 @@ function normalizeUrl(value: string | undefined): string {
 export const env: PublicEnvironment = {
   apiUrl: normalizeUrl(process.env.NEXT_PUBLIC_API_URL),
   realtimeUrl: normalizeUrl(process.env.NEXT_PUBLIC_REALTIME_URL),
+  gameUrl: normalizeUrl(process.env.NEXT_PUBLIC_GAME_URL),
 };
 
 export function getApiUrl(): string {
@@ -22,4 +24,11 @@ export function getApiUrl(): string {
 
 export function getRealtimeUrl(): string {
   return env.realtimeUrl || getApiUrl();
+}
+
+// Origen público de apps/game (p. ej. https://game.codebuddies.tech). Sin
+// NEXT_PUBLIC_GAME_URL configurada cae al puerto de desarrollo local, igual
+// que el resto de las apps del monorepo cuando falta su URL pública.
+export function getGameUrl(): string {
+  return env.gameUrl || "http://localhost:3002";
 }

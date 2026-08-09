@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
+import { getGameUrl } from "../../../../src/config/env";
 
 export default function LoginPage() {
   const t = useTranslation();
@@ -35,11 +36,14 @@ export default function LoginPage() {
     if (!redirect) return false;
 
     try {
-      const url = new URL(redirect);
-      return (
-        (url.hostname === "localhost" || url.hostname === "127.0.0.1") &&
-        url.port === "3002"
-      );
+      // Compara por origen contra la URL pública real de apps/game
+      // (NEXT_PUBLIC_GAME_URL) en vez de un host/puerto de localhost
+      // hardcodeado, para que este flujo funcione tanto en desarrollo
+      // (http://localhost:3002) como en producción
+      // (https://game.codebuddies.tech).
+      const redirectUrl = new URL(redirect);
+      const gameUrl = new URL(getGameUrl());
+      return redirectUrl.origin === gameUrl.origin;
     } catch {
       return false;
     }
