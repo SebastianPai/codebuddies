@@ -1,0 +1,39 @@
+.badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.icon {
+  display: block;
+  border-radius: 3px;
+  object-fit: contain;
+}
+
+/* Insignia animada (mode: SPRITE): tira horizontal de N cuadros como
+   background-image, recorrida con background-position en pasos discretos.
+   duration/timing-function/direction se fijan inline por instancia (ver
+   UserBadges.tsx) según frameCount/frameRate/direction de cada insignia. */
+.spriteIcon {
+  display: inline-block;
+  background-repeat: no-repeat;
+  animation-name: badge-sprite-slide;
+  animation-iteration-count: infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spriteIcon {
+    animation: none;
+    background-position: 0 0;
+  }
+}
+
+@keyframes badge-sprite-slide {
+  from {
+    background-position: 0% 0;
+  }
+  to {
+    background-position: 100% 0;
+  }
+}

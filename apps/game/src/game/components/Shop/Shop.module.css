@@ -1,0 +1,108 @@
+.tabs {
+  display: flex;
+  gap: var(--cb-space-1);
+  margin-bottom: var(--cb-space-3);
+}
+
+.tab {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: var(--cb-space-2);
+  border: none;
+  border-radius: var(--cb-radius-md);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--cb-muted);
+  cursor: pointer;
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  transition: 0.15s;
+}
+
+.tab:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.active {
+  background: var(--cb-accent);
+  color: #111;
+}
+
+.shopBanner {
+  padding: var(--cb-space-3);
+  border-radius: var(--cb-radius-md);
+  background: linear-gradient(135deg, #1a1f2d, #10141d);
+  margin-bottom: var(--cb-space-3);
+}
+
+.shopBanner h2 {
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.shopBanner p {
+  margin-top: var(--cb-space-1);
+  color: var(--cb-muted);
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 13px;
+}
+
+.filters {
+  display: flex;
+  gap: var(--cb-space-2);
+  margin-bottom: var(--cb-space-3);
+}
+
+.filters input,
+.filters select {
+  flex: 1;
+  padding: var(--cb-space-2) var(--cb-space-2);
+  border-radius: var(--cb-radius-sm);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--cb-border);
+  color: var(--cb-text);
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 13px;
+}
+
+.filters input::placeholder {
+  color: var(--cb-muted);
+}
+
+.cardFooter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cb-space-2);
+  width: 100%;
+}
+
+.priceRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cb-space-2);
+}
+
+.rarity {
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--cb-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--cb-space-3);
+  margin-top: var(--cb-space-3);
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 13px;
+  color: var(--cb-muted);
+}

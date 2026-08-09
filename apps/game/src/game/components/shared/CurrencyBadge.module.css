@@ -1,0 +1,27 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--cb-space-1);
+
+  font-family: "Inter", system-ui, sans-serif;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--cb-text);
+
+  border-radius: var(--cb-radius-pill);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 4px var(--cb-space-2);
+}
+
+.icon {
+  display: inline-flex;
+  color: var(--cb-accent);
+}
+
+.sm {
+  font-size: 11px;
+}
+
+.md {
+  font-size: 13px;
+}

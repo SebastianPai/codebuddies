@@ -1,0 +1,21 @@
+.grid {
+  display: grid;
+  /* Columnas más anchas: con 100px las tarjetas quedaban tan angostas que el
+     texto de sus botones (footer libre por consumidor) se salía y parecía
+     "encimado" con la tarjeta vecina en vez de quedar contenido adentro. */
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: var(--cb-space-3);
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--cb-space-1);
+  padding: var(--cb-space-6) var(--cb-space-4);
+  text-align: center;
+  color: var(--cb-muted);
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 13px;
+}

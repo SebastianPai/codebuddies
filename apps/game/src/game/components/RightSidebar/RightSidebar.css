@@ -1,0 +1,502 @@
+
+.right-sidebar {
+  position: absolute;
+
+  top: 18px;
+  right: 18px;
+
+  width: 340px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  z-index: 120;
+}
+
+/* =========================
+   GENERIC
+========================= */
+
+.sidebar-block {
+  padding: 18px;
+
+  border-radius: 22px;
+
+  background:
+    radial-gradient(circle at 12% 0%, rgba(250, 204, 21, 0.1), transparent 36%),
+    rgba(18, 18, 18, 0.76);
+
+  backdrop-filter: blur(18px);
+
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-bottom: 16px;
+}
+
+.block-label {
+  font-size: 11px;
+
+  letter-spacing: 0.12em;
+
+  text-transform: uppercase;
+
+  color: rgba(255, 255, 255, 0.45);
+
+  font-weight: 600;
+}
+
+.block-title {
+  margin-top: 6px;
+
+  font-size: 18px;
+
+  color: white;
+
+  font-weight: 600;
+}
+
+.soft-button {
+  height: 34px;
+
+  padding: 0 14px;
+
+  border: none;
+
+  border-radius: 12px;
+
+  background: rgba(255, 255, 255, 0.06);
+
+  color: white;
+
+  font-size: 12px;
+
+  font-weight: 500;
+
+  cursor: pointer;
+
+  transition: 0.2s ease;
+}
+
+.soft-button:hover {
+  background: rgba(250, 204, 21, 0.16);
+  color: #fde047;
+}
+
+.soft-button.inline {
+  width: max-content;
+  margin-top: 10px;
+}
+
+/* =========================
+   ROOM
+========================= */
+
+.room-card {
+  overflow: hidden;
+
+  padding: 0;
+}
+
+.room-preview {
+  position: relative;
+
+  height: 210px;
+
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.7)),
+    url("/images/room-preview.png");
+
+  background-size: cover;
+  background-position: center;
+}
+
+.room-overlay {
+  position: absolute;
+  inset: 0;
+
+  padding: 22px;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.room-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.live-status {
+  padding: 8px 12px;
+
+  border-radius: 999px;
+
+  background: rgba(255, 255, 255, 0.08);
+
+  color: white;
+
+  font-size: 12px;
+
+  font-weight: 500;
+}
+
+.room-name {
+  margin: 8px 0 0 0;
+
+  color: white;
+
+  font-size: 22px;
+
+  font-weight: 700;
+}
+
+.room-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.room-online {
+  color: rgba(255, 255, 255, 0.75);
+
+  font-size: 13px;
+}
+
+/* =========================
+   MISSIONS
+========================= */
+
+.missions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mission-item {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 14px;
+
+  border-radius: 16px;
+
+  background: rgba(255, 255, 255, 0.055);
+  color: inherit;
+  cursor: pointer;
+  transition:
+    transform 150ms ease,
+    border-color 150ms ease,
+    background 150ms ease;
+}
+
+.mission-item:hover,
+.mission-item:focus-visible {
+  border-color: rgba(250, 204, 21, 0.45);
+  background: rgba(250, 204, 21, 0.09);
+  transform: translateY(-1px);
+}
+
+.mission-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  margin-bottom: 12px;
+}
+
+.mission-title {
+  color: white;
+
+  font-size: 14px;
+
+  font-weight: 500;
+}
+
+.mission-percent {
+  color: rgba(255, 255, 255, 0.5);
+
+  font-size: 13px;
+}
+
+.mission-bar {
+  height: 8px;
+
+  overflow: hidden;
+
+  border-radius: 999px;
+
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.mission-fill {
+  height: 100%;
+
+  border-radius: inherit;
+
+  background: linear-gradient(90deg, #facc15, #fde047);
+}
+
+.mission-empty {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px dashed rgba(255, 255, 255, 0.14);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 13px;
+}
+
+.mission-skeleton {
+  height: 78px;
+  border-radius: 16px;
+  background:
+    linear-gradient(90deg, transparent, rgba(250, 204, 21, 0.13), transparent),
+    rgba(255, 255, 255, 0.05);
+  background-size: 220% 100%;
+  animation: missionShimmer 1.4s ease-in-out infinite;
+}
+
+.mission-scroll {
+  max-height: 72vh;
+  overflow-y: auto;
+}
+
+.mission-detail-card + .mission-detail-card {
+  margin-top: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--cb-border);
+}
+
+@keyframes missionShimmer {
+  from {
+    background-position: 180% 0;
+  }
+  to {
+    background-position: -80% 0;
+  }
+}
+
+/* =========================
+   EVENTS
+========================= */
+
+.events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.event-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 14px 16px;
+
+  border-radius: 16px;
+
+  background: rgba(255, 255, 255, 0.04);
+
+  transition: 0.2s ease;
+}
+
+.event-item:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.event-left {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.event-name {
+  color: white;
+
+  font-size: 14px;
+
+  font-weight: 500;
+}
+
+.event-time {
+  color: rgba(255, 255, 255, 0.45);
+
+  font-size: 12px;
+}
+
+.event-badge {
+  padding: 6px 10px;
+
+  border-radius: 999px;
+
+  background: rgba(255, 255, 255, 0.06);
+
+  color: rgba(255, 255, 255, 0.75);
+
+  font-size: 11px;
+
+  font-weight: 500;
+}
+
+/* =========================
+   MISSION DETAIL (dentro del Modal compartido)
+========================= */
+
+.mission-window-tag {
+  display: inline-flex;
+  align-items: center;
+
+  padding: 8px 14px;
+
+  border-radius: var(--cb-radius-pill);
+
+  background: rgba(250, 204, 21, 0.1);
+
+  border: 1px solid rgba(250, 204, 21, 0.25);
+
+  color: var(--cb-accent);
+
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 11px;
+
+  font-weight: 700;
+
+  letter-spacing: 0.08em;
+
+  text-transform: uppercase;
+
+  margin-bottom: 18px;
+}
+
+.mission-window-title {
+  margin: 0 0 12px 0;
+
+  color: var(--cb-text);
+
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 22px;
+
+  font-weight: 700;
+}
+
+.mission-window-description {
+  margin: 0 0 20px 0;
+
+  color: var(--cb-muted);
+
+  font-family: "Inter", system-ui, sans-serif;
+  line-height: 1.6;
+
+  font-size: 14px;
+}
+
+/* =========================
+   OBJECTIVES
+========================= */
+
+.objectives-box {
+  padding: 16px;
+
+  border-radius: var(--cb-radius-md);
+
+  background: rgba(255, 255, 255, 0.04);
+
+  border: 1px solid var(--cb-border);
+}
+
+.objectives-title {
+  margin-bottom: 12px;
+
+  color: var(--cb-accent);
+
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 12px;
+
+  font-weight: 700;
+
+  letter-spacing: 0.08em;
+
+  text-transform: uppercase;
+}
+
+.objective-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  margin-bottom: 12px;
+}
+
+.objective-check {
+  width: 18px;
+  height: 18px;
+
+  border-radius: 5px;
+
+  background: transparent;
+
+  border: 2px solid var(--cb-accent);
+}
+
+.objective-item span {
+  color: var(--cb-text);
+
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 14px;
+}
+
+/* =========================
+   REWARD
+========================= */
+
+.reward-bar {
+  margin-top: 18px;
+
+  padding: 16px;
+
+  border-radius: var(--cb-radius-md);
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  background: rgba(250, 204, 21, 0.06);
+
+  border: 1px solid var(--cb-border);
+}
+
+.reward-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.reward-label {
+  color: var(--cb-muted);
+
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 11px;
+
+  font-weight: 700;
+
+  letter-spacing: 0.08em;
+
+  text-transform: uppercase;
+}
+
+.reward-value {
+  color: var(--cb-text);
+
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 17px;
+
+  font-weight: 700;
+}

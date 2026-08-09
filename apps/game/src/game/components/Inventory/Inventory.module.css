@@ -1,0 +1,59 @@
+.tabs {
+  display: flex;
+  gap: var(--cb-space-2);
+  margin-bottom: var(--cb-space-3);
+}
+
+.tab {
+  border: none;
+  padding: var(--cb-space-2) var(--cb-space-3);
+  border-radius: var(--cb-radius-md);
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--cb-text);
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tab.active {
+  background: var(--cb-accent);
+  color: #111827;
+}
+
+.texturePanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cb-space-3);
+}
+
+.textureToolbar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cb-space-2);
+}
+
+.toolbarRow {
+  display: flex;
+  gap: var(--cb-space-2);
+  align-items: center;
+}
+
+.textureToolbar label {
+  display: flex;
+  align-items: center;
+  gap: var(--cb-space-2);
+  color: var(--cb-muted);
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 13px;
+  flex: 1;
+}
+
+.textureToolbar select {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--cb-border);
+  border-radius: var(--cb-radius-sm);
+  color: var(--cb-text);
+  padding: 6px var(--cb-space-2);
+  flex: 1;
+}
