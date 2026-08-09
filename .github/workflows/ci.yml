@@ -1,7 +1,10 @@
 name: CI
 
-# Alcance intencional: apps/api y apps/web únicamente (el sistema de
-# cursos/aprendizaje). apps/game no está cubierto por este pipeline.
+# Cubre las 3 apps del monorepo (api, web, game). apps/game se sumó recién
+# a este pipeline: hasta ahora vivía fuera del repo Git principal (su
+# propio .git local, sin remoto, excluido vía .gitignore) y por eso no
+# podía tener CI — eso ya se resolvió, así que ya no hay motivo para
+# dejarla afuera de esta verificación.
 on:
   pull_request:
   push:
@@ -9,6 +12,12 @@ on:
 
 env:
   PNPM_VERSION: "10.30.2"
+  # Versión de Node para instalar/compilar/testear el PROYECTO (coincide
+  # con engines.node en los package.json y con lo que se usará en Heroku).
+  # No confundir con los avisos de GitHub sobre Node 20→24: esos son sobre
+  # el runtime interno que usan las Actions de terceros (actions/checkout,
+  # pnpm/action-setup, actions/setup-node) para ejecutar su propio código,
+  # algo que deciden esas Actions, no esta variable ni nuestro código.
   NODE_VERSION: "20"
 
 jobs:
@@ -86,10 +95,16 @@ jobs:
         with:
           version: ${{ env.PNPM_VERSION }}
 
+      # Sin `cache: pnpm` a propósito: este job nunca corre `pnpm install`
+      # (pnpm audit lee directo del lockfile), así que no hay nada que
+      # cachear todavía en este punto -- con cache habilitado, setup-node
+      # intentaba guardar el store de pnpm antes de que existiera y
+      # tiraba "Path Validation Error: ... hence no cache is being saved"
+      # en cada corrida. No afectaba el resultado del job, pero era ruido
+      # de una config nuestra mal puesta, no una falla real de Actions.
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
 
       - name: pnpm audit (high+ severity)
         run: pnpm audit --audit-level=high
@@ -126,3 +141,35 @@ jobs:
 
       - name: Build
         run: pnpm --filter web run build
+
+  game:
+    name: Game (lint / typecheck / build)
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # No bloqueante: mismo motivo que en los jobs de api/web (deuda de
+      # lint preexistente en esta app, no introducida por este pipeline).
+      - name: Lint (informational)
+        run: pnpm --filter game run lint
+        continue-on-error: true
+
+      - name: Typecheck
+        run: pnpm --filter game run typecheck
+
+      - name: Build
+        run: pnpm --filter game run build
