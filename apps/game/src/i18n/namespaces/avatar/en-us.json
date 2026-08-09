@@ -1,0 +1,16 @@
+{
+  "inventoryEmptyCategory": "You don't have any items in this category.",
+  "itemCardUnnamed": "Unnamed",
+  "itemCardEquipped": "Equipped",
+  "itemCardRemove": "Remove",
+  "itemCardEquip": "Equip",
+  "studioWindowAriaLabel": "Avatar dressing room",
+  "studioTitle": "Dressing Room",
+  "studioCloseAriaLabel": "Close dressing room",
+  "studioDescription": "Clothes, hair, accessories and colors, separate from the furniture inventory.",
+  "studioSearchLabel": "Search item",
+  "studioSearchPlaceholder": "Hair, shirt, accessory...",
+  "studioEmptyTitle": "No avatar items",
+  "studioEmptyHint": "Buy clothes or accessories in the store to equip them here.",
+  "studioDefaultUsername": "Player"
+}

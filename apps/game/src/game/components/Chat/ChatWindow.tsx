@@ -13,6 +13,7 @@ import {
 } from "../../network/messages";
 import { audioManager } from "../../audio/AudioManager";
 import UserBadges from "../shared/UserBadges";
+import { useTranslation } from "../../../i18n/useTranslation";
 
 type Props = {
   conversationId: string;
@@ -41,6 +42,7 @@ export default function ChatWindow({
   onClose,
   onViewProfile,
 }: Props) {
+  const t = useTranslation();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const [partnerTyping, setPartnerTyping] = useState(false);
@@ -141,7 +143,7 @@ export default function ChatWindow({
         <UserBadges username={partnerUsername} size={13} />
         <button
           className={styles.closeBtn}
-          aria-label="Cerrar chat"
+          aria-label={t("chat.closeChatAriaLabel")}
           onClick={(event) => {
             event.stopPropagation();
             onClose();
@@ -152,7 +154,7 @@ export default function ChatWindow({
       </div>
 
       <div className={styles.messages} ref={listRef}>
-        {messages.length === 0 && <div className={styles.empty}>Aún no hay mensajes. ¡Saluda!</div>}
+        {messages.length === 0 && <div className={styles.empty}>{t("chat.noMessagesYet")}</div>}
         {messages.map((message) => {
           // Una conversación DIRECT sólo tiene 2 participantes: si el
           // remitente no es el partner, el mensaje es propio (evita tener
@@ -171,18 +173,20 @@ export default function ChatWindow({
         })}
       </div>
 
-      {partnerTyping && <div className={styles.typing}>{partnerUsername} está escribiendo...</div>}
+      {partnerTyping && (
+        <div className={styles.typing}>{t("chat.partnerTyping", { username: partnerUsername })}</div>
+      )}
 
       <div className={styles.inputRow}>
         <input
-          placeholder="Escribe un mensaje..."
+          placeholder={t("chat.messagePlaceholder")}
           value={draft}
           onChange={(event) => handleDraftChange(event.target.value)}
           onKeyDown={(event) => event.key === "Enter" && void handleSend()}
         />
         <button
           className={styles.sendBtn}
-          aria-label="Enviar mensaje"
+          aria-label={t("chat.sendMessageAriaLabel")}
           onClick={() => void handleSend()}
           disabled={!draft.trim() || sending}
         >

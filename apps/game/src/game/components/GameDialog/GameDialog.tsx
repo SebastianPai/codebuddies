@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 
 import { GameDialogRequest } from "../../utils/dialog";
+import { useTranslation } from "../../../i18n/useTranslation";
 import styles from "./GameDialog.module.css";
 
 interface Props {
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export default function GameDialog({ dialog, onClose }: Props) {
+  const t = useTranslation();
   const isAlert = dialog.type === "alert";
   const primaryRef = useRef<HTMLButtonElement>(null);
 
@@ -40,7 +42,7 @@ export default function GameDialog({ dialog, onClose }: Props) {
         <div className={styles.glow} />
         <div className={styles.header}>
           <span className={styles.kicker}>
-            {dialog.tone === "danger" ? "Accion critica" : "CodeBuddies"}
+            {dialog.tone === "danger" ? t("dialog.kickerDanger") : t("dialog.kickerDefault")}
           </span>
           <h2 id="game-dialog-title">{dialog.title}</h2>
         </div>
@@ -50,12 +52,12 @@ export default function GameDialog({ dialog, onClose }: Props) {
         <div className={styles.actions}>
           {!isAlert && (
             <button className={styles.secondary} onClick={() => onClose(false)}>
-              {dialog.cancelLabel || "Cancelar"}
+              {dialog.cancelLabel || t("common.cancel")}
             </button>
           )}
 
           <button ref={primaryRef} className={styles.primary} onClick={() => onClose(true)}>
-            {dialog.confirmLabel || "Aceptar"}
+            {dialog.confirmLabel || t("common.accept")}
           </button>
         </div>
       </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BadgeCheck, Check, User } from "lucide-react";
+import { BadgeCheck, Check, Globe, Lock, MessageSquare, User } from "lucide-react";
 
 import Modal from "../shared/Modal";
 import Button from "../shared/Button";
@@ -14,7 +14,17 @@ import {
   type BadgeTypeKey,
   type MyBadgeSettings,
 } from "../../network/badges";
+import { CHAT_BUBBLE_THEMES } from "../../hud/nameplateStyles";
+import { useChatBubbleTheme } from "../../hooks/useChatBubbleTheme";
+import { useTranslation } from "../../../i18n/useTranslation";
+import { useLanguage, type Lang } from "../../../i18n/LanguageContext";
 import styles from "./SettingsWindow.module.css";
+
+const CHAT_THEME_LIST = Object.values(CHAT_BUBBLE_THEMES);
+
+function hexOf(color: number) {
+  return `#${color.toString(16).padStart(6, "0")}`;
+}
 
 interface Props {
   username: string;
@@ -22,12 +32,16 @@ interface Props {
   onUsernameChanged: (username: string) => void;
 }
 
-const BADGE_LABEL: Record<BadgeTypeKey, string> = {
-  VERIFIED: "Verificado",
-  CREATOR: "Creador",
-};
+const LANGUAGE_OPTIONS: { value: Lang; labelKey: string }[] = [
+  { value: "es", labelKey: "settings.languageEs" },
+  { value: "en-us", labelKey: "settings.languageEnUs" },
+  { value: "zh-Hans", labelKey: "settings.languageZhHans" },
+];
 
 export default function SettingsWindow({ username, onClose, onUsernameChanged }: Props) {
+  const t = useTranslation();
+  const { lang, changeLanguage } = useLanguage();
+
   const [usernameInput, setUsernameInput] = useState(username);
   const [savingUsername, setSavingUsername] = useState(false);
   const [usernameError, setUsernameError] = useState("");
@@ -46,13 +60,27 @@ export default function SettingsWindow({ username, onClose, onUsernameChanged }:
     });
   }, []);
 
+  const {
+    themeId: chatThemeId,
+    isPremium,
+    saving: savingTheme,
+    error: chatThemeErrorCode,
+    selectTheme: selectChatTheme,
+  } = useChatBubbleTheme();
+  const themeError =
+    chatThemeErrorCode === "PREMIUM_REQUIRED"
+      ? t("settings.chatThemePremiumRequired")
+      : chatThemeErrorCode === "SAVE_ERROR"
+        ? t("settings.chatThemeSaveError")
+        : "";
+
   const saveUsername = async () => {
     const trimmed = usernameInput.trim();
     setUsernameError("");
     setUsernameSaved(false);
 
     if (trimmed.length < 3) {
-      setUsernameError("El nombre de usuario debe tener al menos 3 caracteres.");
+      setUsernameError(t("settings.usernameTooShort"));
       return;
     }
     if (trimmed === username) return;
@@ -63,7 +91,7 @@ export default function SettingsWindow({ username, onClose, onUsernameChanged }:
       onUsernameChanged(result.username);
       setUsernameSaved(true);
     } catch (err) {
-      setUsernameError(err instanceof Error ? err.message : "No se pudo cambiar el nombre de usuario.");
+      setUsernameError(err instanceof Error ? err.message : t("settings.usernameGenericError"));
     } finally {
       setSavingUsername(false);
     }
@@ -91,7 +119,7 @@ export default function SettingsWindow({ username, onClose, onUsernameChanged }:
       // mostrando la selección vieja hasta refrescar la página.
       notifyBadgesChanged(username);
     } catch (err) {
-      setSelectionError(err instanceof Error ? err.message : "No se pudo guardar.");
+      setSelectionError(err instanceof Error ? err.message : t("settings.badgesSaveError"));
     } finally {
       setSavingSelection(false);
     }
@@ -105,7 +133,7 @@ export default function SettingsWindow({ username, onClose, onUsernameChanged }:
   return (
     <Modal
       variant="floating"
-      title="Ajustes"
+      title={t("settings.title")}
       onClose={onClose}
       style={{ width: "min(440px, calc(100vw - 24px))" }}
     >
@@ -116,8 +144,8 @@ export default function SettingsWindow({ username, onClose, onUsernameChanged }:
               <User size={15} />
             </span>
             <div>
-              <h3 className={styles.sectionTitle}>Nombre de usuario</h3>
-              <p className={styles.sectionHint}>No pueden existir dos jugadores con el mismo nombre.</p>
+              <h3 className={styles.sectionTitle}>{t("settings.usernameSectionTitle")}</h3>
+              <p className={styles.sectionHint}>{t("settings.usernameSectionHint")}</p>
             </div>
           </header>
 
@@ -132,7 +160,7 @@ export default function SettingsWindow({ username, onClose, onUsernameChanged }:
                   setUsernameSaved(false);
                 }}
                 maxLength={20}
-                placeholder="Tu nombre de usuario"
+                placeholder={t("settings.usernamePlaceholder")}
               />
               <Button
                 variant="primary"
@@ -140,13 +168,13 @@ export default function SettingsWindow({ username, onClose, onUsernameChanged }:
                 disabled={savingUsername || usernameInput.trim() === username || usernameInput.trim().length < 3}
                 onClick={() => void saveUsername()}
               >
-                {savingUsername ? "Guardando..." : "Guardar"}
+                {savingUsername ? t("common.saving") : t("common.save")}
               </Button>
             </div>
             {usernameError && <p className={styles.error}>{usernameError}</p>}
             {usernameSaved && (
               <p className={styles.success}>
-                <Check size={13} /> Nombre actualizado
+                <Check size={13} /> {t("settings.usernameUpdated")}
               </p>
             )}
           </div>
@@ -158,17 +186,17 @@ export default function SettingsWindow({ username, onClose, onUsernameChanged }:
               <BadgeCheck size={15} />
             </span>
             <div>
-              <h3 className={styles.sectionTitle}>Insignias</h3>
+              <h3 className={styles.sectionTitle}>{t("settings.badgesSectionTitle")}</h3>
               <p className={styles.sectionHint}>
-                Elegí cuáles mostrar junto a tu nombre en todo el juego.
+                {t("settings.badgesSectionHint")}
                 {badgeSettings && (
                   <>
                     {" "}
-                    Tu cuenta puede mostrar{" "}
+                    {t("settings.badgesAccountCanShow")}{" "}
                     <strong>
                       {badgeSettings.maxSelectable === 1
-                        ? "1 insignia a la vez"
-                        : `hasta ${badgeSettings.maxSelectable} a la vez`}
+                        ? t("settings.badgesLimitOne")
+                        : t("settings.badgesLimitMany", { count: badgeSettings.maxSelectable })}
                     </strong>
                     .
                   </>
@@ -179,12 +207,9 @@ export default function SettingsWindow({ username, onClose, onUsernameChanged }:
 
           <div className={styles.sectionBody}>
             {!badgeSettings ? (
-              <p className={styles.hint}>Cargando...</p>
+              <p className={styles.hint}>{t("common.loading")}</p>
             ) : badgeSettings.qualifying.length === 0 ? (
-              <p className={styles.hint}>
-                Todavía no tenés insignias — cuando consigas una (verificado o creador) vas a poder elegir si se
-                muestra.
-              </p>
+              <p className={styles.hint}>{t("settings.badgesNoneYet")}</p>
             ) : (
               <>
                 <div className={styles.badgeList}>
@@ -209,7 +234,7 @@ export default function SettingsWindow({ username, onClose, onUsernameChanged }:
                           isCreator={type === "CREATOR"}
                           size={18}
                         />
-                        {BADGE_LABEL[type]}
+                        {t(type === "VERIFIED" ? "settings.badgeLabelVerified" : "settings.badgeLabelCreator")}
                       </label>
                     );
                   })}
@@ -218,18 +243,91 @@ export default function SettingsWindow({ username, onClose, onUsernameChanged }:
                 {(selectionChanged || selectionError) && (
                   <div className={styles.row}>
                     <Button variant="primary" size="sm" disabled={savingSelection} onClick={() => void saveSelection()}>
-                      {savingSelection ? "Guardando..." : "Guardar selección"}
+                      {savingSelection ? t("common.saving") : t("settings.badgesSaveSelection")}
                     </Button>
                   </div>
                 )}
                 {selectionError && <p className={styles.error}>{selectionError}</p>}
                 {selectionSaved && !selectionChanged && (
                   <p className={styles.success}>
-                    <Check size={13} /> Selección guardada
+                    <Check size={13} /> {t("settings.badgesSelectionSaved")}
                   </p>
                 )}
               </>
             )}
+          </div>
+        </section>
+
+        <section className={styles.section}>
+          <header className={styles.sectionHeader}>
+            <span className={styles.sectionIcon}>
+              <MessageSquare size={15} />
+            </span>
+            <div>
+              <h3 className={styles.sectionTitle}>{t("settings.chatThemeSectionTitle")}</h3>
+              <p className={styles.sectionHint}>{t("settings.chatThemeSectionHint")}</p>
+            </div>
+          </header>
+
+          <div className={styles.sectionBody}>
+            <div className={styles.themeSwatchGrid}>
+              {CHAT_THEME_LIST.map((theme) => {
+                const locked = theme.tier === "premium" && !isPremium;
+                const selected = chatThemeId === theme.id;
+                return (
+                  <button
+                    key={theme.id}
+                    type="button"
+                    className={`${styles.themeSwatch} ${selected ? styles.themeSwatchSelected : ""} ${
+                      locked ? styles.themeSwatchLocked : ""
+                    }`}
+                    disabled={savingTheme}
+                    onClick={() => void selectChatTheme(theme.id, theme.tier)}
+                    style={{
+                      background: hexOf(theme.backgroundColor),
+                      borderColor: hexOf(theme.borderColor),
+                      color: theme.textColor,
+                    }}
+                  >
+                    {locked && <Lock size={11} className={styles.themeSwatchLockIcon} />}
+                    <span style={{ color: theme.nameColor }}>{theme.label}</span>
+                    {selected && <Check size={13} className={styles.themeSwatchCheck} />}
+                  </button>
+                );
+              })}
+            </div>
+            {themeError && <p className={styles.error}>{themeError}</p>}
+          </div>
+        </section>
+
+        <section className={styles.section}>
+          <header className={styles.sectionHeader}>
+            <span className={styles.sectionIcon}>
+              <Globe size={15} />
+            </span>
+            <div>
+              <h3 className={styles.sectionTitle}>{t("settings.languageSectionTitle")}</h3>
+              <p className={styles.sectionHint}>{t("settings.languageSectionHint")}</p>
+            </div>
+          </header>
+
+          <div className={styles.sectionBody}>
+            <div className={styles.badgeList}>
+              {LANGUAGE_OPTIONS.map((option) => (
+                <label
+                  key={option.value}
+                  className={`${styles.badgeOption} ${lang === option.value ? styles.badgeOptionChecked : ""}`}
+                >
+                  <input
+                    type="radio"
+                    name="language"
+                    checked={lang === option.value}
+                    onChange={() => changeLanguage(option.value)}
+                  />
+                  {t(option.labelKey)}
+                </label>
+              ))}
+            </div>
           </div>
         </section>
       </div>

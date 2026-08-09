@@ -19,6 +19,9 @@ import PCWindow from "./components/PC/PCWindows";
 
 import LeftSidebar from "./components/LeftSidebar/LeftSidebar";
 import RightSidebar from "./components/RightSidebar/RightSidebar";
+import TopBar from "./components/TopBar/TopBar";
+import ZoomControls from "./components/ZoomControls/ZoomControls";
+import EditWorldPanel from "./components/RoomSystem/EditWorld/EditWorldPanel";
 import BottomBar from "./components/BottomBar/BottomBar";
 
 import RoomList from "./components/RoomSystem/RoomList/RoomList";
@@ -27,6 +30,7 @@ import Shop from "./components/Shop/Shop";
 import MarketplaceWindow from "./components/Marketplace/MarketplaceWindow";
 import Inventory from "./components/Inventory/Inventory";
 import FurnitureContextMenu from "./components/Furniture/FurnitureContextMenu";
+import PlayerQuickMenu from "./components/PlayerQuickMenu/PlayerQuickMenu";
 import BuildModePanel from "./components/BuildMode/BuildModePanel";
 import GameDialog from "./components/GameDialog/GameDialog";
 import FriendsPanel from "./components/Friends/FriendsPanel";
@@ -40,11 +44,14 @@ import {
   requestGameConfirm,
   resolveGameDialog,
 } from "./utils/dialog";
+import { useTranslation } from "../i18n/useTranslation";
+import { EffectivePermissions, NO_PERMISSIONS } from "./types/permissions";
 
 let gameInstance: Phaser.Game | null = null;
 let socketInstance: ReturnType<typeof createSocket> | null = null;
 
 export default function Game() {
+  const t = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
 
   // =========================
@@ -83,6 +90,7 @@ export default function Game() {
   const [inGame, setInGame] = useState(false);
 
   const [selectedFurniture, setSelectedFurniture] = useState<any>(null);
+  const [selectedPlayer, setSelectedPlayer] = useState<{ username: string; x: number; y: number } | null>(null);
   const [buildMode, setBuildMode] = useState(false);
   const [dialog, setDialog] = useState<GameDialogRequest | null>(null);
   const [paintAllProgress, setPaintAllProgress] = useState<{
@@ -91,15 +99,35 @@ export default function Game() {
   } | null>(null);
   const [currentRoom, setCurrentRoom] = useState<{
     id: string;
+    name?: string;
     ownerId?: string;
+    thumbnailUrl?: string | null;
     background?: { id: string } | null;
   } | null>(null);
+  const [myPermissions, setMyPermissions] = useState<EffectivePermissions>(NO_PERMISSIONS);
+  const [showEditWorld, setShowEditWorld] = useState(false);
+  // Los botones "Información"/"Invitar" de la tarjeta de sala (RightSidebar)
+  // abren este mismo panel pero directo en la pestaña que corresponde, en
+  // vez de sumar una vista de sala separada que duplicaría los mismos
+  // datos que ya vive acá.
+  const [editWorldInitialTab, setEditWorldInitialTab] = useState<
+    "roomInfo" | "access" | "limits" | "guests" | "permissions" | "stats" | undefined
+  >(undefined);
 
   // =========================
   // INIT
   // =========================
 
   useEffect(() => {
+    // Referencias a los handlers que registra postBoot más abajo, para poder
+    // quitarlos en el cleanup de este efecto. Antes no se guardaban, así que
+    // cada vez que se recreaba la instancia de Phaser (p. ej. StrictMode en
+    // dev: mount → cleanup → mount) se apilaba un "room:joined" y un
+    // "room:backgroundChanged" más sobre el mismo socket singleton, que
+    // sobrevive a la destrucción/recreación de gameInstance.
+    let roomJoinedHandler: ((data: any) => void) | undefined;
+    let backgroundChangedHandler: ((data: any) => void) | undefined;
+
     async function init() {
       const user = await getCurrentUser();
 
@@ -147,19 +175,18 @@ export default function Game() {
 
         parent: containerRef.current,
 
-        width: 1920,
-        height: 1280,
+        // Ancho/alto y scale.mode (RESIZE) se heredan de gameConfig sin
+        // pisarlos acá: antes este objeto forzaba width:1920/height:1280 con
+        // scale.mode: NONE, que fija el tamaño del canvas en 1920x1280px
+        // reales sin importar la pantalla — en cualquier viewport más chico
+        // (la mayoría de laptops, todo móvil) el juego quedaba recortado por
+        // el overflow:hidden de .game-wrapper en vez de ajustarse.
 
         backgroundColor: "#111",
 
         render: {
           pixelArt: true,
           antialias: false,
-        },
-
-        scale: {
-          mode: Phaser.Scale.NONE,
-          autoCenter: Phaser.Scale.CENTER_BOTH,
         },
 
         callbacks: {
@@ -172,6 +199,7 @@ export default function Game() {
             // =========================
 
             (window as any).openPC = () => {
+              audioManager.play("panelOpen");
               setShowPC(true);
             };
 
@@ -195,20 +223,20 @@ export default function Game() {
             // ROOM JOIN
             // =========================
 
-            socketInstance?.on("room:joined", (data: any) => {
-              console.log("🚪 Entrando room:", data);
-
+            roomJoinedHandler = (data: any) => {
               setInGame(true);
               setCurrentRoom(data?.room ?? null);
+              setMyPermissions(data?.myPermissions ?? NO_PERMISSIONS);
               window.dispatchEvent(new CustomEvent("game:missions:refresh"));
-            });
+            };
+            socketInstance?.on("room:joined", roomJoinedHandler);
 
-            socketInstance?.on("room:backgroundChanged", (data: any) => {
+            backgroundChangedHandler = (data: any) => {
               setCurrentRoom((prev) =>
                 prev ? { ...prev, background: data?.background ?? null } : prev,
               );
-            });
-
+            };
+            socketInstance?.on("room:backgroundChanged", backgroundChangedHandler);
           },
         },
       };
@@ -227,6 +255,13 @@ export default function Game() {
         gameInstance.destroy(true);
 
         gameInstance = null;
+      }
+
+      if (roomJoinedHandler) {
+        socketInstance?.off("room:joined", roomJoinedHandler);
+      }
+      if (backgroundChangedHandler) {
+        socketInstance?.off("room:backgroundChanged", backgroundChangedHandler);
       }
 
       disconnectRealtime();
@@ -255,15 +290,33 @@ export default function Game() {
 
   useEffect(() => {
     const handleFurnitureSelect = (event: any) => {
-      console.log("🪑 Mueble seleccionado", event.detail);
-
       setSelectedFurniture(event.detail);
     };
 
+    // Disparado por LobbyScene cuando el clic cae en cualquier otro lado
+    // (caminar, piso vacío) — mantiene el menú de React sincronizado con la
+    // selección real del mueble en Phaser.
+    const handleFurnitureDeselect = () => setSelectedFurniture(null);
+
     window.addEventListener("room:item:selected", handleFurnitureSelect);
+    window.addEventListener("room:item:deselected", handleFurnitureDeselect);
 
     return () => {
       window.removeEventListener("room:item:selected", handleFurnitureSelect);
+      window.removeEventListener("room:item:deselected", handleFurnitureDeselect);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handlePlayerSelect = (event: Event) => {
+      const detail = (event as CustomEvent<{ username: string; x: number; y: number }>).detail;
+      setSelectedPlayer(detail);
+    };
+
+    window.addEventListener("player:selected", handlePlayerSelect);
+
+    return () => {
+      window.removeEventListener("player:selected", handlePlayerSelect);
     };
   }, []);
 
@@ -336,11 +389,10 @@ export default function Game() {
     if (!socket || !roomId) return;
 
     const confirmed = await requestGameConfirm({
-      title: "Limpiar casa",
-      message:
-        "Se retiraran todos los muebles de la habitacion y volveran al inventario. Esta accion no se puede deshacer.",
-      confirmLabel: "Limpiar casa",
-      cancelLabel: "Conservar sala",
+      title: t("rooms.clearRoomTitle"),
+      message: t("rooms.clearRoomMessage"),
+      confirmLabel: t("rooms.clearRoomTitle"),
+      cancelLabel: t("rooms.clearRoomKeepLabel"),
       tone: "danger",
     });
 
@@ -367,6 +419,7 @@ export default function Game() {
   // acá — pueden convivir con un panel mayor sin problema.
   const openMajorPanel = useCallback(
     (panel: "shop" | "marketplace" | "inventory" | "avatarStudio") => {
+      audioManager.play("panelOpen");
       setShowShop(panel === "shop");
       setShowMarketplace(panel === "marketplace");
       setShowInventory(panel === "inventory");
@@ -375,12 +428,46 @@ export default function Game() {
     [],
   );
 
-  const handleOpenPc = useCallback(() => setShowPC(true), []);
+  // "Inicio": vuelve a la vista base del juego cerrando cualquier panel
+  // abierto (PC, tienda, marketplace, inventario, avatar) — no toca la sala
+  // actual ni desconecta nada, a diferencia de "Salir" (que sí abandona la
+  // sala hacia la lista). Los paneles utilitarios (Amigos/Mensajes/
+  // Notificaciones/Ajustes) también se cierran para que "Inicio" sea
+  // predecible: siempre te deja en el mismo estado limpio.
+  const handleGoHome = useCallback(() => {
+    setShowPC(false);
+    setShowShop(false);
+    setShowMarketplace(false);
+    setShowInventory(false);
+    setShowAvatarStudio(false);
+    setShowFriends(false);
+    setShowMessages(false);
+    setShowNotifications(false);
+    setShowSettings(false);
+    setShowEditWorld(false);
+  }, []);
+
+  const handleOpenPc = useCallback(() => {
+    audioManager.play("panelOpen");
+    setShowPC(true);
+  }, []);
   const handleCustomize = useCallback(() => openMajorPanel("avatarStudio"), [openMajorPanel]);
-  const handleOpenFriends = useCallback(() => setShowFriends(true), []);
-  const handleOpenMessages = useCallback(() => setShowMessages(true), []);
-  const handleOpenNotifications = useCallback(() => setShowNotifications(true), []);
-  const handleOpenSettings = useCallback(() => setShowSettings(true), []);
+  const handleOpenFriends = useCallback(() => {
+    audioManager.play("panelOpen");
+    setShowFriends(true);
+  }, []);
+  const handleOpenMessages = useCallback(() => {
+    audioManager.play("panelOpen");
+    setShowMessages(true);
+  }, []);
+  const handleOpenNotifications = useCallback(() => {
+    audioManager.play("panelOpen");
+    setShowNotifications(true);
+  }, []);
+  const handleOpenSettings = useCallback(() => {
+    audioManager.play("panelOpen");
+    setShowSettings(true);
+  }, []);
   const handleOpenShop = useCallback(() => openMajorPanel("shop"), [openMajorPanel]);
   const handleOpenMarketplace = useCallback(() => openMajorPanel("marketplace"), [openMajorPanel]);
   const handleOpenBuildMode = useCallback(() => {
@@ -400,6 +487,17 @@ export default function Game() {
   return (
     <ChatProvider>
     <div className="game-wrapper">
+      {/* ================= BOOT LOADING ================= */}
+      {/* Antes esto era una pantalla negra pura mientras se resuelve el auth
+          inicial y Phaser termina de bootear — sin logo, spinner ni texto de
+          progreso. Es lo primero que ve todo jugador nuevo. */}
+      {!currentUser && (
+        <div className="boot-loading">
+          <div className="boot-spinner" aria-hidden="true" />
+          <span className="boot-title">CodeBuddies</span>
+        </div>
+      )}
+
       {/* ================= GAME ================= */}
 
       <div ref={containerRef} className="phaser-game-container" />
@@ -417,6 +515,7 @@ export default function Game() {
               level={stats?.level || currentUser.level || 1}
               coins={stats?.coins || currentUser.coins || 0}
               diamonds={stats?.diamonds || currentUser.diamonds || 0}
+              onGoHome={handleGoHome}
               onOpenPc={handleOpenPc}
               onCustomize={handleCustomize}
               onOpenFriends={handleOpenFriends}
@@ -431,13 +530,42 @@ export default function Game() {
           )}
         </div>
 
+        {/* ================= TOP (energía) ================= */}
+
+        {inGame && <TopBar energy={stats?.energy} />}
+
         {/* ================= RIGHT ================= */}
 
         {inGame && (
           <div className="ui-right">
-            <RightSidebar />
+            <RightSidebar
+              roomName={currentRoom?.name}
+              thumbnailUrl={currentRoom?.thumbnailUrl}
+              canManageRoom={
+                myPermissions.canEditConfig ||
+                myPermissions.canManageGuests ||
+                myPermissions.canManagePermissions
+              }
+              canInvite={myPermissions.canManageGuests}
+              onOpenEditWorld={() => {
+                setEditWorldInitialTab(undefined);
+                setShowEditWorld(true);
+              }}
+              onOpenRoomInfo={() => {
+                setEditWorldInitialTab("roomInfo");
+                setShowEditWorld(true);
+              }}
+              onOpenInvite={() => {
+                setEditWorldInitialTab("guests");
+                setShowEditWorld(true);
+              }}
+            />
           </div>
         )}
+
+        {/* ================= ZOOM ================= */}
+
+        {inGame && <ZoomControls />}
 
         {/* ================= BOTTOM ================= */}
 
@@ -456,6 +584,7 @@ export default function Game() {
           socket={socket}
           roomId={currentRoom?.id}
           currentBackgroundId={currentRoom?.background?.id}
+          permissions={myPermissions}
           inventory={inventory}
           paintAllProgress={paintAllProgress}
           onExit={() => {
@@ -586,8 +715,32 @@ export default function Game() {
 
       {selectedFurniture && (
         <FurnitureContextMenu
-          furniture={selectedFurniture}
-          onClose={() => setSelectedFurniture(null)}
+          furniture={selectedFurniture.furniture}
+          x={selectedFurniture.x}
+          y={selectedFurniture.y}
+          permissions={myPermissions}
+          onClose={() => {
+            setSelectedFurniture(null);
+            window.dispatchEvent(new CustomEvent("room:item:deselected"));
+          }}
+        />
+      )}
+
+      {selectedPlayer && (
+        <PlayerQuickMenu
+          username={selectedPlayer.username}
+          x={selectedPlayer.x}
+          y={selectedPlayer.y}
+          onClose={() => setSelectedPlayer(null)}
+        />
+      )}
+
+      {showEditWorld && currentRoom && (
+        <EditWorldPanel
+          roomId={currentRoom.id}
+          permissions={myPermissions}
+          initialTab={editWorldInitialTab}
+          onClose={() => setShowEditWorld(false)}
         />
       )}
 
@@ -625,6 +778,50 @@ export default function Game() {
           overflow: hidden;
 
           background: #000;
+        }
+
+        .boot-loading {
+          position: absolute;
+          inset: 0;
+          z-index: 500;
+
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 16px;
+
+          background: #000;
+          color: #f8fafc;
+        }
+
+        .boot-title {
+          font-family: system-ui, sans-serif;
+          font-size: 20px;
+          font-weight: 700;
+          letter-spacing: 0.04em;
+          opacity: 0.9;
+        }
+
+        .boot-spinner {
+          width: 36px;
+          height: 36px;
+          border-radius: 50%;
+          border: 3px solid rgba(255, 255, 255, 0.15);
+          border-top-color: #f8fafc;
+          animation: boot-spin 0.8s linear infinite;
+        }
+
+        @keyframes boot-spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .boot-spinner {
+            animation: none;
+          }
         }
 
         .phaser-game-container {

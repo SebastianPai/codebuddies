@@ -38,7 +38,7 @@
 
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
 
   padding: 0 20px;
 
@@ -46,169 +46,60 @@
 }
 
 /* ====================== */
-/* GROUPS */
+/* COMPOSER — mensaje + reacciones en un solo cuerpo, centrado de verdad */
 /* ====================== */
 
-.bottom-left,
-.bottom-center,
-.bottom-right {
-  display: flex;
-  align-items: center;
-}
-
-/* CHAT */
-
-.bottom-left {
-  flex: 1;
-
-  display: flex;
-  justify-content: flex-start;
-}
-
-/* REACCIONES PERFECTAMENTE CENTRADAS */
-
-.bottom-center {
+.composer {
   position: absolute;
-
   left: 50%;
-
   transform: translateX(-50%);
 
-  width: fit-content;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  height: 52px;
+  width: min(92vw, 620px);
+
+  padding: 7px 8px 7px 10px;
+
+  border-radius: 26px;
+
+  background: rgba(18, 18, 22, 0.88);
+
+  border: 1px solid rgba(255, 212, 0, 0.14);
+
+  backdrop-filter: blur(16px);
+
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+}
+
+.composer-reactions {
+  display: flex;
+  align-items: center;
+
+  gap: 4px;
+
+  flex-shrink: 0;
+}
+
+/* Atajos secundarios: chicos y discretos a propósito — el mensaje de texto
+   es el elemento dominante de la barra, no las reacciones. */
+.composer-reaction-btn {
+  width: 32px;
+  height: 32px;
+
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 50%;
+
+  background: rgba(255, 255, 255, 0.04);
+
+  color: white;
+  font-size: 15px;
 
   display: flex;
+  align-items: center;
   justify-content: center;
-
-  flex-shrink: 0;
-}
-
-/* ONLINE */
-
-.bottom-right {
-  width: fit-content;
-
-  display: flex;
-  justify-content: flex-end;
-
-  flex-shrink: 0;
-}
-
-/* ====================== */
-/* CHAT */
-/* ====================== */
-
-.chat-shell {
-  width: min(100%, 360px);
-
-  display: flex;
-  align-items: center;
-
-  gap: 8px;
-
-  padding: 6px;
-
-  border-radius: 18px;
-
-  background: rgba(20, 20, 20, 0.85);
-
-  border: 1px solid rgba(255, 212, 0, 0.12);
-
-  backdrop-filter: blur(14px);
-}
-
-.chat-input {
-  flex: 1;
-
-  height: 38px;
-
-  border: none;
-  outline: none;
-
-  border-radius: 12px;
-
-  padding: 0 14px;
-
-  background: rgba(255, 255, 255, 0.06);
-
-  color: white;
-
-  font-size: 13px;
-
-  font-family: "Inter", sans-serif;
-}
-
-.chat-input::placeholder {
-  color: #94a3b8;
-}
-
-.send-btn {
-  height: 38px;
-
-  padding: 0 16px;
-
-  border: none;
-
-  border-radius: 12px;
-
-  background: #ffd400;
-
-  color: black;
-
-  font-family: "Inter", sans-serif;
-
-  font-size: 13px;
-
-  font-weight: 700;
-
-  cursor: pointer;
-
-  transition: all 0.2s ease;
-}
-
-.send-btn:hover {
-  background: #ffea80;
-
-  transform: translateY(-1px);
-}
-
-/* ====================== */
-/* REACTIONS */
-/* ====================== */
-
-.reaction-shell {
-  display: inline-flex;
-  align-items: center;
-
-  gap: 8px;
-
-  padding: 6px;
-
-  border-radius: 18px;
-
-  background: rgba(20, 20, 20, 0.85);
-
-  border: 1px solid rgba(255, 212, 0, 0.12);
-
-  backdrop-filter: blur(14px);
-
-  width: fit-content;
-}
-
-.reaction-btn {
-  width: 50px;
-  height: 50px;
-
-  border: none;
-
-  border-radius: 14px;
-
-  background: rgba(255, 255, 255, 0.05);
-
-  border: 1px solid rgba(255, 212, 0, 0.08);
-
-  color: white;
-
-  font-size: 20px;
 
   cursor: pointer;
 
@@ -219,25 +110,23 @@
   flex-shrink: 0;
 }
 
-.reaction-btn:hover {
-  transform: translateY(-3px);
+.composer-reaction-btn:hover {
+  transform: translateY(-2px);
 
-  background: rgba(255, 212, 0, 0.18);
+  background: rgba(255, 212, 0, 0.16);
 }
 
-/* TOOLTIP */
-
-.reaction-btn::after {
+.composer-reaction-btn::after {
   content: attr(data-label);
 
   position: absolute;
 
-  bottom: calc(100% + 8px);
+  bottom: calc(100% + 10px);
   left: 50%;
 
   transform: translateX(-50%);
 
-  padding: 6px 10px;
+  padding: 5px 9px;
 
   border-radius: 8px;
 
@@ -261,16 +150,94 @@
   white-space: nowrap;
 }
 
-.reaction-btn:hover::after {
+.composer-reaction-btn:hover::after {
   opacity: 1;
+}
+
+.composer-divider {
+  width: 1px;
+  height: 24px;
+
+  background: rgba(255, 255, 255, 0.1);
+
+  flex-shrink: 0;
+}
+
+.composer-input {
+  flex: 1;
+  min-width: 0;
+
+  height: 38px;
+
+  border: none;
+  outline: none;
+
+  border-radius: 20px;
+
+  padding: 0 16px;
+
+  background: rgba(255, 255, 255, 0.06);
+
+  color: white;
+
+  font-size: 13.5px;
+
+  font-family: "Inter", sans-serif;
+}
+
+.composer-input::placeholder {
+  color: #94a3b8;
+}
+
+.composer-send {
+  width: 38px;
+  height: 38px;
+
+  border: none;
+  border-radius: 50%;
+
+  background: #ffd400;
+
+  color: #111;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  cursor: pointer;
+
+  transition: all 0.2s ease;
+
+  flex-shrink: 0;
+}
+
+.composer-send:hover {
+  background: #ffea80;
+
+  transform: translateY(-1px);
+}
+
+.composer-send:disabled {
+  opacity: 0.35;
+  cursor: default;
+  transform: none;
 }
 
 /* ====================== */
 /* ONLINE */
 /* ====================== */
 
+.bottom-right {
+  width: fit-content;
+
+  display: flex;
+  justify-content: flex-end;
+
+  flex-shrink: 0;
+}
+
 .online-shell {
-  height: 38px;
+  height: 34px;
 
   padding: 0 12px;
 
@@ -281,9 +248,9 @@
 
   border-radius: 999px;
 
-  background: rgba(20, 20, 20, 0.88);
+  background: rgba(20, 20, 20, 0.8);
 
-  border: 1px solid rgba(255, 212, 0, 0.12);
+  border: 1px solid rgba(255, 212, 0, 0.1);
 
   backdrop-filter: blur(14px);
 
@@ -326,48 +293,48 @@
     flex-direction: column;
 
     align-items: center;
+    justify-content: center;
 
     gap: 12px;
   }
 
-  .bottom-center {
+  .composer {
     position: relative;
-
     left: unset;
-
     transform: none;
+
+    order: 1;
   }
 
-  .bottom-left,
-  .bottom-center,
   .bottom-right {
+    order: 2;
+
     width: 100%;
 
     justify-content: center;
   }
 
   .bottom-bar-wrapper {
-    height: 210px;
+    height: 150px;
   }
 }
 
 @media (max-width: 700px) {
   .bottom-bar-wrapper {
-    height: 230px;
+    height: 160px;
   }
 
-  .chat-shell {
-    width: 100%;
+  .composer {
+    width: 96vw;
   }
 
-  .reaction-shell {
-    flex-wrap: wrap;
-
-    justify-content: center;
+  .composer-reactions {
+    gap: 2px;
   }
 
-  .reaction-btn {
-    width: 46px;
-    height: 46px;
+  .composer-reaction-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 13px;
   }
 }

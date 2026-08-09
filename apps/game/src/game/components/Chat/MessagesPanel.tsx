@@ -16,14 +16,18 @@ import {
 import { useChat } from "./ChatProvider";
 import { audioManager } from "../../audio/AudioManager";
 import UserBadges from "../shared/UserBadges";
+import { useDialogBehavior } from "../shared/useDialogBehavior";
+import { useTranslation } from "../../../i18n/useTranslation";
 
 type Props = {
   onClose: () => void;
 };
 
 export default function MessagesPanel({ onClose }: Props) {
+  const t = useTranslation();
   const { openChat } = useChat();
   const nodeRef = useRef<HTMLDivElement>(null);
+  useDialogBehavior(nodeRef, onClose);
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [requests, setRequests] = useState<MessageRequestItem[]>([]);
@@ -83,15 +87,15 @@ export default function MessagesPanel({ onClose }: Props) {
     <Draggable nodeRef={nodeRef} handle={`.${styles.windowHeader}`}>
       <div ref={nodeRef} className={styles.window}>
         <div className={styles.windowHeader}>
-          <span className={styles.title}>MENSAJES</span>
-          <button className={styles.closeBtn} aria-label="Cerrar mensajes" onClick={onClose}>
+          <span className={styles.title}>{t("chat.panelTitle")}</span>
+          <button className={styles.closeBtn} aria-label={t("chat.closeMessagesAriaLabel")} onClick={onClose}>
             <X size={14} />
           </button>
         </div>
 
         {requests.length > 0 && (
           <>
-            <div className={styles.sectionLabel}>SOLICITUDES DE MENSAJE</div>
+            <div className={styles.sectionLabel}>{t("chat.messageRequestsLabel")}</div>
             <div className={styles.list}>
               {requests.map((request) => (
                 <div key={request.id} className={styles.requestRow}>
@@ -104,10 +108,10 @@ export default function MessagesPanel({ onClose }: Props) {
                       className={`${styles.miniBtn} ${styles.primary}`}
                       onClick={() => void handleAcceptRequest(request.id)}
                     >
-                      Aceptar
+                      {t("common.accept")}
                     </button>
                     <button className={styles.miniBtn} onClick={() => void handleRejectRequest(request.id)}>
-                      Rechazar
+                      {t("chat.reject")}
                     </button>
                   </div>
                 </div>
@@ -116,12 +120,10 @@ export default function MessagesPanel({ onClose }: Props) {
           </>
         )}
 
-        <div className={styles.sectionLabel}>CONVERSACIONES</div>
+        <div className={styles.sectionLabel}>{t("chat.conversationsLabel")}</div>
         <div className={styles.list}>
           {conversations.length === 0 && (
-            <div className={styles.empty}>
-              No tienes conversaciones aún. Escríbele a un amigo desde el panel de Amigos.
-            </div>
+            <div className={styles.empty}>{t("chat.noConversations")}</div>
           )}
           {conversations.map((conversation) => (
             <div

@@ -1,10 +1,11 @@
 "use client";
 
-import { Company, ViewKey } from "../types";
+import { Company, GuideKey, ViewKey } from "../types";
 import { format } from "../utils";
 import { makeNotifications, makeObjectives, makeTrends } from "../mockData";
 import { ActionBriefing, ActivityTimeline, Kpis, MiniChart, ProgressRow } from "../widgets";
 import TutorialPanel from "./TutorialPanel";
+import { useTranslation } from "../../../../i18n/useTranslation";
 
 export default function DashboardView({
   company,
@@ -17,20 +18,21 @@ export default function DashboardView({
   notifications: ReturnType<typeof makeNotifications>;
   objectives: ReturnType<typeof makeObjectives>;
   trends: ReturnType<typeof makeTrends>;
-  onNavigate: (view: ViewKey) => void;
+  onNavigate: (view: ViewKey, guideKey?: GuideKey) => void;
 }) {
+  const t = useTranslation();
   return (
     <div className="cs-grid">
       <section className="cs-panel cs-span-8">
         <div className="cs-panel-header">
           <div>
-            <h3>Command Center</h3>
-            <p>Resumen vivo de tu empresa, producto y comunidad.</p>
+            <h3>{t("codestudioOps.dashboard.title")}</h3>
+            <p>{t("codestudioOps.dashboard.subtitle")}</p>
           </div>
           <strong>${format(company.cash)}</strong>
         </div>
         <Kpis company={company} />
-        <MiniChart snapshots={company.snapshots} metric="activeUsers" label="Usuarios activos" />
+        <MiniChart snapshots={company.snapshots} metric="activeUsers" label={t("codestudioOps.dashboard.activeUsersLabel")} />
       </section>
 
       <section className="cs-panel cs-span-4">
@@ -38,7 +40,7 @@ export default function DashboardView({
       </section>
 
       <section className="cs-panel cs-span-5">
-        <h3>Objetivos</h3>
+        <h3>{t("codestudioOps.dashboard.objectivesTitle")}</h3>
         {objectives.map((goal) => (
           <ProgressRow key={goal.label} label={goal.label} value={goal.current} max={goal.target} hint={goal.scope} />
         ))}
@@ -47,7 +49,7 @@ export default function DashboardView({
       <TutorialPanel company={company} onNavigate={onNavigate} />
 
       <section className="cs-panel cs-span-4">
-        <h3>Tendencias</h3>
+        <h3>{t("codestudioOps.dashboard.trendsTitle")}</h3>
         <div className="cs-tags">
           {trends.map((trend) => (
             <button key={trend.label} onClick={() => onNavigate("research")}>

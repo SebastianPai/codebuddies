@@ -8,9 +8,12 @@ const pendingImages = new Map<string, Promise<string>>();
 function canonicalAssetUrl(url?: string | null) {
   if (!url) return "";
   try {
-    const parsed = new URL(url, window.location.origin);
-    ["cb", "cacheBust", "timestamp"].forEach((key) => parsed.searchParams.delete(key));
-    return parsed.toString();
+    // No borrar "cb"/"cacheBust"/"timestamp": son justamente los params que
+    // usa el backend para forzar un refetch cuando el asset cambió. Antes se
+    // borraban antes de cachear, así que dos URLs con distinto cache-bust
+    // colapsaban a la misma clave y la imagen editada nunca se recargaba en
+    // la sesión (ver misma corrección en utils/phaserAssetCache.ts).
+    return new URL(url, window.location.origin).toString();
   } catch {
     return url;
   }

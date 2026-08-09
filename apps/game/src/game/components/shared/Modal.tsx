@@ -8,6 +8,7 @@ import { X } from "lucide-react";
 import styles from "./Modal.module.css";
 import Button from "./Button";
 import { useDialogBehavior } from "./useDialogBehavior";
+import { useTranslation } from "../../../i18n/useTranslation";
 
 type ZTier = "panel" | "modal" | "toast";
 
@@ -42,14 +43,16 @@ export default function Modal({
   footer,
   headerActions,
   zTier = "modal",
-  closeLabel = "Cerrar",
+  closeLabel,
   className = "",
   contentClassName = "",
   style,
   draggable = variant === "floating",
 }: Props) {
+  const t = useTranslation();
   const dialogRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
+  const resolvedCloseLabel = closeLabel ?? t("common.close");
 
   useDialogBehavior(dialogRef, onClose);
 
@@ -70,7 +73,7 @@ export default function Modal({
         </span>
         <div className={styles.headerActions}>
           {headerActions}
-          <Button variant="ghost" size="sm" aria-label={closeLabel} onClick={onClose} className={styles.closeBtn}>
+          <Button variant="ghost" size="sm" aria-label={resolvedCloseLabel} onClick={onClose} className={styles.closeBtn}>
             <X size={16} />
           </Button>
         </div>

@@ -1,0 +1,58 @@
+.cs-explainer-card {
+  width: 440px;
+  max-width: calc(100vw - 32px);
+  border-radius: 22px;
+  border: 1px solid rgba(103, 232, 249, 0.28);
+  background:
+    radial-gradient(circle at 18% 0%, rgba(34, 211, 238, 0.16), transparent 40%),
+    radial-gradient(circle at 100% 100%, rgba(250, 204, 21, 0.12), transparent 45%),
+    linear-gradient(160deg, #050914 0%, #08111f 55%, #100f08 100%);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.55);
+  padding: 20px;
+  color: #e5f6ff;
+  font-family: "Trebuchet MS", sans-serif;
+  text-align: left;
+  animation: cs-wizard-pop 0.22s ease both;
+}
+
+.cs-explainer-dots {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.cs-explainer-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(148, 163, 184, 0.3);
+  transition: background 0.2s ease;
+}
+
+.cs-explainer-dots span.active {
+  background: #facc15;
+  box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.18);
+}
+
+.cs-explainer-dots span.done {
+  background: #86efac;
+}
+
+.cs-explainer-card h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.cs-explainer-card > p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: rgba(229, 246, 255, 0.75);
+}
+
+.cs-explainer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}

@@ -1,0 +1,108 @@
+{
+  "ranking": {
+    "title": "Competidores NPC",
+    "usersLabel": "{count} usuarios"
+  },
+  "research": {
+    "trendsTitle": "Tendencias del mercado",
+    "treeTitle": "Arbol de tecnologia",
+    "treeHint": "Cada rama es una cadena de nodos: desbloquea uno para poder pagar el siguiente. El efecto de cada nodo es permanente.",
+    "unlockedLabel": "Activo",
+    "requiresLabel": "Requiere: {name}",
+    "unlockButton": "Desbloquear ${amount}"
+  },
+  "roadmap": {
+    "pending": "Pendiente",
+    "development": "Desarrollo",
+    "qa": "QA",
+    "release": "Release",
+    "production": "Produccion",
+    "qaHint": "Validando bugs, rendimiento y UX",
+    "readyToPublish": "Listo para publicar"
+  },
+  "settingsView": {
+    "title": "Configuracion de Live Ops",
+    "description": "CodeStudio avanza con los ticks del juego. Las opciones avanzadas se conectaran al motor en fases futuras.",
+    "eventNotifications": "Notificaciones de eventos",
+    "developmentAnimations": "Animaciones de desarrollo",
+    "syncOnOpen": "Sincronizar al abrir la PC"
+  },
+  "deleteCompany": {
+    "dangerZoneTitle": "Zona de peligro",
+    "dangerZoneHint": "Eliminar tu empresa borra para siempre sus features, empleados, infraestructura y progreso. No se puede deshacer.",
+    "openButton": "Eliminar empresa",
+    "title": "Eliminar {name}",
+    "warning": "Esta accion no se puede deshacer. Vas a perder todas las features, empleados, infraestructura y el progreso de esta empresa.",
+    "instruction": "Escribe {name} para confirmar que quieres eliminarla.",
+    "nameMismatch": "Ese no es el nombre de la empresa que quieres eliminar.",
+    "confirmButton": "Eliminar",
+    "countingDown": "Eliminando...",
+    "deleting": "Eliminando...",
+    "toastTitle": "Empresa eliminada",
+    "toastDescription": "\"{name}\" ya no existe.",
+    "errorToastTitle": "No se pudo eliminar",
+    "errorToastDescription": "Intenta de nuevo en unos segundos."
+  },
+  "tutorial": {
+    "title": "Asistente CEO",
+    "subtitle": "Ruta inicial para que la empresa arranque jugando, no como CRUD.",
+    "nextCycle": "Siguiente ciclo",
+    "now": "Ahora",
+    "goToPanel": "Ir al panel",
+    "step0Label": "Elige tu primera feature",
+    "step0Hint": "Ve al Backlog y elige qué construir primero. Sin esto la empresa no arranca.",
+    "stepHireLabel": "Contrata tu primer empleado",
+    "stepHireHint": "Un empleado acelera el desarrollo y te deja crecer mas rapido.",
+    "stepInfraLabel": "Instala tu primer servidor",
+    "stepInfraHint": "Sin infraestructura la empresa aguanta poca gente antes de saturarse.",
+    "step1Label": "Primeras 3 features",
+    "step1Hint": "Con 3 features instaladas tu empresa pasa a estar En Vivo.",
+    "progressSuffix": "{label} ({current}/{target})",
+    "step3Label": "Primeros usuarios",
+    "step3Hint": "Marketing, rating e infraestructura empujan el crecimiento.",
+    "step4Label": "Infra estable",
+    "step4Hint": "Evita saturacion antes de escalar.",
+    "step5Label": "Roadmap publico",
+    "step5Hint": "Completa nuevas features hasta publicar una version fuerte."
+  },
+  "guides": {
+    "next": "Siguiente",
+    "start": "Entendido, vamos",
+    "feature": {
+      "step1Title": "Que es una \"feature\"",
+      "step1Description": "Una feature es una funcion concreta de tu app: un carrito de compras, un chat, un buscador. Tu empresa esta vacia, asi que necesita al menos una feature para tener algo que ofrecer y empezar a generar usuarios.",
+      "step2Title": "Que es el Backlog",
+      "step2Description": "El Backlog es la lista de todas las features que tu tipo de startup puede construir, todavia sin desarrollar. Eliges una, pagas su costo y tu equipo la desarrolla con el tiempo (barra de progreso). No hay una unica respuesta correcta: cualquier feature sirve para arrancar.",
+      "step3Title": "Que significa la Prioridad",
+      "step3Description": "La Prioridad (Urgente/Alta/Media/Baja) es solo para que ordenes la lista a tu gusto. No cambia el costo ni el tiempo de desarrollo de la feature, es puramente para organizarte. Elige cualquier feature y toca \"Desarrollar\" para empezar."
+    },
+    "hire": {
+      "step1Title": "Que hace un empleado",
+      "step1Description": "Cada empleado que contratas suma capacidad de trabajo a tu empresa: acelera el desarrollo de features y mejora tu estabilidad general. Sin empleados, todo avanza mas lento.",
+      "step2Title": "Como contratar",
+      "step2Description": "Elige cualquier perfil de la lista y toca \"Contratar\". Se cobra un bono de contratacion una sola vez (el salario del mes) y el empleado queda sumado a tu equipo de inmediato."
+    },
+    "infra": {
+      "step1Title": "Para que sirve la infraestructura",
+      "step1Description": "La infraestructura (servidores, bases de datos, etc.) define cuantos usuarios puede aguantar tu app sin caerse y que tan rapido responde. Sin infraestructura, tu empresa satura rapido apenas crece.",
+      "step2Title": "Como instalar o mejorar",
+      "step2Description": "Elige un tipo que todavia no tengas y toca \"Instalar\" para sumarlo en nivel 1, o toca \"Mejorar nivel\" en uno que ya instalaste para subirle la capacidad. Cada mejora cuesta mas que la anterior."
+    }
+  },
+  "sidebarTour": {
+    "backlogTitle": "Backlog",
+    "backlogContent": "Aca elegis que feature construir. Cada una tiene un costo, un tiempo de desarrollo y puede depender de otra anterior de su misma categoria.",
+    "employeesTitle": "Empleados",
+    "employeesContent": "Contrata gente para que tu equipo desarrolle mas rapido. Cuanto mas grande el equipo, mas veloz avanza todo en paralelo.",
+    "infrastructureTitle": "Infraestructura",
+    "infrastructureContent": "Servidores, cache, balanceadores. Sin esto tu app se cae apenas le llega mucho trafico.",
+    "researchTitle": "Investigacion",
+    "researchContent": "Arbol de tecnologia: desbloquea nodos permanentes que mejoran tu app para siempre.",
+    "marketingTitle": "Marketing",
+    "marketingContent": "Lanza campanas reales por canal (TikTok, Facebook, etc.) y compara cual te trae mas usuarios.",
+    "localeBack": "Atras",
+    "localeSkip": "Saltar",
+    "localeNext": "Siguiente",
+    "localeLast": "Listo"
+  }
+}

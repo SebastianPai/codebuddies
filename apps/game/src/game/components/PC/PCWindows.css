@@ -9,16 +9,76 @@
 }
 
 .computer-frame {
-  width: 98vw;
-  height: 92vh;
-  max-width: 1310px;
-  max-height: 760px;
+  /* Chrome del PC (ventana, pestañas, editor, taskbar) */
+  --pcsim-desktop-bg: #0a0a0a;
+  --pcsim-content-bg: rgba(10, 10, 10, 0.96);
+  --pcsim-content-text: #ffffff;
+  --pcsim-control-bg: rgba(15, 23, 42, 0.92);
+  --pcsim-control-text: #e0faff;
+  --pcsim-control-border: rgba(103, 232, 249, 0.35);
+  --pcsim-chip-bg: rgba(255, 255, 255, 0.04);
+  --pcsim-chip-bg-strong: rgba(255, 255, 255, 0.06);
+  --pcsim-border-soft: rgba(103, 232, 249, 0.12);
+  --pcsim-border: rgba(103, 232, 249, 0.2);
+  --pcsim-border-strong: rgba(103, 232, 249, 0.3);
+  --pcsim-text-strong: #e5f6ff;
+  --pcsim-text-muted: #9fb3c8;
+  --pcsim-scrollbar-track: rgba(15, 23, 42, 0.8);
+  --pcsim-taskbar-bg: linear-gradient(135deg, rgba(15, 15, 25, 0.85), rgba(40, 0, 80, 0.75), rgba(15, 15, 25, 0.85));
+  --pcsim-taskbar-border: rgba(200, 120, 255, 0.3);
+  --pcsim-empty-text: #888;
+
+  /* Look general de CodeStudio (fondos/texto/bordes — los acentos dorado/
+     cian de badges y gráficos se mantienen iguales en los dos modos). */
+  --cs-bg-gradient: radial-gradient(circle at 16% 0%, rgba(34, 211, 238, 0.18), transparent 28%),
+    radial-gradient(circle at 96% 8%, rgba(250, 204, 21, 0.13), transparent 22%),
+    linear-gradient(135deg, #050914 0%, #08111f 48%, #100f08 100%);
+  --cs-text: #e5f6ff;
+  --cs-text-muted: rgba(229, 246, 255, 0.62);
+  --cs-label: #67e8f9;
+  --cs-panel-bg: rgba(3, 7, 18, 0.78);
+  --cs-panel-border: rgba(103, 232, 249, 0.18);
+  --cs-border-soft: rgba(148, 163, 184, 0.13);
+
+  width: 92vw;
+  height: 88vh;
+  max-width: 1450px;
+  max-height: 860px;
   background: url("/ui/marco2.png") no-repeat center;
   background-size: contain;
   padding: 2.9% 4.5% 4.5% 4.5%;
   box-sizing: border-box;
   image-rendering: pixelated;
-  transition: transform 0.16s ease;
+}
+
+.computer-frame[data-pc-theme="light"] {
+  --pcsim-desktop-bg: #eef2f7;
+  --pcsim-content-bg: rgba(238, 242, 247, 0.98);
+  --pcsim-content-text: #101826;
+  --pcsim-control-bg: rgba(255, 255, 255, 0.85);
+  --pcsim-control-text: #0b2530;
+  --pcsim-control-border: rgba(14, 116, 144, 0.3);
+  --pcsim-chip-bg: rgba(15, 23, 42, 0.05);
+  --pcsim-chip-bg-strong: rgba(15, 23, 42, 0.08);
+  --pcsim-border-soft: rgba(14, 116, 144, 0.14);
+  --pcsim-border: rgba(14, 116, 144, 0.22);
+  --pcsim-border-strong: rgba(14, 116, 144, 0.35);
+  --pcsim-text-strong: #0b2530;
+  --pcsim-text-muted: #56637a;
+  --pcsim-scrollbar-track: rgba(203, 213, 225, 0.9);
+  --pcsim-taskbar-bg: linear-gradient(135deg, rgba(226, 232, 240, 0.9), rgba(203, 213, 225, 0.85), rgba(226, 232, 240, 0.9));
+  --pcsim-taskbar-border: rgba(14, 116, 144, 0.25);
+  --pcsim-empty-text: #7a8699;
+
+  --cs-bg-gradient: radial-gradient(circle at 16% 0%, rgba(14, 165, 183, 0.12), transparent 28%),
+    radial-gradient(circle at 96% 8%, rgba(250, 204, 21, 0.1), transparent 22%),
+    linear-gradient(135deg, #eef2f7 0%, #e6edf4 48%, #f2eee2 100%);
+  --cs-text: #101826;
+  --cs-text-muted: rgba(16, 24, 38, 0.62);
+  --cs-label: #0e7490;
+  --cs-panel-bg: rgba(255, 255, 255, 0.82);
+  --cs-panel-border: rgba(14, 116, 144, 0.18);
+  --cs-border-soft: rgba(71, 85, 105, 0.18);
 }
 
 .monitor-frame {
@@ -36,90 +96,17 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: #0a0a0a;
+  background: var(--pcsim-desktop-bg);
   overflow: hidden;
   position: relative;
-}
-
-.pc-drag-handle {
-  height: 32px;
-  flex: 0 0 32px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 10px 0 14px;
-  color: #dffbff;
-  background:
-    linear-gradient(90deg, rgba(2, 6, 23, 0.96), rgba(8, 47, 73, 0.9)),
-    radial-gradient(circle at left, rgba(34, 211, 238, 0.2), transparent 38%);
-  border-bottom: 1px solid rgba(103, 232, 249, 0.28);
-  cursor: move;
-  user-select: none;
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  z-index: 4;
-}
-
-.pc-window-controls {
-  display: flex;
-  gap: 6px;
-}
-
-.pc-window-controls button {
-  width: 28px;
-  height: 22px;
-  border: 1px solid rgba(103, 232, 249, 0.35);
-  border-radius: 6px;
-  background: rgba(15, 23, 42, 0.92);
-  color: #e0faff;
-  cursor: pointer;
-  font-weight: 900;
-  line-height: 1;
-}
-
-.pc-window-controls button:hover {
-  border-color: #facc15;
-  color: #facc15;
-  transform: translateY(-1px);
-}
-
-.pc-window-controls button:last-child:hover {
-  border-color: #fb7185;
-  color: #fb7185;
-}
-
-.pc-minimized-pill {
-  position: absolute;
-  left: 24px;
-  bottom: 24px;
-  z-index: 240;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  border: 1px solid rgba(103, 232, 249, 0.35);
-  border-radius: 999px;
-  background: rgba(2, 6, 23, 0.92);
-  color: #e0faff;
-  padding: 12px 18px;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
-  cursor: pointer;
-  font-weight: 900;
-}
-
-.pc-minimized-pill span {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #22d3ee;
-  box-shadow: 0 0 18px #22d3ee;
 }
 
 
 /* Escritorio */
 .win11-desktop {
   flex: 1;
+  display: flex;
+  flex-direction: column;
   background: #008080 url("/ui/fondowin2.png") center / cover;
   position: relative;
   overflow: hidden;
@@ -176,10 +163,10 @@
   flex: 1;
   padding: 20px;
   overflow-y: auto;
-  background: rgba(10, 10, 10, 0.96);
-  color: white;
+  background: var(--pcsim-content-bg);
+  color: var(--pcsim-content-text);
   min-height: 0;
-  scrollbar-color: rgba(34, 211, 238, 0.8) rgba(15, 23, 42, 0.8);
+  scrollbar-color: rgba(34, 211, 238, 0.8) var(--pcsim-scrollbar-track);
   scrollbar-width: thin;
 }
 
@@ -201,37 +188,53 @@
 /* Pestañas */
 .win11-tabs {
   display: flex;
-  background: rgba(0, 0, 0, 0.8);
-  padding: 8px;
-  gap: 6px;
+  background: var(--pcsim-chip-bg);
+  padding: 6px;
+  gap: 4px;
   flex-shrink: 0;
-  border-bottom: 2px solid #00ffff;
+  border-radius: 999px;
+  border: 1px solid var(--pcsim-border);
+  margin-bottom: 14px;
+  width: fit-content;
 }
 
 .tab {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 10px 24px;
-  background: #1f1f1f;
-  color: white;
-  border: 3px solid #555;
+  gap: 6px;
+  padding: 8px 18px;
+  background: transparent;
+  color: var(--pcsim-text-muted);
+  border: none;
+  border-radius: 999px;
   cursor: pointer;
-  font-weight: bold;
+  font-weight: 800;
+  font-size: 13px;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+.tab:hover:not(.active):not(:disabled) {
+  background: var(--pcsim-border-soft);
+  color: var(--pcsim-text-strong);
 }
 
 .tab.active {
-  background: #00b7eb;
-  color: black;
-  border-color: #00ffff;
+  background: linear-gradient(135deg, #facc15, #fbbf24);
+  color: #1a1305;
+  box-shadow: 0 6px 18px rgba(250, 204, 21, 0.35);
+}
+
+.tab:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 /* Ventana interna del Editor */
 .editor-window {
-  background: #1f1f1f;
-  border: 3px solid #00b7eb;
-  border-radius: 4px;
+  background: var(--pcsim-chip-bg);
+  border: 1px solid var(--pcsim-border-strong);
+  border-radius: 14px;
   overflow: hidden;
   height: 100%;
   display: flex;
@@ -239,33 +242,40 @@
 }
 
 .editor-titlebar {
-  background: linear-gradient(to right, #00b7eb, #1e90ff);
-  color: white;
-  padding: 8px 12px;
+  background: linear-gradient(90deg, rgba(34, 211, 238, 0.16), rgba(250, 204, 21, 0.08));
+  color: var(--pcsim-text-strong);
+  padding: 10px 14px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-shrink: 0;
+  border-bottom: 1px solid var(--pcsim-border);
 }
 
 .editor-title {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-weight: bold;
+  font-weight: 800;
 }
 
 .editor-close {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #c42b1c;
-  color: white;
+  background: var(--pcsim-chip-bg-strong);
+  color: var(--pcsim-control-text);
   border: none;
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   cursor: pointer;
-  border-radius: 2px;
+  border-radius: 999px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.editor-close:hover {
+  background: rgba(251, 113, 133, 0.2);
+  color: #fb7185;
 }
 
 .editor-content {
@@ -287,14 +297,9 @@
 /* Barra de tareas */
 .win11-taskbar {
   height: 40px;
-  background: linear-gradient(
-    135deg,
-    rgba(15, 15, 25, 0.85),
-    rgba(40, 0, 80, 0.75),
-    rgba(15, 15, 25, 0.85)
-  );
+  background: var(--pcsim-taskbar-bg);
   backdrop-filter: blur(14px) saturate(140%);
-  border-top: 1px solid rgba(200, 120, 255, 0.3);
+  border-top: 1px solid var(--pcsim-taskbar-border);
   box-shadow:
     0 -6px 30px rgba(150, 0, 255, 0.25),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
@@ -332,9 +337,34 @@
   right: 16px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--pcsim-text-strong);
+}
+
+.taskbar-control {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--pcsim-control-border);
+  border-radius: 999px;
+  background: var(--pcsim-control-bg);
+  color: var(--pcsim-control-text);
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.taskbar-control:hover {
+  border-color: #facc15;
+  color: #facc15;
+  transform: translateY(-1px);
+}
+
+.taskbar-control:last-child:hover {
+  border-color: #fb7185;
+  color: #fb7185;
 }
 
 .win11-btn {
@@ -342,22 +372,38 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 8px 16px;
-  background: #1f1f1f;
-  color: white;
-  border: 3px solid #555;
+  padding: 9px 18px;
+  background: var(--pcsim-chip-bg);
+  color: var(--pcsim-text-strong);
+  border: 1px solid var(--pcsim-border-strong);
+  border-radius: 999px;
   cursor: pointer;
-  font-weight: bold;
-}
-
-.win11-btn.success {
-  background: #00b7eb;
-  color: black;
-  border-color: #00ffff;
+  font-weight: 800;
+  font-size: 13px;
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .win11-btn:hover {
-  background: #333;
+  background: rgba(34, 211, 238, 0.15);
+  border-color: #22d3ee;
+  transform: translateY(-1px);
+}
+
+.win11-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.win11-btn.success {
+  background: linear-gradient(135deg, #facc15, #fbbf24);
+  color: #1a1305;
+  border-color: transparent;
+}
+
+.win11-btn.success:hover {
+  box-shadow: 0 8px 22px rgba(250, 204, 21, 0.35);
+  transform: translateY(-2px);
 }
 
 .create-buttons {
@@ -376,20 +422,23 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px;
-  background: rgba(255, 255, 255, 0.05);
+  padding: 12px 14px;
+  background: var(--pcsim-chip-bg);
   margin-bottom: 8px;
   cursor: pointer;
-  border: 2px solid transparent;
+  border: 1px solid var(--pcsim-border-soft);
+  border-radius: 14px;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
 }
 
 .app-item:hover {
-  border-color: #00b7eb;
-  background: rgba(0, 183, 235, 0.1);
+  border-color: #22d3ee;
+  background: rgba(34, 211, 238, 0.08);
+  transform: translateY(-1px);
 }
 
 .empty {
   text-align: center;
-  color: #888;
+  color: var(--pcsim-empty-text);
   margin-top: 40px;
 }

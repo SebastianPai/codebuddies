@@ -1,0 +1,16 @@
+{
+  "requestSentTitle": "消息请求已发送",
+  "requestSentMessage": "{username} 需要先接受你的请求才能聊天。",
+  "openFailedTitle": "无法打开聊天",
+  "closeChatAriaLabel": "关闭聊天",
+  "noMessagesYet": "还没有消息，打个招呼吧！",
+  "partnerTyping": "{username} 正在输入...",
+  "messagePlaceholder": "输入消息...",
+  "sendMessageAriaLabel": "发送消息",
+  "panelTitle": "消息",
+  "closeMessagesAriaLabel": "关闭消息",
+  "messageRequestsLabel": "消息请求",
+  "reject": "拒绝",
+  "conversationsLabel": "对话",
+  "noConversations": "你还没有任何对话。可以从好友面板给好友发消息。"
+}

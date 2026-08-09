@@ -4,6 +4,7 @@ import { io, Socket } from "socket.io-client";
 import { getSharedAuthToken } from "./auth";
 import { showGameAlert } from "../utils/dialog";
 import { audioManager } from "../audio/AudioManager";
+import { translate } from "../../i18n/LanguageContext";
 
 const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL!;
 
@@ -19,7 +20,6 @@ const SERVER_ERROR_EVENTS = [
   "shop:items:error",
   "player:stats:error",
   "inventory:error",
-  "apps:error",
 ] as const;
 
 let socket: Socket | null = null;
@@ -32,9 +32,9 @@ function wireServerErrorAlerts(s: Socket) {
       console.error(`[socket] ${eventName}`, data);
       audioManager.play("error");
       void showGameAlert({
-        title: "Algo salió mal",
-        message: data?.message || data?.reason || "Ocurrió un error inesperado. Intenta de nuevo.",
-        confirmLabel: "Entendido",
+        title: translate("common.actionFailedTitle"),
+        message: data?.message || data?.reason || translate("common.genericError"),
+        confirmLabel: translate("common.understood"),
         tone: "danger",
       });
     });

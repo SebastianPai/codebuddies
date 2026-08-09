@@ -41,8 +41,20 @@ export function getDirectionalFootprint(
     };
   }
 
-  const width = Math.max(1, Number(worldData?.footprintWidth) || 1);
-  const height = Math.max(1, Number(worldData?.footprintHeight) || 1);
+  // Sin footprint explicito por direccion, se cae a un rectangulo liso de
+  // footprintWidth x footprintHeight — pero ese rectangulo esta definido
+  // para la orientacion NORTH/SOUTH del sprite. Si el mueble esta rotado a
+  // EAST/WEST (un sofa mas ancho que profundo, por ejemplo), el rectangulo
+  // tiene que rotar con el, o la esquina "mas cercana a camara" que usa el
+  // calculo de profundidad (RoomItemsManager.addItem/updateDepths) queda mal
+  // ubicada y el mueble se dibuja con la profundidad de un tile que no es el
+  // que visualmente ocupa — eso hace que el jugador pase "delante" del
+  // sprite en la posicion equivocada.
+  const swapAxes = direction === "EAST" || direction === "WEST";
+  const rawWidth = Math.max(1, Number(worldData?.footprintWidth) || 1);
+  const rawHeight = Math.max(1, Number(worldData?.footprintHeight) || 1);
+  const width = swapAxes ? rawHeight : rawWidth;
+  const height = swapAxes ? rawWidth : rawHeight;
   const occupied = createRectTiles(width, height);
 
   return {

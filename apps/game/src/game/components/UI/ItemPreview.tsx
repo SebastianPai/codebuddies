@@ -2,6 +2,7 @@
 
 import styles from "./ItemPreview.module.css";
 import CachedGameImage from "../shared/CachedGameImage";
+import { useTranslation } from "../../../i18n/useTranslation";
 
 type Props = {
   item: any;
@@ -10,6 +11,7 @@ type Props = {
 };
 
 export default function ItemPreview({ item, alt, className = "" }: Props) {
+  const t = useTranslation();
   const imageUrl = item?.imageUrl || item?.previewUrl || item?.thumbnailUrl;
   const isWorld = item?.type === "WORLD" || Boolean(item?.worldData);
   const worldData = item?.worldData;
@@ -21,7 +23,7 @@ export default function ItemPreview({ item, alt, className = "" }: Props) {
     kind !== "BACKGROUND" &&
     kind !== "TEXTURE" &&
     (worldData?.rotatable ?? item?.rotatable ?? true);
-  const label = alt || item?.name || item?.id || "Item";
+  const label = alt || item?.name || item?.id || t("hud.itemPreview.fallbackLabel");
   // Texturas/pisos/paredes suelen venir en proporciones no cuadradas (p. ej.
   // 64x32): con "contain" dentro de un marco cuadrado se ven diminutas. Un
   // patrón repetible se lee mejor recortado ("cover") que encogido entero.

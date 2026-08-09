@@ -1,0 +1,139 @@
+.cs-delete-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 320px;
+}
+
+.cs-delete-warning {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  background: rgba(127, 29, 29, 0.35);
+  color: #fecaca;
+  font-size: 13px;
+}
+
+.cs-delete-instruction {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(229, 246, 255, 0.75);
+}
+
+.cs-delete-instruction b {
+  color: #facc15;
+}
+
+.cs-delete-input {
+  width: 100%;
+  border: 1px solid rgba(103, 232, 249, 0.3);
+  border-radius: 10px;
+  background: rgba(2, 6, 23, 0.85);
+  color: #e5f6ff;
+  padding: 10px 12px;
+  font-size: 14px;
+  outline: none;
+}
+
+.cs-delete-input:focus {
+  border-color: #fb7185;
+  box-shadow: 0 0 0 3px rgba(251, 113, 133, 0.16);
+}
+
+.cs-delete-error {
+  margin: 0;
+  font-size: 12px;
+  color: #fda4af;
+}
+
+.cs-delete-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+/* Countdown 3-2-1 */
+.cs-delete-countdown {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 10px;
+  min-width: 280px;
+}
+
+.cs-delete-countdown-number {
+  font-size: 56px;
+  font-weight: 900;
+  line-height: 1;
+  color: #fb7185;
+  animation: cs-delete-countdown-pop 0.35s ease;
+}
+
+@keyframes cs-delete-countdown-pop {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.cs-delete-countdown p {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(229, 246, 255, 0.65);
+}
+
+.cs-delete-abort {
+  margin-top: 6px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(229, 246, 255, 0.7);
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 7px 14px;
+}
+
+.cs-delete-abort:hover {
+  border-color: rgba(229, 246, 255, 0.4);
+  color: #e5f6ff;
+}
+
+/* Danger zone en SettingsView */
+.cs-danger-zone {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(248, 113, 113, 0.25);
+}
+
+.cs-danger-zone h3 {
+  color: #fda4af;
+}
+
+.cs-danger-button {
+  margin-top: 8px;
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  border-radius: 12px;
+  background: rgba(127, 29, 29, 0.25);
+  color: #fecaca;
+  cursor: pointer;
+  font-weight: 800;
+  font-size: 13px;
+  padding: 10px 14px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.cs-danger-button:hover {
+  background: rgba(127, 29, 29, 0.45);
+  border-color: rgba(248, 113, 113, 0.6);
+}

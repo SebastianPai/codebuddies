@@ -3,6 +3,7 @@
 import ItemCard from "../shared/ItemCard";
 import Button from "../shared/Button";
 import ColorSwatchPicker from "../shared/ColorSwatchPicker";
+import { useTranslation } from "../../../i18n/useTranslation";
 import styles from "./AvatarItemCard.module.css";
 
 interface Props {
@@ -28,10 +29,11 @@ export default function AvatarItemCard({
   equipped,
   onEquipAvatarItem,
 }: Props) {
+  const t = useTranslation();
   const slot = inv.item.avatarData?.slot;
   const colors = slot === "BODY" ? SKIN_COLORS : CLOTHES_COLORS;
   const translation = inv.item.translations?.[0];
-  const itemName = translation?.name ?? "Sin nombre";
+  const itemName = translation?.name ?? t("avatar.itemCardUnnamed");
   const itemDescription = translation?.description ?? "";
 
   return (
@@ -47,7 +49,7 @@ export default function AvatarItemCard({
           {equipped ? (
             <div className={styles.actions}>
               <Button variant="secondary" size="sm" fullWidth disabled>
-                Equipado
+                {t("avatar.itemCardEquipped")}
               </Button>
               <Button
                 variant="danger"
@@ -55,12 +57,12 @@ export default function AvatarItemCard({
                 fullWidth
                 onClick={() => onEquipAvatarItem?.({ ...inv.item, id: "0" })}
               >
-                Quitar
+                {t("avatar.itemCardRemove")}
               </Button>
             </div>
           ) : (
             <Button variant="primary" size="sm" fullWidth onClick={() => onEquipAvatarItem?.(inv.item)}>
-              Equipar
+              {t("avatar.itemCardEquip")}
             </Button>
           )}
 

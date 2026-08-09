@@ -5,12 +5,14 @@ import { Socket } from "socket.io-client";
 import { Heart } from "lucide-react";
 import { getSharedAuthToken } from "../../network/auth";
 import { requestGameConfirm, showGameAlert } from "../../utils/dialog";
+import { audioManager } from "../../audio/AudioManager";
 import Modal from "../shared/Modal";
 import Button from "../shared/Button";
 import ItemGrid from "../shared/ItemGrid";
 import ItemCard from "../shared/ItemCard";
 import UserBadges from "../shared/UserBadges";
 import styles from "./MarketplaceWindow.module.css";
+import { useTranslation } from "../../../i18n/useTranslation";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const WEB_URL = process.env.NEXT_PUBLIC_WEB_URL || "http://localhost:3000";
@@ -71,6 +73,7 @@ type Props = {
 };
 
 export default function MarketplaceWindow({ socket, onClose }: Props) {
+  const t = useTranslation();
   const [tab, setTab] = useState<Tab>("marketplace");
   const [items, setItems] = useState<MarketplaceItem[]>([]);
   const [favoriteItems, setFavoriteItems] = useState<MarketplaceItem[]>([]);
@@ -81,6 +84,12 @@ export default function MarketplaceWindow({ socket, onClose }: Props) {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [applicationMessage, setApplicationMessage] = useState("");
+  // Antes no había ningún guard: un doble clic en "Comprar" (común con lag)
+  // disparaba dos POST /marketplace/:id/buy concurrentes. A diferencia de
+  // Shop.tsx (que compra por WebSocket fire-and-forget y necesita un timeout
+  // de seguridad por si el servidor nunca responde), acá alcanza con el
+  // propio await de la petición HTTP para saber cuándo volver a habilitar.
+  const [buyingId, setBuyingId] = useState<string | null>(null);
 
   const token = useMemo(() => getSharedAuthToken(), []);
 
@@ -96,7 +105,7 @@ export default function MarketplaceWindow({ socket, onClose }: Props) {
     });
     if (!response.ok) {
       const payload = await response.json().catch(() => ({}));
-      throw new Error(payload.message || "No se pudo completar la accion");
+      throw new Error(payload.message || t("common.genericError"));
     }
     if (response.status === 204) return {} as T;
     return response.json() as Promise<T>;
@@ -129,7 +138,7 @@ export default function MarketplaceWindow({ socket, onClose }: Props) {
     try {
       await Promise.all([loadMarketplace(), loadFavorites(), loadCreator()]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error cargando Marketplace");
+      setError(err instanceof Error ? err.message : t("commerce.marketplaceLoadError"));
     } finally {
       setLoading(false);
     }
@@ -140,31 +149,41 @@ export default function MarketplaceWindow({ socket, onClose }: Props) {
   }, []);
 
   const buy = async (item: MarketplaceItem) => {
+    if (buyingId) return;
+
     const confirmed = await requestGameConfirm({
-      title: "Comprar contenido",
-      message: `Quieres comprar ${item.title} por ${item.priceCoins} Coins?`,
-      confirmLabel: "Comprar",
-      cancelLabel: "Cancelar",
+      title: t("commerce.marketplaceBuyTitle"),
+      message: t("commerce.marketplaceBuyMessage", { title: item.title, price: item.priceCoins }),
+      confirmLabel: t("commerce.shopBuy"),
+      cancelLabel: t("common.cancel"),
     });
     if (!confirmed) return;
 
+    setBuyingId(item.id);
     try {
       await request(`/marketplace/${item.id}/buy`, { method: "POST" });
       socket?.emit("inventory:get");
+      // Antes comprar acá era silencioso (a diferencia de Shop.tsx, que sí
+      // reproduce "coin" al comprar) — mismo tipo de compra, distinta
+      // sensación.
+      audioManager.play("coin");
+      window.dispatchEvent(new CustomEvent("fx:sparkle"));
       await showGameAlert({
-        title: "Compra realizada",
-        message: "El objeto fue agregado a tu inventario.",
-        confirmLabel: "Genial",
+        title: t("commerce.marketplacePurchaseSuccessTitle"),
+        message: t("commerce.marketplacePurchaseSuccessMessage"),
+        confirmLabel: t("commerce.marketplaceGreatLabel"),
         tone: "success",
       });
       await loadMarketplace();
     } catch (err) {
       await showGameAlert({
-        title: "No se pudo comprar",
-        message: err instanceof Error ? err.message : "Intentalo de nuevo.",
-        confirmLabel: "Entendido",
+        title: t("commerce.marketplacePurchaseFailTitle"),
+        message: err instanceof Error ? err.message : t("commerce.marketplaceRetryMessage"),
+        confirmLabel: t("common.understood"),
         tone: "danger",
       });
+    } finally {
+      setBuyingId(null);
     }
   };
 
@@ -213,19 +232,19 @@ export default function MarketplaceWindow({ socket, onClose }: Props) {
   return (
     <Modal
       variant="floating"
-      title="Marketplace"
+      title={t("commerce.marketplaceTitle")}
       onClose={onClose}
       style={{ width: "min(960px, calc(100vw - 24px))", height: "min(760px, calc(100dvh - 24px))" }}
     >
       <div className={styles.tabs}>
         <button className={tab === "marketplace" ? styles.active : ""} onClick={() => setTab("marketplace")}>
-          Comprar
+          {t("commerce.marketplaceTabBuy")}
         </button>
         <button className={tab === "favorites" ? styles.active : ""} onClick={() => setTab("favorites")}>
-          Favoritos
+          {t("commerce.marketplaceTabFavorites")}
         </button>
         <button className={tab === "creator" ? styles.active : ""} onClick={() => setTab("creator")}>
-          Crear
+          {t("commerce.marketplaceTabCreate")}
         </button>
       </div>
 
@@ -237,9 +256,9 @@ export default function MarketplaceWindow({ socket, onClose }: Props) {
         </div>
       ) : error ? (
         <div className={styles.empty}>
-          <strong>No se pudo cargar</strong>
+          <strong>{t("commerce.marketplaceLoadFailedTitle")}</strong>
           <span>{error}</span>
-          <button onClick={() => void loadAll()}>Reintentar</button>
+          <button onClick={() => void loadAll()}>{t("common.retry")}</button>
         </div>
       ) : tab === "marketplace" || tab === "favorites" ? (
         <div className={styles.body}>
@@ -251,10 +270,10 @@ export default function MarketplaceWindow({ socket, onClose }: Props) {
                 onKeyDown={(event) => {
                   if (event.key === "Enter") void loadMarketplace();
                 }}
-                placeholder="Buscar objetos de la comunidad..."
-                aria-label="Buscar en Marketplace"
+                placeholder={t("commerce.marketplaceSearchPlaceholder")}
+                aria-label={t("commerce.marketplaceSearchAriaLabel")}
               />
-              <button onClick={() => void loadMarketplace()}>Buscar</button>
+              <button onClick={() => void loadMarketplace()}>{t("common.search")}</button>
             </div>
           )}
 
@@ -262,8 +281,8 @@ export default function MarketplaceWindow({ socket, onClose }: Props) {
             isEmpty={visibleItems.length === 0}
             empty={
               <>
-                <strong>Marketplace vacío</strong>
-                <span>Aun no hay objetos publicados por la comunidad.</span>
+                <strong>{t("commerce.marketplaceEmptyTitle")}</strong>
+                <span>{t("commerce.marketplaceEmptyMessage")}</span>
               </>
             }
           >
@@ -280,15 +299,15 @@ export default function MarketplaceWindow({ socket, onClose }: Props) {
                   title={item.title}
                   footer={
                     <div className={styles.cardFooter}>
-                      <p className={styles.description}>{item.description || "Contenido de la comunidad."}</p>
+                      <p className={styles.description}>{item.description || t("commerce.marketplaceDescriptionFallback")}</p>
                       <div className={styles.author}>
-                        por <b>{item.creator.user.username}</b>
+                        {t("commerce.marketplaceByAuthor")} <b>{item.creator.user.username}</b>
                         <UserBadges verified={item.creator.verified} isCreator size={12} />
                       </div>
                       <div className={styles.metrics}>
-                        <span>{item.ratingAverage.toFixed(1)} estrellas</span>
-                        <span>{item.salesCount} ventas</span>
-                        <span>{item.favoritesCount} favs</span>
+                        <span>{t("commerce.marketplaceRatingLabel", { rating: item.ratingAverage.toFixed(1) })}</span>
+                        <span>{t("commerce.marketplaceSalesLabel", { count: item.salesCount })}</span>
+                        <span>{t("commerce.marketplaceFavsLabel", { count: item.favoritesCount })}</span>
                       </div>
                       <div className={styles.actions}>
                         <Button
@@ -297,10 +316,17 @@ export default function MarketplaceWindow({ socket, onClose }: Props) {
                           onClick={() => void favorite(item)}
                         >
                           <Heart size={13} fill={isFavorite ? "currentColor" : "none"} />
-                          {isFavorite ? "Quitar" : "Favorito"}
+                          {isFavorite ? t("commerce.marketplaceRemoveFavorite") : t("commerce.marketplaceAddFavorite")}
                         </Button>
-                        <Button variant="primary" size="sm" onClick={() => void buy(item)}>
-                          {item.priceCoins} Coins
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          disabled={buyingId === item.id}
+                          onClick={() => void buy(item)}
+                        >
+                          {buyingId === item.id
+                            ? t("commerce.shopBuying")
+                            : t("commerce.marketplacePriceCoins", { price: item.priceCoins })}
                         </Button>
                       </div>
                     </div>
@@ -339,40 +365,42 @@ function CreatorPanel({
   onApply: () => Promise<void>;
   onSubmit: (id: string) => Promise<void>;
 }) {
+  const t = useTranslation();
+
   if (!eligibility) {
-    return <div className={styles.empty}>Cargando informacion de creador...</div>;
+    return <div className={styles.empty}>{t("commerce.marketplaceCreatorLoading")}</div>;
   }
 
   if (!eligibility.isCreator) {
     return (
       <div className={styles.creatorLayout}>
         <div className={styles.panel}>
-          <h3>Requisitos para ser Creador</h3>
+          <h3>{t("commerce.marketplaceCreatorRequirementsTitle")}</h3>
           {eligibility.checks.map((check) => (
             <div key={check.key} className={styles.check}>
               <span>{check.label}</span>
               <b className={check.passed ? styles.ok : styles.bad}>
-                {check.passed ? "Listo" : `${check.current}/${check.required}`}
+                {check.passed ? t("commerce.marketplaceCreatorCheckReady") : `${check.current}/${check.required}`}
               </b>
             </div>
           ))}
         </div>
         <div className={styles.panel}>
-          <h3>Solicitud</h3>
+          <h3>{t("commerce.marketplaceApplicationTitle")}</h3>
           {eligibility.latestApplication ? (
             <div className={styles.empty}>
-              <strong>Estado: {eligibility.latestApplication.status}</strong>
-              <span>{eligibility.latestApplication.adminMessage || "El equipo revisara tu solicitud."}</span>
+              <strong>{t("commerce.marketplaceApplicationStatus", { status: eligibility.latestApplication.status })}</strong>
+              <span>{eligibility.latestApplication.adminMessage || t("commerce.marketplaceApplicationPendingMessage")}</span>
             </div>
           ) : (
             <>
               <textarea
                 value={applicationMessage}
                 onChange={(event) => setApplicationMessage(event.target.value)}
-                placeholder="Cuenta que quieres crear para CodeBuddies..."
+                placeholder={t("commerce.marketplaceApplicationPlaceholder")}
               />
               <button disabled={!eligibility.canApply} className={styles.primary} onClick={() => void onApply()}>
-                Convertirme en Creador
+                {t("commerce.marketplaceBecomeCreatorButton")}
               </button>
             </>
           )}
@@ -384,12 +412,12 @@ function CreatorPanel({
   return (
     <div className={styles.creatorLayout}>
       <div className={styles.panel}>
-        <h3>Creator Dashboard</h3>
+        <h3>{t("commerce.marketplaceCreatorDashboardTitle")}</h3>
         <div className={styles.statGrid}>
-          <Stat label="Publicados" value={dashboard?.stats.published ?? 0} />
-          <Stat label="Pendientes" value={dashboard?.stats.pending ?? 0} />
-          <Stat label="Rechazados" value={dashboard?.stats.rejected ?? 0} />
-          <Stat label="Wallet" value={dashboard?.wallet?.availableBalance ?? 0} />
+          <Stat label={t("commerce.marketplaceStatPublished")} value={dashboard?.stats.published ?? 0} />
+          <Stat label={t("commerce.marketplaceStatPending")} value={dashboard?.stats.pending ?? 0} />
+          <Stat label={t("commerce.marketplaceStatRejected")} value={dashboard?.stats.rejected ?? 0} />
+          <Stat label={t("commerce.marketplaceStatWallet")} value={dashboard?.wallet?.availableBalance ?? 0} />
         </div>
         <div className={styles.chart}>
           {["draft", "pending", "published", "rejected"].map((key) => (
@@ -403,37 +431,37 @@ function CreatorPanel({
       </div>
 
       <div className={styles.panel}>
-        <h3>Crear con el editor profesional</h3>
+        <h3>{t("commerce.marketplaceCreateWithEditorTitle")}</h3>
         <p className={styles.helpText}>
-          Para evitar editores duplicados, la creacion y edicion se hacen en Creator Studio con el mismo ItemEditor que usa el admin.
+          {t("commerce.marketplaceCreateWithEditorHelp")}
         </p>
         <button className={styles.primary} onClick={() => window.open(`${WEB_URL}/creator/marketplace/create`, "_blank", "noopener,noreferrer")}>
-          Abrir Creator Studio
+          {t("commerce.marketplaceOpenCreatorStudio")}
         </button>
       </div>
 
       <div className={`${styles.panel} ${styles.full}`}>
-        <h3>Mis publicaciones</h3>
+        <h3>{t("commerce.marketplaceMyPublicationsTitle")}</h3>
         {dashboard?.recentContents?.length ? (
           <div className={styles.table}>
             {dashboard.recentContents.map((content) => (
               <div key={content.id} className={styles.row}>
                 <span>{content.title}</span>
                 <b>{content.status}</b>
-                <em>{content.priceCoins} Coins</em>
+                <em>{t("commerce.marketplacePriceCoins", { price: content.priceCoins })}</em>
                 {["DRAFT", "CHANGES_REQUESTED"].includes(content.status) && (
                   <>
                     <button onClick={() => window.open(`${WEB_URL}/creator/marketplace/${content.id}/edit`, "_blank", "noopener,noreferrer")}>
-                      Editar
+                      {t("common.edit")}
                     </button>
-                    <button onClick={() => void onSubmit(content.id)}>Enviar</button>
+                    <button onClick={() => void onSubmit(content.id)}>{t("common.send")}</button>
                   </>
                 )}
               </div>
             ))}
           </div>
         ) : (
-          <div className={styles.empty}>Todavia no tienes objetos creados.</div>
+          <div className={styles.empty}>{t("commerce.marketplaceNoContentYet")}</div>
         )}
       </div>
     </div>

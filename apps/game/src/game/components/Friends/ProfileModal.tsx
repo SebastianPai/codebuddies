@@ -18,6 +18,7 @@ import Modal from "../shared/Modal";
 import Button from "../shared/Button";
 import UserBadges from "../shared/UserBadges";
 import { Globe, Lock, MessageCircle } from "lucide-react";
+import { useTranslation } from "../../../i18n/useTranslation";
 
 type Props = {
   username: string;
@@ -26,6 +27,7 @@ type Props = {
 };
 
 export default function ProfileModal({ username, onClose, onOpenChat }: Props) {
+  const t = useTranslation();
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -62,21 +64,29 @@ export default function ProfileModal({ username, onClose, onOpenChat }: Props) {
 
   const requestJoinRoom = async (room: ProfileRoom) => {
     const socket = (typeof window !== "undefined" && (window as any).phaserSocket) || null;
-    if (!socket) return;
+    // requestingRoomId ya en curso bloquea un segundo clic mientras el
+    // alert de confirmación sigue abierto (antes se setteaba y desetteaba
+    // de forma síncrona, sin ningún await entre medio: React agrupaba
+    // ambos cambios en un solo commit y el guard nunca llegaba a
+    // renderizarse como "true").
+    if (!socket || requestingRoomId) return;
 
     setRequestingRoomId(room.id);
-    socket.emit("room:requestJoin", { roomId: room.id });
-    setRooms((current) =>
-      current.map((entry) => (entry.id === room.id ? { ...entry, joinRequestStatus: "PENDING" } : entry)),
-    );
-    setRequestingRoomId(null);
+    try {
+      socket.emit("room:requestJoin", { roomId: room.id });
+      setRooms((current) =>
+        current.map((entry) => (entry.id === room.id ? { ...entry, joinRequestStatus: "PENDING" } : entry)),
+      );
 
-    await showGameAlert({
-      title: "Solicitud enviada",
-      message: `Le avisamos a ${username} que quieres entrar a "${room.name}". Te llega una notificación si te deja pasar.`,
-      confirmLabel: "Entendido",
-      tone: "success",
-    });
+      await showGameAlert({
+        title: t("quickmenu.friendActionPendingOutgoing"),
+        message: t("friends.joinRequestSentMessage", { username, roomName: room.name }),
+        confirmLabel: t("common.understood"),
+        tone: "success",
+      });
+    } finally {
+      setRequestingRoomId(null);
+    }
   };
 
   const handleFriendAction = async () => {
@@ -84,10 +94,10 @@ export default function ProfileModal({ username, onClose, onOpenChat }: Props) {
 
     if (profile.friendshipStatus === "ACCEPTED" && profile.friendshipId) {
       const confirmed = await requestGameConfirm({
-        title: "Eliminar amigo",
-        message: `¿Seguro que quieres eliminar a ${profile.username} de tu lista de amigos?`,
-        confirmLabel: "Eliminar",
-        cancelLabel: "Cancelar",
+        title: t("quickmenu.friendActionAccepted"),
+        message: t("friends.removeConfirmMessage", { username: profile.username }),
+        confirmLabel: t("common.delete"),
+        cancelLabel: t("common.cancel"),
         tone: "danger",
       });
       if (!confirmed) return;
@@ -106,9 +116,9 @@ export default function ProfileModal({ username, onClose, onOpenChat }: Props) {
       await load();
     } catch {
       await showGameAlert({
-        title: "No se pudo completar la acción",
-        message: "Intenta de nuevo en unos segundos.",
-        confirmLabel: "Entendido",
+        title: t("common.actionFailedTitle"),
+        message: t("common.actionFailedMessage"),
+        confirmLabel: t("common.understood"),
         tone: "danger",
       });
     } finally {
@@ -128,9 +138,9 @@ export default function ProfileModal({ username, onClose, onOpenChat }: Props) {
       await load();
     } catch {
       await showGameAlert({
-        title: "No se pudo completar la acción",
-        message: "Intenta de nuevo en unos segundos.",
-        confirmLabel: "Entendido",
+        title: t("common.actionFailedTitle"),
+        message: t("common.actionFailedMessage"),
+        confirmLabel: t("common.understood"),
         tone: "danger",
       });
     } finally {
@@ -142,13 +152,15 @@ export default function ProfileModal({ username, onClose, onOpenChat }: Props) {
     if (!profile) return "";
     switch (profile.friendshipStatus) {
       case "ACCEPTED":
-        return "Eliminar amigo";
+        return t("quickmenu.friendActionAccepted");
       case "PENDING":
-        return profile.friendshipDirection === "INCOMING" ? "Aceptar solicitud" : "Solicitud enviada";
+        return profile.friendshipDirection === "INCOMING"
+          ? t("quickmenu.friendActionPendingIncoming")
+          : t("quickmenu.friendActionPendingOutgoing");
       case "BLOCKED":
-        return "Bloqueado";
+        return t("quickmenu.friendActionBlocked");
       default:
-        return "Agregar amigo";
+        return t("quickmenu.friendActionDefault");
     }
   };
 
@@ -164,15 +176,15 @@ export default function ProfileModal({ username, onClose, onOpenChat }: Props) {
             <UserBadges verified={profile.verified} isCreator={profile.isCreator} size={14} className={styles.titleBadges} />
           </>
         ) : (
-          "Perfil"
+          t("friends.profileTitle")
         )
       }
       onClose={onClose}
       contentClassName={styles.content}
       style={{ width: "min(340px, 100%)" }}
     >
-      {loading && <div className={styles.loading}>Cargando perfil...</div>}
-      {!loading && error && <div className={styles.error}>No se pudo cargar este perfil.</div>}
+      {loading && <div className={styles.loading}>{t("friends.profileLoading")}</div>}
+      {!loading && error && <div className={styles.error}>{t("friends.profileLoadError")}</div>}
 
       {!loading && !error && profile && (
         <>
@@ -183,26 +195,26 @@ export default function ProfileModal({ username, onClose, onOpenChat }: Props) {
             ) : (
               <div className={styles.avatarFallback}>{profile.username.slice(0, 1).toUpperCase()}</div>
             )}
-            <div className={styles.level}>NIVEL {profile.level}</div>
+            <div className={styles.level}>{t("quickmenu.level", { level: profile.level })}</div>
           </div>
 
           <div className={styles.stats}>
             <div className={styles.stat}>
               <div className={styles.statValue}>{profile.followers}</div>
-              <div className={styles.statLabel}>SEGUIDORES</div>
+              <div className={styles.statLabel}>{t("friends.followersLabel")}</div>
             </div>
             <div className={styles.stat}>
               <div className={styles.statValue}>{profile.coursesCompleted}</div>
-              <div className={styles.statLabel}>CURSOS</div>
+              <div className={styles.statLabel}>{t("friends.coursesLabel")}</div>
             </div>
             <div className={styles.stat}>
               <div className={styles.statValue}>{profile.certificatesEarned}</div>
-              <div className={styles.statLabel}>CERTIFICADOS</div>
+              <div className={styles.statLabel}>{t("friends.certificatesLabel")}</div>
             </div>
           </div>
 
           {profile.mutualFriends > 0 && (
-            <div className={styles.mutual}>{profile.mutualFriends} amigos en común</div>
+            <div className={styles.mutual}>{t("friends.mutualFriendsCount", { count: profile.mutualFriends })}</div>
           )}
 
           <div className={styles.actions}>
@@ -212,10 +224,10 @@ export default function ProfileModal({ username, onClose, onOpenChat }: Props) {
               fullWidth
               onClick={() => onOpenChat(profile.id, profile.username, profile.avatarUrl)}
             >
-              <MessageCircle size={14} /> Mensaje
+              <MessageCircle size={14} /> {t("quickmenu.message")}
             </Button>
             <Button variant="secondary" size="sm" fullWidth onClick={() => void handleFollowToggle()} disabled={busy}>
-              {profile.isFollowing ? "Dejar de seguir" : "Seguir"}
+              {profile.isFollowing ? t("friends.unfollowAction") : t("friends.followAction")}
             </Button>
             <Button
               variant={profile.friendshipStatus === "ACCEPTED" ? "danger" : "primary"}
@@ -230,7 +242,7 @@ export default function ProfileModal({ username, onClose, onOpenChat }: Props) {
 
           {rooms.length > 0 && (
             <div className={styles.rooms}>
-              <div className={styles.roomsTitle}>Salas de {profile.username}</div>
+              <div className={styles.roomsTitle}>{t("friends.roomsTitle", { username: profile.username })}</div>
               {rooms.map((room) => (
                 <div key={room.id} className={styles.roomRow}>
                   <div className={styles.roomInfo}>
@@ -241,20 +253,21 @@ export default function ProfileModal({ username, onClose, onOpenChat }: Props) {
                       ) : (
                         <Lock size={11} className={styles.roomMetaIcon} />
                       )}
-                      {room.isPublic ? "Pública" : "Privada"} · {room._count.users}/{room.maxUsers}
+                      {room.isPublic ? t("friends.roomPublic") : t("friends.roomPrivate")} · {room._count.users}/
+                      {room.maxUsers}
                     </span>
                   </div>
                   {room.canJoinDirectly ? (
                     <Button variant="primary" size="sm" onClick={() => joinRoom(room.id)}>
-                      Entrar
+                      {t("friends.joinRoomAction")}
                     </Button>
                   ) : room.joinRequestStatus === "PENDING" ? (
                     <Button variant="secondary" size="sm" disabled>
-                      Pendiente
+                      {t("friends.pendingLabel")}
                     </Button>
                   ) : room.joinRequestStatus === "APPROVED" ? (
                     <Button variant="primary" size="sm" onClick={() => joinRoom(room.id)}>
-                      Entrar
+                      {t("friends.joinRoomAction")}
                     </Button>
                   ) : (
                     <Button
@@ -263,7 +276,7 @@ export default function ProfileModal({ username, onClose, onOpenChat }: Props) {
                       disabled={requestingRoomId === room.id}
                       onClick={() => void requestJoinRoom(room)}
                     >
-                      Pedir permiso
+                      {t("friends.requestJoinAction")}
                     </Button>
                   )}
                 </div>

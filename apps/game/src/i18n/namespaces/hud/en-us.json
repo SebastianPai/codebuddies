@@ -1,0 +1,108 @@
+{
+  "sidebar": {
+    "tagline": "CONNECT · LEARN · GROW",
+    "online": "ONLINE",
+    "level": "LEVEL {level}",
+    "coins": "COINS",
+    "diamonds": "DIAMONDS",
+    "tierDiamond": "DIAMOND",
+    "tierGold": "GOLD",
+    "tierSilver": "SILVER",
+    "tierBronze": "BRONZE",
+    "home": "Home",
+    "openPc": "Open PC",
+    "wardrobe": "Wardrobe",
+    "friends": "Friends",
+    "messages": "Messages",
+    "notifications": "Notifications",
+    "github": "GitHub",
+    "tournaments": "Tournaments",
+    "tournamentsComingSoonTitle": "Coming soon",
+    "tournamentsComingSoonMessage": "Tournaments are still being built — you'll be able to sign up once they're ready.",
+    "shop": "Shop",
+    "build": "Build",
+    "marketplace": "Marketplace",
+    "settings": "Settings",
+    "exit": "Exit",
+    "discordCta": "Join the community",
+    "discordLabel": "Official Discord"
+  },
+  "topBar": {
+    "energyHint": "Energy — spent when you complete learning exercises",
+    "in": "in"
+  },
+  "zoom": {
+    "in": "Zoom in",
+    "out": "Zoom out",
+    "fullscreen": "Fullscreen",
+    "exitFullscreen": "Exit fullscreen"
+  },
+  "bottomBar": {
+    "reactionWave": "Wave",
+    "reactionLaugh": "Laugh",
+    "reactionFire": "Fire",
+    "reactionBye": "Bye",
+    "chatPlaceholder": "Send a message...",
+    "send": "SEND",
+    "chatThemeTitle": "Chat color",
+    "onlineCount": "{count} online"
+  },
+  "room": {
+    "currentLabel": "Current room",
+    "lobbyName": "Main Lobby",
+    "liveStatus": "Live",
+    "playersOnline": "{count} players online",
+    "infoButton": "Info",
+    "inviteButton": "Invite"
+  },
+  "missions": {
+    "label": "Missions",
+    "sectionTitle": "Active challenges",
+    "viewAll": "View all",
+    "loadError": "Your challenges could not be loaded.",
+    "empty": "No active challenges right now.",
+    "claimFailedTitle": "Couldn't claim",
+    "claimFailedMessage": "The reward isn't ready yet or was already claimed.",
+    "claimSuccessTitle": "Reward claimed",
+    "claimSuccessMessage": "The mission rewards were added to your account.",
+    "claimSuccessConfirm": "Great",
+    "activeTag": "Active mission",
+    "progressLabel": "Progress",
+    "rewardLabel": "Reward",
+    "noReward": "No reward",
+    "claimed": "Claimed",
+    "claim": "Claim"
+  },
+  "events": {
+    "label": "Events",
+    "sectionTitle": "Coming soon",
+    "join": "Join",
+    "today": "Today",
+    "tomorrow": "Tomorrow"
+  },
+  "currency": {
+    "coins": "coins",
+    "gems": "gems",
+    "premium": "Premium",
+    "free": "Free"
+  },
+  "colorPicker": {
+    "groupLabel": "Choose color",
+    "colorLabel": "Color {hex}"
+  },
+  "imagePreview": {
+    "zoomOut": "Zoom out",
+    "zoomIn": "Zoom in"
+  },
+  "itemCard": {
+    "viewLarger": "View {label} larger",
+    "toggleFavorite": "Mark {label} as favorite"
+  },
+  "itemPreview": {
+    "fallbackLabel": "Item"
+  },
+  "badges": {
+    "verified": "Verified",
+    "creator": "Creator"
+  }
+}

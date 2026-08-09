@@ -1,6 +1,7 @@
 "use client";
 
 import styles from "./ColorSwatchPicker.module.css";
+import { useTranslation } from "../../../i18n/useTranslation";
 
 interface Props {
   colors: number[];
@@ -15,8 +16,9 @@ const toHex = (color: number) => "#" + color.toString(16).padStart(6, "0");
 // mismo indicador de "seleccionado" en cualquier lugar donde se elija un
 // color (avatar, tienda, etc.) en vez de reimplementar el círculo a mano.
 export default function ColorSwatchPicker({ colors, value, onSelect, className = "" }: Props) {
+  const t = useTranslation();
   return (
-    <div className={`${styles.row} ${className}`} role="group" aria-label="Elegir color">
+    <div className={`${styles.row} ${className}`} role="group" aria-label={t("hud.colorPicker.groupLabel")}>
       {colors.map((color) => {
         const hex = toHex(color);
         const selected = value === color;
@@ -26,7 +28,7 @@ export default function ColorSwatchPicker({ colors, value, onSelect, className =
             type="button"
             className={`${styles.swatch} ${selected ? styles.selected : ""}`}
             style={{ backgroundColor: hex }}
-            aria-label={`Color ${hex}`}
+            aria-label={t("hud.colorPicker.colorLabel", { hex })}
             aria-pressed={selected}
             onClick={() => onSelect(color)}
           />

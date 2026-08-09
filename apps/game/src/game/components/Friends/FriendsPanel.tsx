@@ -24,6 +24,8 @@ import {
 import { requestGameConfirm, showGameAlert } from "../../utils/dialog";
 import { audioManager } from "../../audio/AudioManager";
 import { useChat } from "../Chat/ChatProvider";
+import { useDialogBehavior } from "../shared/useDialogBehavior";
+import { useTranslation } from "../../../i18n/useTranslation";
 
 type TabType = "friends" | "requests" | "suggestions" | "search";
 
@@ -32,8 +34,13 @@ type Props = {
 };
 
 export default function FriendsPanel({ onClose }: Props) {
+  const t = useTranslation();
   const { openChat, openProfile } = useChat();
   const nodeRef = useRef<HTMLDivElement>(null);
+  // Antes este panel no tenía cierre con Escape ni foco atrapado con Tab
+  // (a diferencia de Modal/PCWindows, que sí lo usan) — un usuario de
+  // teclado podía tabular hacia el canvas del juego detrás del panel.
+  useDialogBehavior(nodeRef, onClose);
 
   const [activeTab, setActiveTab] = useState<TabType>("friends");
   const [friends, setFriends] = useState<Friend[]>([]);
@@ -135,9 +142,9 @@ export default function FriendsPanel({ onClose }: Props) {
       await loadAll();
     } catch {
       await showGameAlert({
-        title: "No se pudo aceptar",
-        message: "Intenta de nuevo en unos segundos.",
-        confirmLabel: "Entendido",
+        title: t("friends.acceptFailedTitle"),
+        message: t("common.actionFailedMessage"),
+        confirmLabel: t("common.understood"),
         tone: "danger",
       });
     }
@@ -149,9 +156,9 @@ export default function FriendsPanel({ onClose }: Props) {
       await loadAll();
     } catch {
       await showGameAlert({
-        title: "No se pudo rechazar",
-        message: "Intenta de nuevo en unos segundos.",
-        confirmLabel: "Entendido",
+        title: t("friends.rejectFailedTitle"),
+        message: t("common.actionFailedMessage"),
+        confirmLabel: t("common.understood"),
         tone: "danger",
       });
     }
@@ -159,10 +166,10 @@ export default function FriendsPanel({ onClose }: Props) {
 
   const handleRemove = async (friendshipId: string, username: string) => {
     const confirmed = await requestGameConfirm({
-      title: "Eliminar amigo",
-      message: `¿Seguro que quieres eliminar a ${username} de tu lista de amigos?`,
-      confirmLabel: "Eliminar",
-      cancelLabel: "Cancelar",
+      title: t("quickmenu.friendActionAccepted"),
+      message: t("friends.removeConfirmMessage", { username }),
+      confirmLabel: t("common.delete"),
+      cancelLabel: t("common.cancel"),
       tone: "danger",
     });
     if (!confirmed) return;
@@ -172,9 +179,9 @@ export default function FriendsPanel({ onClose }: Props) {
       await loadAll();
     } catch {
       await showGameAlert({
-        title: "No se pudo eliminar",
-        message: "Intenta de nuevo en unos segundos.",
-        confirmLabel: "Entendido",
+        title: t("friends.removeFailedTitle"),
+        message: t("common.actionFailedMessage"),
+        confirmLabel: t("common.understood"),
         tone: "danger",
       });
     }
@@ -182,10 +189,10 @@ export default function FriendsPanel({ onClose }: Props) {
 
   const handleBlock = async (friendshipId: string, username: string) => {
     const confirmed = await requestGameConfirm({
-      title: "Bloquear usuario",
-      message: `${username} ya no podrá enviarte solicitudes ni mensajes.`,
-      confirmLabel: "Bloquear",
-      cancelLabel: "Cancelar",
+      title: t("friends.blockConfirmTitle"),
+      message: t("friends.blockConfirmMessage", { username }),
+      confirmLabel: t("friends.blockConfirmButton"),
+      cancelLabel: t("common.cancel"),
       tone: "danger",
     });
     if (!confirmed) return;
@@ -195,9 +202,9 @@ export default function FriendsPanel({ onClose }: Props) {
       await loadAll();
     } catch {
       await showGameAlert({
-        title: "No se pudo bloquear",
-        message: "Intenta de nuevo en unos segundos.",
-        confirmLabel: "Entendido",
+        title: t("friends.blockFailedTitle"),
+        message: t("common.actionFailedMessage"),
+        confirmLabel: t("common.understood"),
         tone: "danger",
       });
     }
@@ -215,9 +222,9 @@ export default function FriendsPanel({ onClose }: Props) {
       audioManager.play("click");
     } catch {
       await showGameAlert({
-        title: "No se pudo enviar la solicitud",
-        message: "Intenta de nuevo en unos segundos.",
-        confirmLabel: "Entendido",
+        title: t("friends.sendRequestFailedTitle"),
+        message: t("common.actionFailedMessage"),
+        confirmLabel: t("common.understood"),
         tone: "danger",
       });
     }
@@ -227,18 +234,23 @@ export default function FriendsPanel({ onClose }: Props) {
     // Defensivo: si algún endpoint (ej. sugerencias) no manda friendship,
     // se trata como "sin relación" en vez de romper el panel entero.
     if (!result.friendship) {
-      return { label: "Agregar", onClick: () => void handleSendRequest(result.id), tone: "primary" as const };
+      return { label: t("common.add"), onClick: () => void handleSendRequest(result.id), tone: "primary" as const };
     }
     if (result.friendship.status === "ACCEPTED") {
-      return { label: "Ya son amigos", onClick: () => {}, tone: "ghost" as const, disabled: true };
+      return { label: t("friends.alreadyFriends"), onClick: () => {}, tone: "ghost" as const, disabled: true };
     }
     if (result.friendship.status === "PENDING" && result.friendship.direction === "OUTGOING") {
-      return { label: "Solicitud enviada", onClick: () => {}, tone: "ghost" as const, disabled: true };
+      return {
+        label: t("quickmenu.friendActionPendingOutgoing"),
+        onClick: () => {},
+        tone: "ghost" as const,
+        disabled: true,
+      };
     }
     if (result.friendship.status === "PENDING" && result.friendship.direction === "INCOMING") {
-      return { label: "Te escribió", onClick: () => setActiveTab("requests"), tone: "primary" as const };
+      return { label: t("friends.wroteToYou"), onClick: () => setActiveTab("requests"), tone: "primary" as const };
     }
-    return { label: "Agregar", onClick: () => void handleSendRequest(result.id), tone: "primary" as const };
+    return { label: t("common.add"), onClick: () => void handleSendRequest(result.id), tone: "primary" as const };
   };
 
   const requestsBadge = received.length;
@@ -254,7 +266,7 @@ export default function FriendsPanel({ onClose }: Props) {
         );
       }
       if (!friends.length) {
-        return <div className={styles.empty}>Aún no tienes amigos agregados. Busca a alguien en "Buscar".</div>;
+        return <div className={styles.empty}>{t("friends.emptyFriends")}</div>;
       }
       return friends.map((entry) => (
         <PersonRow
@@ -262,16 +274,24 @@ export default function FriendsPanel({ onClose }: Props) {
           username={entry.friend.username}
           avatarUrl={entry.friend.avatarUrl}
           online={entry.online}
-          subtitle={entry.friend.level ? `Nivel ${entry.friend.level}` : undefined}
+          subtitle={entry.friend.level ? t("friends.levelSubtitle", { level: entry.friend.level }) : undefined}
           onClick={() => openProfile(entry.friend.username)}
           actions={[
             {
-              label: "Mensaje",
+              label: t("quickmenu.message"),
               tone: "primary",
               onClick: () => openChat(entry.friend.id, entry.friend.username, entry.friend.avatarUrl),
             },
-            { label: "Eliminar", tone: "ghost", onClick: () => void handleRemove(entry.id, entry.friend.username) },
-            { label: "Bloquear", tone: "danger", onClick: () => void handleBlock(entry.id, entry.friend.username) },
+            {
+              label: t("common.delete"),
+              tone: "ghost",
+              onClick: () => void handleRemove(entry.id, entry.friend.username),
+            },
+            {
+              label: t("friends.blockConfirmButton"),
+              tone: "danger",
+              onClick: () => void handleBlock(entry.id, entry.friend.username),
+            },
           ]}
         />
       ));
@@ -280,8 +300,8 @@ export default function FriendsPanel({ onClose }: Props) {
     if (activeTab === "requests") {
       return (
         <>
-          <div className={styles.sectionLabel}>RECIBIDAS</div>
-          {received.length === 0 && <div className={styles.empty}>No tienes solicitudes pendientes.</div>}
+          <div className={styles.sectionLabel}>{t("friends.receivedSection")}</div>
+          {received.length === 0 && <div className={styles.empty}>{t("friends.emptyReceivedRequests")}</div>}
           {received.map((request) => (
             <PersonRow
               key={request.id}
@@ -289,21 +309,21 @@ export default function FriendsPanel({ onClose }: Props) {
               avatarUrl={request.requester.avatarUrl}
               onClick={() => openProfile(request.requester.username)}
               actions={[
-                { label: "Aceptar", tone: "primary", onClick: () => void handleAccept(request.id) },
-                { label: "Rechazar", tone: "ghost", onClick: () => void handleReject(request.id) },
+                { label: t("common.accept"), tone: "primary", onClick: () => void handleAccept(request.id) },
+                { label: t("friends.rejectAction"), tone: "ghost", onClick: () => void handleReject(request.id) },
               ]}
             />
           ))}
 
-          <div className={styles.sectionLabel}>ENVIADAS</div>
-          {sent.length === 0 && <div className={styles.empty}>No has enviado solicitudes.</div>}
+          <div className={styles.sectionLabel}>{t("friends.sentSection")}</div>
+          {sent.length === 0 && <div className={styles.empty}>{t("friends.emptySentRequests")}</div>}
           {sent.map((request) => (
             <PersonRow
               key={request.id}
               username={request.addressee.username}
               avatarUrl={request.addressee.avatarUrl}
-              subtitle="Pendiente"
-              actions={[{ label: "Cancelar", tone: "ghost", onClick: () => void handleReject(request.id) }]}
+              subtitle={t("friends.pendingLabel")}
+              actions={[{ label: t("common.cancel"), tone: "ghost", onClick: () => void handleReject(request.id) }]}
             />
           ))}
         </>
@@ -320,7 +340,7 @@ export default function FriendsPanel({ onClose }: Props) {
         );
       }
       if (!suggestions.length) {
-        return <div className={styles.empty}>No tenemos sugerencias para vos todavía.</div>;
+        return <div className={styles.empty}>{t("friends.emptySuggestions")}</div>;
       }
       return suggestions.map((result) => (
         <PersonRow
@@ -328,7 +348,7 @@ export default function FriendsPanel({ onClose }: Props) {
           username={result.username}
           avatarUrl={result.avatarUrl}
           online={result.online}
-          subtitle={result.mutualCount > 0 ? `${result.mutualCount} amigos en común` : undefined}
+          subtitle={result.mutualCount > 0 ? t("friends.mutualFriendsCount", { count: result.mutualCount }) : undefined}
           onClick={() => openProfile(result.username)}
           actions={[searchActionFor(result)]}
         />
@@ -337,7 +357,7 @@ export default function FriendsPanel({ onClose }: Props) {
 
     // search
     if (!search.trim()) {
-      return <div className={styles.empty}>Escribe un nombre de usuario para buscar.</div>;
+      return <div className={styles.empty}>{t("friends.searchPrompt")}</div>;
     }
     if (searching) {
       return (
@@ -348,7 +368,7 @@ export default function FriendsPanel({ onClose }: Props) {
       );
     }
     if (!searchResults.length) {
-      return <div className={styles.empty}>No se encontraron usuarios.</div>;
+      return <div className={styles.empty}>{t("friends.noUsersFound")}</div>;
     }
     return searchResults.map((result) => (
       <PersonRow
@@ -356,7 +376,7 @@ export default function FriendsPanel({ onClose }: Props) {
         username={result.username}
         avatarUrl={result.avatarUrl}
         online={result.online}
-        subtitle={result.mutualCount > 0 ? `${result.mutualCount} amigos en común` : undefined}
+        subtitle={result.mutualCount > 0 ? t("friends.mutualFriendsCount", { count: result.mutualCount }) : undefined}
         onClick={() => openProfile(result.username)}
         actions={[searchActionFor(result)]}
       />
@@ -368,8 +388,8 @@ export default function FriendsPanel({ onClose }: Props) {
     <Draggable nodeRef={nodeRef} handle={`.${styles.windowHeader}`}>
       <div ref={nodeRef} className={styles.window}>
         <div className={styles.windowHeader}>
-          <span className={styles.title}>AMIGOS</span>
-          <button className={styles.closeBtn} aria-label="Cerrar amigos" onClick={onClose}>
+          <span className={styles.title}>{t("friends.title")}</span>
+          <button className={styles.closeBtn} aria-label={t("friends.closeAriaLabel")} onClick={onClose}>
             <X size={14} />
           </button>
         </div>
@@ -379,33 +399,33 @@ export default function FriendsPanel({ onClose }: Props) {
             className={`${styles.tab} ${activeTab === "friends" ? styles.active : ""}`}
             onClick={() => setActiveTab("friends")}
           >
-            <Users size={14} /> Amigos
+            <Users size={14} /> {t("friends.tabFriends")}
           </button>
           <button
             className={`${styles.tab} ${activeTab === "requests" ? styles.active : ""}`}
             onClick={() => setActiveTab("requests")}
           >
-            <Mail size={14} /> Solicitudes
+            <Mail size={14} /> {t("friends.tabRequests")}
             {requestsBadge > 0 && <span className={styles.badge}>{requestsBadge}</span>}
           </button>
           <button
             className={`${styles.tab} ${activeTab === "suggestions" ? styles.active : ""}`}
             onClick={() => setActiveTab("suggestions")}
           >
-            <Sparkles size={14} /> Sugerencias
+            <Sparkles size={14} /> {t("friends.tabSuggestions")}
           </button>
           <button
             className={`${styles.tab} ${activeTab === "search" ? styles.active : ""}`}
             onClick={() => setActiveTab("search")}
           >
-            <Search size={14} /> Buscar
+            <Search size={14} /> {t("common.search")}
           </button>
         </div>
 
         {activeTab === "search" && (
           <div className={styles.searchBox}>
             <input
-              placeholder="Buscar por nombre de usuario..."
+              placeholder={t("friends.searchInputPlaceholder")}
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               autoFocus

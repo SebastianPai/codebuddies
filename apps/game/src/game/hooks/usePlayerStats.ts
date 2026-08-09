@@ -3,11 +3,19 @@
 import { useEffect, useState } from "react";
 import { Socket } from "socket.io-client";
 
+export interface EnergyStatus {
+  current: number;
+  max: number;
+  regenMinutes: number;
+  nextRegenAt: string | null;
+}
+
 interface PlayerStats {
   level: number;
   experience: number;
   coins: number;
   diamonds?: number;
+  energy?: EnergyStatus;
 }
 
 export function usePlayerStats(socket: Socket | null) {

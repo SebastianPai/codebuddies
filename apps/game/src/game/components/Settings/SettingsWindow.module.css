@@ -138,6 +138,54 @@
   opacity: 0.5;
 }
 
+.themeSwatchGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+}
+
+.themeSwatch {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 40px;
+  border-radius: var(--cb-radius-sm);
+  border: 2px solid transparent;
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 120ms ease, filter 120ms ease;
+}
+
+.themeSwatch:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.themeSwatch:disabled {
+  cursor: default;
+}
+
+.themeSwatchSelected {
+  outline: 2px solid var(--cb-accent);
+  outline-offset: 2px;
+}
+
+.themeSwatchLocked {
+  opacity: 0.55;
+}
+
+.themeSwatchLockIcon {
+  flex-shrink: 0;
+}
+
+.themeSwatchCheck {
+  flex-shrink: 0;
+}
+
 .badgeOption input {
   accent-color: var(--cb-accent);
   width: 16px;

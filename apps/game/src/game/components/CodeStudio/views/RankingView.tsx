@@ -2,24 +2,34 @@
 
 import { Company } from "../types";
 import { format } from "../utils";
-import { makeNpcCompanies } from "../mockData";
+import { useTranslation } from "../../../../i18n/useTranslation";
 
-export default function RankingView({ company, npcs }: { company: Company; npcs: ReturnType<typeof makeNpcCompanies> }) {
-  const rows: Array<{ name: string; valuation: number; users: number; you?: boolean }> = [
-    { name: company.name, valuation: company.valuation, users: company.activeUsers, you: true },
-    ...npcs,
-  ]
-    .sort((a, b) => b.valuation - a.valuation)
-    .slice(0, 10);
+export type RankingRow = {
+  id: string;
+  name: string;
+  valuation: number;
+  activeUsers: number;
+  appType?: { name?: string } | null;
+  user?: { username?: string } | null;
+};
+
+// Ranking real: GET /codestudio/ranking (codestudio.controller.ts) ya
+// ordena por valuation/activeUsers a TODAS las empresas del juego — antes
+// esta vista mezclaba la empresa real del jugador con 6 "rivales" inventados
+// en mockData.ts (makeNpcCompanies), indistinguibles de datos reales.
+export default function RankingView({ company, ranking }: { company: Company; ranking: RankingRow[] }) {
+  const t = useTranslation();
+  const rows = ranking.length > 0 ? ranking : [{ id: company.id, name: company.name, valuation: company.valuation, activeUsers: company.activeUsers }];
+
   return (
     <section className="cs-panel">
-      <h3>Competidores NPC</h3>
+      <h3>{t("codestudioMisc.ranking.title")}</h3>
       <div className="cs-ranking">
-        {rows.map((row, index) => (
-          <article key={row.name} className={row.you ? "you" : ""}>
+        {rows.slice(0, 10).map((row, index) => (
+          <article key={row.id} className={row.id === company.id ? "you" : ""}>
             <b>#{index + 1}</b>
             <span>{row.name}</span>
-            <small>${format(row.valuation)} · {format(row.users)} usuarios</small>
+            <small>${format(row.valuation)} · {t("codestudioMisc.ranking.usersLabel", { count: format(row.activeUsers) })}</small>
           </article>
         ))}
       </div>

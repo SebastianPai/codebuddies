@@ -5,6 +5,8 @@ import Draggable from "react-draggable";
 
 import AvatarInventory from "../Avatar/AvatarInventory";
 import AvatarPreview from "../AvatarEditor/AvatarPreview";
+import { useDialogBehavior } from "../shared/useDialogBehavior";
+import { useTranslation } from "../../../i18n/useTranslation";
 import styles from "./AvatarStudio.module.css";
 
 interface Props {
@@ -18,12 +20,15 @@ interface Props {
 export default function AvatarStudio({
   inventory,
   avatar,
-  username = "Jugador",
+  username,
   onClose,
   onEquipAvatarItem,
 }: Props) {
+  const t = useTranslation();
   const nodeRef = useRef<HTMLDivElement>(null);
+  useDialogBehavior(nodeRef, onClose);
   const [search, setSearch] = useState("");
+  const displayUsername = username || t("avatar.studioDefaultUsername");
 
   const avatarItems = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -39,14 +44,14 @@ export default function AvatarStudio({
 
   return (
     <Draggable nodeRef={nodeRef} handle={`.${styles.header}`}>
-      <section ref={nodeRef} className={styles.window} aria-label="Vestidor de avatar">
+      <section ref={nodeRef} className={styles.window} aria-label={t("avatar.studioWindowAriaLabel")}>
         <header className={styles.header}>
           <div>
             <span>Avatar Studio</span>
-            <h2>Vestidor</h2>
+            <h2>{t("avatar.studioTitle")}</h2>
           </div>
-          <button type="button" onClick={onClose} aria-label="Cerrar vestidor">
-            Cerrar
+          <button type="button" onClick={onClose} aria-label={t("avatar.studioCloseAriaLabel")}>
+            {t("common.close")}
           </button>
         </header>
 
@@ -60,17 +65,17 @@ export default function AvatarStudio({
                 height={132}
               />
             </div>
-            <strong>{username}</strong>
-            <p>Ropa, cabello, accesorios y colores separados del inventario de muebles.</p>
+            <strong>{displayUsername}</strong>
+            <p>{t("avatar.studioDescription")}</p>
           </aside>
 
           <main className={styles.itemsPanel}>
             <label className={styles.search}>
-              Buscar pieza
+              {t("avatar.studioSearchLabel")}
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Cabello, camisa, accesorio..."
+                placeholder={t("avatar.studioSearchPlaceholder")}
               />
             </label>
 
@@ -82,8 +87,8 @@ export default function AvatarStudio({
               />
             ) : (
               <div className={styles.empty}>
-                <strong>No hay piezas de avatar</strong>
-                <span>Compra ropa o accesorios en la tienda para equiparlos aqui.</span>
+                <strong>{t("avatar.studioEmptyTitle")}</strong>
+                <span>{t("avatar.studioEmptyHint")}</span>
               </div>
             )}
           </main>

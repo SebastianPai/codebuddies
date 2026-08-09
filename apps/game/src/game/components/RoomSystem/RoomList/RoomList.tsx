@@ -13,6 +13,9 @@ import { Room } from "../../../types/room";
 
 import styles from "./RoomList.module.css";
 import { showGameAlert } from "../../../utils/dialog";
+import { useThemeAsset } from "../../../network/themeAssets";
+import { ThemeImage } from "../../ThemeImage/ThemeImage";
+import { useTranslation } from "../../../../i18n/useTranslation";
 
 interface Props {
   onJoinRoom?: (roomId: string) => void;
@@ -26,6 +29,7 @@ export default function RoomList({
   onJoinRoom,
   socket: socketProp,
 }: Props) {
+  const t = useTranslation();
   const [publicRooms, setPublicRooms] = useState<Room[]>([]);
   const [myRooms, setMyRooms] = useState<Room[]>([]);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
@@ -36,6 +40,7 @@ export default function RoomList({
   // en la mayoría de juegos con salas), no las más nuevas.
   const [sort, setSort] = useState<SortType>("users");
   const [loading, setLoading] = useState(true);
+  const doorAsset = useThemeAsset("ROOM_DOOR");
 
   const nodeRef = useRef<HTMLDivElement>(null);
 
@@ -62,9 +67,9 @@ export default function RoomList({
 
     const handleJoinError = (data: any) => {
       void showGameAlert({
-        title: "No se pudo entrar",
-        message: data.reason || "La sala no esta disponible en este momento.",
-        confirmLabel: "Entendido",
+        title: t("rooms.listJoinErrorTitle"),
+        message: data.reason || t("rooms.listJoinErrorMessage"),
+        confirmLabel: t("common.understood"),
         tone: "danger",
       });
     };
@@ -136,17 +141,19 @@ export default function RoomList({
             <div className={styles.container}>
               <div className={styles.hero}>
                 <div className={styles.heroLeft}>
-                  <img
-                    src="/ui/door.png"
-                    alt="Door"
+                  <ThemeImage
+                    asset={doorAsset}
+                    fallbackSrc="/ui/door.png"
+                    alt={t("rooms.listDoorAlt")}
+                    size={36}
                     className={styles.heroIcon}
                   />
 
                   <div>
-                    <h1 className={styles.heroTitle}>SALAS</h1>
+                    <h1 className={styles.heroTitle}>{t("rooms.listTitle")}</h1>
 
                     <div className={styles.heroSubtitle}>
-                      Explora espacios creados por la comunidad
+                      {t("rooms.listSubtitle")}
                     </div>
                   </div>
                 </div>
@@ -155,7 +162,7 @@ export default function RoomList({
                   onClick={() => setShowCreate(true)}
                   className={styles.createBtn}
                 >
-                  + Crear Sala
+                  {t("rooms.listCreateButton")}
                 </button>
               </div>
 
@@ -166,7 +173,7 @@ export default function RoomList({
                     activeTab === "public" ? styles.active : ""
                   }`}
                 >
-                  Públicas
+                  {t("rooms.listTabPublic")}
                   <span className={styles.counter}>{publicRooms.length}</span>
                 </button>
 
@@ -176,7 +183,7 @@ export default function RoomList({
                     activeTab === "my" ? styles.active : ""
                   }`}
                 >
-                  Mis Salas
+                  {t("rooms.listTabMine")}
                   <span className={styles.counter}>{myRooms.length}</span>
                 </button>
               </div>
@@ -188,7 +195,7 @@ export default function RoomList({
                   <input
                     type="text"
                     value={search}
-                    placeholder="Buscar salas..."
+                    placeholder={t("rooms.listSearchPlaceholder")}
                     className={styles.searchInput}
                     onChange={(e) => setSearch(e.target.value)}
                   />
@@ -199,9 +206,9 @@ export default function RoomList({
                   value={sort}
                   onChange={(event) => setSort(event.target.value as SortType)}
                 >
-                  <option value="users">Recomendadas (más gente)</option>
-                  <option value="recent">Más recientes</option>
-                  <option value="popular">Más populares</option>
+                  <option value="users">{t("rooms.listSortUsers")}</option>
+                  <option value="recent">{t("rooms.listSortRecent")}</option>
+                  <option value="popular">{t("rooms.listSortPopular")}</option>
                 </select>
               </div>
 
@@ -226,8 +233,8 @@ export default function RoomList({
                     <DoorOpen size={28} className={styles.emptyIcon} />
                     <span>
                       {activeTab === "my"
-                        ? "Todavía no tienes salas. Crea la primera arriba."
-                        : "No se encontraron salas con ese filtro."}
+                        ? t("rooms.listEmptyMine")
+                        : t("rooms.listEmptyFiltered")}
                     </span>
                   </div>
                 )}
@@ -252,10 +259,6 @@ export default function RoomList({
       {selectedRoom && (
         <RoomDetailsModal
           room={selectedRoom}
-          socket={socket}
-          currentUserId={
-            (typeof window !== "undefined" && localStorage.getItem("userId")) || undefined
-          }
           onClose={() => setSelectedRoom(null)}
           onJoin={handleJoin}
         />

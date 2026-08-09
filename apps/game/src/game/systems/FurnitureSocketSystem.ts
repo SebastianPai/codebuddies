@@ -139,19 +139,24 @@ export default class FurnitureSocketSystem {
     worldObject.parentRoomItemId = item.parentRoomItemId ?? null;
     worldObject.wallSide = item.wallSide ?? null;
     worldObject.wallOffset = item.wallOffset ?? null;
+    // El tile ocupado por este objeto cambió: invalidar el cache de
+    // ocupación/bloqueo (ver RoomItemsManager) o quedaría desactualizado
+    // hasta que algo más lo invalidara por otro lado.
+    this.roomItems.invalidateOccupancy();
     worldObject.sprite.setPosition(
       worldPos.x + this.scene.map.tileWidth / 2,
       getFurnitureAnchorY(worldPos.y, this.scene.map.tileHeight) -
         worldObject.elevation * 16,
     );
-    worldObject.sprite.setDepth(
-      item.y * 1000 + item.x + worldObject.elevation * 100,
-    );
+    // updateItemDepth (no una fórmula ad-hoc acá): esta línea antes ignoraba
+    // el footprint del objeto (usaba directo item.y*1000+item.x), dando una
+    // profundidad distinta a la que recibe el mismo objeto recién colocado
+    // para muebles de más de 1 tile.
+    this.roomItems.updateItemDepth(item.id);
     this.scene.refreshPathfinding?.();
   };
 
   private handleItemRotated = (item: any) => {
-    console.log("🔄 Rotado", item.rotation);
     const worldObject = this.roomItems.getItem(item.id);
 
     if (!worldObject) return;
@@ -161,6 +166,16 @@ export default class FurnitureSocketSystem {
       ...item.item,
       roomItemState: item.state,
     };
+
+    // La rotación puede cambiar el footprint (qué tiles ocupa/bloquea el
+    // objeto) aunque no cambie de tile — invalidar el cache de ocupación.
+    this.roomItems.invalidateOccupancy();
+
+    // El footprint (y por lo tanto el "tile más lejano" que decide la
+    // profundidad) puede cambiar con la rotación aunque el objeto no se
+    // mueva de tile — sin esto, un mueble rotado podía quedar con la
+    // profundidad vieja hasta el próximo recálculo global.
+    this.roomItems.updateItemDepth(item.id);
 
     const textureKey = worldObject.sprite.texture.key;
     const texture = this.scene.textures.get(textureKey);

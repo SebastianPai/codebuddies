@@ -2,6 +2,7 @@
 
 import { memo, useEffect, useState } from "react";
 import type { ReactElement } from "react";
+import { sileo } from "sileo";
 import "./LeftSidebar.css";
 
 import AvatarPreview from "../AvatarEditor/AvatarPreview";
@@ -10,6 +11,18 @@ import { useAvatar } from "../../hooks/useAvatar";
 import { useSocket } from "../../hooks/useSocket";
 import { getNotifications } from "../../network/notifications";
 import { getInbox, getMessageRequests } from "../../network/messages";
+import { useThemeAsset } from "../../network/themeAssets";
+import { ThemeImage } from "../ThemeImage/ThemeImage";
+import { useTranslation } from "../../../i18n/useTranslation";
+
+const DEFAULT_LOGO_URL =
+  "https://codebuddies-assets.sfo3.cdn.digitaloceanspaces.com/items/1778904692125-bv0f5z.png";
+
+// TODO(producto): reemplazar por el link real de invitación — no hay ninguno
+// configurado todavía en ningún .env del monorepo. Mientras tanto el botón
+// es funcional (abre un link real) pero apunta a un invite de ejemplo.
+const DISCORD_INVITE_URL =
+  process.env.NEXT_PUBLIC_DISCORD_URL || "https://discord.gg/codebuddies";
 
 // Anillo alrededor del avatar tipo "battle pass": el color cambia de rango
 // cada 10 niveles (bronce/plata/oro/diamante) además de llenarse con el
@@ -25,12 +38,20 @@ function getLevelTier(level: number) {
   return LEVEL_TIERS.find((tier) => level >= tier.min) ?? LEVEL_TIERS[LEVEL_TIERS.length - 1];
 }
 
+const LEVEL_TIER_LABEL_KEYS: Record<string, string> = {
+  DIAMANTE: "hud.sidebar.tierDiamond",
+  ORO: "hud.sidebar.tierGold",
+  PLATA: "hud.sidebar.tierSilver",
+  BRONCE: "hud.sidebar.tierBronze",
+};
+
 type Props = {
   username: string;
   level: number;
   coins: number;
   diamonds: number;
 
+  onGoHome: () => void;
   onOpenPc: () => void;
   onCustomize: () => void;
   onOpenFriends: () => void;
@@ -48,6 +69,7 @@ function LeftSidebar({
   level,
   coins,
   diamonds,
+  onGoHome,
   onOpenPc,
   onCustomize,
   onOpenFriends,
@@ -59,8 +81,10 @@ function LeftSidebar({
   onOpenSettings,
   onExitGame,
 }: Props) {
+  const t = useTranslation();
   const socket = useSocket();
   const avatar = useAvatar(socket);
+  const logoAsset = useThemeAsset("LOGO");
 
   const progress = (level % 10) * 10;
   const currentXp = progress * 10;
@@ -114,13 +138,32 @@ function LeftSidebar({
     name: string;
     onClick?: () => void;
     danger?: boolean;
+    accent?: boolean;
     badge?: number;
     icon: ReactElement;
   };
 
   const menu: MenuItem[] = [
     {
-      name: "Abrir PC",
+      name: t("hud.sidebar.home"),
+      onClick: onGoHome,
+      accent: true,
+      icon: (
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.25"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M3 11.5 12 4l9 7.5" />
+          <path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9" />
+        </svg>
+      ),
+    },
+    {
+      name: t("hud.sidebar.openPc"),
       onClick: onOpenPc,
       icon: (
         <svg
@@ -137,7 +180,7 @@ function LeftSidebar({
       ),
     },
     {
-      name: "Vestidor",
+      name: t("hud.sidebar.wardrobe"),
       onClick: onCustomize,
       icon: (
         <svg
@@ -154,7 +197,7 @@ function LeftSidebar({
       ),
     },
     {
-      name: "Amigos",
+      name: t("hud.sidebar.friends"),
       onClick: onOpenFriends,
       icon: (
         <svg
@@ -171,7 +214,7 @@ function LeftSidebar({
       ),
     },
     {
-      name: "Mensajes",
+      name: t("hud.sidebar.messages"),
       onClick: onOpenMessages,
       badge: unreadMessages,
       icon: (
@@ -188,7 +231,7 @@ function LeftSidebar({
       ),
     },
     {
-      name: "Notificaciones",
+      name: t("hud.sidebar.notifications"),
       onClick: onOpenNotifications,
       badge: unreadNotifications,
       icon: (
@@ -206,22 +249,16 @@ function LeftSidebar({
       ),
     },
     {
-      name: "GitHub",
-      icon: (
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.25"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 4c-.27-.82-1.02-1.4-1.9-1.4-.84 0-1.6.55-1.87 1.38A5.44 5.44 0 0 0 12 2.77a5.44 5.44 0 0 0-5.14 3.23c-.27-.83-1.03-1.4-1.87-1.4-.88 0-1.63.58-1.9 1.4A5.07 5.07 0 0 0 4 4.77c-.28.1-.55.24-.81.4z" />
-        </svg>
-      ),
-    },
-    {
-      name: "Torneos",
+      name: t("hud.sidebar.tournaments"),
+      // Todavía no existe ningún backend de torneos (sin controller, sin
+      // modelo Prisma) — antes este botón no hacía absolutamente nada al
+      // clickearlo (ni siquiera un onClick). Este aviso es honesto: informa
+      // que viene pronto en vez de fingir que el clic hizo algo.
+      onClick: () =>
+        sileo.info({
+          title: t("hud.sidebar.tournamentsComingSoonTitle"),
+          description: t("hud.sidebar.tournamentsComingSoonMessage"),
+        }),
       icon: (
         <svg
           viewBox="0 0 24 24"
@@ -237,7 +274,7 @@ function LeftSidebar({
       ),
     },
     {
-      name: "Tienda",
+      name: t("hud.sidebar.shop"),
       onClick: onOpenShop,
       icon: (
         <svg
@@ -254,7 +291,7 @@ function LeftSidebar({
       ),
     },
     {
-      name: "Construir",
+      name: t("hud.sidebar.build"),
       onClick: onOpenBuildMode,
       icon: (
         <svg
@@ -272,7 +309,7 @@ function LeftSidebar({
       ),
     },
     {
-      name: "Marketplace",
+      name: t("hud.sidebar.marketplace"),
       onClick: onOpenMarketplace,
       icon: (
         <svg
@@ -290,7 +327,7 @@ function LeftSidebar({
       ),
     },
     {
-      name: "Ajustes",
+      name: t("hud.sidebar.settings"),
       onClick: onOpenSettings,
       icon: (
         <svg
@@ -307,7 +344,7 @@ function LeftSidebar({
       ),
     },
     {
-      name: "Salir",
+      name: t("hud.sidebar.exit"),
       onClick: onExitGame,
       danger: true,
       icon: (
@@ -332,17 +369,19 @@ function LeftSidebar({
         {/* HEADER */}
         <div className="sidebar-header">
           <div className="brand-group">
-            <img
-              className="brand-logo"
-              src="https://codebuddies-assets.sfo3.cdn.digitaloceanspaces.com/items/1778904692125-bv0f5z.png"
+            <ThemeImage
+              asset={logoAsset}
+              fallbackSrc={DEFAULT_LOGO_URL}
               alt="CodeBuddies"
+              size={46}
+              className="brand-logo"
             />
             <div className="brand-info">
               <div className="brand-main">
                 <span className="brand-code">CODE</span>
                 <span className="brand-buddies">BUDDIES</span>
               </div>
-              <div className="brand-sub">CONECTA · APRENDE · CRECE</div>
+              <div className="brand-sub">{t("hud.sidebar.tagline")}</div>
             </div>
           </div>
         </div>
@@ -374,17 +413,17 @@ function LeftSidebar({
                 <UserBadges username={username} size={13} />
               </h2>
               <div className="online-row">
-                <div className="online-dot" /> ONLINE
+                <div className="online-dot" /> {t("hud.sidebar.online")}
               </div>
               <div className="special-tag" style={{ background: levelTier.color }}>
-                {levelTier.label}
+                {t(LEVEL_TIER_LABEL_KEYS[levelTier.label] ?? "hud.sidebar.tierBronze")}
               </div>
             </div>
           </div>
 
           <div className="profile-bottom">
             <div className="xp-header">
-              <span>NIVEL {level}</span>
+              <span>{t("hud.sidebar.level", { level })}</span>
               <span>
                 {currentXp}/{nextXp} XP
               </span>
@@ -395,11 +434,11 @@ function LeftSidebar({
 
             <div className="currency-row">
               <div className="currency-card">
-                <span className="currency-label">COINS</span>
+                <span className="currency-label">{t("hud.sidebar.coins")}</span>
                 <strong>{coins.toLocaleString()}</strong>
               </div>
               <div className="currency-card">
-                <span className="currency-label">DIAMONDS</span>
+                <span className="currency-label">{t("hud.sidebar.diamonds")}</span>
                 <strong>{diamonds.toLocaleString()}</strong>
               </div>
             </div>
@@ -413,7 +452,7 @@ function LeftSidebar({
           {menu.map((item) => (
             <button
               key={item.name}
-              className={`menu-btn ${item.danger ? "danger-btn" : ""}`}
+              className={`menu-btn ${item.danger ? "danger-btn" : ""} ${item.accent ? "accent-btn" : ""}`}
               onClick={item.onClick}
             >
               <div className="menu-icon">
@@ -426,6 +465,24 @@ function LeftSidebar({
             </button>
           ))}
         </div>
+
+        {/* COMUNIDAD — antes este espacio lo ocupaba un botón "GitHub" sin
+            onClick (no hacía nada al clickearlo); ahora es un link real
+            externo a Discord, aparte del menú de navegación interna. */}
+        <a
+          className="discord-card"
+          href={DISCORD_INVITE_URL}
+          target="_blank"
+          rel="noreferrer"
+        >
+          <svg viewBox="0 0 24 24" fill="currentColor" className="discord-icon">
+            <path d="M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.056 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.892.076.076 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.055c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.418 2.157-2.418 1.21 0 2.176 1.094 2.157 2.418 0 1.334-.956 2.419-2.157 2.419zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.418 2.157-2.418 1.21 0 2.176 1.094 2.157 2.418 0 1.334-.946 2.419-2.157 2.419z" />
+          </svg>
+          <div className="discord-info">
+            <span className="discord-cta">{t("hud.sidebar.discordCta")}</span>
+            <strong>{t("hud.sidebar.discordLabel")}</strong>
+          </div>
+        </a>
       </div>
     </div>
   );

@@ -1,0 +1,108 @@
+{
+  "ranking": {
+    "title": "NPC Competitors",
+    "usersLabel": "{count} users"
+  },
+  "research": {
+    "trendsTitle": "Market trends",
+    "treeTitle": "Technology tree",
+    "treeHint": "Each branch is a chain of nodes: unlock one to be able to afford the next. Every node's effect is permanent.",
+    "unlockedLabel": "Active",
+    "requiresLabel": "Requires: {name}",
+    "unlockButton": "Unlock ${amount}"
+  },
+  "roadmap": {
+    "pending": "Pending",
+    "development": "Development",
+    "qa": "QA",
+    "release": "Release",
+    "production": "Production",
+    "qaHint": "Validating bugs, performance and UX",
+    "readyToPublish": "Ready to publish"
+  },
+  "settingsView": {
+    "title": "Live Ops Settings",
+    "description": "CodeStudio advances with the game's ticks. Advanced options will connect to the engine in future phases.",
+    "eventNotifications": "Event notifications",
+    "developmentAnimations": "Development animations",
+    "syncOnOpen": "Sync when opening the PC"
+  },
+  "deleteCompany": {
+    "dangerZoneTitle": "Danger zone",
+    "dangerZoneHint": "Deleting your company permanently erases its features, employees, infrastructure, and progress. This can't be undone.",
+    "openButton": "Delete company",
+    "title": "Delete {name}",
+    "warning": "This action can't be undone. You'll lose all features, employees, infrastructure, and progress for this company.",
+    "instruction": "Type {name} to confirm you want to delete it.",
+    "nameMismatch": "That's not the name of the company you want to delete.",
+    "confirmButton": "Delete",
+    "countingDown": "Deleting...",
+    "deleting": "Deleting...",
+    "toastTitle": "Company deleted",
+    "toastDescription": "\"{name}\" no longer exists.",
+    "errorToastTitle": "Couldn't delete",
+    "errorToastDescription": "Try again in a few seconds."
+  },
+  "tutorial": {
+    "title": "CEO Assistant",
+    "subtitle": "Starting path for the company to take off by playing, not as a CRUD.",
+    "nextCycle": "Next cycle",
+    "now": "Now",
+    "goToPanel": "Go to panel",
+    "step0Label": "Pick your first feature",
+    "step0Hint": "Go to the Backlog and choose what to build first — without this the company won't take off.",
+    "stepHireLabel": "Hire your first employee",
+    "stepHireHint": "An employee speeds up development and lets you scale faster.",
+    "stepInfraLabel": "Install your first server",
+    "stepInfraHint": "Without infrastructure the company can only handle a few users before saturating.",
+    "step1Label": "First 3 features",
+    "step1Hint": "With 3 features installed your company goes Live.",
+    "progressSuffix": "{label} ({current}/{target})",
+    "step3Label": "First users",
+    "step3Hint": "Marketing, rating and infrastructure drive growth.",
+    "step4Label": "Stable infra",
+    "step4Hint": "Avoid saturation before scaling.",
+    "step5Label": "Public roadmap",
+    "step5Hint": "Complete new features until you release a strong version."
+  },
+  "guides": {
+    "next": "Next",
+    "start": "Got it, let's go",
+    "feature": {
+      "step1Title": "What's a \"feature\"",
+      "step1Description": "A feature is a concrete piece of functionality in your app: a shopping cart, a chat, a search bar. Your company starts empty, so it needs at least one feature to have something to offer and start attracting users.",
+      "step2Title": "What's the Backlog",
+      "step2Description": "The Backlog is the list of every feature your startup type can build, not yet developed. You pick one, pay its cost, and your team builds it over time (progress bar). There's no single right answer — any feature works to get started.",
+      "step3Title": "What Priority means",
+      "step3Description": "Priority (Urgent/High/Medium/Low) is only there so you can sort the list however you like. It doesn't change the feature's cost or development time — it's purely for organizing yourself. Pick any feature and tap \"Develop\" to start."
+    },
+    "hire": {
+      "step1Title": "What an employee does",
+      "step1Description": "Every employee you hire adds work capacity to your company: it speeds up feature development and improves overall stability. Without employees, everything moves slower.",
+      "step2Title": "How to hire",
+      "step2Description": "Pick any profile from the list and tap \"Hire\". A one-time signing bonus (one month's salary) is charged, and the employee joins your team right away."
+    },
+    "infra": {
+      "step1Title": "What infrastructure is for",
+      "step1Description": "Infrastructure (servers, databases, etc.) determines how many users your app can handle without falling over, and how fast it responds. Without infrastructure, your company saturates quickly as soon as it grows.",
+      "step2Title": "How to install or upgrade",
+      "step2Description": "Pick a type you don't have yet and tap \"Install\" to add it at level 1, or tap \"Upgrade level\" on one you already have to increase its capacity. Each upgrade costs more than the last."
+    }
+  },
+  "sidebarTour": {
+    "backlogTitle": "Backlog",
+    "backlogContent": "Here you pick what feature to build. Each one has a cost, a build time, and may depend on an earlier one from the same category.",
+    "employeesTitle": "Employees",
+    "employeesContent": "Hire people so your team builds faster. The bigger the team, the faster everything moves in parallel.",
+    "infrastructureTitle": "Infrastructure",
+    "infrastructureContent": "Servers, cache, load balancers. Without this your app falls over as soon as heavy traffic hits.",
+    "researchTitle": "Research",
+    "researchContent": "Technology tree: unlock permanent nodes that improve your app forever.",
+    "marketingTitle": "Marketing",
+    "marketingContent": "Launch real campaigns per channel (TikTok, Facebook, etc.) and compare which one brings you the most users.",
+    "localeBack": "Back",
+    "localeSkip": "Skip",
+    "localeNext": "Next",
+    "localeLast": "Done"
+  }
+}

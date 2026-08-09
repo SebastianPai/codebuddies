@@ -13,6 +13,10 @@ export type GameUser = {
   coins?: number;
   diamonds?: number;
   avatar?: any;
+  uiLanguage?: string;
+  pcTheme?: string;
+  chatBubbleThemeId?: string | null;
+  isPremium?: boolean;
 };
 
 function getCookieValue(name: string) {

@@ -7,6 +7,7 @@ import AvatarPreview from "../AvatarEditor/AvatarPreview";
 import { useAvatar } from "../../hooks/useAvatar";
 import { useSocket } from "../../hooks/useSocket";
 import UserBadges from "../shared/UserBadges";
+import { useTranslation } from "../../../i18n/useTranslation";
 
 export default function UserProfilePanel({
   username,
@@ -19,6 +20,7 @@ export default function UserProfilePanel({
   coins: number;
   diamonds?: number;
 }) {
+  const t = useTranslation();
   const socket = useSocket();
   const avatar = useAvatar(socket);
 
@@ -44,7 +46,7 @@ export default function UserProfilePanel({
             </div>
 
             <div className="level-row">
-              <span className="level-number">NIVEL {level}</span>
+              <span className="level-number">{t("quickmenu.level", { level })}</span>
               <span className="star">
                 <Star size={13} fill="currentColor" />
               </span>

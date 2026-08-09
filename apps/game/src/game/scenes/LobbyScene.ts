@@ -6,6 +6,8 @@ import { AvatarSlot } from "../types/avatar";
 import EasyStar from "easystarjs";
 
 import BuildSystem from "../systems/BuildSystem";
+import BuildCommandStack from "../systems/BuildCommandStack";
+import AmbientLightOverlay from "../systems/AmbientLightOverlay";
 import RoomItemsManager from "../systems/RoomItemsManager";
 import PlacementValidator from "../systems/PlacementValidator";
 import { LobbySceneType } from "../types/LobbySceneType";
@@ -20,11 +22,15 @@ import {
   toWorldTiles,
 } from "../systems/IsoFootprint";
 import { loadTextureOnce } from "../utils/phaserAssetCache";
+import { getSharedAuthToken } from "../network/auth";
 import {
   getFurnitureAnchorY,
   PLAYER_Y_OFFSET,
   TILE_VISUAL_Y_OFFSET,
 } from "../utils/tileAnchor";
+import { WORLD_OVERLAY_DEPTH } from "../utils/depth";
+import { pointerToScreenPosition } from "../utils/pointerToScreenPosition";
+import { burstConfetti, burstSparkle } from "../systems/ParticleFx";
 
 export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
   player!: ModularPlayer;
@@ -40,12 +46,21 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
 
   private roomItems!: RoomItemsManager;
   private placementValidator!: PlacementValidator;
+  private ambientLight!: AmbientLightOverlay;
 
   // Pathfinding
   private easystar!: EasyStar.js;
   private currentPath: { x: number; y: number }[] = [];
   private speed = 180;
   private arrivalThreshold = 5;
+
+  // Sombra de contacto del jugador: antes no existía ninguna (ni para el
+  // jugador ni para muebles) — todo "flotaba" sobre el tile sin ancla visual
+  // al suelo, la diferencia más notoria entre un prototipo y un cliente
+  // isométrico pulido (Habbo/Dofus). Se ancla solo al jugador por ahora; una
+  // por cada mueble queda como mejora futura (más superficie de cambio:
+  // habría que crearla/destruirla en cada addItem/removeItem).
+  private playerShadow?: Phaser.GameObjects.Ellipse;
 
   // Highlight (selector de tiles)
   private hoverHighlight!: Phaser.GameObjects.Polygon;
@@ -71,6 +86,11 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     height: number;
   } | null = null;
   private movingRoomItem: any = null;
+  private buildCommandStack = new BuildCommandStack();
+  // Item + rotación copiados con "Copiar" en FurnitureContextMenu — Ctrl+V
+  // arranca una colocación nueva con este item, igual que elegirlo desde
+  // BuildModePanel (mismo camino ya validado, sin lógica nueva de emisión).
+  private clipboardItem: { item: any; rotation: number } | null = null;
   private thumbnailTimer?: ReturnType<typeof setTimeout>;
   private thumbnailInFlight = false;
   private canUpdateRoomThumbnail = false;
@@ -95,54 +115,67 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     const socket = (this.game as any).socket;
     const user = (this.game as any).user;
     this.backgroundManager = new BackgroundManager(this);
+    this.ambientLight = new AmbientLightOverlay(this);
 
     socket.on("room:joined", (data: any) => {
-      console.log(data.room.background);
+      // Antes el cambio de sala era un corte seco: destroyCurrentMap()
+      // vacía el canvas de inmediato y el jugador ve el backgroundColor
+      // "#111" puro hasta que termina de cargar el tilemap nuevo, sin
+      // ninguna señal de que la transición es intencional. Un fadeOut breve
+      // antes de destruir (solo si ya había una sala cargada — en el primer
+      // join no hay nada de qué "salir") y un fadeIn al terminar de
+      // construir la sala nueva convierten ese fogonazo en una transición.
+      const hadPreviousRoom = !!this.map;
 
-      console.log("🧹 LIMPIANDO SALA ANTERIOR");
+      const loadNextRoom = () => {
+        this.destroyCurrentMap();
 
-      this.destroyCurrentMap();
+        this.otherPlayers?.clear(true, true);
 
-      this.otherPlayers?.clear(true, true);
+        this.roomItems?.clear();
 
-      this.roomItems?.clear();
+        (this.game as any).roomId = data.room.id;
+        this.canUpdateRoomThumbnail = data.room.ownerId === user?.userId;
 
-      (this.game as any).roomId = data.room.id;
-      this.canUpdateRoomThumbnail = data.room.ownerId === user?.userId;
+        const layout = data.room.layout;
+        if (!layout) return console.error("❌ Sala sin layout");
 
-      console.log("🏠 ROOM CARGADA", (this.game as any).roomId);
-      const layout = data.room.layout;
-      if (!layout) return console.error("❌ Sala sin layout");
-
-      const blob = new Blob([JSON.stringify(layout.layoutJson)], {
-        type: "application/json",
-      });
-      const url = URL.createObjectURL(blob);
-
-      if (this.cache.tilemap.exists("dynamic-map")) {
-        console.log("🗑️ BORRANDO TILEMAP CACHE");
-        this.cache.tilemap.remove("dynamic-map");
-      }
-
-      this.load.tilemapTiledJSON("dynamic-map", url);
-
-      this.load.once("complete", () => {
-        this.currentLayoutComposition = this.getLayoutComposition(layout.layoutJson);
-        this.buildMap();
-        this.backgroundManager.setBackground(data.room.background, {
-          layoutAnchor: this.getCompositionCenter(),
+        const blob = new Blob([JSON.stringify(layout.layoutJson)], {
+          type: "application/json",
         });
-        console.log(
-          "MAP SIZE",
-          this.map.width,
-          this.map.height,
-          this.map.layers.length,
-        );
-        this.createWorld(user, socket, data.players, data.items);
-        this.scheduleRoomThumbnailCapture(2200);
-      });
+        const url = URL.createObjectURL(blob);
 
-      this.load.start();
+        if (this.cache.tilemap.exists("dynamic-map")) {
+          this.cache.tilemap.remove("dynamic-map");
+        }
+
+        this.load.tilemapTiledJSON("dynamic-map", url);
+
+        this.load.once("complete", () => {
+          this.currentLayoutComposition = this.getLayoutComposition(layout.layoutJson);
+          this.buildMap();
+          this.backgroundManager.setBackground(data.room.background, {
+            layoutAnchor: this.getCompositionCenter(),
+          });
+          this.createWorld(user, socket, data.players, data.items);
+          this.ambientLight.setExcludedCameras([this.minimap]);
+          this.ambientLight.setIntensity(data.room.ambientLightIntensity);
+          this.cameras.main.fadeIn(250, 0, 0, 0);
+          this.scheduleRoomThumbnailCapture(2200);
+        });
+
+        this.load.start();
+      };
+
+      if (hadPreviousRoom) {
+        this.cameras.main.fadeOut(200, 0, 0, 0);
+        this.cameras.main.once(
+          Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE,
+          loadNextRoom,
+        );
+      } else {
+        loadNextRoom();
+      }
     });
 
     socket.on("room:backgroundChanged", (data: any) => {
@@ -150,6 +183,14 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
         layoutAnchor: this.getCompositionCenter(),
       });
       this.scheduleRoomThumbnailCapture(1400);
+    });
+
+    // Actualización en vivo: cuando el dueño mueve el slider de Iluminación
+    // en Editar Mundo, todos los que están en la sala ven el cambio sin
+    // recargar (antes esto no tenía ningún listener del lado del cliente).
+    socket.on("room:lighting:changed", (data: any) => {
+      if (data.roomId !== (this.game as any).roomId) return;
+      this.ambientLight.setIntensity(data.ambientLightIntensity);
     });
 
     [
@@ -212,6 +253,21 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
       ) {
         (window as any).openPC?.();
       }
+    });
+
+    // Puente UI (React) -> Phaser para los dos presets mínimos de partículas
+    // (ver systems/ParticleFx.ts): React no tiene acceso directo a la escena,
+    // así que dispara un CustomEvent y acá se resuelve contra la posición
+    // actual del jugador — mismo patrón que el resto de puentes UI->juego de
+    // esta función (build:item:selected, etc.).
+    window.addEventListener("fx:sparkle", () => {
+      if (!this.player) return;
+      burstSparkle(this, this.player.x, this.player.y - 40);
+    });
+
+    window.addEventListener("fx:confetti", () => {
+      if (!this.player) return;
+      burstConfetti(this, this.player.x, this.player.y - 60);
     });
 
     window.addEventListener("build:item:selected", (event: any) => {
@@ -301,6 +357,21 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
       this.selectedFloorTileIndex = null;
       this.selectedSurfaceTexture = null;
       this.movingRoomItem = event.detail;
+
+      // Ghost real en vez de reenvío a ciegas: mismo mecanismo de preview
+      // que colocar un mueble nuevo (BuildSystem + PlacementValidator),
+      // arrancando en la rotación actual del mueble para que no "salte" de
+      // orientación al empezar a arrastrarlo.
+      if (this.movingRoomItem?.item) {
+        this.buildSystem.start(this.movingRoomItem.item, this.movingRoomItem.rotation ?? 0);
+      }
+    });
+
+    // El lado React (Game.tsx) dispara esto al cerrar el menú de un mueble
+    // (Escape, botón X, o tras rotar/mover/recoger) — acá solo se limpia el
+    // tinte del sprite, nada más.
+    window.addEventListener("room:item:deselected", () => {
+      this.roomItems?.clearSelection();
     });
 
     // 🔥 Zoom con rueda del mouse
@@ -312,21 +383,15 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
         _deltaX: number,
         deltaY: number,
       ) => {
-        const zoomLevels = [1, 2, 3];
-        let currentIndex = zoomLevels.indexOf(this.cameras.main.zoom);
-
-        if (deltaY > 0) currentIndex--;
-        else currentIndex++;
-
-        currentIndex = Phaser.Math.Clamp(
-          currentIndex,
-          0,
-          zoomLevels.length - 1,
-        );
-
-        this.cameras.main.setZoom(zoomLevels[currentIndex]);
+        this.stepZoom(deltaY > 0 ? -1 : 1);
       },
     );
+
+    // Controles de zoom en pantalla (-/+, ver ZoomControls.tsx) — mismo
+    // método que ya usaba la rueda del mouse, para que ambas formas de
+    // hacer zoom queden siempre en sincronía con los mismos 3 niveles.
+    window.addEventListener("camera:zoom:in", () => this.stepZoom(1));
+    window.addEventListener("camera:zoom:out", () => this.stepZoom(-1));
 
     this.input.on("pointermove", (pointer: Phaser.Input.Pointer) =>
       this.updateHoverHighlight(pointer),
@@ -347,11 +412,166 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
       this.buildSystem.rotate();
     });
 
-    // ❌ ESC para cancelar pintura
+    // ❌ ESC para cancelar pintura o un mueble que se está moviendo
     this.input.keyboard?.on("keydown-ESC", () => {
       if (this.selectedSurfaceTexture || this.selectedFloorTileIndex !== null) {
         window.dispatchEvent(new CustomEvent("build:surface:cancel"));
       }
+
+      if (this.movingRoomItem) {
+        this.movingRoomItem = null;
+        this.buildSystem.stop();
+      }
+    });
+
+    // Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y — deshacer/rehacer mover y rotar (ver
+    // BuildCommandStack.ts para el alcance y por qué no incluye colocar/
+    // eliminar).
+    this.input.keyboard?.on("keydown-Z", (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey)) return;
+      event.preventDefault();
+      if (event.shiftKey) {
+        this.redoBuildCommand();
+      } else {
+        this.undoBuildCommand();
+      }
+    });
+    this.input.keyboard?.on("keydown-Y", (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey)) return;
+      event.preventDefault();
+      this.redoBuildCommand();
+    });
+
+    // Ctrl+V — pega lo copiado con "Copiar" en FurnitureContextMenu
+    // arrancando una colocación nueva (mismo camino que elegir un item
+    // desde BuildModePanel, ya validado por FurniturePlacementSystem).
+    this.input.keyboard?.on("keydown-V", (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || !this.clipboardItem) return;
+      event.preventDefault();
+      this.buildSystem.start(this.clipboardItem.item, this.clipboardItem.rotation);
+    });
+
+    window.addEventListener("build:item:copy", (event: any) => {
+      const furniture = event.detail;
+      if (!furniture?.item) return;
+      this.clipboardItem = { item: furniture.item, rotation: furniture.rotation ?? 0 };
+    });
+
+    window.addEventListener("build:item:duplicate", (event: any) => {
+      this.duplicateRoomItem(event.detail);
+    });
+
+    // Contraparte en React de los atajos Ctrl+Z/Ctrl+Y de arriba: los
+    // botones de deshacer/rehacer del panel de construcción (BuildModePanel)
+    // no tienen acceso directo a la escena de Phaser, así que llegan acá
+    // como el resto de las acciones de construcción (mismo patrón que
+    // build:item:copy/duplicate).
+    window.addEventListener("build:command:undo", () => this.undoBuildCommand());
+    window.addEventListener("build:command:redo", () => this.redoBuildCommand());
+  }
+
+  // Un solo paso en los 3 niveles fijos de zoom [1,2,3] — extraído de la
+  // rueda del mouse para que los botones -/+ en pantalla (ZoomControls.tsx)
+  // usen exactamente la misma lógica y terminen siempre en el mismo nivel,
+  // sin importar cuál de las dos formas se usó para llegar ahí.
+  private stepZoom(direction: 1 | -1) {
+    const zoomLevels = [1, 2, 3];
+    let currentIndex = zoomLevels.indexOf(this.cameras.main.zoom);
+    // -1 si el zoom actual está a mitad de un tween anterior (valor
+    // fraccionario que no matchea ninguno de los 3 niveles exactos).
+    if (currentIndex === -1) currentIndex = 0;
+
+    currentIndex = Phaser.Math.Clamp(currentIndex + direction, 0, zoomLevels.length - 1);
+
+    // Antes: setZoom() instantáneo, un salto brusco entre los 3 niveles. Un
+    // tween corto da sensación de "acercarse" en vez de teletransportarse.
+    this.tweens.add({
+      targets: this.cameras.main,
+      zoom: zoomLevels[currentIndex],
+      duration: 200,
+      ease: "Cubic.easeOut",
+    });
+  }
+
+  private undoBuildCommand() {
+    const command = this.buildCommandStack.undo();
+    if (!command) return;
+
+    const socket = (this.game as any).socket;
+
+    if (command.type === "move") {
+      socket.emit("room:item:move", {
+        roomItemId: command.roomItemId,
+        x: command.from.x,
+        y: command.from.y,
+        rotation: command.from.rotation,
+      });
+    } else if (command.type === "rotate") {
+      // Un solo giro siempre suma 1 (mod 4) en el servidor — no existe
+      // "rotar a un valor exacto", así que deshacer un giro es girar 3
+      // veces más (vuelve al valor original).
+      for (let i = 0; i < 3; i++) {
+        socket.emit("room:item:rotate", { roomItemId: command.roomItemId });
+      }
+    }
+  }
+
+  private redoBuildCommand() {
+    const command = this.buildCommandStack.redo();
+    if (!command) return;
+
+    const socket = (this.game as any).socket;
+
+    if (command.type === "move") {
+      socket.emit("room:item:move", {
+        roomItemId: command.roomItemId,
+        x: command.to.x,
+        y: command.to.y,
+        rotation: command.to.rotation,
+      });
+    } else if (command.type === "rotate") {
+      socket.emit("room:item:rotate", { roomItemId: command.roomItemId });
+    }
+  }
+
+  // Coloca una copia del mueble clickeado en la primera casilla libre
+  // adyacente — a diferencia de mover/pegar, es una acción instantánea (sin
+  // ghost interactivo), así que valida y emite directo con el mismo
+  // contrato que ya usa FurniturePlacementSystem.
+  private duplicateRoomItem(furniture: any) {
+    if (!furniture?.item || !this.placementValidator) return;
+
+    const candidates = [
+      { x: furniture.tileX + 1, y: furniture.tileY },
+      { x: furniture.tileX - 1, y: furniture.tileY },
+      { x: furniture.tileX, y: furniture.tileY + 1 },
+      { x: furniture.tileX, y: furniture.tileY - 1 },
+    ];
+
+    const target = candidates.find((candidate) =>
+      this.placementValidator!.canPlace(
+        candidate.x,
+        candidate.y,
+        furniture.item,
+        furniture.rotation ?? 0,
+      ),
+    );
+
+    if (!target) {
+      console.warn("No hay espacio libre junto al mueble para duplicar");
+      return;
+    }
+
+    const socket = (this.game as any).socket;
+    const roomId = (this.game as any).roomId;
+
+    socket.emit("room:item:place", {
+      roomId,
+      itemId: furniture.item.id,
+      x: target.x,
+      y: target.y,
+      rotation: furniture.rotation ?? 0,
+      ...(furniture.wallSide ? { wallSide: furniture.wallSide, wallOffset: furniture.wallOffset } : {}),
     });
   }
 
@@ -400,9 +620,15 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
       formData.append("folder", "room-thumbnails");
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+      const token = getSharedAuthToken();
       const response = await fetch(`${apiUrl}/uploads`, {
         method: "POST",
         body: formData,
+        // Sin esto, /uploads (protegido con JwtAuthGuard) devolvía 401 en
+        // silencio: la miniatura de la sala nunca llegaba a subirse ni a
+        // emitir "room:thumbnail:update", así que la imagen jamás se
+        // actualizaba aunque toda la lógica de captura corriera bien.
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       });
 
       if (!response.ok) {
@@ -480,6 +706,12 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     this.furnitureSockets?.destroy();
     this.playerSockets?.destroy();
     this.furniturePlacement?.destroy();
+    // Sin esto, this.children.removeAll(true) más abajo destruye el rect de
+    // oscuridad por debajo nuestro (es un child más de la escena) pero
+    // AmbientLightOverlay.rect queda apuntando a un objeto ya destruido —
+    // el próximo setIntensity() no lo recrearía, solo intentaría animar un
+    // GameObject muerto.
+    this.ambientLight?.destroy();
 
     if (this.minimap) {
       this.cameras.remove(this.minimap);
@@ -624,6 +856,17 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
 
     this.player = new ModularPlayer(this, 250, 250, []);
 
+    // Elipse plana y semitransparente bajo los pies del jugador — ver
+    // PLAYER_Y_OFFSET más abajo para por qué la Y no es this.player.y a secas.
+    this.playerShadow = this.add.ellipse(
+      this.player.x,
+      this.player.y - PLAYER_Y_OFFSET,
+      40,
+      16,
+      0x000000,
+      0.35,
+    );
+
     if (this.currentLayoutComposition.cameraAnchor) {
       const compositionCenter = this.getCompositionCenter();
       this.cameras.main.centerOn(
@@ -632,7 +875,11 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
       );
     }
 
-    this.cameras.main.startFollow(this.player, false);
+    // lerp 0.1: antes la cámara estaba pegada 1:1 a la posición del jugador
+    // (default de Phaser = sin suavizado), lo que se siente rígido. Con un
+    // pequeño retraso, la cámara "persigue" al personaje en vez de
+    // teletransportarse con él cada frame.
+    this.cameras.main.startFollow(this.player, false, 0.1, 0.1);
     this.cameras.main.roundPixels = true;
     this.cameras.main.setZoom(1);
 
@@ -702,6 +949,10 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
 
     this.buildSystem = new BuildSystem(this);
 
+    // Puente para FurnitureContextMenu (React): registra el "deshacer" de
+    // un giro justo antes de emitirlo, mismo patrón que window.phaserSocket.
+    (window as any).buildCommandStack = this.buildCommandStack;
+
     this.furniturePlacement = new FurniturePlacementSystem(
       this,
       this.buildSystem,
@@ -715,6 +966,7 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
       playerSprite: this.player,
       username: user.username,
       level: user.level || 1,
+      chatBubbleThemeId: user.chatBubbleThemeId ?? undefined,
     });
 
     this.otherPlayers = this.add.group();
@@ -732,7 +984,10 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
 
     this.hoverHighlight = this.add
       .polygon(0, 0, [32, 0, 64, 16, 32, 32, 0, 16], 0xffff44, 0.45)
-      .setDepth(150)
+      // Antes 150: por debajo de la profundidad real de cualquier mueble/
+      // avatar (tileY*1000+tileX) desde la fila 1 en adelante, así que el
+      // resaltado quedaba oculto casi en todo el mapa.
+      .setDepth(WORLD_OVERLAY_DEPTH)
       .setStrokeStyle(2.5, 0xffffff, 0.7)
       .setVisible(false);
 
@@ -747,6 +1002,7 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
           );
           this.player.playIdle();
         });
+        void this.hud.refreshAvatarHead(playerData.avatar.slots);
       } else {
         this.addOtherPlayer(playerData);
       }
@@ -861,6 +1117,13 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     if (this.paintSelectedSurfaceTexture(pointer)) return;
     if (this.paintSelectedFloorTile(pointer)) return;
 
+    // Clicar en cualquier otro lado (piso, o directamente para caminar)
+    // deselecciona el mueble resaltado y cierra su menú — caminar nunca
+    // debe quedar bloqueado por una selección previa.
+    if (this.roomItems?.clearSelection()) {
+      window.dispatchEvent(new CustomEvent("room:item:deselected"));
+    }
+
     const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
 
     // Misma conversión que FurniturePlacementSystem.ts (sin offset en Y) —
@@ -927,16 +1190,46 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
       return true;
     }
 
+    // Antes esto emitía a ciegas apenas se clickeaba, sin ghost ni
+    // validación — el servidor lo rechazaba en silencio si la casilla
+    // estaba ocupada, sin ningún feedback visual. Ahora reusa el mismo
+    // canPlace() que ya pinta el rombo verde/rojo cada frame: si la casilla
+    // está inválida, no se emite nada y el ghost sigue activo para que el
+    // jugador pruebe otra posición.
+    const canPlace = this.placementValidator?.canPlace(
+      tx,
+      ty,
+      this.movingRoomItem.item,
+      this.buildSystem.getRotation(),
+      this.movingRoomItem.roomItemId,
+    );
+
+    if (!canPlace) {
+      return true;
+    }
+
+    this.buildCommandStack.push({
+      type: "move",
+      roomItemId: this.movingRoomItem.roomItemId,
+      from: {
+        x: this.movingRoomItem.tileX,
+        y: this.movingRoomItem.tileY,
+        rotation: this.movingRoomItem.rotation,
+      },
+      to: { x: tx, y: ty, rotation: this.buildSystem.getRotation() },
+    });
+
     const socket = (this.game as any).socket;
 
     socket.emit("room:item:move", {
       roomItemId: this.movingRoomItem.roomItemId,
       x: tx,
       y: ty,
-      rotation: this.movingRoomItem.rotation,
+      rotation: this.buildSystem.getRotation(),
     });
 
     this.movingRoomItem = null;
+    this.buildSystem.stop();
 
     return true;
   }
@@ -1130,7 +1423,13 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
   private updateSceneDepths() {
     if (!this.player || !this.groundLayer) return;
 
-    this.roomItems?.updateDepths();
+    // Antes esto llamaba a roomItems.updateDepths() (recorre TODOS los
+    // muebles) sin condición acá, 60 veces por segundo — la profundidad de
+    // un mueble solo cambia al colocarse/moverse/rotarse, y esos tres
+    // eventos ya actualizan su propio depth puntual (ver
+    // FurnitureSocketSystem.handleItemPlaced/Moved/Rotated), así que
+    // recorrer la sala entera acá era trabajo repetido sin ningún cambio
+    // real que reflejar.
 
     // Restar PLAYER_Y_OFFSET antes de convertir a tile: ese offset es puro
     // ajuste visual (dónde se dibuja el sprite), no debe afectar a qué tile
@@ -1158,16 +1457,14 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
 
       this.player.setDepth(depth);
 
-      // 🐛 DEBUG TEMPORAL — borrar después de diagnosticar el bug de
-      // profundidad a 1 tile. Loguea ~4 veces/seg para poder leerlo mientras
-      // caminás cerca de un mueble.
-      if (this.game.loop.frame % 15 === 0) {
-        console.log("🧍 PLAYER DEPTH", {
-          tileX: playerTile.x,
-          tileY: playerTile.y,
-          depth,
-        });
-      }
+      // -1: apenas por debajo del jugador (nunca invade el rango de la fila
+      // siguiente, que empieza 1000 más arriba) para que la sombra quede
+      // "bajo" los pies sin taparlos ni competir con su propio depth.
+      this.playerShadow?.setPosition(
+        this.player.x,
+        this.player.y - PLAYER_Y_OFFSET,
+      );
+      this.playerShadow?.setDepth(depth - 1);
     }
 
     this.otherPlayers.getChildren().forEach((child: any) => {
@@ -1214,6 +1511,7 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
       ty,
       item,
       this.buildSystem.getRotation(),
+      this.movingRoomItem?.roomItemId,
     );
 
     const rotation = this.buildSystem.getRotation();
@@ -1279,10 +1577,59 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     });
 
     this.otherPlayers.add(other);
+    void other.hud.refreshAvatarHead(playerData.avatar.slots);
 
     this.loadAvatarTextures(playerData.avatar.slots, () => {
-      other.updateAvatar(playerData.avatar.slots, playerData.avatar.skinColor);
+      // Antes se armaba el hit area ACÁ MISMO con un rectángulo fijo a ojo
+      // (-16,-52,32,52) apenas se creaba el container, cuando todavía no
+      // tenía ni un solo sprite adentro — cada parte del avatar se ubica en
+      // su propio (slot.offsetX, slot.offsetY) con origin centrado (ver
+      // AvatarBuilder.ts), así que ese rectángulo adivinado solo llegaba a
+      // cubrir la cabeza (arriba del origen) y se quedaba corto con el
+      // cuerpo/piernas (que caen por debajo). Ahora se espera a que
+      // updateAvatar termine de construir los sprites reales y se mide el
+      // bounding box real del container (getBounds), así el área clickeable
+      // siempre coincide con lo que se ve, sea cual sea el avatar.
+      const avatarReady = other.updateAvatar(playerData.avatar.slots, playerData.avatar.skinColor);
       other.playIdle();
+
+      avatarReady.then(() => {
+        this.makeOtherPlayerClickable(other, playerData.username);
+      });
     });
+  }
+
+  private makeOtherPlayerClickable(other: OtherPlayer, username: string) {
+    const worldBounds = other.getBounds();
+    const padding = 6;
+    const hitArea = new Phaser.Geom.Rectangle(
+      worldBounds.x - other.x - padding,
+      worldBounds.y - other.y - padding,
+      worldBounds.width + padding * 2,
+      worldBounds.height + padding * 2,
+    );
+
+    other.setInteractive(hitArea, Phaser.Geom.Rectangle.Contains);
+    if (other.input) other.input.cursor = "pointer";
+
+    other.on(
+      "pointerdown",
+      (pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
+        // Sin esto, el pointerdown global de la escena (this.input.on
+        // "pointerdown" -> handleClickToMove) también se dispara y el
+        // personaje sale a caminar hacia el tile clickeado mientras se abre
+        // el menú — no queremos las dos cosas a la vez.
+        event.stopPropagation();
+
+        window.dispatchEvent(
+          new CustomEvent("player:selected", {
+            detail: {
+              username,
+              ...pointerToScreenPosition(this, pointer),
+            },
+          }),
+        );
+      },
+    );
   }
 }

@@ -33,16 +33,6 @@ export function makeNotifications(company?: Company) {
   ];
 }
 
-export function makeBugs(company?: Company) {
-  const bugs = Math.round(company?.bugs ?? 0);
-  return [
-    { title: "Error Login", severity: bugs > 25 ? "critico" : "medio", impact: "Afecta conversion de usuarios nuevos." },
-    { title: "Error API", severity: bugs > 15 ? "alto" : "bajo", impact: "Incrementa latencia y tickets de soporte." },
-    { title: "Error Rendimiento", severity: (company?.latency ?? 0) > 180 ? "alto" : "bajo", impact: "Reduce satisfaccion en clientes impacientes." },
-    { title: "Error Base Datos", severity: (company?.stability ?? 100) < 96 ? "critico" : "medio", impact: "Riesgo de perdida de sesiones." },
-  ];
-}
-
 export function makeClients(company?: Company) {
   const satisfaction = company?.satisfaction ?? 70;
   const names = ["Diana Founder", "Mateo Gamer", "Lina Shopper", "Tomas Dev", "Sara Creator", "Nora Analyst"];
@@ -97,15 +87,6 @@ export function makeObjectives(company?: Company) {
     { label: "Publicar 5 features", current: company?.modules.length ?? 0, target: 5, scope: "Semanal" },
     { label: "Mantener rating 4.5", current: Math.round((company?.rating ?? 0) * 20), target: 90, scope: "Largo plazo" },
   ];
-}
-
-export function makeNpcCompanies(company?: Company) {
-  const base = company?.valuation ?? 3000;
-  return ["NovaSoft", "ByteCart", "CloudFox", "RocketCRM", "LoopAI", "CacheWorks"].map((name, index) => ({
-    name,
-    valuation: Math.max(500, Math.round(base * (1.35 - index * 0.12))),
-    users: Math.max(50, Math.round((company?.activeUsers ?? 200) * (1.4 - index * 0.11))),
-  }));
 }
 
 export function makeVersions(company: Company) {

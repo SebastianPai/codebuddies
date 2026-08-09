@@ -94,6 +94,20 @@
   margin-top: 10px;
 }
 
+.soft-button.icon-only {
+  width: 34px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.room-top-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 /* =========================
    ROOM
 ========================= */
@@ -160,14 +174,34 @@
 
 .room-info {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .room-online {
   color: rgba(255, 255, 255, 0.75);
 
   font-size: 13px;
+}
+
+.room-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.room-actions .soft-button {
+  flex: 1;
+}
+
+.soft-button.primary {
+  background: rgba(250, 204, 21, 0.9);
+  color: #1a1408;
+  font-weight: 700;
+}
+
+.soft-button.primary:hover {
+  background: #fde047;
+  color: #1a1408;
 }
 
 /* =========================

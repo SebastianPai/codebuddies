@@ -1,0 +1,12 @@
+{
+  "panelTitle": "NOTIFICATIONS",
+  "markAllRead": "Mark all as read",
+  "closeAriaLabel": "Close notifications",
+  "empty": "You don't have any notifications yet.",
+  "markReadButton": "Mark as read",
+  "acceptInvite": "Accept",
+  "declineInvite": "Decline",
+  "inviteAccepted": "Invite accepted",
+  "inviteDeclined": "Invite declined",
+  "inviteJoining": "Joining room…"
+}

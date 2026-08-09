@@ -5,7 +5,15 @@
 
 import { zzfx, setZzfxVolume, zzfxVolume } from "./zzfx";
 
-export type SfxKey = "click" | "coin" | "place" | "error" | "notify";
+export type SfxKey =
+  | "click"
+  | "coin"
+  | "place"
+  | "error"
+  | "notify"
+  | "levelUp"
+  | "achievement"
+  | "panelOpen";
 
 // Parámetros posicionales de zzfx(): volume, randomness, frequency, attack,
 // sustain, release, shape (0 seno, 1 triángulo, 2 sierra, 3 tan, 4 ruido,
@@ -22,6 +30,17 @@ const PRESETS: Record<SfxKey, number[]> = {
   error: [0.8, 0.05, 220, 0, 0.1, 0.15, 2, 1, -40],
   // Campanita suave con salto de tono (seno) — chat/reacción de otro jugador.
   notify: [0.5, 0, 660, 0, 0.04, 0.1, 0, 1, 0, 0, 220, 0.05],
+  // Antes subir de nivel sonaba igual que cualquier notificación social
+  // ("notify"). Mismo tono ascendente que "coin" pero más largo y con un
+  // salto de tono mayor — pensado para sentirse como un logro, no como una
+  // campanita más.
+  levelUp: [0.75, 0, 660, 0, 0.08, 0.18, 1, 1.4, 0, 0, 500, 0.04],
+  // Un escalón más largo/brillante que levelUp — reservado para desbloqueos
+  // de logro, el evento menos frecuente y más "especial".
+  achievement: [0.85, 0.05, 523, 0, 0.12, 0.28, 1, 2, 0, 0, 550, 0.06],
+  // Whoosh breve y suave (seno, sin sustain) al abrir un panel/ventana —
+  // antes abrir Shop/Inventory/Friends/etc. era silencioso.
+  panelOpen: [0.3, 0, 900, 0, 0.015, 0.035, 0, 0.5, 0, 0, 150, 0.02],
 };
 
 const MASTER_VOLUME_KEY = "audio:master";

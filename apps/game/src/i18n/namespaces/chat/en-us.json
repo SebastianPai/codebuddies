@@ -1,0 +1,16 @@
+{
+  "requestSentTitle": "Message request sent",
+  "requestSentMessage": "{username} must accept your request before you can chat.",
+  "openFailedTitle": "Couldn't open the chat",
+  "closeChatAriaLabel": "Close chat",
+  "noMessagesYet": "No messages yet. Say hi!",
+  "partnerTyping": "{username} is typing...",
+  "messagePlaceholder": "Type a message...",
+  "sendMessageAriaLabel": "Send message",
+  "panelTitle": "MESSAGES",
+  "closeMessagesAriaLabel": "Close messages",
+  "messageRequestsLabel": "MESSAGE REQUESTS",
+  "reject": "Reject",
+  "conversationsLabel": "CONVERSATIONS",
+  "noConversations": "You don't have any conversations yet. Message a friend from the Friends panel."
+}

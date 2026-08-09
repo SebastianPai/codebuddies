@@ -1,23 +1,56 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import { useEffect, useRef } from "react";
+import { RotateCw, Trash2, Move, Copy, CopyPlus } from "lucide-react";
+import styles from "./FurnitureContextMenu.module.css";
+import Button from "../shared/Button";
+import { useTranslation } from "../../../i18n/useTranslation";
+import { EffectivePermissions, NO_PERMISSIONS } from "../../types/permissions";
 
 interface Props {
   furniture: any;
+  x: number;
+  y: number;
+  permissions?: EffectivePermissions;
   onClose: () => void;
 }
 
-const buttonBase: CSSProperties = {
-  padding: 12,
-  border: "none",
-  borderRadius: 10,
-  color: "#fff",
-  cursor: "pointer",
-};
-
-export default function FurnitureContextMenu({ furniture, onClose }: Props) {
+// Antes esto era un panel centrado de 420px que tapaba media pantalla al
+// clicar cualquier mueble — interrumpía caminar y se sentía como un modal
+// de configuración pesado para una acción simple (rotar/mover/recoger).
+// Ahora es un popover pequeño anclado al punto de clic, mismo patrón que
+// PlayerQuickMenu: se cierra con Escape o clic afuera, no atrapa el foco.
+//
+// Las acciones se OCULTAN (no solo deshabilitan) según los permisos
+// granulares del Módulo 0 — el servidor las rechaza igual si se fuerzan,
+// esto es puramente para no mostrar botones que van a fallar.
+export default function FurnitureContextMenu({
+  furniture,
+  x,
+  y,
+  permissions = NO_PERMISSIONS,
+  onClose,
+}: Props) {
+  const t = useTranslation();
+  const rootRef = useRef<HTMLDivElement>(null);
   const translation = furniture?.item?.translations?.[0];
-  const worldData = furniture?.item?.worldData;
+  const name = translation?.name ?? t("buildmode.itemFallbackName");
+
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) onClose();
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClose]);
 
   const rotate = () => {
     const socket = (window as any).phaserSocket;
@@ -26,7 +59,24 @@ export default function FurnitureContextMenu({ furniture, onClose }: Props) {
     socket.emit("room:item:rotate", {
       roomItemId: furniture.roomItemId,
     });
+    // Deshacer un giro = tres giros más (vuelve al valor original mod 4) —
+    // ver BuildCommandStack.ts. Se registra ANTES de emitir para que el
+    // undo quede disponible aunque el usuario actúe muy rápido.
+    (window as any).buildCommandStack?.push({
+      type: "rotate",
+      roomItemId: furniture.roomItemId,
+    });
 
+    onClose();
+  };
+
+  const duplicate = () => {
+    window.dispatchEvent(new CustomEvent("build:item:duplicate", { detail: furniture }));
+    onClose();
+  };
+
+  const copy = () => {
+    window.dispatchEvent(new CustomEvent("build:item:copy", { detail: furniture }));
     onClose();
   };
 
@@ -52,140 +102,57 @@ export default function FurnitureContextMenu({ furniture, onClose }: Props) {
   };
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        top: "50%",
-        left: "50%",
-        transform: "translate(-50%, -50%)",
-        width: 420,
-        background: "#1f1f1f",
-        color: "#fff",
-        borderRadius: 12,
-        overflow: "hidden",
-        boxShadow: "0 0 30px rgba(0,0,0,0.5)",
-        zIndex: 99999,
-      }}
-    >
-      <div
-        style={{
-          padding: "16px 20px",
-          background: "#2a2a2a",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <h3 style={{ margin: 0 }}>{translation?.name ?? "Objeto"}</h3>
-
-        <button
-          onClick={onClose}
-          style={{
-            border: "none",
-            background: "#e53935",
-            color: "#fff",
-            width: 32,
-            height: 32,
-            borderRadius: 8,
-            cursor: "pointer",
-          }}
-        >
-          x
-        </button>
-      </div>
-
-      <div style={{ padding: 20 }}>
-        <div style={{ display: "flex", gap: 20 }}>
+    <div ref={rootRef} className={styles.popover} style={{ left: x, top: y }}>
+      <div className={styles.head}>
+        {furniture?.item?.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={furniture?.item?.imageUrl}
+            className={styles.thumb}
+            src={furniture.item.imageUrl}
             alt=""
-            style={{
-              width: 96,
-              height: 96,
-              objectFit: "contain",
-              imageRendering: "pixelated",
-              background: "#111",
-              borderRadius: 10,
-              padding: 10,
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = "none";
             }}
           />
-
-          <div style={{ flex: 1 }}>
-            <p>
-              <strong>Descripcion:</strong>
-            </p>
-            <p style={{ color: "#ccc", marginTop: 0 }}>
-              {translation?.description || "Sin descripcion"}
-            </p>
-            <p>
-              <strong>Tipo:</strong> {worldData?.kind ?? "N/A"}
-            </p>
-            <p>
-              <strong>Tamano:</strong> {worldData?.width} x {worldData?.height}
-            </p>
-            <p>
-              <strong>Interactivo:</strong>{" "}
-              {worldData?.isInteractable ? "Si" : "No"}
-            </p>
-          </div>
-        </div>
-
-        <div
-          style={{
-            marginTop: 20,
-            padding: 12,
-            background: "#161616",
-            borderRadius: 10,
-            fontSize: 12,
-            color: "#aaa",
-          }}
-        >
-          <div>
-            <strong>Room Item ID:</strong>
-          </div>
-          <div>{furniture.roomItemId}</div>
-          <br />
-          <div>
-            <strong>Owner ID:</strong>
-          </div>
-          <div>{furniture.ownerId}</div>
-          <br />
-          <div>
-            <strong>Rotacion:</strong>
-          </div>
-          <div>{furniture.rotation}</div>
-        </div>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            gap: 10,
-            marginTop: 20,
-          }}
-        >
-          <button
-            onClick={rotate}
-            style={{ ...buttonBase, background: "#ff9800" }}
-          >
-            Rotar
-          </button>
-
-          <button
-            onClick={pickUp}
-            style={{ ...buttonBase, background: "#43a047" }}
-          >
-            Recoger
-          </button>
-
-          <button
-            onClick={move}
-            style={{ ...buttonBase, background: "#8e24aa" }}
-          >
-            Mover
-          </button>
-        </div>
+        ) : null}
+        <span className={styles.name}>{name}</span>
       </div>
+
+      <div className={styles.actions}>
+        {permissions.canMoveObjects && (
+          <Button variant="secondary" size="sm" fullWidth onClick={move}>
+            <Move size={13} /> {t("buildmode.moveButton")}
+          </Button>
+        )}
+        {permissions.canRotateObjects && (
+          <Button variant="secondary" size="sm" fullWidth onClick={rotate}>
+            <RotateCw size={13} /> {t("buildmode.rotateButton")}
+          </Button>
+        )}
+        {permissions.canDeleteObjects && (
+          <Button variant="danger" size="sm" fullWidth onClick={pickUp}>
+            <Trash2 size={13} /> {t("buildmode.pickUpButton")}
+          </Button>
+        )}
+        {permissions.canPlaceObjects && (
+          <Button variant="secondary" size="sm" fullWidth onClick={duplicate}>
+            <CopyPlus size={13} /> {t("buildmode.duplicateButton")}
+          </Button>
+        )}
+        <Button variant="secondary" size="sm" fullWidth onClick={copy}>
+          <Copy size={13} /> {t("buildmode.copyButton")}
+        </Button>
+        {!permissions.canMoveObjects &&
+          !permissions.canRotateObjects &&
+          !permissions.canDeleteObjects &&
+          !permissions.canPlaceObjects && (
+            <span className={styles.noPermissions}>
+              {t("buildmode.noPermissionsForItem")}
+            </span>
+          )}
+      </div>
+
+      <div className={styles.arrow} />
     </div>
   );
 }

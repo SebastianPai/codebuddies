@@ -12,6 +12,7 @@ import Button from "../shared/Button";
 import ItemGrid from "../shared/ItemGrid";
 import ItemCard from "../shared/ItemCard";
 import CurrencyBadge from "../shared/CurrencyBadge";
+import { useTranslation } from "../../../i18n/useTranslation";
 
 interface Props {
   socket: Socket | null;
@@ -28,14 +29,15 @@ const ITEMS_PER_PAGE = 12;
 // datos, no como texto — mostrarlo tal cual (con "?? COMMON", que nunca
 // dispara porque 0 no es null/undefined) hacía que se viera un número suelto
 // al lado del precio, dando la falsa impresión de dos precios ("10 10").
-const RARITY_LABELS = ["COMMON", "RARE", "EPIC", "LEGENDARY"];
-function getRarityLabel(rarity: unknown): string {
+const RARITY_KEYS = ["commerce.rarityCommon", "commerce.rarityRare", "commerce.rarityEpic", "commerce.rarityLegendary"];
+function getRarityLabel(rarity: unknown, t: (key: string) => string): string {
   if (typeof rarity === "string" && rarity.trim()) return rarity;
   const tier = typeof rarity === "number" ? rarity : 0;
-  return RARITY_LABELS[Math.max(0, Math.min(tier, RARITY_LABELS.length - 1))];
+  return t(RARITY_KEYS[Math.max(0, Math.min(tier, RARITY_KEYS.length - 1))]);
 }
 
 export default function Shop({ socket, inventory = [], onClose }: Props) {
+  const t = useTranslation();
   const [items, setItems] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortType>("new");
@@ -70,6 +72,7 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
       requestItems();
       setBuyingItemId(null);
       audioManager.play("coin");
+      window.dispatchEvent(new CustomEvent("fx:sparkle"));
     };
 
     socket.on("shop:items", handleItems);
@@ -94,21 +97,21 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
 
     if (item?.type === "BACKGROUND" && ownsItem) {
       await showGameAlert({
-        title: "Ya lo tienes",
-        message: "Este fondo ya esta en tu cuenta. Lo puedes usar al crear o editar una sala.",
-        confirmLabel: "Entendido",
+        title: t("commerce.shopBackgroundAlreadyOwnedTitle"),
+        message: t("commerce.shopBackgroundAlreadyOwnedMessage"),
+        confirmLabel: t("common.understood"),
         tone: "success",
       });
       return;
     }
 
     const confirmed = await requestGameConfirm({
-      title: ownsItem ? "Comprar otro" : "Confirmar compra",
+      title: ownsItem ? t("commerce.shopConfirmBuyAnotherTitle") : t("commerce.shopConfirmPurchaseTitle"),
       message: ownsItem
-        ? "Ya tienes este objeto. Deseas comprar otra unidad?"
-        : `Quieres comprar ${item?.name || "este objeto"}?`,
-      confirmLabel: ownsItem ? "Comprar otro" : "Comprar",
-      cancelLabel: "Cancelar",
+        ? t("commerce.shopConfirmBuyAnotherMessage")
+        : t("commerce.shopConfirmBuyMessage", { name: item?.name || t("commerce.shopDefaultItemName") }),
+      confirmLabel: ownsItem ? t("commerce.shopConfirmBuyAnotherTitle") : t("commerce.shopBuy"),
+      cancelLabel: t("common.cancel"),
     });
 
     if (!confirmed) return;
@@ -132,18 +135,18 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
   const getLabel = (item: any) => {
     if (item.slot || item.avatarData?.slot) {
       const map: any = {
-        BODY: "Body",
-        HEAD: "Head",
-        HAIR: "Hair",
-        EYES: "Eyes",
-        SHIRT: "Shirt",
-        LEGS: "Legs",
-        SHOES: "Shoes",
-        LEFT_ARM: "Left Arm",
-        RIGHT_ARM: "Right Arm",
-        ACCESSORY_HEAD: "Hat",
-        ACCESSORY_FACE: "Face Acc",
-        ACCESSORY_BACK: "Backpack",
+        BODY: t("commerce.slotBody"),
+        HEAD: t("commerce.slotHead"),
+        HAIR: t("commerce.slotHair"),
+        EYES: t("commerce.slotEyes"),
+        SHIRT: t("commerce.slotShirt"),
+        LEGS: t("commerce.slotLegs"),
+        SHOES: t("commerce.slotShoes"),
+        LEFT_ARM: t("commerce.slotLeftArm"),
+        RIGHT_ARM: t("commerce.slotRightArm"),
+        ACCESSORY_HEAD: t("commerce.slotHat"),
+        ACCESSORY_FACE: t("commerce.slotFaceAcc"),
+        ACCESSORY_BACK: t("commerce.slotBackpack"),
       };
 
       return map[item.slot || item.avatarData?.slot] ?? item.slot;
@@ -151,21 +154,21 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
 
     if (item.kind || item.worldData?.kind) {
       const map: any = {
-        FLOOR: "Floor",
-        WALL: "Wall",
-        FURNITURE: "Furniture",
-        CHAIR: "Chair",
-        TABLE: "Table",
-        DOOR: "Door",
-        DECORATION: "Decoration",
-        NPC: "NPC",
-        INTERACTIVE: "Interactive",
+        FLOOR: t("commerce.kindFloor"),
+        WALL: t("commerce.kindWall"),
+        FURNITURE: t("commerce.kindFurniture"),
+        CHAIR: t("commerce.kindChair"),
+        TABLE: t("commerce.kindTable"),
+        DOOR: t("commerce.kindDoor"),
+        DECORATION: t("commerce.kindDecoration"),
+        NPC: t("commerce.kindNpc"),
+        INTERACTIVE: t("commerce.kindInteractive"),
       };
 
       return map[item.kind || item.worldData?.kind] ?? item.kind;
     }
 
-    return item.name || "Item";
+    return item.name || t("commerce.itemFallbackName");
   };
 
   const { currentItems, totalPages } = useMemo(() => {
@@ -209,7 +212,7 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
   return (
     <Modal
       variant="floating"
-      title="Item Shop"
+      title={t("commerce.shopTitle")}
       onClose={onClose ?? (() => {})}
       style={{ width: "min(960px, calc(100vw - 24px))", height: "min(760px, calc(100dvh - 24px))" }}
     >
@@ -218,46 +221,46 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
           className={`${styles.tab} ${activeTab === "avatar" ? styles.active : ""}`}
           onClick={() => setActiveTab("avatar")}
         >
-          <Shirt size={14} /> Avatar (Ropa)
+          <Shirt size={14} /> {t("commerce.shopTabAvatar")}
         </button>
 
         <button
           className={`${styles.tab} ${activeTab === "world" ? styles.active : ""}`}
           onClick={() => setActiveTab("world")}
         >
-          <Globe size={14} /> World Objects
+          <Globe size={14} /> {t("commerce.shopTabWorld")}
         </button>
         <button
           className={`${styles.tab} ${activeTab === "textures" ? styles.active : ""}`}
           onClick={() => setActiveTab("textures")}
         >
-          Texturas
+          {t("commerce.shopTabTextures")}
         </button>
         <button
           className={`${styles.tab} ${activeTab === "backgrounds" ? styles.active : ""}`}
           onClick={() => setActiveTab("backgrounds")}
         >
-          Fondos
+          {t("commerce.shopTabBackgrounds")}
         </button>
       </div>
 
       <div className={styles.shopBanner}>
         <h2>
           {activeTab === "avatar"
-            ? "AVATAR CUSTOMIZATION"
+            ? t("commerce.shopBannerAvatar")
             : activeTab === "textures"
-              ? "ROOM TEXTURES"
+              ? t("commerce.shopBannerTextures")
               : activeTab === "backgrounds"
-                ? "ROOM BACKGROUNDS"
-                : "WORLD BUILDER"}
+                ? t("commerce.shopBannerBackgrounds")
+                : t("commerce.shopBannerWorld")}
         </h2>
 
-        <p>{items.length} items disponibles</p>
+        <p>{t("commerce.shopItemsAvailable", { count: items.length })}</p>
       </div>
 
       <div className={styles.filters}>
         <input
-          placeholder="Search..."
+          placeholder={t("commerce.shopSearchPlaceholder")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -266,15 +269,15 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
           value={sort}
           onChange={(e) => setSort(e.target.value as SortType)}
         >
-          <option value="new">Newest</option>
-          <option value="old">Oldest</option>
-          <option value="cheap">Cheapest</option>
-          <option value="expensive">Expensive</option>
-          <option value="popular">Popular</option>
+          <option value="new">{t("commerce.shopSortNewest")}</option>
+          <option value="old">{t("commerce.shopSortOldest")}</option>
+          <option value="cheap">{t("commerce.shopSortCheapest")}</option>
+          <option value="expensive">{t("commerce.shopSortExpensive")}</option>
+          <option value="popular">{t("commerce.shopSortPopular")}</option>
         </select>
       </div>
 
-      <ItemGrid isEmpty={currentItems.length === 0} empty="No se encontraron items">
+      <ItemGrid isEmpty={currentItems.length === 0} empty={t("commerce.shopEmptyItems")}>
         {currentItems.map((item) => {
           const owned = inventoryMap.has(item.id) || item.owned;
           const isBuying = buyingItemId === item.id;
@@ -296,7 +299,7 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
                     ) : (
                       <CurrencyBadge currency="coins" amount={item.coinsPrice} size="sm" />
                     )}
-                    <span className={styles.rarity}>{getRarityLabel(item.rarity)}</span>
+                    <span className={styles.rarity}>{getRarityLabel(item.rarity, t)}</span>
                   </div>
                   <Button
                     variant="primary"
@@ -306,12 +309,12 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
                     disabled={isBuying || alreadyHasBackground}
                   >
                     {alreadyHasBackground
-                      ? "Ya lo tienes"
+                      ? t("commerce.shopAlreadyOwned")
                       : isBuying
-                        ? "Comprando..."
+                        ? t("commerce.shopBuying")
                         : owned
-                          ? "Comprar otro"
-                          : "Comprar"}
+                          ? t("commerce.shopBuyAnother")
+                          : t("commerce.shopBuy")}
                   </Button>
                 </div>
               }
@@ -328,11 +331,11 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
             onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             disabled={currentPage <= 1}
           >
-            ← Anterior
+            {t("commerce.shopPrevPage")}
           </Button>
 
           <span>
-            Página {currentPage} de {totalPages}
+            {t("commerce.shopPageLabel", { current: currentPage, total: totalPages })}
           </span>
 
           <Button
@@ -341,7 +344,7 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
             disabled={currentPage >= totalPages}
           >
-            Siguiente →
+            {t("commerce.shopNextPage")}
           </Button>
         </div>
       )}

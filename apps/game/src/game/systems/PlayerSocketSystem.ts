@@ -41,7 +41,7 @@ export default class PlayerSocketSystem {
 
   private handlePlayerChat = (data: any) => {
     if (data.playerId === this.socket.id) {
-      (this.scene as any).hud.showChat(data.message);
+      (this.scene as any).hud.showChat(data.message, undefined, data.chatBubbleThemeId);
 
       return;
     }
@@ -50,13 +50,13 @@ export default class PlayerSocketSystem {
       .getChildren()
       .find((c: any) => c.playerId === data.playerId);
 
-    other?.hud.showChat(data.message);
+    other?.hud.showChat(data.message, undefined, data.chatBubbleThemeId);
     audioManager.play("notify");
   };
 
   private handlePlayerReaction = (data: any) => {
     if (data.playerId === this.socket.id) {
-      (this.scene as any).hud.showChat(data.reaction);
+      (this.scene as any).hud.showChat(data.reaction, undefined, data.chatBubbleThemeId);
 
       return;
     }
@@ -65,7 +65,7 @@ export default class PlayerSocketSystem {
       .getChildren()
       .find((c: any) => c.playerId === data.playerId);
 
-    other?.hud.showChat(data.reaction);
+    other?.hud.showChat(data.reaction, undefined, data.chatBubbleThemeId);
     audioManager.play("notify");
   };
 
@@ -91,6 +91,7 @@ export default class PlayerSocketSystem {
 
         (this.scene as any).player.playIdle();
       });
+      void (this.scene as any).hud?.refreshAvatarHead(slots);
 
       return;
     }
@@ -105,6 +106,7 @@ export default class PlayerSocketSystem {
 
         other.playIdle();
       });
+      void other.hud?.refreshAvatarHead(slots);
     });
   };
 

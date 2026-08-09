@@ -1,10 +1,12 @@
 "use client";
 
 import { memo, useEffect, useState } from "react";
+import { Settings } from "lucide-react";
 import { getSharedAuthToken } from "../../network/auth";
 import { showGameAlert } from "../../utils/dialog";
 import Modal from "../shared/Modal";
 import Button from "../shared/Button";
+import { useTranslation } from "../../../i18n/useTranslation";
 import "./RightSidebar.css";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
@@ -23,11 +25,35 @@ type GameMission = {
 };
 
 const events = [
-  { name: "Pixel Night", time: "Hoy · 21:00" },
-  { name: "PvP Tournament", time: "Mañana · 18:00" },
+  { name: "Pixel Night", timeKey: "today" as const, time: "21:00" },
+  { name: "PvP Tournament", timeKey: "tomorrow" as const, time: "18:00" },
 ];
 
-function RightSidebar() {
+interface Props {
+  roomName?: string;
+  thumbnailUrl?: string | null;
+  // "Editar Mundo" (el engranaje) solo se muestra si el jugador tiene algún
+  // permiso administrativo en la sala actual (dueño, o cualquier flag
+  // granular relevante) — Game.tsx ya sabe esto vía myPermissions.
+  canManageRoom?: boolean;
+  // "Invitar" es más específico: solo tiene sentido si puede gestionar
+  // invitados, aunque no tenga el resto de permisos administrativos.
+  canInvite?: boolean;
+  onOpenEditWorld?: () => void;
+  onOpenRoomInfo?: () => void;
+  onOpenInvite?: () => void;
+}
+
+function RightSidebar({
+  roomName,
+  thumbnailUrl,
+  canManageRoom,
+  canInvite,
+  onOpenEditWorld,
+  onOpenRoomInfo,
+  onOpenInvite,
+}: Props) {
+  const t = useTranslation();
   const [missions, setMissions] = useState<GameMission[]>([]);
   const [selectedMission, setSelectedMission] = useState<GameMission | null>(null);
   const [showAllMissions, setShowAllMissions] = useState(false);
@@ -49,7 +75,7 @@ function RightSidebar() {
       const data = await response.json();
       setMissions(data.items ?? []);
     } catch {
-      setMissionError("No se pudieron cargar tus retos.");
+      setMissionError(t("hud.missions.loadError"));
     } finally {
       setLoadingMissions(false);
     }
@@ -77,9 +103,9 @@ function RightSidebar() {
 
     if (!response.ok) {
       await showGameAlert({
-        title: "No se pudo reclamar",
-        message: "La recompensa no esta lista o ya fue reclamada.",
-        confirmLabel: "Entendido",
+        title: t("hud.missions.claimFailedTitle"),
+        message: t("hud.missions.claimFailedMessage"),
+        confirmLabel: t("common.understood"),
         tone: "danger",
       });
       return;
@@ -87,9 +113,9 @@ function RightSidebar() {
 
     await loadMissions();
     await showGameAlert({
-      title: "Recompensa reclamada",
-      message: "Los premios de la mision fueron agregados a tu cuenta.",
-      confirmLabel: "Genial",
+      title: t("hud.missions.claimSuccessTitle"),
+      message: t("hud.missions.claimSuccessMessage"),
+      confirmLabel: t("hud.missions.claimSuccessConfirm"),
       tone: "success",
     });
   };
@@ -104,17 +130,49 @@ function RightSidebar() {
     <>
       <div className="right-sidebar">
         <div className="sidebar-block room-card">
-          <div className="room-preview">
+          <div
+            className="room-preview"
+            style={thumbnailUrl ? { backgroundImage: `url(${thumbnailUrl})` } : undefined}
+          >
             <div className="room-overlay">
               <div className="room-top">
                 <div>
-                  <div className="block-label">Sala actual</div>
-                  <h2 className="room-name">Lobby Principal</h2>
+                  <div className="block-label">{t("hud.room.currentLabel")}</div>
+                  <h2 className="room-name">{roomName || t("hud.room.lobbyName")}</h2>
                 </div>
-                <div className="live-status">Activa</div>
+                <div className="room-top-right">
+                  {canManageRoom && onOpenEditWorld && (
+                    <button
+                      type="button"
+                      className="soft-button icon-only"
+                      title={t("rooms.editWorldButton")}
+                      aria-label={t("rooms.editWorldButton")}
+                      onClick={onOpenEditWorld}
+                    >
+                      <Settings size={14} />
+                    </button>
+                  )}
+                  <div className="live-status">{t("hud.room.liveStatus")}</div>
+                </div>
               </div>
               <div className="room-info">
-                <span className="room-online">98 jugadores conectados</span>
+                {/* "98" es un valor fijo de ejemplo (no viene de ningún dato
+                    real de ocupación) — pre-existente, no lo agregué yo en
+                    este cambio, pero queda anotado acá para no perderlo de
+                    vista. */}
+                <span className="room-online">{t("hud.room.playersOnline", { count: 98 })}</span>
+                <div className="room-actions">
+                  {onOpenRoomInfo && (
+                    <button type="button" className="soft-button" onClick={onOpenRoomInfo}>
+                      {t("hud.room.infoButton")}
+                    </button>
+                  )}
+                  {canInvite && onOpenInvite && (
+                    <button type="button" className="soft-button primary" onClick={onOpenInvite}>
+                      {t("hud.room.inviteButton")}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -123,11 +181,11 @@ function RightSidebar() {
         <div className="sidebar-block">
           <div className="block-header">
             <div>
-              <div className="block-label">Misiones</div>
-              <div className="block-title">Retos activos</div>
+              <div className="block-label">{t("hud.missions.label")}</div>
+              <div className="block-title">{t("hud.missions.sectionTitle")}</div>
             </div>
             <button className="soft-button" onClick={() => setShowAllMissions(true)}>
-              Ver todo
+              {t("hud.missions.viewAll")}
             </button>
           </div>
 
@@ -142,7 +200,7 @@ function RightSidebar() {
               <div className="mission-empty">
                 {missionError}
                 <button className="soft-button inline" onClick={() => void loadMissions()}>
-                  Reintentar
+                  {t("common.retry")}
                 </button>
               </div>
             )}
@@ -165,7 +223,7 @@ function RightSidebar() {
               </button>
             ))}
             {!loadingMissions && !missionError && !missions.length && (
-              <div className="mission-empty">No hay retos activos por ahora.</div>
+              <div className="mission-empty">{t("hud.missions.empty")}</div>
             )}
           </div>
         </div>
@@ -173,8 +231,8 @@ function RightSidebar() {
         <div className="sidebar-block">
           <div className="block-header">
             <div>
-              <div className="block-label">Eventos</div>
-              <div className="block-title">Próximamente</div>
+              <div className="block-label">{t("hud.events.label")}</div>
+              <div className="block-title">{t("hud.events.sectionTitle")}</div>
             </div>
           </div>
           <div className="events-list">
@@ -182,9 +240,11 @@ function RightSidebar() {
               <div key={event.name} className="event-item">
                 <div className="event-left">
                   <span className="event-name">{event.name}</span>
-                  <span className="event-time">{event.time}</span>
+                  <span className="event-time">
+                    {t(`hud.events.${event.timeKey}`)} · {event.time}
+                  </span>
                 </div>
-                <div className="event-badge">Entrar</div>
+                <div className="event-badge">{t("hud.events.join")}</div>
               </div>
             ))}
           </div>
@@ -193,7 +253,7 @@ function RightSidebar() {
 
       {visibleMissionList.length > 0 && (
         <Modal
-          title="Misiones"
+          title={t("hud.missions.label")}
           onClose={() => {
             setSelectedMission(null);
             setShowAllMissions(false);
@@ -201,12 +261,12 @@ function RightSidebar() {
         >
           {visibleMissionList.map((mission) => (
             <article key={mission.id} className="mission-detail-card">
-              <div className="mission-window-tag">Misión activa</div>
+              <div className="mission-window-tag">{t("hud.missions.activeTag")}</div>
               <h3 className="mission-window-title">{mission.name}</h3>
               <p className="mission-window-description">{mission.description}</p>
 
               <div className="objectives-box">
-                <div className="objectives-title">Progreso</div>
+                <div className="objectives-title">{t("hud.missions.progressLabel")}</div>
                 <div className="objective-item">
                   <div className="objective-check" />
                   <span>
@@ -223,11 +283,11 @@ function RightSidebar() {
 
               <div className="reward-bar">
                 <div className="reward-left">
-                  <span className="reward-label">Recompensa</span>
+                  <span className="reward-label">{t("hud.missions.rewardLabel")}</span>
                   <span className="reward-value">
                     {mission.rewards
                       ?.map((reward) => reward.label || `${reward.amount ?? ""} ${reward.type}`)
-                      .join(" · ") || "Sin recompensa"}
+                      .join(" · ") || t("hud.missions.noReward")}
                   </span>
                 </div>
                 <Button
@@ -236,7 +296,7 @@ function RightSidebar() {
                   disabled={mission.progress.status !== "COMPLETED"}
                   onClick={() => void claimMission(mission.id)}
                 >
-                  {mission.progress.status === "CLAIMED" ? "Reclamada" : "Reclamar"}
+                  {mission.progress.status === "CLAIMED" ? t("hud.missions.claimed") : t("hud.missions.claim")}
                 </Button>
               </div>
             </article>

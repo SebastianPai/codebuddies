@@ -1,0 +1,16 @@
+{
+  "inventoryEmptyCategory": "No tienes objetos en esta categoría.",
+  "itemCardUnnamed": "Sin nombre",
+  "itemCardEquipped": "Equipado",
+  "itemCardRemove": "Quitar",
+  "itemCardEquip": "Equipar",
+  "studioWindowAriaLabel": "Vestidor de avatar",
+  "studioTitle": "Vestidor",
+  "studioCloseAriaLabel": "Cerrar vestidor",
+  "studioDescription": "Ropa, cabello, accesorios y colores separados del inventario de muebles.",
+  "studioSearchLabel": "Buscar pieza",
+  "studioSearchPlaceholder": "Cabello, camisa, accesorio...",
+  "studioEmptyTitle": "No hay piezas de avatar",
+  "studioEmptyHint": "Compra ropa o accesorios en la tienda para equiparlos aqui.",
+  "studioDefaultUsername": "Jugador"
+}

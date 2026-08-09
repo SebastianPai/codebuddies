@@ -21,6 +21,8 @@
   align-items: center;
   justify-content: center;
   padding: var(--cb-space-5);
+
+  animation: cbBackdropFadeIn 160ms ease-out;
 }
 
 .dialog {
@@ -36,12 +38,57 @@
   max-height: 100%;
 }
 
+/* Antes Modal aparecía/desaparecía de forma instantánea (sin transición) al
+   cambiar el booleano del padre que lo monta. overlay nunca es draggable
+   (ver Modal.tsx: draggable = variant === "floating"), así que puede animar
+   transform sin pelear con el translate() que aplica react-draggable —
+   floating sí es draggable, así que solo anima opacity para no chocar con
+   ese transform. */
 .dialog.overlay {
   width: min(520px, 100%);
+  animation: cbDialogFadeScaleIn 160ms ease-out;
 }
 
 .dialog.floating {
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  animation: cbDialogFadeIn 160ms ease-out;
+}
+
+@keyframes cbBackdropFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes cbDialogFadeScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes cbDialogFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backdrop,
+  .dialog.overlay,
+  .dialog.floating {
+    animation: none;
+  }
 }
 
 .header {

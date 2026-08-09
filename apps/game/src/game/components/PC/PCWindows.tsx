@@ -1,201 +1,70 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, BarChart3, ClipboardList, Pencil, Rocket, X } from "lucide-react";
-import {
-  createApp,
-  getMyApps,
-  getAppById,
-  updateAppLogic,
-  publishApp,
-} from "../../network/apps";
-import AppEditor from "../AppEditor/AppEditor";
+import { Moon, Sun, X } from "lucide-react";
+import { getCurrentUser } from "../../network/auth";
+import { apiPatch } from "../../network/http";
 import CodeStudio from "../CodeStudio/CodeStudio";
-import { showGameAlert } from "../../utils/dialog";
 import { useDialogBehavior } from "../shared/useDialogBehavior";
+import { useTranslation } from "../../../i18n/useTranslation";
 import "./PCWindows.css";
-
-interface App {
-  id: string;
-  type: "DELIVERY" | "ECOMMERCE" | "SOCIAL";
-  status: string;
-  activeUsers?: number;
-  successRate?: number;
-  revenue?: number;
-  logic?: any;
-}
 
 interface PCWindowProps {
   onClose: () => void;
 }
 
 export default function PCWindow({ onClose }: PCWindowProps) {
-  const [apps, setApps] = useState<App[]>([]);
-  const [selectedApp, setSelectedApp] = useState<App | null>(null);
-  const dragStartRef = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
+  const t = useTranslation();
   const modalRef = useRef<HTMLDivElement>(null);
   useDialogBehavior(modalRef, onClose);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [minimized, setMinimized] = useState(false);
-  const [pcTab, setPcTab] = useState<"desktop" | "list" | "editor" | "stats" | "codestudio">(
-    "desktop",
-  );
+  const [pcTab, setPcTab] = useState<"desktop" | "codestudio">("desktop");
+  // Tema del simulador (escritorio, pestañas y look general de CodeStudio) —
+  // guardado en la CUENTA (User.pcTheme, mismo criterio que uiLanguage en
+  // LanguageContext.tsx) para que sea el mismo en cualquier navegador/
+  // dispositivo. localStorage es solo un cache para pintar rápido antes de
+  // que responda /identity/me, no la fuente de verdad.
+  const [pcTheme, setPcTheme] = useState<"dark" | "light">(() => {
+    if (typeof window === "undefined") return "dark";
+    return (localStorage.getItem("pcTheme") as "dark" | "light") || "dark";
+  });
 
   useEffect(() => {
-    loadApps();
+    const cached = localStorage.getItem("pcTheme") as "dark" | "light" | null;
+    void getCurrentUser().then((user) => {
+      const remote = user?.pcTheme as "dark" | "light" | undefined;
+      if (remote && remote !== cached) {
+        setPcTheme(remote);
+        localStorage.setItem("pcTheme", remote);
+      }
+    });
   }, []);
 
-  const loadApps = async () => {
-    try {
-      const myApps = await getMyApps();
-      setApps(myApps);
-    } catch (err) {
-      console.error("Error cargando apps:", err);
-    }
-  };
-
-  const handleCreateApp = async (type: "DELIVERY" | "ECOMMERCE" | "SOCIAL") => {
-    try {
-      const newApp = await createApp(type);
-      setApps((prev) => [newApp, ...prev]);
-      setSelectedApp(newApp);
-      setPcTab("editor");
-    } catch (err) {
-      void showGameAlert({
-        title: "No se pudo crear",
-        message: "Revisa tu suscripcion o intenta de nuevo.",
-        confirmLabel: "Entendido",
-        tone: "danger",
-      });
-    }
-  };
-
-  const handleSelectApp = async (appId: string) => {
-    try {
-      const app = await getAppById(appId);
-      setSelectedApp(app);
-      setPcTab("editor");
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleCloseApp = () => {
-    setSelectedApp(null);
-    setPcTab("list");
-  };
-
-  const handleSaveLogic = async (newLogic: any) => {
-    if (!selectedApp) return;
-    try {
-      await updateAppLogic(selectedApp.id, newLogic);
-      setSelectedApp((prev) => (prev ? { ...prev, logic: newLogic } : null));
-      void showGameAlert({
-        title: "Guardado",
-        message: "La logica se guardo correctamente.",
-        confirmLabel: "Perfecto",
-        tone: "success",
-      });
-    } catch (err) {
-      void showGameAlert({
-        title: "Error al guardar",
-        message: "No se pudo guardar la logica.",
-        confirmLabel: "Entendido",
-        tone: "danger",
-      });
-    }
-  };
-
-  const handlePublish = async () => {
-    if (!selectedApp) return;
-    try {
-      await publishApp(selectedApp.id);
-      void showGameAlert({
-        title: "App publicada",
-        message: "Tu app fue publicada con exito.",
-        confirmLabel: "Genial",
-        tone: "success",
-      });
-      loadApps();
-      setPcTab("list");
-    } catch (err: any) {
-      void showGameAlert({
-        title: "Error al publicar",
-        message: err.message || "No se pudo publicar la app.",
-        confirmLabel: "Entendido",
-        tone: "danger",
-      });
-    }
-  };
-
-  // Iconos del escritorio
-  const desktopIcons = [
-    { name: "Mi PC", bgPos: "0px -48px", action: () => setPcTab("list") },
-    { name: "CodeStudio", bgPos: "-24px -48px", action: () => setPcTab("codestudio") },
-    {
-      name: "Constructor",
-      bgPos: "0px 0px",
-      action: () => setPcTab("desktop"),
-    },
-    { name: "Mis Apps", bgPos: "-144px 0", action: () => setPcTab("list") },
-    { name: "Apagar", bgPos: "-48px -0px", action: onClose },
-  ];
-
-  const startDrag = (event: React.PointerEvent<HTMLDivElement>) => {
-    dragStartRef.current = {
-      x: event.clientX,
-      y: event.clientY,
-      left: position.x,
-      top: position.y,
-    };
-    event.currentTarget.setPointerCapture(event.pointerId);
-  };
-
-  const moveDrag = (event: React.PointerEvent<HTMLDivElement>) => {
-    const start = dragStartRef.current;
-    if (!start) return;
-    setPosition({
-      x: start.left + event.clientX - start.x,
-      y: start.top + event.clientY - start.y,
+  const toggleTheme = () => {
+    setPcTheme((current) => {
+      const next = current === "dark" ? "light" : "dark";
+      localStorage.setItem("pcTheme", next);
+      // Best-effort: si falla, el tema igual queda aplicado en esta pestaña
+      // via localStorage, solo no se sincroniza con otros dispositivos hasta
+      // el proximo cambio exitoso.
+      apiPatch("/identity/profile", { pcTheme: next }).catch(() => {});
+      return next;
     });
   };
 
-  const endDrag = () => {
-    dragStartRef.current = null;
-  };
-
-  if (minimized) {
-    return (
-      <button className="pc-minimized-pill" onClick={() => setMinimized(false)}>
-        <span />
-        CodeBuddies PC - restaurar
-      </button>
-    );
-  }
+  // Iconos del escritorio — el único destino real del PC es CodeStudio (el
+  // builder heredado de apps con nodos ORDER/PAYMENT/DELIVER se retiró: ver
+  // apps/api/src/game/apps y apps/game/src/game/components/AppEditor,
+  // eliminados).
+  const desktopIcons = [
+    { name: "CodeStudio", bgPos: "-24px -48px", action: () => setPcTab("codestudio") },
+    { name: t("pc.desktopIconShutdown"), bgPos: "-48px -0px", action: onClose },
+  ];
 
   return (
-    <div className="pc-modal" ref={modalRef} role="dialog" aria-modal="true" aria-label="CodeBuddies OS">
-      <div
-        className="computer-frame"
-        style={{ transform: `translate(${position.x}px, ${position.y}px)` }}
-      >
+    <div className="pc-modal" ref={modalRef} role="dialog" aria-modal="true" aria-label={t("pc.osTitle")}>
+      <div className="computer-frame" data-pc-theme={pcTheme}>
         <div className="monitor-frame">
           <div className="screen">
-            <div
-              className="pc-drag-handle"
-              onPointerDown={startDrag}
-              onPointerMove={moveDrag}
-              onPointerUp={endDrag}
-              onPointerCancel={endDrag}
-            >
-              <span>CodeBuddies OS</span>
-              <div className="pc-window-controls">
-                <button onClick={() => setMinimized(true)} title="Minimizar">_</button>
-                <button onClick={() => setPosition({ x: 0, y: 0 })} title="Centrar">□</button>
-                <button onClick={onClose} title="Apagar">⏻</button>
-              </div>
-            </div>
-
             {/* Escritorio */}
             <div className="win11-desktop">
               {pcTab === "desktop" && (
@@ -220,155 +89,12 @@ export default function PCWindow({ onClose }: PCWindowProps) {
                 </div>
               )}
 
-              {pcTab !== "desktop" && (
+              {pcTab === "codestudio" && (
                 <div className="pc-content-area">
                   <div className="win11-tabs">
-                    <button
-                      className={`tab ${pcTab === "codestudio" ? "active" : ""}`}
-                      onClick={() => setPcTab("codestudio")}
-                    >
-                      CodeStudio
-                    </button>
-                    <button
-                      className={`tab ${pcTab === "list" ? "active" : ""}`}
-                      onClick={() => setPcTab("list")}
-                    >
-                      <ClipboardList size={14} /> Mis Apps
-                    </button>
-                    <button
-                      className={`tab ${pcTab === "editor" ? "active" : ""}`}
-                      onClick={() => setPcTab("editor")}
-                      disabled={!selectedApp}
-                    >
-                      <Pencil size={14} /> Editor
-                    </button>
-                    <button
-                      className={`tab ${pcTab === "stats" ? "active" : ""}`}
-                      onClick={() => setPcTab("stats")}
-                      disabled={!selectedApp}
-                    >
-                      <BarChart3 size={14} /> Estadísticas
-                    </button>
+                    <button className="tab active">CodeStudio</button>
                   </div>
-
-                  {pcTab === "list" && (
-                    <div className="list-content">
-                      <div className="create-buttons">
-                        <button
-                          onClick={() => handleCreateApp("DELIVERY")}
-                          className="win11-btn"
-                        >
-                          Crear Delivery
-                        </button>
-                        <button
-                          onClick={() => handleCreateApp("ECOMMERCE")}
-                          className="win11-btn"
-                        >
-                          Crear Ecommerce
-                        </button>
-                        <button
-                          onClick={() => handleCreateApp("SOCIAL")}
-                          className="win11-btn"
-                        >
-                          Crear Social
-                        </button>
-                      </div>
-
-                      <h3>Mis Apps ({apps.length})</h3>
-                      <div className="app-list">
-                        {apps.length === 0 ? (
-                          <p className="empty">
-                            No tienes apps aún.
-                            <br />
-                            Crea una arriba.
-                          </p>
-                        ) : (
-                          apps.map((app) => (
-                            <div
-                              key={app.id}
-                              className="app-item"
-                              onClick={() => handleSelectApp(app.id)}
-                            >
-                              <div
-                                className="win11-item-icon"
-                                style={{ backgroundPosition: "-24px 0" }}
-                              />
-                              <div>
-                                <strong>{app.type}</strong>
-                                <br />
-                                <small>Estado: {app.status}</small>
-                              </div>
-                              <span>{app.activeUsers || 0} usuarios</span>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {pcTab === "codestudio" && <CodeStudio />}
-
-                  {pcTab === "editor" && selectedApp && (
-                    <div className="editor-window">
-                      <div className="editor-titlebar">
-                        <div className="editor-title">
-                          <Pencil size={14} /> Editor - {selectedApp.type}
-                        </div>
-                        <button
-                          className="editor-close"
-                          aria-label="Cerrar editor"
-                          onClick={handleCloseApp}
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-
-                      <div className="editor-content">
-                        <AppEditor
-                          initialLogic={selectedApp.logic}
-                          onSave={handleSaveLogic}
-                        />
-
-                        <div className="editor-actions">
-                          <button
-                            onClick={handlePublish}
-                            className="win11-btn success"
-                            disabled={selectedApp.status === "PUBLISHED"}
-                          >
-                            <Rocket size={14} /> Publicar App
-                          </button>
-                          <button
-                            onClick={handleCloseApp}
-                            className="win11-btn"
-                          >
-                            <ArrowLeft size={14} /> Cerrar Editor
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {pcTab === "stats" && selectedApp && (
-                    <div className="stats-content">
-                      <h3>Estadísticas de {selectedApp.type}</h3>
-                      <p>
-                        Usuarios activos:{" "}
-                        <strong>{selectedApp.activeUsers || 0}</strong>
-                      </p>
-                      <p>
-                        Success Rate:{" "}
-                        <strong>
-                          {((selectedApp.successRate || 0) * 100).toFixed(1)}%
-                        </strong>
-                      </p>
-                      <p>
-                        Revenue:{" "}
-                        <strong>
-                          ${(selectedApp.revenue || 0).toFixed(0)}
-                        </strong>
-                      </p>
-                    </div>
-                  )}
+                  <CodeStudio />
                 </div>
               )}
             </div>
@@ -383,7 +109,16 @@ export default function PCWindow({ onClose }: PCWindowProps) {
               </div>
               <div className="taskbar-right">
                 <span className="clock">18:14</span>
-                <span className="tray">▲</span>
+                <button
+                  className="taskbar-control"
+                  onClick={toggleTheme}
+                  title={pcTheme === "dark" ? t("pc.lightModeTooltip") : t("pc.darkModeTooltip")}
+                >
+                  {pcTheme === "dark" ? <Sun size={13} /> : <Moon size={13} />}
+                </button>
+                <button className="taskbar-control" onClick={onClose} title={t("pc.desktopIconShutdown")}>
+                  <X size={13} />
+                </button>
               </div>
             </div>
           </div>

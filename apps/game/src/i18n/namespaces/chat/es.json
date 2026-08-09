@@ -1,0 +1,16 @@
+{
+  "requestSentTitle": "Solicitud de mensaje enviada",
+  "requestSentMessage": "{username} debe aceptar tu solicitud antes de poder chatear.",
+  "openFailedTitle": "No se pudo abrir el chat",
+  "closeChatAriaLabel": "Cerrar chat",
+  "noMessagesYet": "Aún no hay mensajes. ¡Saluda!",
+  "partnerTyping": "{username} está escribiendo...",
+  "messagePlaceholder": "Escribe un mensaje...",
+  "sendMessageAriaLabel": "Enviar mensaje",
+  "panelTitle": "MENSAJES",
+  "closeMessagesAriaLabel": "Cerrar mensajes",
+  "messageRequestsLabel": "SOLICITUDES DE MENSAJE",
+  "reject": "Rechazar",
+  "conversationsLabel": "CONVERSACIONES",
+  "noConversations": "No tienes conversaciones aún. Escríbele a un amigo desde el panel de Amigos."
+}

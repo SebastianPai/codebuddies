@@ -1,0 +1,12 @@
+{
+  "panelTitle": "通知",
+  "markAllRead": "全部标记为已读",
+  "closeAriaLabel": "关闭通知",
+  "empty": "你还没有任何通知。",
+  "markReadButton": "标记为已读",
+  "acceptInvite": "接受",
+  "declineInvite": "拒绝",
+  "inviteAccepted": "已接受邀请",
+  "inviteDeclined": "已拒绝邀请",
+  "inviteJoining": "正在进入房间…"
+}

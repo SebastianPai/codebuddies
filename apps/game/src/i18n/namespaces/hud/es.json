@@ -1,0 +1,108 @@
+{
+  "sidebar": {
+    "tagline": "CONECTA · APRENDE · CRECE",
+    "online": "ONLINE",
+    "level": "NIVEL {level}",
+    "coins": "COINS",
+    "diamonds": "DIAMONDS",
+    "tierDiamond": "DIAMANTE",
+    "tierGold": "ORO",
+    "tierSilver": "PLATA",
+    "tierBronze": "BRONCE",
+    "home": "Inicio",
+    "openPc": "Abrir PC",
+    "wardrobe": "Vestidor",
+    "friends": "Amigos",
+    "messages": "Mensajes",
+    "notifications": "Notificaciones",
+    "github": "GitHub",
+    "tournaments": "Torneos",
+    "tournamentsComingSoonTitle": "Muy pronto",
+    "tournamentsComingSoonMessage": "Los torneos todavía se están construyendo — vas a poder anotarte apenas estén listos.",
+    "shop": "Tienda",
+    "build": "Construir",
+    "marketplace": "Marketplace",
+    "settings": "Ajustes",
+    "exit": "Salir",
+    "discordCta": "Únete a la comunidad",
+    "discordLabel": "Discord Oficial"
+  },
+  "topBar": {
+    "energyHint": "Energía — se gasta al completar ejercicios de aprendizaje",
+    "in": "en"
+  },
+  "zoom": {
+    "in": "Acercar",
+    "out": "Alejar",
+    "fullscreen": "Pantalla completa",
+    "exitFullscreen": "Salir de pantalla completa"
+  },
+  "bottomBar": {
+    "reactionWave": "Saludar",
+    "reactionLaugh": "Reír",
+    "reactionFire": "Fuego",
+    "reactionBye": "Adiós",
+    "chatPlaceholder": "Enviar mensaje...",
+    "send": "ENVIAR",
+    "chatThemeTitle": "Color del chat",
+    "onlineCount": "{count} conectados"
+  },
+  "room": {
+    "currentLabel": "Sala actual",
+    "lobbyName": "Lobby Principal",
+    "liveStatus": "Activa",
+    "playersOnline": "{count} jugadores conectados",
+    "infoButton": "Información",
+    "inviteButton": "Invitar"
+  },
+  "missions": {
+    "label": "Misiones",
+    "sectionTitle": "Retos activos",
+    "viewAll": "Ver todo",
+    "loadError": "No se pudieron cargar tus retos.",
+    "empty": "No hay retos activos por ahora.",
+    "claimFailedTitle": "No se pudo reclamar",
+    "claimFailedMessage": "La recompensa no esta lista o ya fue reclamada.",
+    "claimSuccessTitle": "Recompensa reclamada",
+    "claimSuccessMessage": "Los premios de la mision fueron agregados a tu cuenta.",
+    "claimSuccessConfirm": "Genial",
+    "activeTag": "Misión activa",
+    "progressLabel": "Progreso",
+    "rewardLabel": "Recompensa",
+    "noReward": "Sin recompensa",
+    "claimed": "Reclamada",
+    "claim": "Reclamar"
+  },
+  "events": {
+    "label": "Eventos",
+    "sectionTitle": "Próximamente",
+    "join": "Entrar",
+    "today": "Hoy",
+    "tomorrow": "Mañana"
+  },
+  "currency": {
+    "coins": "monedas",
+    "gems": "gemas",
+    "premium": "Premium",
+    "free": "Gratis"
+  },
+  "colorPicker": {
+    "groupLabel": "Elegir color",
+    "colorLabel": "Color {hex}"
+  },
+  "imagePreview": {
+    "zoomOut": "Alejar",
+    "zoomIn": "Acercar"
+  },
+  "itemCard": {
+    "viewLarger": "Ver {label} en grande",
+    "toggleFavorite": "Marcar {label} como favorito"
+  },
+  "itemPreview": {
+    "fallbackLabel": "Item"
+  },
+  "badges": {
+    "verified": "Verificado",
+    "creator": "Creador"
+  }
+}

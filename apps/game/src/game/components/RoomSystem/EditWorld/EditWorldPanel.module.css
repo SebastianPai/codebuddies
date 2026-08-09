@@ -1,0 +1,323 @@
+.modalContent {
+  padding: 0;
+}
+
+.layout {
+  display: flex;
+  min-height: 420px;
+  max-height: 60vh;
+}
+
+.tabStrip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 168px;
+  flex-shrink: 0;
+  padding: var(--cb-space-3, 12px) var(--cb-space-2, 8px);
+  border-right: 1px solid var(--cb-border);
+  overflow-y: auto;
+}
+
+.tabButton {
+  text-align: left;
+  padding: 9px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--cb-muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tabButton:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--cb-text);
+}
+
+.tabActive {
+  background: rgba(250, 204, 21, 0.16);
+  color: #ffd34d;
+}
+
+.tabContent {
+  flex: 1;
+  padding: var(--cb-space-4, 16px);
+  overflow-y: auto;
+}
+
+.loading {
+  color: var(--cb-muted);
+  font-size: 13px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cb-space-3, 12px);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--cb-muted);
+}
+
+.field input,
+.field textarea {
+  background: var(--cb-surface, #12151c);
+  border: 1px solid var(--cb-border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: var(--cb-text);
+  font-size: 13px;
+}
+
+.hint {
+  font-size: 11.5px;
+  color: var(--cb-muted);
+}
+
+.premiumBanner {
+  background: rgba(250, 204, 21, 0.12);
+  border: 1px solid rgba(250, 204, 21, 0.35);
+  color: #ffd34d;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+.radioGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.radioOption {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  border: 1px solid var(--cb-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.radioLabel {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--cb-text);
+}
+
+.radioDescription {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  color: var(--cb-muted);
+}
+
+.checkboxRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--cb-text);
+}
+
+.checkboxGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.infoGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--cb-muted);
+  border-bottom: 1px solid var(--cb-border);
+  padding-bottom: 8px;
+}
+
+.infoRow strong {
+  color: var(--cb-text);
+}
+
+.sectionTitle {
+  margin: 0 0 8px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--cb-muted);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.listRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: var(--cb-surface, #12151c);
+  border: 1px solid var(--cb-border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12.5px;
+}
+
+.roleBadge {
+  margin-left: 8px;
+  font-size: 10.5px;
+  font-style: normal;
+  color: #ffd34d;
+  opacity: 0.85;
+}
+
+.rowActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rowActions select {
+  background: var(--cb-surface, #12151c);
+  border: 1px solid var(--cb-border);
+  border-radius: 6px;
+  color: var(--cb-text);
+  font-size: 11.5px;
+  padding: 4px 6px;
+}
+
+/* Portada de la sala: miniatura grande + nombre en el mismo contenedor,
+   para que se sienta como la "carátula" de la sala y no un dato más. */
+/* La portada es el elemento principal de "Información de la sala": grande,
+   con el nombre superpuesto como título (igual que la carátula de un juego),
+   no un campo de formulario más — así se ve y se siente como la portada
+   real de la sala, no como configuración administrativa. */
+.coverCard {
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid var(--cb-border);
+  background: var(--cb-surface, #12151c);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
+}
+
+.coverImage {
+  position: relative;
+  height: 210px;
+  background-size: cover;
+  background-position: center;
+  background-color: #1a1f2d;
+  background-image: linear-gradient(160deg, rgba(250, 204, 21, 0.1), transparent 60%);
+}
+
+.coverImageEmpty {
+  background-image:
+    repeating-linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.03) 0 14px,
+      transparent 14px 28px
+    ),
+    linear-gradient(160deg, rgba(250, 204, 21, 0.06), transparent 60%);
+}
+
+.coverPlaceholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--cb-muted);
+}
+
+.coverPlaceholder span {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Insignia que recuerda, de un vistazo, que la miniatura se auto-actualiza
+   sola (no hace falta leer el texto de ayuda de abajo para enterarse). */
+.coverAutoBadge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(10, 12, 18, 0.6);
+  backdrop-filter: blur(6px);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* El nombre vive DENTRO de la portada, como un título, con un degradado
+   oscuro debajo para que siga siendo legible sobre cualquier miniatura. */
+.coverScrim {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 28px 16px 14px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.85), transparent 100%);
+}
+
+.coverNameInput {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-size: 24px;
+  font-weight: 800;
+  color: #ffffff;
+  padding: 4px 0;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.coverNameInput:focus {
+  outline: none;
+}
+
+.coverNameInput::placeholder {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* Permisos agrupados por tema en vez de una grilla plana de 11 casillas. */
+.permissionGroups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cb-space-3, 12px);
+}
+
+.permissionGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.permissionGroupTitle {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #ffd34d;
+}

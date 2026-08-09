@@ -5,6 +5,7 @@ import { useState } from "react";
 import Modal from "./Modal";
 import Button from "./Button";
 import styles from "./ImagePreviewModal.module.css";
+import { useTranslation } from "../../../i18n/useTranslation";
 
 interface Props {
   title: string;
@@ -34,6 +35,7 @@ function fitScale(naturalWidth: number, naturalHeight: number) {
 // para ver bien el objeto (más una textura nativa de 64x32), y el zoom
 // automático solo no siempre alcanza — a veces se quiere ver más de cerca.
 export default function ImagePreviewModal({ title, imageUrl, onClose }: Props) {
+  const t = useTranslation();
   const [natural, setNatural] = useState<{ width: number; height: number } | null>(null);
   const [zoom, setZoom] = useState<number | null>(null);
 
@@ -57,21 +59,21 @@ export default function ImagePreviewModal({ title, imageUrl, onClose }: Props) {
           <Button
             variant="secondary"
             size="sm"
-            aria-label="Alejar"
+            aria-label={t("hud.imagePreview.zoomOut")}
             disabled={!natural || (scale ?? MIN_SCALE) <= MIN_SCALE}
             onClick={() => setZoom(Math.max(MIN_SCALE, (scale ?? MIN_SCALE) - 1))}
           >
-            − Alejar
+            − {t("hud.imagePreview.zoomOut")}
           </Button>
           <span className={styles.zoomLabel}>{scale ? `${scale}x` : "…"}</span>
           <Button
             variant="secondary"
             size="sm"
-            aria-label="Acercar"
+            aria-label={t("hud.imagePreview.zoomIn")}
             disabled={!natural || (scale ?? MIN_SCALE) >= MAX_SCALE}
             onClick={() => setZoom(Math.min(MAX_SCALE, (scale ?? MIN_SCALE) + 1))}
           >
-            + Acercar
+            + {t("hud.imagePreview.zoomIn")}
           </Button>
         </div>
       }

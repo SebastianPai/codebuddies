@@ -1,11 +1,12 @@
 "use client";
 
 import { ReactNode, useState } from "react";
-import { Lock, ZoomIn, type LucideIcon } from "lucide-react";
+import { Lock, Star, ZoomIn, type LucideIcon } from "lucide-react";
 
 import styles from "./ItemCard.module.css";
 import ItemPreview from "../UI/ItemPreview";
 import ImagePreviewModal from "./ImagePreviewModal";
+import { useTranslation } from "../../../i18n/useTranslation";
 
 interface Props {
   item: any;
@@ -23,6 +24,11 @@ interface Props {
   actionHint?: string;
   onClick?: () => void;
   className?: string;
+  /** Estrella de favorito (esquina superior derecha) — solo se renderiza si
+   *  se pasa onToggleFavorite; el dominio que la usa (BuildModePanel) decide
+   *  qué significa "favorito" para él. */
+  isFavorite?: boolean;
+  onToggleFavorite?: () => void;
 }
 
 // Celda de item compartida por Inventory, Shop, BuildModePanel y
@@ -43,9 +49,12 @@ export default function ItemCard({
   actionHint,
   onClick,
   className = "",
+  isFavorite,
+  onToggleFavorite,
 }: Props) {
+  const t = useTranslation();
   const [zoomOpen, setZoomOpen] = useState(false);
-  const label = title ?? item?.name ?? "Item";
+  const label = title ?? item?.name ?? t("hud.itemPreview.fallbackLabel");
   const imageUrl: string | undefined = item?.imageUrl || item?.previewUrl || item?.thumbnailUrl;
   const classes = [styles.card, selected ? styles.selected : "", locked ? styles.locked : "", className]
     .filter(Boolean)
@@ -80,13 +89,28 @@ export default function ItemCard({
         <button
           type="button"
           className={styles.zoomBtn}
-          aria-label={`Ver ${label} en grande`}
+          aria-label={t("hud.itemCard.viewLarger", { label })}
           onClick={(event) => {
             event.stopPropagation();
             setZoomOpen(true);
           }}
         >
           <ZoomIn size={13} />
+        </button>
+      )}
+
+      {onToggleFavorite && (
+        <button
+          type="button"
+          className={`${styles.favoriteBtn} ${isFavorite ? styles.favoriteActive : ""}`}
+          aria-label={t("hud.itemCard.toggleFavorite", { label })}
+          aria-pressed={!!isFavorite}
+          onClick={(event) => {
+            event.stopPropagation();
+            onToggleFavorite();
+          }}
+        >
+          <Star size={13} fill={isFavorite ? "currentColor" : "none"} />
         </button>
       )}
 

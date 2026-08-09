@@ -4,6 +4,7 @@ import { Award, BadgeCheck, type LucideIcon } from "lucide-react";
 import { useBadgeConfig, useSpriteFrameAspect, useUserBadges } from "../../hooks/useUserBadges";
 import type { BadgeIconConfig } from "../../network/badges";
 import styles from "./UserBadges.module.css";
+import { useTranslation } from "../../../i18n/useTranslation";
 
 interface Props {
   /** Si no se pasan `verified`/`isCreator` explícitos, los resuelve solo por username (con caché). */
@@ -31,6 +32,7 @@ const DEFAULT_ICON_CONFIG: BadgeIconConfig = {
 // dueño de sala...) en vez de repetir la lógica de ícono default-vs-imagen-
 // admin en cada componente.
 export default function UserBadges({ username, verified, isCreator, size = 14, className = "" }: Props) {
+  const t = useTranslation();
   const fetched = useUserBadges(verified === undefined || isCreator === undefined ? username : null);
   const config = useBadgeConfig();
 
@@ -47,7 +49,7 @@ export default function UserBadges({ username, verified, isCreator, size = 14, c
           size={size}
           DefaultIcon={BadgeCheck}
           color={VERIFIED_COLOR}
-          label="Verificado"
+          label={t("hud.badges.verified")}
         />
       )}
       {hasCreator && (
@@ -56,7 +58,7 @@ export default function UserBadges({ username, verified, isCreator, size = 14, c
           size={size}
           DefaultIcon={Award}
           color={CREATOR_COLOR}
-          label="Creador"
+          label={t("hud.badges.creator")}
         />
       )}
     </span>

@@ -1,0 +1,159 @@
+{
+  "shell": {
+    "loading": "Iniciando CodeStudio OS..."
+  },
+  "errors": {
+    "loadFailed": "No se pudo cargar CodeStudio.",
+    "createCompanyFailed": "No se pudo crear la empresa.",
+    "hireFailed": "No se pudo contratar.",
+    "installFailed": "No se pudo instalar.",
+    "fixBugFailed": "No se pudo resolver el bug.",
+    "launchCampaignFailed": "No se pudo lanzar la campana.",
+    "unlockTechnologyFailed": "No se pudo desbloquear la tecnologia."
+  },
+  "notifications": {
+    "featureReadyTitle": "Feature lista",
+    "featureReadyDescription": "\"{name}\" ya esta en produccion en {company}."
+  },
+  "common": {
+    "lockedHint": "Requiere: {name}"
+  },
+  "header": {
+    "phaseChip": "Fase 1.6 Live Ops",
+    "newStudio": "Nuevo estudio",
+    "createStartupHint": "Crea una startup desde un blueprint",
+    "liveTicks": "Live ticks",
+    "sync": "Sincronizar",
+    "tourButton": "Ver tour"
+  },
+  "sidebar": {
+    "tagline": "Startup OS",
+    "activeCompanyLabel": "Empresa activa"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "company": "Empresa",
+    "apps": "Aplicaciones",
+    "development": "Desarrollo",
+    "roadmap": "Roadmap",
+    "backlog": "Backlog",
+    "employees": "Empleados",
+    "clients": "Clientes",
+    "marketing": "Marketing",
+    "infrastructure": "Infraestructura",
+    "research": "Investigacion",
+    "finance": "Finanzas",
+    "analytics": "Analiticas",
+    "ranking": "Ranking",
+    "settings": "Config"
+  },
+  "create": {
+    "appTypeOption": "{name} · dificultad {difficulty}",
+    "chooseTypeHint": "Elige qué tipo de startup quieres fundar",
+    "difficultyLabel": "dificultad {difficulty} de 5",
+    "namePlaceholder": "Nombre de la startup",
+    "submit": "Fundar startup"
+  },
+  "wizard": {
+    "newCompanyButton": "+ Nueva startup",
+    "foundFirstButton": "Fundar tu primera startup",
+    "progressLabel": "Paso {step} de {total}",
+    "stepNameLabel": "Nombre",
+    "stepTypeLabel": "Tipo de app",
+    "stepConfirmLabel": "Confirmar",
+    "stepNameTitle": "¿Como se llamara tu startup?",
+    "stepNameDescription": "Elige un nombre. Lo vas a poder ver en tu perfil de CEO y en el ranking.",
+    "nameTooShort": "El nombre debe tener al menos 3 caracteres.",
+    "stepTypeTitle": "Elige el tipo de app",
+    "stepTypeDescription": "Cada tipo tiene su propia dificultad y categoria de mercado.",
+    "stepConfirmTitle": "Todo listo para fundar",
+    "stepConfirmDescription": "Revisa los datos. Tu empresa arranca vacia: eliges la primera feature, el primer empleado y el primer servidor.",
+    "cancel": "Cancelar",
+    "back": "Atras",
+    "continue": "Continuar",
+    "founding": "Fundando..."
+  },
+  "emptyState": {
+    "title": "Tu garaje digital esta listo.",
+    "description": "Elige un tipo de app, ponle nombre a la empresa y lanza el primer prototipo."
+  },
+  "footer": {
+    "engine": "Motor: ticks automaticos cada 10s",
+    "objective": "Objetivo: {label}",
+    "objectiveFallback": "Crear empresa",
+    "activity": "Actividad: {title}",
+    "activityFallback": "Esperando primer evento"
+  },
+  "widgets": {
+    "kpis": {
+      "company": "Empresa",
+      "value": "Valor",
+      "users": "Usuarios",
+      "totalUsersHint": "{total} total",
+      "revenue": "Ingresos",
+      "expensesHint": "Gastos ${expenses}",
+      "rating": "Rating",
+      "satisfactionHint": "{percent} satisfaccion",
+      "employees": "Empleados",
+      "activeTeamHint": "equipo activo",
+      "infra": "Infra",
+      "latencyHint": "{latency}ms"
+    },
+    "timeline": {
+      "title": "Actividad en vivo",
+      "subtitle": "Eventos recientes generados por ticks, usuarios e infraestructura."
+    },
+    "briefing": {
+      "title": "Briefing CEO",
+      "whatsHappening": "Que esta pasando",
+      "startingFallback": "La empresa esta arrancando",
+      "whatToDoNow": "Que hago ahora",
+      "scaleInfrastructure": "Escalar infraestructura",
+      "reviewActiveSprint": "Revisar sprint activo",
+      "planNextFeature": "Planear siguiente feature",
+      "whatFinished": "Que termino",
+      "moduleInProduction": "{name} esta en produccion.",
+      "noReleasesYet": "Aun no hay releases.",
+      "whatFailed": "Que fallo",
+      "bugsAffectingRating": "{count} bugs estan afectando el rating.",
+      "noCriticalIncidents": "No hay incidentes criticos."
+    },
+    "chart": {
+      "noHistoryYet": "Sin historico todavia"
+    }
+  },
+  "analytics": {
+    "usersLabel": "Usuarios",
+    "revenueLabel": "Ingresos",
+    "expensesLabel": "Gastos",
+    "ratingLabel": "Valoracion",
+    "retentionLabel": "Retencion",
+    "conversionLabel": "Conversion"
+  },
+  "appTree": {
+    "title": "Arbol visual de producto",
+    "description": "Vista de dependencias y crecimiento. No modifica el motor: visualiza los modulos instalados."
+  },
+  "backlog": {
+    "title": "Backlog priorizado",
+    "priorityHint": "Esta prioridad es solo para que ordenes la lista a tu gusto — no cambia el costo ni el tiempo de desarrollo. Para elegir qué construir, mira Módulos más abajo.",
+    "moduleMeta": "{category} · dificultad {difficulty}",
+    "priorityUrgent": "Urgente",
+    "priorityHigh": "Alta",
+    "priorityMedium": "Media",
+    "priorityLow": "Baja",
+    "developButton": "Desarrollar"
+  },
+  "clients": {
+    "title": "Clientes procedurales",
+    "satisfactionLabel": "Satisfaccion",
+    "ratingHint": "{rating} estrellas",
+    "reportedIssuesTitle": "Problemas reportados",
+    "reportedIssuesHint": "Podes resolverlos desde Desarrollo pagando o asignando un empleado."
+  },
+  "company": {
+    "profileTitle": "Perfil de empresa",
+    "reputationInnovation": "Reputacion {reputation} · Innovacion {innovation}",
+    "currentVersionTitle": "Version actual"
+  }
+}

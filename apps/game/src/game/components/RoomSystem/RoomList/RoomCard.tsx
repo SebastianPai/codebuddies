@@ -5,6 +5,7 @@ import styles from "./RoomCard.module.css";
 import CachedGameImage from "../../shared/CachedGameImage";
 import ImagePreviewModal from "../../shared/ImagePreviewModal";
 import UserBadges from "../../shared/UserBadges";
+import { useTranslation } from "../../../../i18n/useTranslation";
 
 interface RoomCardProps {
   room: Room;
@@ -13,6 +14,7 @@ interface RoomCardProps {
 }
 
 export default function RoomCard({ room, onJoin, onView }: RoomCardProps) {
+  const t = useTranslation();
   const [zoomOpen, setZoomOpen] = useState(false);
   const currentUsers = room._count?.users || 0;
 
@@ -39,12 +41,12 @@ export default function RoomCard({ room, onJoin, onView }: RoomCardProps) {
         <div className={styles.badges}>
           <span className={styles.publicBadge}>
             {room.isPublic ? <Globe size={11} /> : <Lock size={11} />}
-            {room.isPublic ? "PUBLICA" : "PRIVADA"}
+            {room.isPublic ? t("rooms.cardPublicBadge") : t("rooms.cardPrivateBadge")}
           </span>
 
           {room.isVipOnly && (
             <span className={styles.vipBadge}>
-              <Gem size={11} /> VIP
+              <Gem size={11} /> {t("rooms.cardVipBadge")}
             </span>
           )}
         </div>
@@ -52,7 +54,7 @@ export default function RoomCard({ room, onJoin, onView }: RoomCardProps) {
         <button
           type="button"
           className={styles.zoomBtn}
-          aria-label={`Ver imagen de ${room.name} en grande`}
+          aria-label={t("rooms.cardZoomAriaLabel", { name: room.name })}
           onClick={(event) => {
             event.stopPropagation();
             setZoomOpen(true);
@@ -70,14 +72,14 @@ export default function RoomCard({ room, onJoin, onView }: RoomCardProps) {
         <h3 className={styles.roomTitle}>{room.name}</h3>
 
         <p className={styles.description}>
-          {room.description || "Un lugar para socializar y explorar."}
+          {room.description || t("rooms.cardDefaultDescription")}
         </p>
 
         <div className={styles.separator} />
 
         <div className={styles.stats}>
           <div className={styles.statBox}>
-            <span className={styles.statLabel}>USUARIOS</span>
+            <span className={styles.statLabel}>{t("rooms.cardUsersLabel")}</span>
 
             <span
               className={`${styles.statValue} ${
@@ -89,10 +91,10 @@ export default function RoomCard({ room, onJoin, onView }: RoomCardProps) {
           </div>
 
           <div className={styles.statBox}>
-            <span className={styles.statLabel}>CREADOR</span>
+            <span className={styles.statLabel}>{t("rooms.cardOwnerLabel")}</span>
 
             <span className={styles.ownerName}>
-              <Crown size={12} /> {room.owner?.username ?? "Desconocido"}
+              <Crown size={12} /> {room.owner?.username ?? t("rooms.cardUnknownOwner")}
               {room.owner?.username && <UserBadges username={room.owner.username} size={11} />}
             </span>
           </div>
@@ -105,7 +107,7 @@ export default function RoomCard({ room, onJoin, onView }: RoomCardProps) {
           className={styles.joinBtn}
           onClick={() => onJoin(room.id)}
         >
-          {isFull ? "SALA LLENA" : "ENTRAR"}
+          {isFull ? t("rooms.cardFullBadge") : t("rooms.cardJoinButton")}
         </button>
       </div>
     </div>

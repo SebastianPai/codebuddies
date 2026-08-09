@@ -1,0 +1,90 @@
+{
+  "dashboard": {
+    "title": "Command Center",
+    "subtitle": "Live overview of your company, product, and community.",
+    "activeUsersLabel": "Active users",
+    "objectivesTitle": "Objectives",
+    "trendsTitle": "Trends"
+  },
+  "development": {
+    "title": "Active sprint",
+    "emptyState": "No active tasks. Open Roadmap or Backlog to start a feature.",
+    "timeRemaining": "Time remaining: {time}",
+    "workingLabel": "Whole team",
+    "teamSpeedNote": "Your whole team works on these tasks in parallel (not one person per feature). Current speed: {value}x with {count} employees.",
+    "benefit": "Benefit: +{value} growth",
+    "bugsTitle": "Active bugs",
+    "statusQueued": "Queued",
+    "statusInProgress": "In development",
+    "statusCompleted": "Published",
+    "shipped": "Published: every user can already see it",
+    "nothingActiveLabel": "Nothing left in development",
+    "bugsHint": "While a bug stays open it slowly drains your rating and stability. Pay to fix it instantly, or assign an employee (no extra cash cost).",
+    "noBugs": "No open bugs right now.",
+    "severityLow": "Low",
+    "severityMedium": "Medium",
+    "severityHigh": "High",
+    "severityCritical": "Critical",
+    "bugFixPay": "Pay ${amount}",
+    "bugFixAssign": "Assign",
+    "bugNoCapableEmployee": "None of your employees can fix this (you need a Backend, FullStack, DevOps, QA or Data Scientist). For now you can only pay."
+  },
+  "employees": {
+    "level": "Level {level}",
+    "currentTaskLabel": "Current task",
+    "motivationLabel": "Motivation",
+    "salaryHint": "{amount} salary",
+    "stressLabel": "Stress",
+    "performanceHint": "performance",
+    "speedContribution": "Adds +{value}x to the team's speed",
+    "hireTitle": "Hire",
+    "hireHint": "Hiring charges a one-month signing bonus. The ongoing salary is deducted automatically each cycle.",
+    "hireCost": "Bonus: ${amount}",
+    "hireButton": "Hire",
+    "noneYet": "You don't have any employees yet. Hire your first one to speed up development.",
+    "teamSpeedLabel": "Team speed",
+    "teamSpeedValue": "{value}x",
+    "teamSpeedHint": "The higher this number, the faster each feature gets built. Want more speed? Hire another employee."
+  },
+  "finance": {
+    "title": "Finance",
+    "burnRateTitle": "Burn rate",
+    "incomeLabel": "Income",
+    "expensesLabel": "Expenses",
+    "profitable": "Profitable",
+    "burningCash": "Burning cash"
+  },
+  "infrastructure": {
+    "title": "Infrastructure center",
+    "subtitle": "Live indicators derived from users, latency, stability, and capacity.",
+    "nodesTitle": "Installed nodes",
+    "level": "Level {level}",
+    "usageLabel": "Usage",
+    "capacityHint": "{value} cap.",
+    "statusLabel": "Status",
+    "installTitle": "Install",
+    "installHint": "Install your first server, database, or cache so the company can handle more users.",
+    "installCost": "Cost: ${amount}",
+    "installButton": "Install",
+    "noneYet": "You haven't installed any infrastructure yet.",
+    "upgradeButton": "Upgrade to level {level} (${cost})"
+  },
+  "marketing": {
+    "baseCost": "Base cost {amount}",
+    "launchTitle": "Launch campaign",
+    "launchHint": "Each campaign charges its base cost and adds real users, attributed to that specific channel.",
+    "launchButton": "Launch",
+    "rankingTitle": "Channel comparison",
+    "rankingHint": "Sorted by users gained, so you can see which channel is paying off the most.",
+    "noRunsYet": "You haven't launched any campaign yet.",
+    "rankingGained": "+{count} users",
+    "rankingSpent": "${amount} spent",
+    "rankingRuns": "{count} campaigns"
+  },
+  "moduleLibrary": {
+    "title": "Feature library",
+    "subtitle": "120+ modules grouped by category. Search, expand, and decide what to build.",
+    "searchPlaceholder": "Search module...",
+    "featureCount": "{count} features"
+  }
+}

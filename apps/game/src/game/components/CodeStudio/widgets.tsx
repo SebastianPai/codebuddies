@@ -3,15 +3,37 @@
 import { Company, ViewKey } from "./types";
 import { format, percent } from "./utils";
 import { makeNotifications } from "./mockData";
+import { useTranslation } from "../../../i18n/useTranslation";
 
 export function Kpis({ company }: { company: Company }) {
+  const t = useTranslation();
   const kpis = [
-    ["Empresa", `$${format(company.valuation)}`, "Valor"],
-    ["Usuarios", format(company.activeUsers), `${format(company.totalUsers)} total`],
-    ["Ingresos", `$${format(company.revenue)}`, `Gastos $${format(company.expenses)}`],
-    ["Rating", company.rating.toFixed(1), `${percent(company.satisfaction)} satisfaccion`],
-    ["Empleados", String(company.employees.length), "equipo activo"],
-    ["Infra", `${percent(company.stability)}`, `${company.latency.toFixed(0)}ms`],
+    [t("codestudioGeneral.widgets.kpis.company"), `$${format(company.valuation)}`, t("codestudioGeneral.widgets.kpis.value")],
+    [
+      t("codestudioGeneral.widgets.kpis.users"),
+      format(company.activeUsers),
+      t("codestudioGeneral.widgets.kpis.totalUsersHint", { total: format(company.totalUsers) }),
+    ],
+    [
+      t("codestudioGeneral.widgets.kpis.revenue"),
+      `$${format(company.revenue)}`,
+      t("codestudioGeneral.widgets.kpis.expensesHint", { expenses: format(company.expenses) }),
+    ],
+    [
+      t("codestudioGeneral.widgets.kpis.rating"),
+      company.rating.toFixed(1),
+      t("codestudioGeneral.widgets.kpis.satisfactionHint", { percent: percent(company.satisfaction) }),
+    ],
+    [
+      t("codestudioGeneral.widgets.kpis.employees"),
+      String(company.employees.length),
+      t("codestudioGeneral.widgets.kpis.activeTeamHint"),
+    ],
+    [
+      t("codestudioGeneral.widgets.kpis.infra"),
+      `${percent(company.stability)}`,
+      t("codestudioGeneral.widgets.kpis.latencyHint", { latency: company.latency.toFixed(0) }),
+    ],
   ];
   return (
     <div className="cs-kpis">
@@ -27,13 +49,14 @@ export function Kpis({ company }: { company: Company }) {
 }
 
 export function ActivityTimeline({ notifications }: { notifications: ReturnType<typeof makeNotifications> }) {
+  const t = useTranslation();
   const now = Date.now();
   return (
     <div className="cs-timeline">
       <div className="cs-panel-header">
         <div>
-          <h3>Actividad en vivo</h3>
-          <p>Eventos recientes generados por ticks, usuarios e infraestructura.</p>
+          <h3>{t("codestudioGeneral.widgets.timeline.title")}</h3>
+          <p>{t("codestudioGeneral.widgets.timeline.subtitle")}</p>
         </div>
       </div>
       {notifications.map((item, index) => (
@@ -59,30 +82,41 @@ export function ActionBriefing({
   notifications: ReturnType<typeof makeNotifications>;
   onNavigate: (view: ViewKey) => void;
 }) {
+  const t = useTranslation();
   const overloaded = company.latency > 180 || company.stability < 95;
   const hasActiveSprint = company.development.some((task) => ["QUEUED", "IN_PROGRESS"].includes(task.status));
   const nextView: ViewKey = overloaded ? "infrastructure" : hasActiveSprint ? "development" : "roadmap";
-  const nextLabel = overloaded ? "Escalar infraestructura" : hasActiveSprint ? "Revisar sprint activo" : "Planear siguiente feature";
-  const failed = company.bugs > 20 ? `${company.bugs.toFixed(0)} bugs estan afectando el rating.` : "No hay incidentes criticos.";
-  const completed = company.modules.length > 0 ? `${company.modules.at(-1)?.module.name} esta en produccion.` : "Aun no hay releases.";
+  const nextLabel = overloaded
+    ? t("codestudioGeneral.widgets.briefing.scaleInfrastructure")
+    : hasActiveSprint
+      ? t("codestudioGeneral.widgets.briefing.reviewActiveSprint")
+      : t("codestudioGeneral.widgets.briefing.planNextFeature");
+  const failed =
+    company.bugs > 20
+      ? t("codestudioGeneral.widgets.briefing.bugsAffectingRating", { count: company.bugs.toFixed(0) })
+      : t("codestudioGeneral.widgets.briefing.noCriticalIncidents");
+  const completed =
+    company.modules.length > 0
+      ? t("codestudioGeneral.widgets.briefing.moduleInProduction", { name: company.modules.at(-1)?.module.name ?? "" })
+      : t("codestudioGeneral.widgets.briefing.noReleasesYet");
 
   return (
     <div className="cs-briefing">
-      <h3>Briefing CEO</h3>
+      <h3>{t("codestudioGeneral.widgets.briefing.title")}</h3>
       <article>
-        <span>Que esta pasando</span>
-        <b>{notifications[0]?.title ?? "La empresa esta arrancando"}</b>
+        <span>{t("codestudioGeneral.widgets.briefing.whatsHappening")}</span>
+        <b>{notifications[0]?.title ?? t("codestudioGeneral.widgets.briefing.startingFallback")}</b>
       </article>
       <article>
-        <span>Que hago ahora</span>
+        <span>{t("codestudioGeneral.widgets.briefing.whatToDoNow")}</span>
         <button onClick={() => onNavigate(nextView)}>{nextLabel}</button>
       </article>
       <article>
-        <span>Que termino</span>
+        <span>{t("codestudioGeneral.widgets.briefing.whatFinished")}</span>
         <p>{completed}</p>
       </article>
       <article>
-        <span>Que fallo</span>
+        <span>{t("codestudioGeneral.widgets.briefing.whatFailed")}</span>
         <p>{failed}</p>
       </article>
     </div>
@@ -90,6 +124,7 @@ export function ActionBriefing({
 }
 
 export function MiniChart({ snapshots, metric, label }: { snapshots: Company["snapshots"]; metric: keyof Company["snapshots"][number]; label: string }) {
+  const t = useTranslation();
   const data = [...snapshots].reverse().slice(-18);
   const values = data.map((snapshot) => Number(snapshot[metric] ?? 0));
   const max = Math.max(1, ...values);
@@ -98,7 +133,7 @@ export function MiniChart({ snapshots, metric, label }: { snapshots: Company["sn
       <h3>{label}</h3>
       <div>
         {values.length === 0 ? (
-          <span className="cs-muted">Sin historico todavia</span>
+          <span className="cs-muted">{t("codestudioGeneral.widgets.chart.noHistoryYet")}</span>
         ) : (
           values.map((value, index) => (
             <i key={`${metric}-${index}`} style={{ height: `${Math.max(8, (value / max) * 100)}%` }} />

@@ -1,0 +1,108 @@
+{
+  "sidebar": {
+    "tagline": "连接 · 学习 · 成长",
+    "online": "在线",
+    "level": "等级 {level}",
+    "coins": "金币",
+    "diamonds": "钻石",
+    "tierDiamond": "钻石",
+    "tierGold": "黄金",
+    "tierSilver": "白银",
+    "tierBronze": "青铜",
+    "home": "首页",
+    "openPc": "打开电脑",
+    "wardrobe": "衣柜",
+    "friends": "好友",
+    "messages": "消息",
+    "notifications": "通知",
+    "github": "GitHub",
+    "tournaments": "锦标赛",
+    "tournamentsComingSoonTitle": "敬请期待",
+    "tournamentsComingSoonMessage": "锦标赛功能正在开发中——上线后你就可以报名了。",
+    "shop": "商店",
+    "build": "建造",
+    "marketplace": "交易市场",
+    "settings": "设置",
+    "exit": "退出",
+    "discordCta": "加入社区",
+    "discordLabel": "官方 Discord"
+  },
+  "topBar": {
+    "energyHint": "体力——完成学习练习时消耗",
+    "in": "还需"
+  },
+  "zoom": {
+    "in": "放大",
+    "out": "缩小",
+    "fullscreen": "全屏",
+    "exitFullscreen": "退出全屏"
+  },
+  "bottomBar": {
+    "reactionWave": "打招呼",
+    "reactionLaugh": "大笑",
+    "reactionFire": "火",
+    "reactionBye": "再见",
+    "chatPlaceholder": "发送消息...",
+    "send": "发送",
+    "chatThemeTitle": "聊天颜色",
+    "onlineCount": "{count} 人在线"
+  },
+  "room": {
+    "currentLabel": "当前房间",
+    "lobbyName": "主大厅",
+    "liveStatus": "进行中",
+    "playersOnline": "{count} 名玩家在线",
+    "infoButton": "信息",
+    "inviteButton": "邀请"
+  },
+  "missions": {
+    "label": "任务",
+    "sectionTitle": "进行中的挑战",
+    "viewAll": "查看全部",
+    "loadError": "无法加载你的挑战。",
+    "empty": "目前没有进行中的挑战。",
+    "claimFailedTitle": "无法领取",
+    "claimFailedMessage": "奖励尚未准备好或已被领取。",
+    "claimSuccessTitle": "奖励已领取",
+    "claimSuccessMessage": "任务奖励已添加到你的账户。",
+    "claimSuccessConfirm": "太棒了",
+    "activeTag": "进行中的任务",
+    "progressLabel": "进度",
+    "rewardLabel": "奖励",
+    "noReward": "无奖励",
+    "claimed": "已领取",
+    "claim": "领取"
+  },
+  "events": {
+    "label": "活动",
+    "sectionTitle": "即将推出",
+    "join": "加入",
+    "today": "今天",
+    "tomorrow": "明天"
+  },
+  "currency": {
+    "coins": "金币",
+    "gems": "宝石",
+    "premium": "高级",
+    "free": "免费"
+  },
+  "colorPicker": {
+    "groupLabel": "选择颜色",
+    "colorLabel": "颜色 {hex}"
+  },
+  "imagePreview": {
+    "zoomOut": "缩小",
+    "zoomIn": "放大"
+  },
+  "itemCard": {
+    "viewLarger": "放大查看 {label}",
+    "toggleFavorite": "将 {label} 标记为收藏"
+  },
+  "itemPreview": {
+    "fallbackLabel": "物品"
+  },
+  "badges": {
+    "verified": "已认证",
+    "creator": "创作者"
+  }
+}

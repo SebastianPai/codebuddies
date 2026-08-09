@@ -2,6 +2,7 @@ import React from "react";
 import { Background } from "../../../types/room";
 import styles from "./BackgroundSelector.module.css";
 import CachedGameImage from "../../shared/CachedGameImage";
+import { useTranslation } from "../../../../i18n/useTranslation";
 
 interface Props {
   backgrounds: Background[];
@@ -14,13 +15,16 @@ export default function BackgroundSelector({
   backgrounds,
   selectedId,
   onSelect,
-  disabledMessage = "Bloqueado",
+  disabledMessage,
 }: Props) {
+  const t = useTranslation();
+  const resolvedDisabledMessage = disabledMessage ?? t("rooms.backgroundLocked");
+
   return (
     <div className={styles.selector}>
-      <label>Fondo de la sala</label>
+      <label>{t("rooms.backgroundSelectorLabel")}</label>
       {!backgrounds.length && (
-        <div className={styles.empty}>No hay fondos disponibles para tu cuenta.</div>
+        <div className={styles.empty}>{t("rooms.backgroundSelectorEmpty")}</div>
       )}
       <div className={styles.grid}>
         {backgrounds.map((bg) => (
@@ -42,10 +46,10 @@ export default function BackgroundSelector({
             {bg.canUse === false && (
               <small>
                 {bg.lockedReason === "PREMIUM_REQUIRED"
-                  ? "Premium"
+                  ? t("rooms.backgroundPremium")
                   : bg.lockedReason === "PURCHASE_REQUIRED"
-                    ? `${bg.coinsPrice ?? 0} coins`
-                : disabledMessage}
+                    ? t("rooms.backgroundCoinsPrice", { price: bg.coinsPrice ?? 0 })
+                : resolvedDisabledMessage}
               </small>
             )}
           </button>

@@ -158,6 +158,58 @@
   color: #565f77;
 }
 
+.itemStatic {
+  cursor: default;
+}
+
+.inviteActions {
+  display: flex;
+  gap: var(--cb-space-2);
+  margin-top: 8px;
+}
+
+.inviteBtn {
+  flex: 1;
+  padding: 6px 0;
+  border-radius: var(--cb-radius-md);
+  border: none;
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.15s;
+}
+
+.inviteBtn:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.inviteAccept {
+  background: #ffd34d;
+  color: #1a1408;
+}
+
+.inviteAccept:not(:disabled):hover {
+  background: #ffdd75;
+}
+
+.inviteDecline {
+  background: rgba(255, 255, 255, 0.08);
+  color: #d3d7e0;
+}
+
+.inviteDecline:not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.inviteStatus {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #9ea5b4;
+}
+
 .unreadDot {
   flex: none;
   width: 9px;

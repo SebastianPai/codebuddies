@@ -35,7 +35,7 @@ export type Company = {
   stability: number;
   rating: number;
   appType: { name: string; color?: string; icon?: string };
-  modules: Array<{ moduleId: string; module: { id: string; name: string; category: string; effects?: any } }>;
+  modules: Array<{ moduleId: string; module: { id: string; slug: string; name: string; category: string; effects?: any } }>;
   development: Array<{
     id: string;
     status: string;
@@ -50,9 +50,10 @@ export type Company = {
     latency?: number;
     stability?: number;
     cost?: number;
-    infrastructureType: { name: string; category?: string };
+    infrastructureType: { id: string; name: string; category?: string };
   }>;
   employees: Array<{
+    id: string;
     name: string;
     avatar?: string;
     age?: number;
@@ -61,7 +62,30 @@ export type Company = {
     stress?: number;
     salary?: number;
     productivity?: number;
-    employeeType: { name: string; category?: string };
+    speed?: number;
+    quality?: number;
+    employeeType: { slug: string; name: string; category?: string };
+  }>;
+  bugReports: Array<{
+    id: string;
+    kind: string;
+    title: string;
+    description: string;
+    severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+    status: "OPEN" | "FIXED";
+    fixCost: number;
+    createdAt: string;
+  }>;
+  marketingSummary: Array<{
+    channel: string;
+    gainedUsers: number;
+    spent: number;
+    runs: number;
+  }>;
+  technologies: Array<{
+    id: string;
+    unlockedAt: string;
+    technology: { id: string; slug: string; name: string; category: string };
   }>;
   snapshots: Array<{
     activeUsers: number;
@@ -69,28 +93,44 @@ export type Company = {
     lostUsers?: number;
     revenue: number;
     expenses: number;
+    retention?: number;
+    conversion?: number;
     errors?: number;
     latency?: number;
     rating: number;
     createdAt: string;
   }>;
-  events?: Array<{ id: string; title: string; description?: string; createdAt: string }>;
+  events?: Array<{ id: string; title: string; description?: string; createdAt: string; effects?: any }>;
 };
 
 export type Catalog = {
-  appTypes: Array<{ id: string; name: string; description?: string; color?: string; category: string; difficulty: number }>;
+  appTypes: Array<{ id: string; name: string; description?: string; icon?: string; color?: string; category: string; difficulty: number }>;
   modules: Array<{
     id: string;
+    slug: string;
     name: string;
     category: string;
     cost: number;
     developmentSeconds: number;
     difficulty: number;
     effects?: any;
+    requirements?: { requires?: string[] };
   }>;
   campaigns?: Array<{ id: string; name: string; channel: string; baseCost: number; effects?: any }>;
-  technologies?: Array<{ id: string; name: string; category: string; cost: number }>;
+  technologies?: Array<{
+    id: string;
+    slug: string;
+    name: string;
+    description?: string;
+    category: string;
+    cost: number;
+    order: number;
+    effects?: { stability?: number; latency?: number };
+    requirements?: { requires?: string[] };
+  }>;
   research?: Array<{ id: string; name: string; cost: number; durationSeconds: number }>;
+  employees?: Array<{ id: string; slug: string; name: string; category: string; salary: number; icon?: string }>;
+  infrastructure?: Array<{ id: string; slug: string; name: string; category: string; baseCost: number; icon?: string }>;
 };
 
 export type StudioState = {
@@ -117,20 +157,30 @@ export type ViewKey =
 
 export type BacklogPriority = "Urgente" | "Alta" | "Media" | "Baja";
 
-export const nav: Array<{ key: ViewKey; label: string; icon: LucideIcon }> = [
-  { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { key: "company", label: "Empresa", icon: Building2 },
-  { key: "apps", label: "Aplicaciones", icon: LayoutGrid },
-  { key: "development", label: "Desarrollo", icon: Code2 },
-  { key: "roadmap", label: "Roadmap", icon: GitBranch },
-  { key: "backlog", label: "Backlog", icon: ListChecks },
-  { key: "employees", label: "Empleados", icon: Users },
-  { key: "clients", label: "Clientes", icon: UserCheck },
-  { key: "marketing", label: "Marketing", icon: Megaphone },
-  { key: "infrastructure", label: "Infraestructura", icon: Server },
-  { key: "research", label: "Investigacion", icon: FlaskConical },
-  { key: "finance", label: "Finanzas", icon: DollarSign },
-  { key: "analytics", label: "Analiticas", icon: BarChart3 },
-  { key: "ranking", label: "Ranking", icon: Trophy },
-  { key: "settings", label: "Config", icon: Settings },
+// Qué guía de ExplainerTour mostrar al navegar a una vista desde
+// TutorialPanel — "elegí primera feature"/"contratá"/"instalá infra" son
+// los tres pasos donde el jugador reportó no entender qué hacer, así que
+// además de cambiar de vista se le explica el concepto con un par de
+// slides antes de dejarlo interactuar solo.
+export type GuideKey = "feature" | "hire" | "infra";
+
+// labelKey en vez de un label literal — este array es una constante de
+// módulo (no un componente), así que no puede llamar a useTranslation() acá;
+// CodeStudio.tsx resuelve el texto real con t(item.labelKey) al renderizar.
+export const nav: Array<{ key: ViewKey; labelKey: string; icon: LucideIcon }> = [
+  { key: "dashboard", labelKey: "codestudioGeneral.nav.dashboard", icon: LayoutDashboard },
+  { key: "company", labelKey: "codestudioGeneral.nav.company", icon: Building2 },
+  { key: "apps", labelKey: "codestudioGeneral.nav.apps", icon: LayoutGrid },
+  { key: "development", labelKey: "codestudioGeneral.nav.development", icon: Code2 },
+  { key: "roadmap", labelKey: "codestudioGeneral.nav.roadmap", icon: GitBranch },
+  { key: "backlog", labelKey: "codestudioGeneral.nav.backlog", icon: ListChecks },
+  { key: "employees", labelKey: "codestudioGeneral.nav.employees", icon: Users },
+  { key: "clients", labelKey: "codestudioGeneral.nav.clients", icon: UserCheck },
+  { key: "marketing", labelKey: "codestudioGeneral.nav.marketing", icon: Megaphone },
+  { key: "infrastructure", labelKey: "codestudioGeneral.nav.infrastructure", icon: Server },
+  { key: "research", labelKey: "codestudioGeneral.nav.research", icon: FlaskConical },
+  { key: "finance", labelKey: "codestudioGeneral.nav.finance", icon: DollarSign },
+  { key: "analytics", labelKey: "codestudioGeneral.nav.analytics", icon: BarChart3 },
+  { key: "ranking", labelKey: "codestudioGeneral.nav.ranking", icon: Trophy },
+  { key: "settings", labelKey: "codestudioGeneral.nav.settings", icon: Settings },
 ];

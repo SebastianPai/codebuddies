@@ -3,6 +3,7 @@ import { LobbySceneType } from "../types/LobbySceneType";
 import { IsoTile } from "./IsoFootprint";
 import { loadTextureOnce } from "../utils/phaserAssetCache";
 import { getFurnitureAnchorY, getFootprintTopY } from "../utils/tileAnchor";
+import { WORLD_OVERLAY_DEPTH } from "../utils/depth";
 
 export default class BuildSystem {
   private scene: LobbySceneType;
@@ -25,12 +26,15 @@ export default class BuildSystem {
     this.scene = scene;
   }
 
-  start(item: any) {
+  // initialRotation: para el ghost de "mover un mueble ya colocado" (ver
+  // LobbyScene "build:item:move"), que debe arrancar mostrando la rotación
+  // actual del mueble en vez de siempre resetear a 0.
+  start(item: any, initialRotation = 0) {
     this.stop();
 
     this.selectedItem = item;
 
-    this.rotation = 0;
+    this.rotation = ((initialRotation % 4) + 4) % 4;
 
     console.log("🏠 BuildSystem iniciado", item);
 
@@ -47,10 +51,17 @@ export default class BuildSystem {
 
     const texture = this.scene.textures.get(textureKey);
 
-    const frameName = `${textureKey}-build-frame-0`;
+    const frameName = `${textureKey}-build-frame-${this.rotation}`;
 
     if (!texture.has(frameName)) {
-      texture.add(frameName, 0, 0, 0, this.frameWidth, this.frameHeight);
+      texture.add(
+        frameName,
+        0,
+        this.frameWidth * this.rotation,
+        0,
+        this.frameWidth,
+        this.frameHeight,
+      );
     }
 
     this.preview = this.scene.add
@@ -70,7 +81,10 @@ export default class BuildSystem {
     }
 
     this.footprintGraphics = this.scene.add.graphics();
-    this.footprintGraphics.setDepth(9);
+    // Antes 9: por debajo de la profundidad real de cualquier mueble/avatar
+    // desde la fila 1 en adelante, así que el rombo de preview de
+    // construcción quedaba oculto casi en todo el mapa.
+    this.footprintGraphics.setDepth(WORLD_OVERLAY_DEPTH);
     this.preview.setScrollFactor(1);
   }
 

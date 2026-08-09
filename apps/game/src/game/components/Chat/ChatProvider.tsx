@@ -13,6 +13,7 @@ import ChatWindow from "./ChatWindow";
 import ProfileModal from "../Friends/ProfileModal";
 import { createDirectConversation } from "../../network/messages";
 import { showGameAlert } from "../../utils/dialog";
+import { useTranslation } from "../../../i18n/useTranslation";
 
 const MAX_OPEN_CHATS = 3;
 
@@ -39,6 +40,7 @@ export function useChat() {
 }
 
 export default function ChatProvider({ children }: { children: React.ReactNode }) {
+  const t = useTranslation();
   const [openChats, setOpenChats] = useState<OpenChat[]>([]);
   const [viewingProfile, setViewingProfile] = useState<string | null>(null);
 
@@ -54,9 +56,9 @@ export default function ChatProvider({ children }: { children: React.ReactNode }
 
         if ("requiresApproval" in result && result.requiresApproval) {
           await showGameAlert({
-            title: "Solicitud de mensaje enviada",
-            message: `${partnerUsername} debe aceptar tu solicitud antes de poder chatear.`,
-            confirmLabel: "Entendido",
+            title: t("chat.requestSentTitle"),
+            message: t("chat.requestSentMessage", { username: partnerUsername }),
+            confirmLabel: t("common.understood"),
             tone: "default",
           });
           return;
@@ -76,9 +78,9 @@ export default function ChatProvider({ children }: { children: React.ReactNode }
         });
       } catch {
         await showGameAlert({
-          title: "No se pudo abrir el chat",
-          message: "Intenta de nuevo en unos segundos.",
-          confirmLabel: "Entendido",
+          title: t("chat.openFailedTitle"),
+          message: t("common.actionFailedMessage"),
+          confirmLabel: t("common.understood"),
           tone: "danger",
         });
       }

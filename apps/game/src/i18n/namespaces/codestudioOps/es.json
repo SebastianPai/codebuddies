@@ -1,0 +1,90 @@
+{
+  "dashboard": {
+    "title": "Command Center",
+    "subtitle": "Resumen vivo de tu empresa, producto y comunidad.",
+    "activeUsersLabel": "Usuarios activos",
+    "objectivesTitle": "Objetivos",
+    "trendsTitle": "Tendencias"
+  },
+  "development": {
+    "title": "Sprint activo",
+    "emptyState": "No hay tareas activas. Abre Roadmap o Backlog para iniciar una feature.",
+    "timeRemaining": "Tiempo restante: {time}",
+    "workingLabel": "Todo el equipo",
+    "teamSpeedNote": "Todo tu equipo avanza estas tareas en paralelo (no una persona por feature). Velocidad actual: {value}x con {count} empleados.",
+    "benefit": "Beneficio: +{value} growth",
+    "bugsTitle": "Bugs activos",
+    "statusQueued": "En cola",
+    "statusInProgress": "En desarrollo",
+    "statusCompleted": "Publicada",
+    "shipped": "Publicada: ya la pueden ver todos los usuarios",
+    "nothingActiveLabel": "No te queda nada en desarrollo",
+    "bugsHint": "Mientras un bug siga abierto te va bajando rating y estabilidad de a poco. Pagalo para arreglarlo al instante, o asigna un empleado (sin costo extra en cash).",
+    "noBugs": "Sin bugs abiertos por ahora.",
+    "severityLow": "Baja",
+    "severityMedium": "Media",
+    "severityHigh": "Alta",
+    "severityCritical": "Critica",
+    "bugFixPay": "Pagar ${amount}",
+    "bugFixAssign": "Asignar",
+    "bugNoCapableEmployee": "Ninguno de tus empleados sabe resolver esto (necesitas Backend, FullStack, DevOps, QA o Data Scientist). Por ahora solo podes pagar."
+  },
+  "employees": {
+    "level": "Nivel {level}",
+    "currentTaskLabel": "Trabajo actual",
+    "motivationLabel": "Motivacion",
+    "salaryHint": "{amount} salario",
+    "stressLabel": "Estres",
+    "performanceHint": "rendimiento",
+    "speedContribution": "Aporta +{value}x a la velocidad del equipo",
+    "hireTitle": "Contratar",
+    "hireHint": "Cada contratacion cobra un bono de un mes de salario. El sueldo despues se descuenta solo con cada ciclo.",
+    "hireCost": "Bono: ${amount}",
+    "hireButton": "Contratar",
+    "noneYet": "Todavia no tienes empleados. Contrata al primero para acelerar el desarrollo.",
+    "teamSpeedLabel": "Velocidad del equipo",
+    "teamSpeedValue": "{value}x",
+    "teamSpeedHint": "Cada feature se desarrolla mas rapido cuanto mayor sea este numero. Si quieres mas velocidad, contrata otro empleado."
+  },
+  "finance": {
+    "title": "Finanzas",
+    "burnRateTitle": "Burn rate",
+    "incomeLabel": "Ingresos",
+    "expensesLabel": "Gastos",
+    "profitable": "Rentable",
+    "burningCash": "Quemando caja"
+  },
+  "infrastructure": {
+    "title": "Centro de infraestructura",
+    "subtitle": "Indicadores vivos derivados de usuarios, latencia, estabilidad y capacidad.",
+    "nodesTitle": "Nodos instalados",
+    "level": "Nivel {level}",
+    "usageLabel": "Uso",
+    "capacityHint": "{value} cap.",
+    "statusLabel": "Estado",
+    "installTitle": "Instalar",
+    "installHint": "Instala tu primer servidor, base de datos o cache para que la empresa aguante mas usuarios.",
+    "installCost": "Costo: ${amount}",
+    "installButton": "Instalar",
+    "noneYet": "Todavia no instalaste ninguna infraestructura.",
+    "upgradeButton": "Subir a nivel {level} (${cost})"
+  },
+  "marketing": {
+    "baseCost": "Costo base {amount}",
+    "launchTitle": "Lanzar campana",
+    "launchHint": "Cada campana cobra su costo base y suma usuarios reales, atribuidos a ese canal especifico.",
+    "launchButton": "Lanzar",
+    "rankingTitle": "Comparativa de canales",
+    "rankingHint": "Ordenado por usuarios ganados, para que veas que canal te esta rindiendo mas.",
+    "noRunsYet": "Todavia no lanzaste ninguna campana.",
+    "rankingGained": "+{count} usuarios",
+    "rankingSpent": "${amount} gastados",
+    "rankingRuns": "{count} campanas"
+  },
+  "moduleLibrary": {
+    "title": "Biblioteca de features",
+    "subtitle": "120+ modulos agrupados por categoria. Busca, expande y decide que desarrollar.",
+    "searchPlaceholder": "Buscar modulo...",
+    "featureCount": "{count} features"
+  }
+}

@@ -6,11 +6,17 @@ import {
   toWorldTiles,
 } from "./IsoFootprint";
 import { getFurnitureAnchorY } from "../utils/tileAnchor";
+import { pointerToScreenPosition } from "../utils/pointerToScreenPosition";
 
 export default class RoomItemsManager {
   private scene: Phaser.Scene;
 
   private items = new Map<string, WorldObject>();
+
+  // Sprite del mueble actualmente seleccionado (clic simple, sin abrir
+  // modal) — solo uno a la vez, se destiñe automáticamente al seleccionar
+  // otro o al deseleccionar (Escape / clic en otro lado / cerrar el menú).
+  private selectedId: string | null = null;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -39,16 +45,6 @@ export default class RoomItemsManager {
     wallSide: string | null = null,
     wallOffset: number | null = null,
   ) {
-    console.log("📦 ADD ITEM", {
-      id,
-      texture,
-      x,
-      y,
-      rotation,
-      frameWidth,
-      frameHeight,
-    });
-
     if (!this.scene.textures.exists(texture)) {
       console.error("❌ TEXTURA NO CARGADA", texture);
 
@@ -113,17 +109,6 @@ export default class RoomItemsManager {
       sprite.setDepth(depth);
     }
 
-    console.log("✅ ITEM CREADO", {
-      rotation,
-      frameName,
-      x: sprite.x,
-      y: sprite.y,
-      tileX,
-      tileY,
-      depthTile,
-      depth,
-    });
-
     const worldObject: WorldObject = {
       roomItemId: id,
 
@@ -148,18 +133,65 @@ export default class RoomItemsManager {
       item: itemData,
     };
     this.items.set(id, worldObject);
+    this.invalidateOccupancy();
 
     if (!isSurface) {
-      sprite.on("pointerdown", () => {
-        window.dispatchEvent(
-          new CustomEvent("room:item:selected", {
-            detail: worldObject,
-          }),
-        );
-      });
+      sprite.on(
+        "pointerdown",
+        (
+          pointer: Phaser.Input.Pointer,
+          _localX: number,
+          _localY: number,
+          event: Phaser.Types.Input.EventData,
+        ) => {
+          // Sin esto, el pointerdown global de la escena (this.input.on
+          // "pointerdown" -> handleClickToMove) también se dispara y el
+          // personaje sale a caminar hacia el mueble clickeado a la vez que
+          // se selecciona — mismo fix que makeOtherPlayerClickable en
+          // LobbyScene para el clic sobre otros jugadores.
+          event.stopPropagation();
+
+          this.selectItem(id);
+
+          window.dispatchEvent(
+            new CustomEvent("room:item:selected", {
+              detail: {
+                furniture: worldObject,
+                ...pointerToScreenPosition(this.scene, pointer),
+              },
+            }),
+          );
+        },
+      );
     }
 
     return sprite;
+  }
+
+  // Solo resalta el sprite (tint); no abre ningún modal por sí solo — quién
+  // reacciona a "room:item:selected" decide qué UI mostrar.
+  selectItem(id: string) {
+    if (this.selectedId === id) return;
+
+    this.clearSelection();
+
+    const worldObject = this.items.get(id);
+    if (!worldObject) return;
+
+    worldObject.sprite.setTint(0x8ecbff);
+    this.selectedId = id;
+  }
+
+  // Devuelve true si realmente había algo seleccionado (para que quien
+  // llama solo notifique a React si hubo un cambio real).
+  clearSelection(): boolean {
+    if (!this.selectedId) return false;
+
+    const worldObject = this.items.get(this.selectedId);
+    worldObject?.sprite.clearTint();
+    this.selectedId = null;
+
+    return true;
   }
 
   private createSurfaceSprites(
@@ -236,6 +268,9 @@ export default class RoomItemsManager {
     }
 
     this.items.delete(id);
+    this.invalidateOccupancy();
+
+    if (this.selectedId === id) this.selectedId = null;
   }
 
   getItem(id: string) {
@@ -257,10 +292,26 @@ export default class RoomItemsManager {
     );
   }
 
-  getBlockingTiles() {
-    const tiles = new Set<string>();
+  // Antes getBlockingTiles()/getOccupiedTiles() recorrían TODOS los items en
+  // cada llamada — y se llaman en rutas calientes: cada pixel que cruza el
+  // mouse sobre un tile nuevo (updateHoverHighlight → isWalkable) y cada
+  // frame en build mode (updateBuildPreviewTint → canPlace). El resultado
+  // solo cambia cuando algo se coloca/mueve/rota/elimina, así que se cachea
+  // y se recalcula una sola vez (un único recorrido O(items) para ambos
+  // sets) recién cuando algo lo invalida.
+  private occupancyCache: { blocking: Set<string>; occupied: Set<string> } | null = null;
 
-    this.items.forEach((worldObject) => {
+  invalidateOccupancy() {
+    this.occupancyCache = null;
+  }
+
+  private computeOccupancyEntries(excludeId?: string) {
+    const blocking = new Set<string>();
+    const occupied = new Set<string>();
+
+    this.items.forEach((worldObject, id) => {
+      if (id === excludeId) return;
+
       const worldData = worldObject.item?.worldData;
       const isWallObject =
         worldObject.wallSide ||
@@ -268,47 +319,57 @@ export default class RoomItemsManager {
         worldData?.kind === "FLOOR" ||
         worldData?.kind === "WALL";
 
-      const blocksMovement = worldData?.isCollidable === true;
-      const willBlock =
-        !isWallObject && blocksMovement && !worldData?.walkable;
-
-      // 🐛 DEBUG TEMPORAL — borrar después de diagnosticar por qué un item
-      // colisionable no bloquea el paso.
-      console.log("🧱 BLOCKING CHECK", {
-        roomItemId: worldObject.roomItemId,
-        kind: worldData?.kind,
-        placementType: worldData?.placementType,
-        wallSide: worldObject.wallSide,
-        isCollidable: worldData?.isCollidable,
-        walkable: worldData?.walkable,
-        isWallObject,
-        willBlock,
-        tileX: worldObject.tileX,
-        tileY: worldObject.tileY,
-      });
-
       if (isWallObject) return;
 
-      if (blocksMovement && !worldData?.walkable) {
-        const footprint = getDirectionalFootprint(
-          worldData,
-          worldObject.rotation,
-        );
+      const footprint = getDirectionalFootprint(
+        worldData,
+        worldObject.rotation,
+      );
+      const blocksMovement =
+        worldData?.isCollidable === true && !worldData?.walkable;
 
-        for (const tile of toWorldTiles(
-          worldObject.tileX,
-          worldObject.tileY,
-          footprint,
-        )) {
-          tiles.add(`${tile.x},${tile.y}`);
-        }
+      for (const tile of toWorldTiles(
+        worldObject.tileX,
+        worldObject.tileY,
+        footprint,
+      )) {
+        const key = `${tile.x},${tile.y}`;
+        occupied.add(key);
+        if (blocksMovement) blocking.add(key);
       }
     });
 
-    // 🐛 DEBUG TEMPORAL
-    console.log("🧱 BLOCKING TILES SET", [...tiles]);
+    return { blocking, occupied };
+  }
 
-    return tiles;
+  private computeOccupancy() {
+    this.occupancyCache = this.computeOccupancyEntries();
+    return this.occupancyCache;
+  }
+
+  // Variante sin caché para el ghost de "mover un mueble ya colocado": el
+  // mueble que se está moviendo no puede contarse como ocupando SUS PROPIAS
+  // tiles, si no canPlace() siempre lo vería bloqueado por sí mismo. No se
+  // cachea porque solo se usa mientras dura un drag activo (infrecuente),
+  // a diferencia de getBlockingTiles()/getOccupiedTiles() que sí están en
+  // rutas calientes de 60fps.
+  getOccupancyExcluding(excludeId: string): { blocking: Set<string>; occupied: Set<string> } {
+    return this.computeOccupancyEntries(excludeId);
+  }
+
+  // Tiles intransitables para el pathfinding (solo items colisionables).
+  getBlockingTiles(): Set<string> {
+    return (this.occupancyCache ?? this.computeOccupancy()).blocking;
+  }
+
+  // Tiles ocupados por CUALQUIER item colocado, sea o no colisionable — a
+  // diferencia de getBlockingTiles(). PlacementValidator.canPlace() necesita
+  // esto: antes solo miraba getBlockingTiles(), así que un item no
+  // colisionable (una alfombra, un cuadro) nunca marcaba su tile como
+  // ocupado y se podía apilar un número ilimitado de copias en el mismo
+  // lugar.
+  getOccupiedTiles(): Set<string> {
+    return (this.occupancyCache ?? this.computeOccupancy()).occupied;
   }
 
   getStackTarget(tileX: number, tileY: number) {
@@ -334,29 +395,42 @@ export default class RoomItemsManager {
     )[0];
   }
 
+  // Antes se llamaba a esto (recorriendo TODOS los items) sin condición en
+  // cada frame desde LobbyScene.update() — la profundidad de un mueble solo
+  // cambia cuando se coloca/mueve/rota, eventos que ya se manejan puntuales
+  // en FurnitureSocketSystem. updateItemDepth() permite recalcular solo el
+  // item que realmente cambió, en vez de recorrer la sala entera 60 veces
+  // por segundo sin que nada haya cambiado.
+  private updateSingleItemDepth(worldObject: WorldObject) {
+    const worldData = worldObject.item?.worldData;
+    const isSurface =
+      worldObject.state?.surface ||
+      worldData?.kind === "FLOOR" ||
+      worldData?.kind === "WALL";
+
+    if (isSurface || worldObject.wallSide) return;
+
+    const footprint = getDirectionalFootprint(
+      worldData,
+      worldObject.rotation,
+    );
+    const depthTile =
+      toWorldTiles(worldObject.tileX, worldObject.tileY, footprint).sort(
+        (a, b) => b.y - a.y || b.x - a.x,
+      )[0] || { x: worldObject.tileX, y: worldObject.tileY };
+
+    worldObject.sprite.setDepth(
+      depthTile.y * 1000 + depthTile.x + worldObject.elevation * 100,
+    );
+  }
+
+  updateItemDepth(id: string) {
+    const worldObject = this.items.get(id);
+    if (worldObject) this.updateSingleItemDepth(worldObject);
+  }
+
   updateDepths() {
-    this.items.forEach((worldObject) => {
-      const worldData = worldObject.item?.worldData;
-      const isSurface =
-        worldObject.state?.surface ||
-        worldData?.kind === "FLOOR" ||
-        worldData?.kind === "WALL";
-
-      if (isSurface || worldObject.wallSide) return;
-
-      const footprint = getDirectionalFootprint(
-        worldData,
-        worldObject.rotation,
-      );
-      const depthTile =
-        toWorldTiles(worldObject.tileX, worldObject.tileY, footprint).sort(
-          (a, b) => b.y - a.y || b.x - a.x,
-        )[0] || { x: worldObject.tileX, y: worldObject.tileY };
-
-      worldObject.sprite.setDepth(
-        depthTile.y * 1000 + depthTile.x + worldObject.elevation * 100,
-      );
-    });
+    this.items.forEach((worldObject) => this.updateSingleItemDepth(worldObject));
   }
 
   clear() {
@@ -365,5 +439,7 @@ export default class RoomItemsManager {
     });
 
     this.items.clear();
+    this.invalidateOccupancy();
+    this.selectedId = null;
   }
 }

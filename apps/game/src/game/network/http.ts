@@ -5,7 +5,7 @@
 // en RightSidebar.tsx (fetch + credentials:'include' + Authorization Bearer),
 // centralizado para no repetirlo en ~30 funciones.
 
-import { getSharedAuthToken } from "./auth";
+import { getSharedAuthToken, redirectToWebLogin } from "./auth";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -16,6 +16,20 @@ export class ApiError extends Error {
   ) {
     super(message);
   }
+}
+
+// Antes un 401 (token vencido/inválido) se propagaba como un ApiError más:
+// cada feature que usa este helper (~30 funciones) fallaba en silencio para
+// siempre, sin ningún camino de vuelta al login salvo refrescar la página a
+// mano. El guard evita disparar el redirect más de una vez si varias
+// llamadas devuelven 401 casi al mismo tiempo.
+let redirectingToLogin = false;
+
+function handleUnauthorized() {
+  if (redirectingToLogin || typeof window === "undefined") return;
+  redirectingToLogin = true;
+  localStorage.removeItem("token");
+  redirectToWebLogin();
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -30,6 +44,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       ...options.headers,
     },
   });
+
+  if (response.status === 401) {
+    handleUnauthorized();
+  }
 
   if (!response.ok) {
     const body = await response.json().catch(() => null);

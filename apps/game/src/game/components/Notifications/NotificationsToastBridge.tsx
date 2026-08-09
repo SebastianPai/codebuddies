@@ -12,6 +12,7 @@ import { sileo, Toaster } from "sileo";
 import { GameNotification, markNotificationRead } from "../../network/notifications";
 import { audioManager } from "../../audio/AudioManager";
 import { resolveNotificationIcon } from "../../utils/notificationIcons";
+import { useTranslation } from "../../../i18n/useTranslation";
 
 const SUCCESS_TYPES = new Set([
   "ACHIEVEMENT_UNLOCKED",
@@ -33,14 +34,30 @@ function pickSileoMethod(type: string): "success" | "warning" | "info" {
   return "info";
 }
 
+// Antes TODAS las notificaciones (subir de nivel, desbloquear un logro, que
+// te acepten una solicitud de amistad) reproducían el mismo "notify"
+// genérico. Ahora los dos eventos de progreso más importantes tienen su
+// propio cue distinto; el resto sigue con la campanita de siempre.
+function pickSound(type: string): "levelUp" | "achievement" | "notify" {
+  if (type === "LEVEL_UPDATED") return "levelUp";
+  if (type === "ACHIEVEMENT_UNLOCKED") return "achievement";
+  return "notify";
+}
+
 export default function NotificationsToastBridge() {
+  const t = useTranslation();
+
   useEffect(() => {
     const handleNotification = (event: Event) => {
       const notification = (event as CustomEvent<{ notification: GameNotification }>).detail
         ?.notification;
       if (!notification) return;
 
-      audioManager.play("notify");
+      const sound = pickSound(notification.type);
+      audioManager.play(sound);
+      if (sound === "levelUp" || sound === "achievement") {
+        window.dispatchEvent(new CustomEvent("fx:confetti"));
+      }
 
       const friend = notification.metadata?.friend;
       const Icon = resolveNotificationIcon(notification.icon);
@@ -55,7 +72,7 @@ export default function NotificationsToastBridge() {
           <Icon size={18} />
         ),
         button: {
-          title: "Marcar leído",
+          title: t("notifications.markReadButton"),
           onClick: () => {
             void markNotificationRead(notification.id).catch(() => {});
           },
@@ -65,7 +82,7 @@ export default function NotificationsToastBridge() {
 
     window.addEventListener("codebuddies:notification:new", handleNotification);
     return () => window.removeEventListener("codebuddies:notification:new", handleNotification);
-  }, []);
+  }, [t]);
 
   return <Toaster position="top-right" offset={{ top: 84 }} theme="dark" />;
 }

@@ -6,6 +6,7 @@ import BackgroundSelector from "../BackgroundSelector/BackgroundSelector";
 import styles from "./RoomCreateModal.module.css";
 import { showGameAlert } from "../../../utils/dialog";
 import Modal from "../../shared/Modal";
+import { useTranslation } from "../../../../i18n/useTranslation";
 
 interface Layout {
   id: string;
@@ -27,6 +28,7 @@ export default function RoomCreateModal({
   onCreate,
   socket: socketProp,
 }: Props) {
+  const t = useTranslation();
   const [form, setForm] = useState<CreateRoomData>({
     name: "",
     description: "",
@@ -70,8 +72,13 @@ export default function RoomCreateModal({
     socket.on("layouts:list", setLayouts);
 
     return () => {
-      socket.off("backgrounds:list");
-      socket.off("layouts:list");
+      // Pasar la MISMA referencia de handler que se usó en socket.on() es
+      // clave acá: socket.off("backgrounds:list") sin handler borra TODOS
+      // los listeners de ese evento en el socket compartido, incluidos los
+      // de BuildModePanel/RoomDetailsModal si están montados a la vez —
+      // dejaban su selector de fondos roto hasta un remount completo.
+      socket.off("backgrounds:list", setBackgrounds);
+      socket.off("layouts:list", setLayouts);
     };
   }, [socket]);
 
@@ -80,9 +87,9 @@ export default function RoomCreateModal({
 
     if (!form.name || form.name.trim().length < 3) {
       await showGameAlert({
-        title: "Nombre incompleto",
-        message: "El nombre debe tener al menos 3 caracteres.",
-        confirmLabel: "Entendido",
+        title: t("rooms.createNameIncompleteTitle"),
+        message: t("rooms.createNameIncompleteMessage"),
+        confirmLabel: t("common.understood"),
         tone: "danger",
       });
       return;
@@ -90,9 +97,9 @@ export default function RoomCreateModal({
 
     if (!selectedLayout) {
       await showGameAlert({
-        title: "Selecciona un mapa",
-        message: "Debes elegir un layout antes de crear la sala.",
-        confirmLabel: "Entendido",
+        title: t("rooms.createSelectLayoutTitle"),
+        message: t("rooms.createSelectLayoutMessage"),
+        confirmLabel: t("common.understood"),
         tone: "danger",
       });
       return;
@@ -107,7 +114,7 @@ export default function RoomCreateModal({
 
   return (
     <Modal
-      title="Crear Nueva Sala"
+      title={t("rooms.createModalTitle")}
       onClose={onClose}
       className={styles.modal}
       style={{ width: "min(820px, 100%)" }}
@@ -117,14 +124,14 @@ export default function RoomCreateModal({
 
           <input
             type="text"
-            placeholder="Nombre de la sala"
+            placeholder={t("rooms.createNamePlaceholder")}
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             required
           />
 
           <textarea
-            placeholder="Descripción (opcional)"
+            placeholder={t("rooms.createDescriptionPlaceholder")}
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
           />
@@ -135,7 +142,7 @@ export default function RoomCreateModal({
               checked={form.isPublic}
               onChange={(e) => setForm({ ...form, isPublic: e.target.checked })}
             />
-            Sala Pública
+            {t("rooms.createPublicLabel")}
           </label>
 
           <label>
@@ -146,11 +153,11 @@ export default function RoomCreateModal({
                 setForm({ ...form, isVipOnly: e.target.checked })
               }
             />
-            Sala Privada
+            {t("rooms.createPrivateLabel")}
           </label>
 
           <div>
-            <label>Máximo de usuarios:</label>
+            <label>{t("rooms.createMaxUsersLabel")}</label>
             <input
               type="number"
               value={form.maxUsers}
@@ -176,7 +183,7 @@ export default function RoomCreateModal({
           {/* ================= LAYOUTS ================= */}
 
           <div>
-            <label>Selecciona un mapa:</label>
+            <label>{t("rooms.createSelectMapLabel")}</label>
 
             <div
               style={{
@@ -187,7 +194,7 @@ export default function RoomCreateModal({
               }}
             >
               {layouts.length === 0 && (
-                <p style={{ opacity: 0.6 }}>No hay mapas disponibles</p>
+                <p style={{ opacity: 0.6 }}>{t("rooms.createNoLayouts")}</p>
               )}
 
               {layouts.map((layout) => (
@@ -257,10 +264,10 @@ export default function RoomCreateModal({
 
           <div className={styles.buttons}>
             <button type="button" onClick={onClose}>
-              Cancelar
+              {t("common.cancel")}
             </button>
 
-            <button type="submit">Crear Sala</button>
+            <button type="submit">{t("rooms.createSubmit")}</button>
           </div>
         </form>
     </Modal>

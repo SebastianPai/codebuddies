@@ -8,6 +8,7 @@ import Modal from "../shared/Modal";
 import Button from "../shared/Button";
 import ItemGrid from "../shared/ItemGrid";
 import ItemCard from "../shared/ItemCard";
+import { useTranslation } from "../../../i18n/useTranslation";
 
 interface Props {
   inventory: any[];
@@ -24,6 +25,7 @@ export default function Inventory({
   onPlaceWorldItem,
   onPaintSurfaceTexture,
 }: Props) {
+  const t = useTranslation();
   const [tab, setTab] = useState<"world" | "textures">("world");
   const [textureSize, setTextureSize] = useState("1x1");
 
@@ -56,7 +58,7 @@ export default function Inventory({
   return (
     <Modal
       variant="floating"
-      title="Inventario"
+      title={t("commerce.inventoryTitle")}
       onClose={onClose ?? (() => {})}
       style={{ width: "min(500px, calc(100vw - 24px))", height: "min(450px, calc(100dvh - 24px))" }}
     >
@@ -65,14 +67,14 @@ export default function Inventory({
           className={`${styles.tab} ${tab === "world" ? styles.active : ""}`}
           onClick={() => setTab("world")}
         >
-          Mundo
+          {t("commerce.inventoryTabWorld")}
         </button>
 
         <button
           className={`${styles.tab} ${tab === "textures" ? styles.active : ""}`}
           onClick={() => setTab("textures")}
         >
-          Texturas
+          {t("commerce.inventoryTabTextures")}
         </button>
       </div>
 
@@ -81,7 +83,7 @@ export default function Inventory({
           <div className={styles.textureToolbar}>
             <div className={styles.toolbarRow}>
               <label>
-                Tamaño
+                {t("commerce.inventoryTextureSizeLabel")}
                 <select
                   value={textureSize}
                   onChange={(event) => setTextureSize(event.target.value)}
@@ -111,7 +113,7 @@ export default function Inventory({
                   onClose?.();
                 }}
               >
-                <Paintbrush size={14} /> Pintar TODO el suelo
+                <Paintbrush size={14} /> {t("commerce.inventoryPaintAllFloor")}
               </Button>
             </div>
 
@@ -125,17 +127,17 @@ export default function Inventory({
                   onClose?.();
                 }}
               >
-                <X size={14} /> Cancelar
+                <X size={14} /> {t("common.cancel")}
               </Button>
             </div>
           </div>
 
-          <ItemGrid isEmpty={textureItems.length === 0} empty="No tienes texturas todavía.">
+          <ItemGrid isEmpty={textureItems.length === 0} empty={t("commerce.inventoryEmptyTextures")}>
             {textureItems.map((inv) => (
               <ItemCard
                 key={inv.id}
                 item={inv.item}
-                title={inv.item.worldData?.kind === "WALL" ? "Pared" : "Suelo"}
+                title={inv.item.worldData?.kind === "WALL" ? t("commerce.inventoryWallLabel") : t("commerce.inventoryFloorLabel")}
                 titleIcon={inv.item.worldData?.kind === "WALL" ? Square : Grid3x3}
                 stackCount={inv.amount ?? inv.quantity ?? 1}
                 footer={
@@ -145,7 +147,7 @@ export default function Inventory({
                     fullWidth
                     onClick={() => onPaintSurfaceTexture?.(inv.item, textureWidth, textureHeight)}
                   >
-                    Pintar
+                    {t("commerce.inventoryPaintButton")}
                   </Button>
                 }
               />
@@ -153,16 +155,16 @@ export default function Inventory({
           </ItemGrid>
         </div>
       ) : (
-        <ItemGrid isEmpty={worldItems.length === 0} empty="No tienes objetos de mundo todavía.">
+        <ItemGrid isEmpty={worldItems.length === 0} empty={t("commerce.inventoryEmptyWorldItems")}>
           {worldItems.map((inv) => (
             <ItemCard
               key={inv.id}
               item={inv.item}
-              title={inv.item?.name || "Objeto"}
+              title={inv.item?.name || t("commerce.inventoryItemFallbackName")}
               stackCount={inv.amount ?? inv.quantity ?? 1}
               footer={
                 <Button variant="primary" size="sm" fullWidth onClick={() => onPlaceWorldItem?.(inv.item)}>
-                  Colocar
+                  {t("commerce.inventoryPlaceButton")}
                 </Button>
               }
             />

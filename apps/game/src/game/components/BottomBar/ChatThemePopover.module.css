@@ -1,0 +1,90 @@
+.popover {
+  position: fixed;
+  transform: translate(-50%, calc(-100% - 14px));
+  z-index: 60;
+
+  width: 200px;
+
+  padding: 10px;
+
+  border-radius: 14px;
+
+  background: rgba(18, 18, 22, 0.96);
+  backdrop-filter: blur(14px);
+
+  border: 1px solid rgba(255, 212, 0, 0.16);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+.title {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #9fb3cf;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.swatch {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  height: 32px;
+
+  border: 2px solid transparent;
+  border-radius: 10px;
+
+  cursor: pointer;
+
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.swatch:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+}
+
+.swatch:disabled {
+  cursor: default;
+}
+
+.swatchSelected {
+  outline: 2px solid #ffd400;
+  outline-offset: 2px;
+}
+
+.swatchLocked {
+  opacity: 0.5;
+  color: #111;
+}
+
+.error {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #ff9f9f;
+}
+
+.arrow {
+  position: absolute;
+  left: 50%;
+  bottom: -7px;
+  width: 14px;
+  height: 14px;
+  transform: translateX(-50%) rotate(45deg);
+  background: rgba(18, 18, 22, 0.96);
+  border-right: 1px solid rgba(255, 212, 0, 0.16);
+  border-bottom: 1px solid rgba(255, 212, 0, 0.16);
+}

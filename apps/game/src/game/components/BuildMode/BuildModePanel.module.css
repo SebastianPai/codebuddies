@@ -5,7 +5,7 @@
   bottom: 18px;
   z-index: 12000;
   display: flex;
-  width: min(390px, calc(100vw - 32px));
+  width: min(410px, calc(100vw - 32px));
   flex-direction: column;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.16);
@@ -38,9 +38,68 @@
 
 .header h2 {
   margin: 4px 0 0;
-  font-size: 32px;
+  font-size: 26px;
   line-height: 0.9;
-  letter-spacing: -0.06em;
+  letter-spacing: -0.04em;
+}
+
+/* Antes "Tienda"/"Marketplace" eran pestañas de contenido; ahora son
+   accesos directos junto a "Salir" — son ACCIONES (abren otra ventana),
+   no vistas del panel, así que van en el header, no en la grilla de tabs. */
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.iconButton {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  color: #dce9ff;
+  background: rgba(255, 255, 255, 0.07);
+  cursor: pointer;
+  transition:
+    transform 140ms ease,
+    background 140ms ease,
+    filter 140ms ease;
+}
+
+.iconButton:hover {
+  background: rgba(250, 204, 21, 0.16);
+  color: #ffd34d;
+  transform: translateY(-1px);
+}
+
+.iconButton:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
+  background: rgba(255, 255, 255, 0.07);
+  color: #dce9ff;
+}
+
+/* Fila de herramientas de editor (deshacer/rehacer) — separada de las
+   pestañas de contenido porque son acciones sobre el historial de edición,
+   no vistas del inventario, y de los accesos rápidos del header (tienda/
+   marketplace) porque esas abren ventanas externas en vez de operar sobre
+   la sala misma. */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 18px 14px;
+}
+
+.toolbarHint {
+  color: #6d7d99;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 .exitButton,
@@ -68,6 +127,7 @@
 
 .exitButton:hover,
 .dangerButton:hover,
+.iconButton:hover,
 .tab:hover {
   transform: translateY(-1px);
   filter: brightness(1.07);
@@ -101,6 +161,7 @@
 .searchBox input:focus,
 .toolRow select:focus,
 .tab:focus-visible,
+.iconButton:focus-visible,
 .exitButton:focus-visible,
 .dangerButton:focus-visible {
   outline: 3px solid rgba(250, 204, 21, 0.45);
@@ -117,7 +178,7 @@
 .tab {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 8px;
   border: 1px solid rgba(255, 255, 255, 0.11);
   border-radius: 16px;
   padding: 11px 12px;
@@ -130,10 +191,24 @@
     filter 140ms ease;
 }
 
+.tab span {
+  flex: 1;
+  text-align: left;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.tabIcon {
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
 .tab b {
   display: grid;
   min-width: 24px;
   height: 24px;
+  flex-shrink: 0;
   place-items: center;
   border-radius: 999px;
   color: #07111f;
@@ -165,6 +240,65 @@
 
 .backgroundPanel {
   padding-top: 2px;
+  display: grid;
+  gap: 20px;
+}
+
+.environmentSection {
+  display: grid;
+  gap: 10px;
+}
+
+.lightingControls {
+  display: grid;
+  gap: 12px;
+}
+
+.lightingField {
+  display: grid;
+  gap: 8px;
+  color: #9fb3cf;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.lightingField input[type="range"] {
+  accent-color: #facc15;
+}
+
+.lightingSaveButton {
+  justify-self: start;
+  border: 0;
+  border-radius: 14px;
+  padding: 10px 16px;
+  color: #08121f;
+  font-weight: 900;
+  cursor: pointer;
+  background: linear-gradient(135deg, #facc15, #fde047);
+  transition:
+    transform 140ms ease,
+    filter 140ms ease;
+}
+
+.lightingSaveButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.07);
+}
+
+.lightingSaveButton:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.4) brightness(0.8);
+}
+
+.premiumBanner {
+  border: 1px solid rgba(250, 204, 21, 0.35);
+  border-radius: 14px;
+  padding: 10px 12px;
+  color: #ffe9a8;
+  background: rgba(250, 204, 21, 0.1);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .categoryList {

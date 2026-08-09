@@ -1,0 +1,108 @@
+{
+  "ranking": {
+    "title": "NPC 竞争对手",
+    "usersLabel": "{count} 位用户"
+  },
+  "research": {
+    "trendsTitle": "市场趋势",
+    "treeTitle": "科技树",
+    "treeHint": "每条分支都是一条节点链：解锁一个节点后才能购买下一个。每个节点的效果都是永久的。",
+    "unlockedLabel": "已激活",
+    "requiresLabel": "需要：{name}",
+    "unlockButton": "解锁 ${amount}"
+  },
+  "roadmap": {
+    "pending": "待处理",
+    "development": "开发中",
+    "qa": "QA",
+    "release": "发布",
+    "production": "生产",
+    "qaHint": "正在验证漏洞、性能和用户体验",
+    "readyToPublish": "准备发布"
+  },
+  "settingsView": {
+    "title": "实时运营设置",
+    "description": "CodeStudio 随游戏的每个周期推进。高级选项将在未来阶段与引擎连接。",
+    "eventNotifications": "事件通知",
+    "developmentAnimations": "开发动画",
+    "syncOnOpen": "打开电脑时同步"
+  },
+  "deleteCompany": {
+    "dangerZoneTitle": "危险区域",
+    "dangerZoneHint": "删除公司会永久清除其功能、员工、基础设施和进度，且无法撤销。",
+    "openButton": "删除公司",
+    "title": "删除 {name}",
+    "warning": "此操作无法撤销。你将失去这家公司的所有功能、员工、基础设施和进度。",
+    "instruction": "输入 {name} 以确认你要删除它。",
+    "nameMismatch": "这不是你想删除的公司的名称。",
+    "confirmButton": "删除",
+    "countingDown": "正在删除...",
+    "deleting": "正在删除...",
+    "toastTitle": "公司已删除",
+    "toastDescription": "\"{name}\" 已不存在。",
+    "errorToastTitle": "无法删除",
+    "errorToastDescription": "请稍后再试。"
+  },
+  "tutorial": {
+    "title": "CEO 助理",
+    "subtitle": "让公司通过游玩起步的初始路径，而不是像 CRUD 一样。",
+    "nextCycle": "下一周期",
+    "now": "现在",
+    "goToPanel": "前往面板",
+    "step0Label": "选择你的第一个功能",
+    "step0Hint": "前往待办事项，选择先构建什么——没有这一步公司无法起步。",
+    "stepHireLabel": "招聘你的第一位员工",
+    "stepHireHint": "员工能加快开发速度，让你更快成长。",
+    "stepInfraLabel": "安装你的第一台服务器",
+    "stepInfraHint": "没有基础设施，公司在饱和之前只能承载少量用户。",
+    "step1Label": "前3个功能",
+    "step1Hint": "安装3个功能后，你的公司将进入\"在线\"状态。",
+    "progressSuffix": "{label}（{current}/{target}）",
+    "step3Label": "首批用户",
+    "step3Hint": "营销、评分和基础设施推动增长。",
+    "step4Label": "稳定的基础设施",
+    "step4Hint": "在扩展之前避免饱和。",
+    "step5Label": "公开路线图",
+    "step5Hint": "完成新功能，直到发布一个强大的版本。"
+  },
+  "guides": {
+    "next": "下一步",
+    "start": "明白了，开始吧",
+    "feature": {
+      "step1Title": "什么是\"功能\"",
+      "step1Description": "功能是应用中一项具体的能力：购物车、聊天、搜索框等。你的公司现在是空的，所以至少需要一个功能才能有东西可以提供，并开始吸引用户。",
+      "step2Title": "什么是待办事项",
+      "step2Description": "待办事项是你的初创公司类型可以构建的所有功能列表，目前还没有开发。你选一个、支付费用，团队就会随时间开发它（进度条）。没有唯一正确答案——任何功能都可以用来起步。",
+      "step3Title": "优先级是什么意思",
+      "step3Description": "优先级（紧急/高/中/低）只是方便你自己排序列表。它不会改变功能的开发成本或时间，纯粹是为了方便你整理。选择任意一个功能，点击\"开发\"即可开始。"
+    },
+    "hire": {
+      "step1Title": "员工的作用",
+      "step1Description": "你雇佣的每位员工都会为公司增加工作产能：加快功能开发速度，提升整体稳定性。没有员工，一切都会进展得更慢。",
+      "step2Title": "如何招聘",
+      "step2Description": "从列表中选择任意一个职位，点击\"招聘\"。会收取一次性签约奖金（一个月的薪水），员工会立即加入你的团队。"
+    },
+    "infra": {
+      "step1Title": "基础设施的作用",
+      "step1Description": "基础设施（服务器、数据库等）决定了你的应用在不崩溃的情况下能承载多少用户，以及响应速度有多快。没有基础设施，公司一增长就会很快饱和。",
+      "step2Title": "如何安装或升级",
+      "step2Description": "选择一个你还没有的类型，点击\"安装\"即可以1级安装；或者对已安装的类型点击\"升级等级\"来提升其容量。每次升级的花费都比上一次更高。"
+    }
+  },
+  "sidebarTour": {
+    "backlogTitle": "待办事项",
+    "backlogContent": "在这里选择要构建的功能。每个功能都有成本和开发时间，并且可能依赖于同一分类中更早的一个功能。",
+    "employeesTitle": "员工",
+    "employeesContent": "招聘员工让团队开发得更快。团队越大，整体并行推进的速度就越快。",
+    "infrastructureTitle": "基础设施",
+    "infrastructureContent": "服务器、缓存、负载均衡器。没有这些，你的应用一旦流量变大就会崩溃。",
+    "researchTitle": "研究",
+    "researchContent": "科技树：解锁永久性节点，让你的应用得到长久的提升。",
+    "marketingTitle": "市场营销",
+    "marketingContent": "按渠道（TikTok、Facebook 等）发起真实推广，并对比哪个渠道带来的用户最多。",
+    "localeBack": "上一步",
+    "localeSkip": "跳过",
+    "localeNext": "下一步",
+    "localeLast": "完成"
+  }
+}

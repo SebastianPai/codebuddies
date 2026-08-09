@@ -16,20 +16,25 @@ export function useSocket(): Socket | null {
       s = createSocket();
     }
 
-    // 🔥 esperar a que conecte si aún no está listo
-    if (!s.connected) {
-      s.on("connect", () => {
-        console.log("✅ Socket listo en hook");
-        setSocket(s);
-        s.emit("avatar:get"); // 🔥 CLAVE
-      });
-    } else {
+    const handleConnect = () => {
       setSocket(s);
       s.emit("avatar:get"); // 🔥 CLAVE
+    };
+
+    // 🔥 esperar a que conecte si aún no está listo
+    if (!s.connected) {
+      s.on("connect", handleConnect);
+    } else {
+      handleConnect();
     }
 
     return () => {
-      // no desconectamos → singleton global
+      // El socket es un singleton global (no lo desconectamos acá), pero SÍ
+      // hay que quitar este listener puntual: sin esto, cada mount/remount
+      // (StrictMode, o los 3 componentes que usan este hook) apilaba un
+      // "connect" nuevo para siempre, y cada reconexión disparaba todos los
+      // acumulados a la vez.
+      s?.off("connect", handleConnect);
     };
   }, []);
 

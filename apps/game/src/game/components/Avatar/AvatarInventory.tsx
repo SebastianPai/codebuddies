@@ -5,6 +5,7 @@ import { useState } from "react";
 import AvatarSlotFilter from "./AvatarSlotFilter";
 import AvatarItemCard from "./AvatarItemCard";
 import ItemGrid from "../shared/ItemGrid";
+import { useTranslation } from "../../../i18n/useTranslation";
 
 interface Props {
   inventory: any[];
@@ -19,6 +20,7 @@ export default function AvatarInventory({
   avatar,
   onEquipAvatarItem,
 }: Props) {
+  const t = useTranslation();
   const [slotFilter, setSlotFilter] = useState("ALL");
 
   const equippedIds = new Set(
@@ -36,7 +38,7 @@ export default function AvatarInventory({
     <>
       <AvatarSlotFilter value={slotFilter} onChange={setSlotFilter} />
 
-      <ItemGrid isEmpty={filteredInventory.length === 0} empty="No tienes objetos en esta categoría.">
+      <ItemGrid isEmpty={filteredInventory.length === 0} empty={t("avatar.inventoryEmptyCategory")}>
         {filteredInventory.map((inv) => (
           <AvatarItemCard
             key={inv.id}
