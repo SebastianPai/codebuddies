@@ -9,7 +9,12 @@ import { Button } from "./button"; import { Input } from "./input"; import { Mar
 export interface Translation { languageCode: string; title: string; description: string; content?: string; }
 interface LanguageOption { code: string; name: string; }
 interface TranslationsFormProps { translations: Translation[]; onChange: (translations: Translation[]) => void; availableLanguages?: LanguageOption[]; showContent?: boolean; }
-const DEFAULT_LANGUAGES: LanguageOption[] = [{ code: "es", name: "Español" }, { code: "en-us", name: "English" }, { code: "zh-Hans", name: "中文 (简体)" }];
+// Los códigos tienen que ser exactamente los de Language.code en la base
+// (ver prisma/seed.ts) -- "en-us" no existe ahí, solo "en". Con el código
+// mal puesto, guardar una traducción en inglés fallaba en el backend con
+// un P2025 (no Language record found for nested connect) en cualquier
+// sección que use este componente (Módulos, Cursos, Lecciones, Ejercicios).
+const DEFAULT_LANGUAGES: LanguageOption[] = [{ code: "es", name: "Español" }, { code: "en", name: "English" }, { code: "zh-Hans", name: "中文 (简体)" }];
 const textLinkClasses = classNames("rounded", FOCUS_RING);
 export function TranslationsForm({ translations, onChange, availableLanguages = DEFAULT_LANGUAGES, showContent = false }: TranslationsFormProps) {
   const t = useTranslation(); const [error, setError] = useState<string | null>(null);

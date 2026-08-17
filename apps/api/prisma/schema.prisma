@@ -1056,6 +1056,10 @@ model Room {
 model RoomLayout {
   id String @id @default(uuid())
 
+  // Se mantienen como el nombre/descripción "canónicos" (sincronizados desde
+  // la traducción es/primera disponible) para no romper a los lectores que
+  // ya existían antes de las traducciones (game/rooms, game/room-items).
+  // Las traducciones reales viven en RoomLayoutTranslation.
   name        String
   description String?
 
@@ -1071,7 +1075,22 @@ model RoomLayout {
 
   createdAt DateTime @default(now())
 
-  rooms Room[]
+  rooms        Room[]
+  translations RoomLayoutTranslation[]
+}
+
+model RoomLayoutTranslation {
+  id           String @id @default(uuid())
+  roomLayoutId String
+  languageId   String
+
+  name        String
+  description String?
+
+  roomLayout RoomLayout @relation(fields: [roomLayoutId], references: [id], onDelete: Cascade)
+  language   Language   @relation(fields: [languageId], references: [id], onDelete: Cascade)
+
+  @@unique([roomLayoutId, languageId])
 }
 
 model RoomItem {
@@ -2297,6 +2316,7 @@ model Language {
 
   itemTranslations           ItemTranslation[]
   roomBackgroundTranslations RoomBackgroundTranslation[]
+  roomLayoutTranslations     RoomLayoutTranslation[]
 
   appTranslations AppTranslation[]
 }

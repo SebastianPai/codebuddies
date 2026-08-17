@@ -11,6 +11,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { LayoutsService } from './layouts.service';
+import { CreateLayoutDto } from './dto/create-layout.dto';
+import { UpdateLayoutDto } from './dto/update-layout.dto';
 import { JwtAuthGuard } from '../../identity/guards/jwt.guard';
 import { RolesGuard } from '../../identity/guards/roles.guard';
 import { Roles } from '../../identity/decorators/roles.decorator';
@@ -27,7 +29,7 @@ export class LayoutsController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  create(@Body() body: any) {
+  create(@Body() body: CreateLayoutDto) {
     return this.layoutsService.createLayout(body);
   }
 
@@ -42,7 +44,7 @@ export class LayoutsController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() body: any) {
+  update(@Param('id') id: string, @Body() body: UpdateLayoutDto) {
     return this.layoutsService.updateLayout(id, body);
   }
 

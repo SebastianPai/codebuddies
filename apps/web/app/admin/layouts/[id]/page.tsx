@@ -4,23 +4,40 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import LayoutCompositionEditor from "../../../../components/layout-composition/LayoutCompositionEditor";
 import { api } from "@/shared/api/client";
+import { TranslationsForm, type Translation } from "@/shared/ui";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
+
+type LayoutTranslationDto = {
+  name: string;
+  description: string | null;
+  language: { code: string };
+};
 
 export default function EditLayoutPage() {
   const { id } = useParams() as { id: string };
   const router = useRouter();
   const t = useTranslation();
 
-  const [name, setName] = useState("");
+  const [translations, setTranslations] = useState<Translation[]>([]);
   const [previewImageUrl, setPreviewImageUrl] = useState("");
   const [json, setJson] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     api
-      .get<{ name?: string; previewImageUrl?: string; layoutJson: unknown }>(`/layouts/${id}`)
+      .get<{
+        previewImageUrl?: string;
+        layoutJson: unknown;
+        translations: LayoutTranslationDto[];
+      }>(`/layouts/${id}`)
       .then((data) => {
-        setName(data.name || "");
+        setTranslations(
+          data.translations.map((tr) => ({
+            languageCode: tr.language.code,
+            title: tr.name,
+            description: tr.description ?? "",
+          })),
+        );
         setPreviewImageUrl(data.previewImageUrl || "");
         setJson(JSON.stringify(data.layoutJson, null, 2));
       })
@@ -28,7 +45,8 @@ export default function EditLayoutPage() {
   }, [id]);
 
   const handleUpdate = async () => {
-    if (!name || !json) {
+    const baseName = translations.find((tr) => tr.languageCode === "es")?.title;
+    if (!baseName || !json) {
       alert(t("admin.nameAndJsonRequired"));
       return;
     }
@@ -37,7 +55,11 @@ export default function EditLayoutPage() {
 
     try {
       await api.patch(`/layouts/${id}`, {
-        name,
+        translations: translations.map((tr) => ({
+          languageCode: tr.languageCode,
+          name: tr.title,
+          description: tr.description,
+        })),
         previewImageUrl,
         layoutJson: JSON.parse(json),
       });
@@ -65,15 +87,7 @@ export default function EditLayoutPage() {
       </div>
 
       <div className="bg-[#0c0c0c] p-8 rounded-2xl border border-zinc-800 space-y-6">
-        <div>
-          <label className="text-sm text-zinc-400 block mb-2">{t("items.name")}</label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="bg-[#111] border border-zinc-700 focus:border-yellow-400 w-full p-4 rounded-xl"
-          />
-        </div>
+        <TranslationsForm translations={translations} onChange={setTranslations} />
 
         <div>
           <label className="text-sm text-zinc-400 block mb-2">

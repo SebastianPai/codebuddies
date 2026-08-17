@@ -4,13 +4,20 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import LayoutCompositionEditor from "../../../../components/layout-composition/LayoutCompositionEditor";
 import { api } from "@/shared/api/client";
+import { TranslationsForm, type Translation } from "@/shared/ui";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
+
+const INITIAL_TRANSLATIONS: Translation[] = [
+  { languageCode: "es", title: "", description: "" },
+];
 
 export default function NewLayoutPage() {
   const router = useRouter();
   const t = useTranslation();
 
-  const [name, setName] = useState("");
+  const [translations, setTranslations] = useState<Translation[]>(
+    INITIAL_TRANSLATIONS,
+  );
   const [json, setJson] = useState("");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -70,7 +77,8 @@ export default function NewLayoutPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name || !json) {
+    const baseName = translations.find((tr) => tr.languageCode === "es")?.title;
+    if (!baseName || !json) {
       alert(t("admin.nameJsonLayoutRequired"));
       return;
     }
@@ -86,7 +94,11 @@ export default function NewLayoutPage() {
       }
 
       await api.post("/layouts", {
-        name,
+        translations: translations.map((tr) => ({
+          languageCode: tr.languageCode,
+          name: tr.title,
+          description: tr.description,
+        })),
         previewImageUrl: finalPreviewUrl,
         layoutJson: JSON.parse(json),
         width: 10,
@@ -112,20 +124,8 @@ export default function NewLayoutPage() {
 
       <form onSubmit={handleSubmit} className="space-y-8">
         <div className="bg-[#0c0c0c] p-8 rounded-2xl border border-zinc-800 space-y-8">
-          {/* Nombre */}
-          <div>
-            <label className="text-sm text-zinc-400 block mb-2">
-              {t("admin.layoutNameFieldLabel")}
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={t("admin.layoutNamePlaceholder")}
-              className="bg-[#111] border border-zinc-700 focus:border-yellow-400 w-full p-4 rounded-xl text-white placeholder-zinc-500"
-              required
-            />
-          </div>
+          {/* Nombre + traducciones */}
+          <TranslationsForm translations={translations} onChange={setTranslations} />
 
           {/* Subida de Imagen Preview (igual estilo que Items) */}
           <div>

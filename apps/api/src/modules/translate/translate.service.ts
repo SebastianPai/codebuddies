@@ -22,13 +22,25 @@ export class TranslateService {
     this.translator = new Translator(apiKey);
   }
 
+  // DeepL exige variante regional para el inglés como idioma destino (solo
+  // acepta EN-US / EN-GB, nunca el "EN" a secas) -- pero Language.code en la
+  // base es 'en' sin región (ver prisma/seed.ts), que es el valor que en la
+  // práctica siempre llega acá desde el admin. Mapeo puntual en vez de forzar
+  // una convención de código distinta a la de la base para todos los demás
+  // idiomas (zh-Hans sí funciona igual, DeepL acepta case-insensitive).
+  private toDeeplTargetLang(targetLang: string): TargetLanguageCode {
+    const normalized = targetLang.toUpperCase();
+    if (normalized === 'EN') return 'en-US';
+    return normalized as TargetLanguageCode;
+  }
+
   async translateText(text: string, targetLang: string): Promise<string> {
     if (!text) return '';
     try {
       const result = await this.translator.translateText(
         text,
         null, // deja undefined para autodetectar el idioma origen
-        targetLang.toUpperCase() as TargetLanguageCode,
+        this.toDeeplTargetLang(targetLang),
       );
       return result.text;
     } catch (err) {
