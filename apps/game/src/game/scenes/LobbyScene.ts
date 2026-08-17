@@ -976,11 +976,21 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
       this.refreshPathfinding();
     };
 
-    items.forEach((item) => {
-      void loadTextureOnce(this, item.item.imageUrl).then((textureKey) =>
-        spawnRoomItem(item, textureKey),
-      );
-    });
+    // Promise.all + updateDepths() al final, no forEach suelto: cada item
+    // carga su textura en paralelo y se agrega a roomItems en el orden en
+    // que resuelve esa promesa (no el orden de la lista), así que un item
+    // apilado (parentRoomItemId) podía agregarse ANTES que su mueble base
+    // -- getBaseDepthTile() no encontraba el padre todavía en this.items y
+    // calculaba el depth solo con su propia tile, quedando detrás del
+    // mueble base tras cada recarga aunque la colocación en vivo (donde el
+    // padre ya existe de antes) se viera bien.
+    Promise.all(
+      items.map((item) =>
+        loadTextureOnce(this, item.item.imageUrl).then((textureKey) =>
+          spawnRoomItem(item, textureKey),
+        ),
+      ),
+    ).then(() => this.roomItems.updateDepths());
 
     this.placementValidator = new PlacementValidator();
     this.placementValidator.configure(
