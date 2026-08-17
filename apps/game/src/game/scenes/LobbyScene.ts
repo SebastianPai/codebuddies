@@ -33,6 +33,13 @@ import { WORLD_OVERLAY_DEPTH } from "../utils/depth";
 import { pointerToScreenPosition } from "../utils/pointerToScreenPosition";
 import { burstConfetti, burstSparkle } from "../systems/ParticleFx";
 
+// Tileset compartido que se precarga en preload() antes de unirse a
+// cualquier sala, y al que se cae si el layout de la sala no trae su propio
+// tilesets[0] válido -- mismos valores que se usaban hardcodeados antes de
+// que las salas pudieran declarar su propio tileset.
+const DEFAULT_TILESET_NAME = "tiles3";
+const DEFAULT_TILESET_KEY = "tiles";
+
 export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
   player!: ModularPlayer;
   otherPlayers!: Phaser.GameObjects.Group;
@@ -96,6 +103,13 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
   private thumbnailInFlight = false;
   private canUpdateRoomThumbnail = false;
   private lastPaintedTileKey: string | null = null;
+  // Tileset de la sala activa: "name" es el nombre que el propio JSON de
+  // Tiled declara en tilesets[0].name (addTilesetImage matchea por eso),
+  // "key" es la key de textura de Phaser donde se cargó esa imagen. Arrancan
+  // en el tileset default precargado en preload() hasta unirse a una sala
+  // con un tileset propio (ver room:joined en create()).
+  private currentTilesetName: string = DEFAULT_TILESET_NAME;
+  private currentTilesetKey: string = DEFAULT_TILESET_KEY;
 
   constructor() {
     super("LobbyScene");
@@ -103,11 +117,11 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
 
   preload() {
     this.load.setCORS("anonymous");
-    this.load.image("tiles", `${getAssetsUrl()}/maps/rooms/tiles3.png`);
+    this.load.image(DEFAULT_TILESET_KEY, `${getAssetsUrl()}/maps/rooms/${DEFAULT_TILESET_NAME}.png`);
   }
 
   create() {
-    const tex = this.textures.get("tiles");
+    const tex = this.textures.get(DEFAULT_TILESET_KEY);
     tex.setFilter(Phaser.Textures.FilterMode.NEAREST);
 
     const socket = (this.game as any).socket;
@@ -138,31 +152,61 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
         const layout = data.room.layout;
         if (!layout) return console.error("❌ Sala sin layout");
 
-        const blob = new Blob([JSON.stringify(layout.layoutJson)], {
-          type: "application/json",
-        });
-        const url = URL.createObjectURL(blob);
+        // El tileset real de la sala se toma de layoutJson.tilesets[0] (lo que
+        // sube el admin al crear/editar el layout) en vez de asumir siempre el
+        // tileset default -- antes esa URL del JSON se ignoraba por completo y
+        // toda sala usaba la misma imagen fija. Si el layout no trae un
+        // tileset propio válido, o si falla la carga (404, CORS, etc.), cae
+        // al default precargado en preload() para no dejar la sala sin tiles.
+        const tilesetDef = (layout.layoutJson as any)?.tilesets?.[0];
+        const hasCustomTileset =
+          typeof tilesetDef?.name === "string" &&
+          tilesetDef.name.length > 0 &&
+          typeof tilesetDef?.image === "string" &&
+          tilesetDef.image.length > 0;
 
-        if (this.cache.tilemap.exists("dynamic-map")) {
-          this.cache.tilemap.remove("dynamic-map");
-        }
+        const resolveTileset: Promise<{ name: string; key: string }> = hasCustomTileset
+          ? loadTextureOnce(this, tilesetDef.image)
+              .then((key) => ({ name: tilesetDef.name as string, key: key || DEFAULT_TILESET_KEY }))
+              .catch((err) => {
+                console.error(
+                  "❌ No se pudo cargar el tileset de la sala, uso el default:",
+                  err,
+                );
+                return { name: DEFAULT_TILESET_NAME, key: DEFAULT_TILESET_KEY };
+              })
+          : Promise.resolve({ name: DEFAULT_TILESET_NAME, key: DEFAULT_TILESET_KEY });
 
-        this.load.tilemapTiledJSON("dynamic-map", url);
+        resolveTileset.then(({ name, key }) => {
+          this.currentTilesetName = name;
+          this.currentTilesetKey = key;
 
-        this.load.once("complete", () => {
-          this.currentLayoutComposition = this.getLayoutComposition(layout.layoutJson);
-          this.buildMap();
-          this.backgroundManager.setBackground(data.room.background, {
-            layoutAnchor: this.getCompositionCenter(),
+          const blob = new Blob([JSON.stringify(layout.layoutJson)], {
+            type: "application/json",
           });
-          this.createWorld(user, socket, data.players, data.items);
-          this.ambientLight.setExcludedCameras([this.minimap]);
-          this.ambientLight.setIntensity(data.room.ambientLightIntensity);
-          this.cameras.main.fadeIn(250, 0, 0, 0);
-          this.scheduleRoomThumbnailCapture(2200);
-        });
+          const url = URL.createObjectURL(blob);
 
-        this.load.start();
+          if (this.cache.tilemap.exists("dynamic-map")) {
+            this.cache.tilemap.remove("dynamic-map");
+          }
+
+          this.load.tilemapTiledJSON("dynamic-map", url);
+
+          this.load.once("complete", () => {
+            this.currentLayoutComposition = this.getLayoutComposition(layout.layoutJson);
+            this.buildMap();
+            this.backgroundManager.setBackground(data.room.background, {
+              layoutAnchor: this.getCompositionCenter(),
+            });
+            this.createWorld(user, socket, data.players, data.items);
+            this.ambientLight.setExcludedCameras([this.minimap]);
+            this.ambientLight.setIntensity(data.room.ambientLightIntensity);
+            this.cameras.main.fadeIn(250, 0, 0, 0);
+            this.scheduleRoomThumbnailCapture(2200);
+          });
+
+          this.load.start();
+        });
       };
 
       if (hadPreviousRoom) {
@@ -745,7 +789,7 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
   private buildMap() {
     this.map = this.make.tilemap({ key: "dynamic-map" });
 
-    const tileset = this.map.addTilesetImage("tiles3", "tiles");
+    const tileset = this.map.addTilesetImage(this.currentTilesetName, this.currentTilesetKey);
     if (!tileset) return console.error("❌ Tileset no encontrado");
 
     const compositionCenter = this.getCompositionCenter();
