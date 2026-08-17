@@ -45,7 +45,7 @@ export default function RegisterPage() {
     password: "",
     referralCode: "",
   });
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -62,7 +62,7 @@ export default function RegisterPage() {
   };
 
   const handleRegister = async () => {
-    setError(false);
+    setError(null);
     try {
       await register(
         formData.username,
@@ -71,8 +71,9 @@ export default function RegisterPage() {
         formData.referralCode || undefined,
       );
       router.push("/dashboard");
-    } catch {
-      setError(true);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      setError(message || t("auth.registerError"));
     }
   };
 
@@ -161,7 +162,7 @@ export default function RegisterPage() {
             {error && (
               <div className="bg-[rgb(var(--error))]/10 border-l-4 border-[rgb(var(--error))] p-3">
                 <p className="text-[rgb(var(--error))] text-xs font-black uppercase italic">
-                  {t("auth.registerError")}
+                  {error}
                 </p>
               </div>
             )}

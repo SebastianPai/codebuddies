@@ -23,7 +23,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   const buildGameRedirect = (redirect: string, token: string) => {
@@ -60,7 +60,7 @@ export default function LoginPage() {
   }, []);
 
   const handleLogin = async () => {
-    setError(false);
+    setError(null);
     try {
       const authResponse = await login(email, password);
       const redirect = new URLSearchParams(window.location.search).get("redirect");
@@ -72,8 +72,9 @@ export default function LoginPage() {
         return;
       }
       router.push(redirect?.startsWith("/") ? redirect : "/dashboard");
-    } catch {
-      setError(true);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      setError(message || t("auth.loginError"));
     }
   };
 
@@ -172,7 +173,7 @@ export default function LoginPage() {
             {error && (
               <div className="bg-[rgb(var(--error))]/10 border-l-4 border-[rgb(var(--error))] p-3">
                 <p className="text-[rgb(var(--error))] text-xs font-black uppercase italic">
-                  {t("auth.loginError")}
+                  {error}
                 </p>
               </div>
             )}

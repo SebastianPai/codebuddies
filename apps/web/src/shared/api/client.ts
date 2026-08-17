@@ -39,13 +39,17 @@ async function parseError(response: Response): Promise<ApiException> {
 
   try {
     details = await response.json();
-    if (
-      typeof details === "object" &&
-      details !== null &&
-      "message" in details &&
-      typeof details.message === "string"
-    ) {
-      message = details.message;
+    if (typeof details === "object" && details !== null && "message" in details) {
+      const raw = (details as { message: unknown }).message;
+      if (typeof raw === "string") {
+        message = raw;
+      } else if (Array.isArray(raw) && raw.every((m) => typeof m === "string")) {
+        // class-validator (Nest ValidationPipe) manda un array de mensajes
+        // cuando hay más de un campo inválido -- antes se perdía por completo
+        // acá (el chequeo de arriba solo aceptaba string) y quedaba el
+        // genérico "Error 400" sin ninguna pista de qué campo falló.
+        message = raw.join(" ");
+      }
     }
   } catch {
     const text = await response.text();
