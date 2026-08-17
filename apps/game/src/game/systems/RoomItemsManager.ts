@@ -99,10 +99,13 @@ export default class RoomItemsManager {
 
     sprite.setOrigin(0.5, 1);
 
-    const footprint = getDirectionalFootprint(worldData, rotation);
-    const depthTile = toWorldTiles(tileX, tileY, footprint).sort(
-      (a, b) => b.y - a.y || b.x - a.x,
-    )[0] || { x: tileX, y: tileY };
+    const depthTile = this.getBaseDepthTile(
+      tileX,
+      tileY,
+      worldData,
+      rotation,
+      parentRoomItemId,
+    );
     const depth = depthTile.y * 1000 + depthTile.x + elevation * 100;
 
     if (!isSurface) {
@@ -379,6 +382,42 @@ export default class RoomItemsManager {
     return (this.occupancyCache ?? this.computeOccupancy()).occupied;
   }
 
+  // El "depth tile" de un item apilado (parentRoomItemId) no se calcula
+  // desde su propia posición: un item 1x1 apilado sobre la tile trasera de
+  // un mueble grande (p.ej. una mesa que ocupa 2 filas) quedaba con un
+  // tileY*1000 menor al del mueble y se dibujaba detrás de él, aunque
+  // visualmente estuviera "encima". Al heredar el depth tile del item base
+  // (recursivo, por si hay varios niveles de apilado) garantizamos que
+  // cualquier hijo quede en la misma fila que su base, y solo la elevación
+  // (que sí es mayor en cada nivel) decide el orden dentro de esa fila.
+  private getBaseDepthTile(
+    tileX: number,
+    tileY: number,
+    worldData: any,
+    rotation: number,
+    parentRoomItemId: string | null | undefined,
+  ): { x: number; y: number } {
+    if (parentRoomItemId) {
+      const parent = this.items.get(parentRoomItemId);
+      if (parent) {
+        return this.getBaseDepthTile(
+          parent.tileX,
+          parent.tileY,
+          parent.item?.worldData,
+          parent.rotation,
+          parent.parentRoomItemId,
+        );
+      }
+    }
+
+    const footprint = getDirectionalFootprint(worldData, rotation);
+    return (
+      toWorldTiles(tileX, tileY, footprint).sort(
+        (a, b) => b.y - a.y || b.x - a.x,
+      )[0] || { x: tileX, y: tileY }
+    );
+  }
+
   getStackTarget(tileX: number, tileY: number) {
     return this.getAll()
       .filter((item) => {
@@ -417,14 +456,13 @@ export default class RoomItemsManager {
 
     if (isSurface || worldObject.wallSide) return;
 
-    const footprint = getDirectionalFootprint(
+    const depthTile = this.getBaseDepthTile(
+      worldObject.tileX,
+      worldObject.tileY,
       worldData,
       worldObject.rotation,
+      worldObject.parentRoomItemId,
     );
-    const depthTile =
-      toWorldTiles(worldObject.tileX, worldObject.tileY, footprint).sort(
-        (a, b) => b.y - a.y || b.x - a.x,
-      )[0] || { x: worldObject.tileX, y: worldObject.tileY };
 
     worldObject.sprite.setDepth(
       depthTile.y * 1000 + depthTile.x + worldObject.elevation * 100,
