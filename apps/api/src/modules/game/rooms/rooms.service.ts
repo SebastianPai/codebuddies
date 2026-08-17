@@ -1070,7 +1070,7 @@ export class RoomsService {
     thumbnailUrl?: string;
   }) {
     return this.backgroundsService.create({
-      name: data.name,
+      translations: [{ languageCode: 'es', name: data.name }],
       imageUrl: data.imageUrl,
       previewUrl: data.thumbnailUrl,
     });

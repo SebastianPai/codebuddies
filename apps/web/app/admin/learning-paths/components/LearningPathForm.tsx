@@ -6,7 +6,11 @@ import { Save, Trash2 } from "lucide-react";
 import { toast } from "react-toastify";
 import { api } from "../../../../utils/api";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
-import { DragReorderList, type DragReorderItem } from "@/shared/ui";
+import { DragReorderList, type DragReorderItem, TranslationsForm, type Translation } from "@/shared/ui";
+
+const INITIAL_TRANSLATIONS: Translation[] = [
+  { languageCode: "es", title: "", description: "" },
+];
 
 interface LearningPathDetail {
   id: string;
@@ -27,8 +31,7 @@ export function LearningPathForm({ pathId }: { pathId?: string }) {
   const t = useTranslation();
   const router = useRouter();
   const [slug, setSlug] = useState("");
-  const [titleEs, setTitleEs] = useState("");
-  const [descriptionEs, setDescriptionEs] = useState("");
+  const [translations, setTranslations] = useState<Translation[]>(INITIAL_TRANSLATIONS);
   const [active, setActive] = useState(true);
   const [sortOrder, setSortOrder] = useState(0);
   const [courseItems, setCourseItems] = useState<DragReorderItem[]>([]);
@@ -50,9 +53,13 @@ export function LearningPathForm({ pathId }: { pathId?: string }) {
       .get<LearningPathDetail>(`/admin/learning-paths/${pathId}`)
       .then((path) => {
         setSlug(path.slug);
-        const es = path.translations.find((tr) => tr.languageCode === "es") ?? path.translations[0];
-        setTitleEs(es?.title ?? "");
-        setDescriptionEs(es?.description ?? "");
+        setTranslations(
+          path.translations.map((tr) => ({
+            languageCode: tr.languageCode,
+            title: tr.title,
+            description: tr.description ?? "",
+          })),
+        );
         setActive(path.active);
         setSortOrder(path.sortOrder);
         setCourseItems(path.courses.map((c) => ({ id: c.id, label: c.title ?? t("common.untitled") })));
@@ -68,7 +75,11 @@ export function LearningPathForm({ pathId }: { pathId?: string }) {
         slug,
         active,
         sortOrder,
-        translations: [{ languageCode: "es", title: titleEs, description: descriptionEs || undefined }],
+        translations: translations.map((tr) => ({
+          languageCode: tr.languageCode,
+          title: tr.title,
+          description: tr.description || undefined,
+        })),
       };
       let id = pathId;
       if (pathId) {
@@ -110,18 +121,13 @@ export function LearningPathForm({ pathId }: { pathId?: string }) {
       </h1>
 
       <div className="grid gap-4 rounded-md border border-zinc-800 bg-[#111111] p-5 md:grid-cols-2">
-        <label className="block">
+        <label className="block md:col-span-2">
           <span className="mb-2 block text-sm text-zinc-400">{t("admin.learningPathSlug")}</span>
           <input value={slug} onChange={(e) => setSlug(e.target.value)} className="w-full rounded-md border border-zinc-800 bg-black px-3 py-3 text-white" />
         </label>
-        <label className="block">
-          <span className="mb-2 block text-sm text-zinc-400">{t("common.title")}</span>
-          <input value={titleEs} onChange={(e) => setTitleEs(e.target.value)} className="w-full rounded-md border border-zinc-800 bg-black px-3 py-3 text-white" />
-        </label>
-        <label className="block md:col-span-2">
-          <span className="mb-2 block text-sm text-zinc-400">{t("common.description")}</span>
-          <textarea value={descriptionEs} onChange={(e) => setDescriptionEs(e.target.value)} rows={3} className="w-full rounded-md border border-zinc-800 bg-black px-3 py-3 text-white" />
-        </label>
+        <div className="md:col-span-2">
+          <TranslationsForm translations={translations} onChange={setTranslations} />
+        </div>
         <label className="flex items-center justify-between rounded-md border border-zinc-800 bg-black px-3 py-3">
           <span className="text-sm font-bold">{t("admin.pricingPlanActive")}</span>
           <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} className="h-5 w-5 accent-yellow-400" />
@@ -167,7 +173,7 @@ export function LearningPathForm({ pathId }: { pathId?: string }) {
       <button
         type="button"
         onClick={() => void save()}
-        disabled={saving || !slug || !titleEs}
+        disabled={saving || !slug || !translations.some((tr) => tr.title.trim())}
         className="inline-flex items-center gap-2 rounded-md bg-yellow-400 px-4 py-3 font-bold text-black disabled:opacity-50"
       >
         <Save size={16} />

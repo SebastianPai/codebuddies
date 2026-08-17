@@ -1,20 +1,33 @@
+import { Type } from 'class-transformer';
 import {
+  IsArray,
   IsBoolean,
   IsEnum,
   IsInt,
   IsObject,
   IsOptional,
   IsString,
+  ValidateNested,
 } from 'class-validator';
 import { BackgroundAccessType, Prisma } from '@prisma/client';
 
-export class UpsertBackgroundDto {
+export class BackgroundTranslationDto {
   @IsString()
-  name!: string;
+  languageCode: string;
+
+  @IsString()
+  name: string;
 
   @IsOptional()
   @IsString()
   description?: string;
+}
+
+export class UpsertBackgroundDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => BackgroundTranslationDto)
+  translations: BackgroundTranslationDto[];
 
   @IsString()
   imageUrl!: string;

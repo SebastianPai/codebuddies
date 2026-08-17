@@ -5,6 +5,7 @@ import { Image, Plus, Save, Search, Trash2 } from "lucide-react";
 import { toast } from "react-toastify";
 import { api } from "../../../utils/api";
 import { useTranslation } from "../../../src/i18n/useTranslation";
+import { TranslationsForm, type Translation } from "@/shared/ui";
 
 type AccessType = "FREE" | "PURCHASABLE" | "PREMIUM" | "EVENT";
 
@@ -16,10 +17,17 @@ type BackgroundCategory = {
   sortOrder: number;
 };
 
+type BackgroundTranslationDto = {
+  name: string;
+  description: string | null;
+  language: { code: string };
+};
+
 type RoomBackground = {
   id: string;
   name: string;
   description?: string;
+  translations?: BackgroundTranslationDto[];
   imageUrl: string;
   previewUrl?: string;
   categoryId?: string | null;
@@ -41,8 +49,7 @@ type LayoutOption = {
 
 type BackgroundFormState = {
   id?: string;
-  name: string;
-  description: string;
+  translations: Translation[];
   imageUrl: string;
   previewUrl: string;
   categoryId: string;
@@ -65,8 +72,7 @@ type BackgroundMetadata = {
 };
 
 const emptyForm: BackgroundFormState = {
-  name: "",
-  description: "",
+  translations: [{ languageCode: "es", title: "", description: "" }],
   imageUrl: "",
   previewUrl: "",
   categoryId: "",
@@ -122,8 +128,13 @@ export default function AdminBackgroundsPage() {
   const edit = (background: RoomBackground) => {
     setForm({
       id: background.id,
-      name: background.name,
-      description: background.description ?? "",
+      translations: background.translations?.length
+        ? background.translations.map((tr) => ({
+            languageCode: tr.language.code,
+            title: tr.name,
+            description: tr.description ?? "",
+          }))
+        : [{ languageCode: "es", title: background.name, description: background.description ?? "" }],
       imageUrl: background.imageUrl,
       previewUrl: background.previewUrl ?? background.imageUrl,
       categoryId: background.categoryId ?? background.category?.id ?? "",
@@ -189,7 +200,8 @@ export default function AdminBackgroundsPage() {
   };
 
   const submit = async () => {
-    if (!form.name.trim() || !form.imageUrl.trim()) {
+    const baseName = form.translations.find((tr) => tr.languageCode === "es")?.title;
+    if (!baseName?.trim() || !form.imageUrl.trim()) {
       toast.error(t("admin.nameImageRequiredError"));
       return;
     }
@@ -207,8 +219,11 @@ export default function AdminBackgroundsPage() {
     setSaving(true);
     try {
       const payload = {
-        name: form.name.trim(),
-        description: form.description.trim() || undefined,
+        translations: form.translations.map((tr) => ({
+          languageCode: tr.languageCode,
+          name: tr.title.trim(),
+          description: tr.description?.trim() || undefined,
+        })),
         imageUrl: form.imageUrl.trim(),
         previewUrl: form.previewUrl.trim() || form.imageUrl.trim(),
         categoryId: form.categoryId || null,
@@ -280,8 +295,15 @@ export default function AdminBackgroundsPage() {
       <div className="mt-6 grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
         <section className="rounded-xl border border-zinc-800 bg-[#0c0c0c] p-5">
           <h2 className="text-xl font-black">{form.id ? t("admin.editBackgroundTitle") : t("admin.createBackgroundTitle")}</h2>
-          <div className="mt-5 grid gap-4 md:grid-cols-2">
-            <Field label={t("items.name")} value={form.name} onChange={(name) => setForm((current) => ({ ...current, name }))} />
+
+          <div className="mt-5">
+            <TranslationsForm
+              translations={form.translations}
+              onChange={(translations) => setForm((current) => ({ ...current, translations }))}
+            />
+          </div>
+
+          <div className="mt-4">
             <Field
               label={t("admin.orderLabel")}
               type="number"
@@ -289,15 +311,6 @@ export default function AdminBackgroundsPage() {
               onChange={(sortOrder) => setForm((current) => ({ ...current, sortOrder: Number(sortOrder) }))}
             />
           </div>
-
-          <label className="mt-4 block">
-            <span className="mb-2 block text-sm text-zinc-400">{t("items.description")}</span>
-            <textarea
-              value={form.description}
-              onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
-              className="min-h-24 w-full rounded-md border border-zinc-800 bg-[#111] p-3"
-            />
-          </label>
 
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <Select

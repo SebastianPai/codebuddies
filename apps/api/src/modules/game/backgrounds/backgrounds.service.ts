@@ -9,6 +9,14 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { UpsertBackgroundDto } from './dto/upsert-background.dto';
 import { UpsertBackgroundCategoryDto } from './dto/upsert-background-category.dto';
 
+// name/description en RoomBackground quedan sincronizados desde la
+// traducción "es" (o la primera si no hay es) para no romper a los
+// lectores que ya usan esos campos directo (listAdmin, mapAccess, etc.),
+// igual que se resolvió antes para RoomLayout/RoomLayoutTranslation.
+function pickCanonicalTranslation(translations: UpsertBackgroundDto['translations']) {
+  return translations.find((t) => t.languageCode === 'es') ?? translations[0];
+}
+
 @Injectable()
 export class BackgroundsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -158,19 +166,88 @@ export class BackgroundsService {
         ...(query.accessType ? { accessType: query.accessType } : {}),
         ...(query.active ? { active: query.active === 'true' } : {}),
       },
-      include: { category: true, _count: { select: { rooms: true, owners: true } } },
+      include: {
+        category: true,
+        translations: { include: { language: true } },
+        _count: { select: { rooms: true, owners: true } },
+      },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
     });
   }
 
   create(dto: UpsertBackgroundDto) {
-    return this.prisma.roomBackground.create({ data: this.backgroundData(dto) });
+    if (!dto.translations?.length) {
+      throw new BadRequestException(
+        'Se requiere al menos una traducción para crear un fondo',
+      );
+    }
+
+    const canonical = pickCanonicalTranslation(dto.translations);
+    return this.prisma.roomBackground.create({
+      data: {
+        ...this.backgroundData(dto),
+        name: canonical.name.trim(),
+        description: canonical.description ?? undefined,
+        translations: {
+          create: dto.translations.map((t) => ({
+            language: { connect: { code: t.languageCode } },
+            name: t.name.trim(),
+            description: t.description ?? null,
+          })),
+        },
+      },
+      include: this.backgroundInclude(),
+    });
   }
 
-  update(id: string, dto: UpsertBackgroundDto) {
+  async update(id: string, dto: UpsertBackgroundDto) {
+    if (dto.translations?.length) {
+      const existing = await this.prisma.roomBackground.findUnique({
+        where: { id },
+        include: { translations: true },
+      });
+      if (!existing) throw new NotFoundException('Fondo no encontrado');
+
+      for (const t of dto.translations) {
+        const language = await this.prisma.language.findUnique({
+          where: { code: t.languageCode },
+        });
+        if (!language) continue;
+
+        const existingTranslation = existing.translations.find(
+          (tr) => tr.languageId === language.id,
+        );
+
+        if (existingTranslation) {
+          await this.prisma.roomBackgroundTranslation.update({
+            where: { id: existingTranslation.id },
+            data: { name: t.name.trim(), description: t.description ?? null },
+          });
+        } else {
+          await this.prisma.roomBackgroundTranslation.create({
+            data: {
+              backgroundId: id,
+              languageId: language.id,
+              name: t.name.trim(),
+              description: t.description ?? null,
+            },
+          });
+        }
+      }
+    }
+
+    // Igual que en LayoutsService.updateLayout: sin "es" en este PATCH
+    // puntual, el canónico existente no se toca.
+    const canonical = dto.translations?.find((t) => t.languageCode === 'es');
+
     return this.prisma.roomBackground.update({
       where: { id },
-      data: this.backgroundData(dto),
+      data: {
+        ...this.backgroundData(dto),
+        name: canonical ? canonical.name.trim() : undefined,
+        description: canonical ? canonical.description ?? undefined : undefined,
+      },
+      include: this.backgroundInclude(),
     });
   }
 
@@ -200,8 +277,6 @@ export class BackgroundsService {
   private backgroundData(dto: UpsertBackgroundDto) {
     const accessType = dto.accessType ?? (dto.isPremium ? BackgroundAccessType.PREMIUM : BackgroundAccessType.FREE);
     return {
-      name: dto.name,
-      description: dto.description,
       imageUrl: dto.imageUrl,
       previewUrl: dto.previewUrl || dto.imageUrl,
       categoryId: dto.categoryId || null,
