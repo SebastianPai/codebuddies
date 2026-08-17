@@ -44,6 +44,25 @@ export default function EditLayoutPage() {
       .catch(console.error);
   }, [id]);
 
+  const handleJsonFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    e.target.value = "";
+    if (!selectedFile) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = typeof reader.result === "string" ? reader.result : "";
+      try {
+        JSON.parse(text);
+        setJson(text);
+      } catch {
+        alert(t("admin.invalidJsonFallbackError"));
+      }
+    };
+    reader.onerror = () => alert(t("admin.invalidJsonFallbackError"));
+    reader.readAsText(selectedFile);
+  };
+
   const handleUpdate = async () => {
     const baseName = translations.find((tr) => tr.languageCode === "es")?.title;
     if (!baseName || !json) {
@@ -104,6 +123,15 @@ export default function EditLayoutPage() {
         <div>
           <label className="text-sm text-zinc-400 block mb-2">
             {t("admin.layoutJsonLabel")}
+          </label>
+          <label className="mb-3 inline-flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-700 bg-[#111] px-4 py-2 text-sm text-zinc-300 hover:border-yellow-500 hover:text-yellow-400">
+            {t("admin.uploadJsonFileButton")}
+            <input
+              type="file"
+              accept=".json,application/json"
+              onChange={handleJsonFileChange}
+              className="hidden"
+            />
           </label>
           <textarea
             value={json}

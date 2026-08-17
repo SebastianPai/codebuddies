@@ -62,6 +62,28 @@ export default function NewLayoutPage() {
 
   const triggerFileInput = () => fileInputRef.current?.click();
 
+  // Subir el .json exportado de Tiled directamente en vez de tener que
+  // copiar/pegar el texto a mano en el textarea (que para un mapa real
+  // termina siendo miles de líneas).
+  const handleJsonFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    e.target.value = ""; // permite volver a elegir el mismo archivo después
+    if (!selectedFile) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = typeof reader.result === "string" ? reader.result : "";
+      try {
+        JSON.parse(text);
+        setJson(text);
+      } catch {
+        alert(t("admin.invalidJsonFallbackError"));
+      }
+    };
+    reader.onerror = () => alert(t("admin.invalidJsonFallbackError"));
+    reader.readAsText(selectedFile);
+  };
+
   // Subir imagen a /uploads (igual que en ItemForm)
   const uploadImage = async (): Promise<string | null> => {
     if (!file) return null;
@@ -179,6 +201,15 @@ export default function NewLayoutPage() {
           <div>
             <label className="text-sm text-zinc-400 block mb-2">
               {t("admin.layoutJsonLabel")}
+            </label>
+            <label className="mb-3 inline-flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-700 bg-[#111] px-4 py-2 text-sm text-zinc-300 hover:border-yellow-500 hover:text-yellow-400">
+              {t("admin.uploadJsonFileButton")}
+              <input
+                type="file"
+                accept=".json,application/json"
+                onChange={handleJsonFileChange}
+                className="hidden"
+              />
             </label>
             <textarea
               value={json}
