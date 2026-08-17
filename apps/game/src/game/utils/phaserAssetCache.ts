@@ -1,6 +1,19 @@
 import Phaser from "phaser";
+import { getApiUrl, getAssetsUrl } from "../../config/env";
 
 const pendingTextures = new Map<string, Promise<string>>();
+
+// Si el navegador del usuario no puede pedir el asset directo a R2/Cloudflare
+// (visto en producción: falla en todos los navegadores de una PC puntual
+// pero funciona desde otra red -- algo local del equipo/red del usuario, no
+// del bucket, verificado con curl repetidas veces desde el servidor), lo
+// re-pedimos a través de nuestro propio backend, que sirve el mismo archivo
+// bajo un dominio que sabemos que sí le funciona al cliente.
+function toProxyUrl(sourceUrl: string): string | null {
+  const assetsBase = getAssetsUrl();
+  if (!assetsBase || !sourceUrl.startsWith(assetsBase)) return null;
+  return `${getApiUrl()}/uploads/proxy?url=${encodeURIComponent(sourceUrl)}`;
+}
 
 export function canonicalAssetKey(url?: string | null) {
   if (!url) return "";
@@ -90,6 +103,20 @@ export function loadTextureOnce(
           );
           await delay(LOAD_RETRY_DELAY_MS * attempt);
         }
+      }
+    }
+
+    const proxyUrl = toProxyUrl(sourceUrl);
+    if (proxyUrl) {
+      try {
+        console.warn(`⚠️ Carga directa falló, probando vía proxy propio:`, sourceUrl);
+        await loadImageOnce(scene, key, proxyUrl);
+        if (options.pixelArt !== false && scene.textures.exists(key)) {
+          scene.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
+        }
+        return key;
+      } catch (err) {
+        lastError = err;
       }
     }
 
