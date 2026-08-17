@@ -125,6 +125,11 @@ interface Props {
   onFootprintsChange: (value: FootprintMap) => void;
   onSurfacesChange: (value: FootprintMap) => void;
   onSyncDirectionsChange: (value: boolean) => void;
+  // Cuántas caras tiene el spritesheet subido (1 = una sola imagen estática,
+  // 4 = una columna por dirección NORTH/EAST/SOUTH/WEST). Antes esto asumía
+  // siempre 4 acá adentro sin importar el toggle "una sola cara" del
+  // formulario, así que el preview salía recortado igual.
+  faceCount?: number;
 }
 
 export default function FootprintEditor({
@@ -137,10 +142,11 @@ export default function FootprintEditor({
   onFootprintsChange,
   onSurfacesChange,
   onSyncDirectionsChange,
+  faceCount = 4,
 }: Props) {
   const t = useTranslation();
   const [mode, setMode] = useState<Mode>("footprint");
-  const frameWidth = Math.max(1, Math.floor((imageWidth || 4) / 4));
+  const frameWidth = Math.max(1, Math.floor((imageWidth || faceCount) / faceCount));
   const frameHeight = Math.max(1, imageHeight || 1);
 
   const updateDirection = (
@@ -265,7 +271,13 @@ export default function FootprintEditor({
                         backgroundImage: `url(${imageUrl})`,
                         backgroundRepeat: "no-repeat",
                         backgroundSize: `${imageWidth}px ${frameHeight}px`,
-                        backgroundPosition: `-${frameWidth * direction.frame}px 0`,
+                        // Con una sola cara, las 4 direcciones muestran la
+                        // misma imagen completa (frame 0) en vez de
+                        // multiplicar por un frameWidth que ya es el ancho
+                        // total -- si no, direction.frame > 0 apuntaría
+                        // fuera de los límites de la imagen.
+                        backgroundPosition:
+                          faceCount <= 1 ? "0 0" : `-${frameWidth * direction.frame}px 0`,
                         imageRendering: "pixelated",
                       }}
                     />

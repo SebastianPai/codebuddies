@@ -780,6 +780,7 @@ export default function ItemEditor({
             onFootprintsChange={setFootprints}
             onSurfacesChange={setSurfaces}
             onSyncDirectionsChange={setSyncDirections}
+            faceCount={singleFace ? 1 : 4}
           />
         </section>
       )}
