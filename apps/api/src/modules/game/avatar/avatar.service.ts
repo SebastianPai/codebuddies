@@ -63,6 +63,20 @@ export class AvatarService {
   }
 
   // ────────────────────────────────────────────────
+  // Crea el avatar si no existe (con los defaults por slot ya
+  // auto-equipados) y devuelve el avatar completo. Pensado para el punto
+  // de entrada del juego (ver player.handler.ts ensureDefaultAvatar) --
+  // reemplaza un intento anterior que equipaba un itemId hardcodeado "1"
+  // (nunca un UUID real), fallaba siempre con ForbiddenException, y por
+  // eso el avatar terminaba completamente vacío/invisible en todos los
+  // slots, no solo BODY.
+  // ────────────────────────────────────────────────
+  async getOrCreateAvatarWithDefaults(userId: string) {
+    await this.ensureAvatar(userId);
+    return this.getUserAvatar(userId);
+  }
+
+  // ────────────────────────────────────────────────
   // Asegura que el avatar existe (lo usas en equip, update, etc)
   // ────────────────────────────────────────────────
   private async ensureAvatar(userId: string) {
@@ -77,9 +91,41 @@ export class AvatarService {
           skinColor: 0, // o el color por defecto que prefieras
         },
       });
+
+      // Solo en la creación del avatar (nunca sobre uno ya existente):
+      // auto-equipa el item marcado como default de cada slot que tenga
+      // uno configurado, para que un usuario que nunca pasó por el editor
+      // de avatar no quede con partes invisibles. También se le otorga
+      // como UserItem propio -- "equipado" en este código siempre implica
+      // "poseído" (ver equipItem), y así el item también le aparece en su
+      // inventario, no solo puesto.
+      await this.grantDefaultItems(userId, avatar.id);
     }
 
     return avatar;
+  }
+
+  private async grantDefaultItems(userId: string, avatarId: string) {
+    const defaults = await this.prisma.item.findMany({
+      where: { isDefaultForSlot: { not: null } },
+    });
+
+    for (const item of defaults) {
+      const slot = item.isDefaultForSlot;
+      if (!slot) continue;
+
+      await this.prisma.userItem.upsert({
+        where: { userId_itemId: { userId, itemId: item.id } },
+        update: {},
+        create: { userId, itemId: item.id, amount: 1 },
+      });
+
+      await this.prisma.avatarSlot.upsert({
+        where: { avatarId_slot: { avatarId, slot } },
+        update: {},
+        create: { avatarId, slot, itemId: item.id },
+      });
+    }
   }
 
   async equipItem(

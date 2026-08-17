@@ -58,6 +58,14 @@ export class ItemsController {
     return this.itemsService.removeItem(id);
   }
 
+  @Patch(':id/default-for-slot')
+  async setDefaultForSlot(
+    @Param('id') id: string,
+    @Body('isDefault') isDefault: boolean,
+  ) {
+    return this.itemsService.setDefaultForSlot(id, Boolean(isDefault));
+  }
+
   // ───────────── Avatar Items ─────────────
   @Post('avatar')
   async createAvatarItem(@Body() dto: CreateAvatarItemDto) {

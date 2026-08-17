@@ -140,7 +140,13 @@ export class AvatarHandler {
     if (!userId) return;
 
     try {
-      const dbAvatar = await this.avatarService.getUserAvatar(userId);
+      // getOrCreateAvatarWithDefaults (no getUserAvatar a secas): antes,
+      // un usuario que nunca había abierto el editor de avatar hacía que
+      // esto tirara NotFoundException y se rindiera directo con
+      // avatar:get:error, en vez de crearle uno con los defaults por slot
+      // ya equipados (ver player.handler.ts ensureDefaultAvatar).
+      const dbAvatar =
+        await this.avatarService.getOrCreateAvatarWithDefaults(userId);
       const parsedAvatar = this.parseAvatar(dbAvatar);
 
       // Guardar en caché

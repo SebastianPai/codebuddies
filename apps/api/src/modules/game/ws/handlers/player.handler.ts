@@ -167,26 +167,14 @@ export class PlayerHandler {
     if (!dbAvatar) {
       this.logger.log(`Creando avatar default para ${userId}`);
       try {
-        await this.avatarService.updateAvatar(userId, {
-          skinColor: 0xffffff,
-          slots: [
-            { slot: 'BODY', itemId: '1' },
-            { slot: 'HEAD', itemId: '1' },
-            { slot: 'HAIR', itemId: '1' },
-            { slot: 'EYES', itemId: '1' },
-            { slot: 'SHIRT', itemId: '1' },
-            { slot: 'LEGS', itemId: '1' },
-            { slot: 'SHOES', itemId: '1' },
-            { slot: 'LEFT_ARM', itemId: '0' },
-            { slot: 'RIGHT_ARM', itemId: '0' },
-            { slot: 'ACCESSORY_HEAD', itemId: '0' },
-            { slot: 'ACCESSORY_FACE', itemId: '0' },
-            { slot: 'ACCESSORY_BACK', itemId: '0' },
-            { slot: 'ACCESSORY_LEFT', itemId: '0' },
-            { slot: 'ACCESSORY_RIGHT', itemId: '0' },
-          ],
-        });
-        dbAvatar = await this.avatarService.getUserAvatar(userId);
+        // Antes esto intentaba equipar un itemId hardcodeado "1" (nunca un
+        // UUID real de la base), lo cual fallaba siempre con
+        // ForbiddenException ("no tienes este item") y dejaba el avatar
+        // completamente vacío -- ver AvatarService.getOrCreateAvatarWithDefaults,
+        // que auto-equipa lo que esté marcado como default por slot
+        // (Item.isDefaultForSlot, configurable desde /admin/items).
+        dbAvatar =
+          await this.avatarService.getOrCreateAvatarWithDefaults(userId);
       } catch (err) {
         this.logger.error('Error creando avatar default', err);
         dbAvatar = { skinColor: 0xffffff, slots: [] };

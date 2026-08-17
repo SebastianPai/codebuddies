@@ -770,6 +770,14 @@ model Item {
   layer  Int @default(0)
   rarity Int @default(0)
 
+  // Si está seteado, este item se auto-equipa (y se otorga como
+  // UserItem propio) a todo Avatar nuevo que no tenga nada elegido para
+  // ese slot -- evita el "cuerpo invisible" cuando un usuario nunca pasó
+  // por el editor de avatar. A lo sumo un item por AvatarSlotType debería
+  // tener esto seteado (se aplica en la capa de servicio, no como
+  // constraint de base).
+  isDefaultForSlot AvatarSlotType?
+
   colorable Boolean @default(false)
 
   // economy

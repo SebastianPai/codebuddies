@@ -248,6 +248,47 @@ export class ItemsService {
     return item;
   }
 
+  // Marca/desmarca este item como el default que se auto-equipa a todo
+  // avatar nuevo para su slot (ver AvatarService.grantDefaultItems). Como
+  // mucho un item por slot puede tener esto activo: al marcar uno, se le
+  // saca el flag a cualquier otro que lo tuviera para ese mismo slot.
+  async setDefaultForSlot(id: string, isDefault: boolean) {
+    const item = await this.prisma.item.findUnique({
+      where: { id },
+      include: { avatarData: true },
+    });
+
+    if (!item) {
+      throw new NotFoundException(`Item con ID ${id} no encontrado`);
+    }
+
+    if (!isDefault) {
+      return this.prisma.item.update({
+        where: { id },
+        data: { isDefaultForSlot: null },
+      });
+    }
+
+    const slot = item.avatarData?.slot;
+    if (!slot) {
+      throw new BadRequestException(
+        'Solo un item de avatar (con slot definido) puede ser el default',
+      );
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.item.updateMany({
+        where: { isDefaultForSlot: slot, NOT: { id } },
+        data: { isDefaultForSlot: null },
+      });
+
+      return tx.item.update({
+        where: { id },
+        data: { isDefaultForSlot: slot },
+      });
+    });
+  }
+
   async updateItem(id: string, dto: UpdateItemDto) {
     const {
       slot,

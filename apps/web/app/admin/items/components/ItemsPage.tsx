@@ -12,6 +12,7 @@ type Item = {
   rarity: number;
   coinsPrice?: number;
   shopVisible?: boolean;
+  isDefaultForSlot?: string | null;
   avatarData?: { slot: string };
   worldData?: {
     kind: string;
@@ -49,6 +50,21 @@ export default function ItemsPage() {
       loadItems();
     } catch (err) {
       console.error(err);
+    }
+  }
+
+  async function toggleDefault(item: Item) {
+    const isCurrentlyDefault = Boolean(
+      item.avatarData?.slot && item.isDefaultForSlot === item.avatarData.slot,
+    );
+    try {
+      await api.patch(`/items/${item.id}/default-for-slot`, {
+        isDefault: !isCurrentlyDefault,
+      });
+      loadItems();
+    } catch (err) {
+      console.error(err);
+      alert(t("items.setDefaultError"));
     }
   }
 
@@ -108,6 +124,21 @@ export default function ItemsPage() {
               <p className="text-xs text-zinc-400">
                 {RARITY_LABELS[item.rarity] || t("items.unknownRarity")}
               </p>
+
+              {slot && (
+                <button
+                  onClick={() => toggleDefault(item)}
+                  className={`mt-2 w-full rounded px-2 py-1 text-xs font-semibold transition ${
+                    item.isDefaultForSlot === slot
+                      ? "bg-yellow-400 text-black hover:bg-yellow-300"
+                      : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200"
+                  }`}
+                >
+                  {item.isDefaultForSlot === slot
+                    ? t("items.isDefaultForSlotBadge", { slot })
+                    : t("items.setAsDefaultButton", { slot })}
+                </button>
+              )}
 
               <div className="flex justify-between mt-4 text-sm">
                 <Link
