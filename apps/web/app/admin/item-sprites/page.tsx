@@ -3,7 +3,9 @@
 import { Suspense, useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { Combobox } from "@headlessui/react";
+import { HelpCircle } from "lucide-react";
 import { api } from "@/shared/api/client";
+import { Tooltip } from "@/shared/ui";
 import { useTranslation } from "../../../src/i18n/useTranslation";
 
 // Tipo real que devuelve el backend ahora
@@ -24,6 +26,7 @@ type SpriteFilter = "all" | "with" | "without";
 type Animation = { id: string; type: string; variant: string };
 
 type ItemSpriteRecord = {
+  id: string;
   imageUrl: string;
   frameWidth: number;
   frameHeight: number;
@@ -65,6 +68,26 @@ interface SpriteConfig {
   rowIndex: number;
 }
 
+function SectionCard({
+  title,
+  hint,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-2xl border border-gray-800 bg-gray-900/40 p-5 space-y-4">
+      <div>
+        <h2 className="text-sm font-bold uppercase tracking-wide text-gray-400">{title}</h2>
+        {hint && <p className="mt-1 text-xs text-gray-500">{hint}</p>}
+      </div>
+      {children}
+    </section>
+  );
+}
+
 function DirectionButton({
   value,
   arrow,
@@ -82,7 +105,7 @@ function DirectionButton({
       type="button"
       title={value}
       onClick={() => setConfig((c) => ({ ...c, direction: value }))}
-      className={`h-8 rounded flex items-center justify-center text-sm font-bold transition-colors ${
+      className={`h-9 rounded flex items-center justify-center text-sm font-bold transition-colors ${
         active
           ? "bg-indigo-600 text-white"
           : "bg-gray-800 text-gray-300 hover:bg-gray-700 border border-gray-700"
@@ -130,6 +153,16 @@ function ItemSpriteEditor() {
   const [file, setFile] = useState<File | null>(null);
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [rows, setRows] = useState(1);
+
+  // Sprite ya guardado en la base para el item+animación+dirección
+  // actualmente elegidos (si existe). Antes el editor nunca revisaba esto:
+  // siempre intentaba CREAR uno nuevo al guardar, y el backend rechazaba
+  // con 400 ("ya existe") si ya había uno -- así que "editar" un sprite
+  // existente no funcionaba en absoluto, ni se veía lo que ya estaba
+  // guardado al abrir el editor.
+  const [existingSpriteId, setExistingSpriteId] = useState<string | null>(null);
+  const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null);
+  const [loadingExisting, setLoadingExisting] = useState(false);
 
   const [showBody, setShowBody] = useState(true);
   const [bodyId, setBodyId] = useState("");
@@ -244,37 +277,99 @@ function ItemSpriteEditor() {
     return t("items.baseItemFallback", { id: item.id.slice(0, 8) });
   };
 
-  // Cargar imagen
+  // Buscar si YA existe un sprite guardado para el item + animación +
+  // dirección elegidos. Si existe, precarga su config e imagen (modo
+  // edición); si no, deja el editor listo para crear uno nuevo.
   useEffect(() => {
-    if (!file) {
-      setImage(null);
-      setRows(1);
+    setExistingSpriteId(null);
+    setExistingImageUrl(null);
+
+    if (!config.itemId || !config.animationId) return;
+
+    let cancelled = false;
+    setLoadingExisting(true);
+    api
+      .get<ItemSpriteRecord[]>(
+        `/item-sprites?itemId=${config.itemId}&animationId=${config.animationId}`,
+      )
+      .then((sprites) => {
+        if (cancelled) return;
+        const match = sprites.find((s) => s.direction === config.direction);
+        if (match) {
+          setExistingSpriteId(match.id);
+          setExistingImageUrl(match.imageUrl);
+          setConfig((c) => ({
+            ...c,
+            frameWidth: match.frameWidth,
+            frameHeight: match.frameHeight,
+            framesCount: match.framesCount,
+            rowIndex: match.row,
+          }));
+          setFile(null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setExistingSpriteId(null);
+          setExistingImageUrl(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingExisting(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config.itemId, config.animationId, config.direction]);
+
+  // Cargar imagen a previsualizar: un archivo nuevo tiene prioridad (el
+  // usuario está reemplazando), si no hay archivo nuevo pero hay un sprite
+  // ya guardado, se carga esa imagen desde su URL.
+  useEffect(() => {
+    if (file) {
+      const img = new Image();
+      img.src = URL.createObjectURL(file);
+
+      img.onload = () => {
+        setImage(img);
+        const detectedFrames = Math.floor(img.width / config.frameWidth);
+        const detectedRows = Math.floor(img.height / config.frameHeight);
+        setConfig((prev) => ({
+          ...prev,
+          framesCount: Math.max(1, detectedFrames || 8),
+        }));
+        setRows(Math.max(1, detectedRows || 1));
+        setCurrentFrame(0);
+        setError(null);
+      };
+
+      img.onerror = () => {
+        setError(t("items.imageLoadError"));
+        setImage(null);
+      };
+
+      return () => URL.revokeObjectURL(img.src);
+    }
+
+    if (existingImageUrl) {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        setImage(img);
+        setRows(Math.max(1, Math.floor(img.height / config.frameHeight) || 1));
+        setCurrentFrame(0);
+        setError(null);
+      };
+      img.onerror = () => setError(t("items.imageLoadError"));
+      img.src = existingImageUrl;
       return;
     }
 
-    const img = new Image();
-    img.src = URL.createObjectURL(file);
-
-    img.onload = () => {
-      setImage(img);
-      const detectedFrames = Math.floor(img.width / config.frameWidth);
-      const detectedRows = Math.floor(img.height / config.frameHeight);
-      setConfig((prev) => ({
-        ...prev,
-        framesCount: Math.max(1, detectedFrames || 8),
-      }));
-      setRows(Math.max(1, detectedRows || 1));
-      setCurrentFrame(0);
-      setError(null);
-    };
-
-    img.onerror = () => {
-      setError(t("items.imageLoadError"));
-      setImage(null);
-    };
-
-    return () => URL.revokeObjectURL(img.src);
-  }, [file, config.frameWidth, config.frameHeight]);
+    setImage(null);
+    setRows(1);
+  }, [file, existingImageUrl, config.frameWidth, config.frameHeight]);
 
   // Dibujar frame
   const drawFrame = useCallback(() => {
@@ -373,9 +468,10 @@ function ItemSpriteEditor() {
     drawFrame();
   }, [drawFrame]);
 
-  // Guardar sprite
+  // Guardar sprite: actualiza el existente (PATCH) si ya había uno para
+  // este item+animación+dirección, o crea uno nuevo (POST) si no.
   const handleSave = async () => {
-    if (!file || !image || !config.itemId || !config.animationId) {
+    if (!config.itemId || !config.animationId || (!file && !existingImageUrl)) {
       alert(t("items.missingSpriteDataError"));
       return;
     }
@@ -384,13 +480,16 @@ function ItemSpriteEditor() {
       const anim = animations.find((a) => a.id === config.animationId);
       if (!anim) throw new Error(t("items.animationNotFoundError"));
 
-      const folder = `items/${config.itemId}/${anim.type}/${anim.variant}/${config.direction.toLowerCase()}`;
+      let imageUrl = existingImageUrl;
 
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("folder", folder);
-
-      const { url: imageUrl } = await api.post<{ url: string }>("/uploads", formData);
+      if (file) {
+        const folder = `items/${config.itemId}/${anim.type}/${anim.variant}/${config.direction.toLowerCase()}`;
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("folder", folder);
+        const uploaded = await api.post<{ url: string }>("/uploads", formData);
+        imageUrl = uploaded.url;
+      }
 
       const spriteData = {
         itemId: config.itemId,
@@ -403,11 +502,23 @@ function ItemSpriteEditor() {
         row: config.rowIndex,
       };
 
-      await api.post("/item-sprites", spriteData);
+      if (existingSpriteId) {
+        await api.patch(`/item-sprites/${existingSpriteId}`, spriteData);
+      } else {
+        const created = await api.post<{ id: string }>("/item-sprites", spriteData);
+        setExistingSpriteId(created.id);
+      }
 
       alert(t("items.spriteSavedSuccess"));
       setFile(null);
-      setImage(null);
+      setExistingImageUrl(imageUrl);
+      setItems((prev) =>
+        prev.map((it) =>
+          it.id === config.itemId
+            ? { ...it, sprites: [...(it.sprites ?? []), { id: existingSpriteId ?? "new" }] }
+            : it,
+        ),
+      );
     } catch (err: any) {
       alert(t("common.errorWithMessage", { message: err.message || t("items.unknownError") }));
       console.error(err);
@@ -423,15 +534,17 @@ function ItemSpriteEditor() {
         : t("items.baseItemShort")
     : "";
 
+  const selectedAnimation = animations.find((a) => a.id === config.animationId);
+
   return (
-    <div className="min-h-screen bg-gray-950 text-gray-100 p-6 md:p-10 space-y-8">
-      <header className="flex items-center justify-between">
+    <div className="min-h-screen bg-gray-950 text-gray-100 p-6 md:p-10 space-y-6">
+      <header>
         <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
           {t("items.spriteEditorTitle")} <span className="text-yellow-400">{t("items.byItemLabel")}</span>
         </h1>
-        <div className="text-sm opacity-70">
-          {image ? `${image.width}×${image.height}` : t("items.noImage")}
-        </div>
+        <p className="mt-1 text-sm text-gray-500">
+          {t("items.configureSpriteElsewhereHint")}
+        </p>
       </header>
 
       {error && (
@@ -440,267 +553,312 @@ function ItemSpriteEditor() {
         </div>
       )}
 
-      {/* Filtro por estado de sprite */}
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs uppercase tracking-wide opacity-60">
-          {t("items.spriteFilterLabel")}
-        </span>
-        {(["all", "with", "without"] as SpriteFilter[]).map((option) => (
-          <button
-            key={option}
-            type="button"
-            onClick={() => setSpriteFilter(option)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-              spriteFilter === option
-                ? "border-indigo-500 bg-indigo-600/40 text-white"
-                : "border-gray-700 bg-gray-800/60 text-gray-300 hover:border-gray-500"
-            }`}
-          >
-            {option === "all"
-              ? t("items.spriteFilterAllLabel")
-              : option === "with"
-                ? t("items.spriteFilterWithLabel")
-                : t("items.spriteFilterWithoutLabel")}
-          </button>
-        ))}
-      </div>
-
-      {/* Controles principales */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {/* Combobox Items */}
-        <Combobox
-          value={config.itemId}
-          onChange={(value) =>
-            setConfig((c) => ({ ...c, itemId: value ?? "" }))
-          }
-        >
-          <div className="relative">
-            <Combobox.Input
-              className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              displayValue={(itemId: string) => {
-                const item = items.find((i) => i.id === itemId);
-                return item ? getItemDisplayName(item) : "";
-              }}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t("items.searchItemPlaceholder")}
-            />
-            <Combobox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto bg-gray-800 border border-gray-700 rounded-md shadow-2xl">
-              {filteredItems.length === 0 && searchQuery ? (
-                <div className="px-4 py-2 text-gray-400">{t("items.noResults")}</div>
-              ) : (
-                filteredItems.map((item) => (
-                  <Combobox.Option
-                    key={item.id}
-                    value={item.id}
-                    className={({ active }) =>
-                      `cursor-pointer px-4 py-2 flex items-center gap-3 ${
-                        active ? "bg-indigo-600/40" : ""
-                      }`
-                    }
-                  >
-                    {item.imageUrl ? (
-                      <img
-                        src={item.imageUrl}
-                        alt={getItemDisplayName(item)}
-                        className="w-8 h-8 object-contain rounded bg-gray-900/40"
-                        onError={(e) =>
-                          (e.currentTarget.style.display = "none")
-                        }
-                      />
-                    ) : (
-                      <div className="w-8 h-8 bg-gray-700 rounded flex items-center justify-center text-xs">
-                        ?
-                      </div>
-                    )}
-                    <span className="truncate">{getItemDisplayName(item)}</span>
-                  </Combobox.Option>
-                ))
-              )}
-            </Combobox.Options>
-          </div>
-        </Combobox>
-
-        <select
-          value={config.animationId}
-          onChange={(e) =>
-            setConfig((c) => ({ ...c, animationId: e.target.value }))
-          }
-          className="bg-gray-800 border border-gray-700 rounded px-3 py-2"
-        >
-          <option value="">{t("items.selectAnimationOption")}</option>
-          {animations.map((anim) => (
-            <option key={anim.id} value={anim.id}>
-              {anim.type} — {anim.variant}
-            </option>
-          ))}
-        </select>
-
-        <button
-          onClick={() => setIsPlaying((p) => !p)}
-          className={`px-4 py-2 rounded font-medium transition-colors ${
-            isPlaying
-              ? "bg-green-600 hover:bg-green-700"
-              : "bg-gray-600 hover:bg-gray-500"
+      {config.itemId && config.animationId && !loadingExisting && (
+        <div
+          className={`rounded-lg border px-4 py-2 text-sm ${
+            existingSpriteId
+              ? "border-indigo-700 bg-indigo-950/40 text-indigo-200"
+              : "border-emerald-700 bg-emerald-950/30 text-emerald-200"
           }`}
         >
-          {isPlaying ? t("items.pauseButton") : t("items.playButton")}
-        </button>
-      </div>
+          {existingSpriteId
+            ? t("items.spriteEditModeNotice", {
+                item: itemDisplay,
+                animation: selectedAnimation?.variant ?? selectedAnimation?.type ?? "",
+                direction: config.direction,
+              })
+            : t("items.spriteCreateModeNotice")}
+        </div>
+      )}
+      {loadingExisting && (
+        <div className="text-xs text-gray-500">{t("items.loadingExistingSprite")}</div>
+      )}
 
-      {/* Dropzone */}
-      <div
-        onDrop={(e) => {
-          e.preventDefault();
-          const f = e.dataTransfer.files[0];
-          if (f?.type.startsWith("image/")) setFile(f);
-        }}
-        onDragOver={(e) => e.preventDefault()}
-        className={`border-2 border-dashed rounded-xl p-10 text-center transition-all ${
-          file
-            ? "border-green-600 bg-green-950/20"
-            : "border-gray-600 hover:border-gray-400 hover:bg-gray-800/30"
-        }`}
-      >
-        {file ? (
-          <p className="text-green-400 font-medium">
-            {file.name} • {(file.size / 1024).toFixed(1)} KB
-          </p>
-        ) : (
-          <p>{t("items.dropzoneText")}</p>
-        )}
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          className="hidden"
-        />
-      </div>
-
-      {/* Controles finos */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 text-sm">
-        {[
-          { label: t("items.frameWidthLabel"), value: config.frameWidth, key: "frameWidth" },
-          {
-            label: t("items.frameHeightLabel"),
-            value: config.frameHeight,
-            key: "frameHeight",
-          },
-          {
-            label: t("items.frameCountLabel"),
-            value: config.framesCount,
-            key: "framesCount",
-          },
-          { label: t("items.activeRowLabel"), value: config.rowIndex, key: "rowIndex" },
-          {
-            label: t("items.detectedRowsLabel"),
-            value: rows,
-            key: "rows",
-            disabled: true,
-          },
-          { label: "FPS", value: fps, key: "fps" },
-          { label: "Zoom", value: zoom, key: "zoom" },
-        ].map(({ label, value, key, disabled }) => (
-          <div key={label} className="space-y-1">
-            <label className="text-xs opacity-70 block">{label}</label>
-            <input
-              type="number"
-              min={1}
-              value={value}
-              disabled={disabled}
-              onChange={(e) => {
-                const num = Math.max(1, Number(e.target.value) || 1);
-                if (key === "fps") setFps(num);
-                else if (key === "zoom") setZoom(num);
-                else setConfig((c) => ({ ...c, [key]: num }));
-              }}
-              className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-1.5 disabled:opacity-50"
-            />
-          </div>
-        ))}
-      </div>
-
-      {/* Preview con/sin cuerpo */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex rounded-full border border-gray-700 overflow-hidden">
-          <button
-            type="button"
-            onClick={() => setShowBody(true)}
-            className={`px-4 py-1.5 text-xs font-medium transition-colors ${
-              showBody ? "bg-indigo-600 text-white" : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-            }`}
-          >
-            {t("items.withBodyLabel")}
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowBody(false)}
-            className={`px-4 py-1.5 text-xs font-medium transition-colors ${
-              !showBody ? "bg-indigo-600 text-white" : "bg-gray-800 text-gray-300 hover:bg-gray-700"
-            }`}
-          >
-            {t("items.withoutBodyLabel")}
-          </button>
+      <SectionCard title={t("items.byItemLabel")}>
+        {/* Filtro por estado de sprite */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs uppercase tracking-wide opacity-60">
+            {t("items.spriteFilterLabel")}
+          </span>
+          {(["all", "with", "without"] as SpriteFilter[]).map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => setSpriteFilter(option)}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                spriteFilter === option
+                  ? "border-indigo-500 bg-indigo-600/40 text-white"
+                  : "border-gray-700 bg-gray-800/60 text-gray-300 hover:border-gray-500"
+              }`}
+            >
+              {option === "all"
+                ? t("items.spriteFilterAllLabel")
+                : option === "with"
+                  ? t("items.spriteFilterWithLabel")
+                  : t("items.spriteFilterWithoutLabel")}
+            </button>
+          ))}
         </div>
 
-        {showBody && bodies.length > 0 && (
-          <select
-            value={bodyId}
-            onChange={(e) => setBodyId(e.target.value)}
-            className="bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-sm"
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Combobox
+            value={config.itemId}
+            onChange={(value) =>
+              setConfig((c) => ({ ...c, itemId: value ?? "" }))
+            }
           >
-            {bodies.map((body) => (
-              <option key={body.id} value={body.id}>
-                {t("items.baseItemFallback", { id: body.id.slice(0, 8) })}
+            <div className="relative">
+              <Combobox.Input
+                className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                displayValue={(itemId: string) => {
+                  const item = items.find((i) => i.id === itemId);
+                  return item ? getItemDisplayName(item) : "";
+                }}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={t("items.searchItemPlaceholder")}
+              />
+              <Combobox.Options className="absolute z-10 mt-1 max-h-60 w-full overflow-auto bg-gray-800 border border-gray-700 rounded-md shadow-2xl">
+                {filteredItems.length === 0 && searchQuery ? (
+                  <div className="px-4 py-2 text-gray-400">{t("items.noResults")}</div>
+                ) : (
+                  filteredItems.map((item) => (
+                    <Combobox.Option
+                      key={item.id}
+                      value={item.id}
+                      className={({ active }) =>
+                        `cursor-pointer px-4 py-2 flex items-center gap-3 ${
+                          active ? "bg-indigo-600/40" : ""
+                        }`
+                      }
+                    >
+                      {item.imageUrl ? (
+                        <img
+                          src={item.imageUrl}
+                          alt={getItemDisplayName(item)}
+                          className="w-8 h-8 object-contain rounded bg-gray-900/40"
+                          onError={(e) =>
+                            (e.currentTarget.style.display = "none")
+                          }
+                        />
+                      ) : (
+                        <div className="w-8 h-8 bg-gray-700 rounded flex items-center justify-center text-xs">
+                          ?
+                        </div>
+                      )}
+                      <span className="truncate">{getItemDisplayName(item)}</span>
+                    </Combobox.Option>
+                  ))
+                )}
+              </Combobox.Options>
+            </div>
+          </Combobox>
+
+          <select
+            value={config.animationId}
+            onChange={(e) =>
+              setConfig((c) => ({ ...c, animationId: e.target.value }))
+            }
+            className="bg-gray-800 border border-gray-700 rounded px-3 py-2"
+          >
+            <option value="">{t("items.selectAnimationOption")}</option>
+            {animations.map((anim) => (
+              <option key={anim.id} value={anim.id}>
+                {anim.type} — {anim.variant}
               </option>
             ))}
           </select>
-        )}
 
-        {showBody && bodies.length === 0 && (
-          <span className="text-xs opacity-60">{t("items.noBodyItemFound")}</span>
-        )}
+          <button
+            onClick={() => setIsPlaying((p) => !p)}
+            className={`px-4 py-2 rounded font-medium transition-colors ${
+              isPlaying
+                ? "bg-green-600 hover:bg-green-700"
+                : "bg-gray-600 hover:bg-gray-500"
+            }`}
+          >
+            {isPlaying ? t("items.pauseButton") : t("items.playButton")}
+          </button>
+        </div>
+      </SectionCard>
 
-        <div className="flex items-center gap-2">
-          <span className="text-xs uppercase tracking-wide opacity-60">
-            {t("items.directionLabel")}
-          </span>
-          <div className="grid grid-cols-3 grid-rows-3 gap-1 w-27">
-            {DIRECTION_PAD.slice(0, 3).map(({ value, arrow }) => (
-              <DirectionButton key={value} value={value} arrow={arrow} config={config} setConfig={setConfig} />
-            ))}
-            <DirectionButton value={DIRECTION_PAD[3].value} arrow={DIRECTION_PAD[3].arrow} config={config} setConfig={setConfig} />
-            <div className="rounded bg-gray-800/40 flex items-center justify-center text-[10px] text-gray-500">
-              {config.direction}
+      <SectionCard title={t("items.itemSprite")}>
+        {/* Dropzone */}
+        <div
+          onDrop={(e) => {
+            e.preventDefault();
+            const f = e.dataTransfer.files[0];
+            if (f?.type.startsWith("image/")) setFile(f);
+          }}
+          onDragOver={(e) => e.preventDefault()}
+          className={`border-2 border-dashed rounded-xl p-10 text-center transition-all ${
+            file
+              ? "border-green-600 bg-green-950/20"
+              : existingImageUrl
+                ? "border-indigo-700 bg-indigo-950/10"
+                : "border-gray-600 hover:border-gray-400 hover:bg-gray-800/30"
+          }`}
+        >
+          {file ? (
+            <p className="text-green-400 font-medium">
+              {file.name} • {(file.size / 1024).toFixed(1)} KB
+            </p>
+          ) : existingImageUrl ? (
+            <div className="flex flex-col items-center gap-2">
+              <img
+                src={existingImageUrl}
+                alt={t("items.itemSprite")}
+                className="max-h-24 object-contain [image-rendering:pixelated]"
+              />
+              <p className="text-indigo-300 text-sm">{t("items.dropzoneText")}</p>
             </div>
-            <DirectionButton value={DIRECTION_PAD[4].value} arrow={DIRECTION_PAD[4].arrow} config={config} setConfig={setConfig} />
-            {DIRECTION_PAD.slice(5, 8).map(({ value, arrow }) => (
-              <DirectionButton key={value} value={value} arrow={arrow} config={config} setConfig={setConfig} />
-            ))}
+          ) : (
+            <p>{t("items.dropzoneText")}</p>
+          )}
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            className="hidden"
+          />
+        </div>
+        <div className="text-right">
+          {image ? `${image.width}×${image.height}px` : t("items.noImage")}
+        </div>
+      </SectionCard>
+
+      <SectionCard title={t("items.frameCountLabel")}>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 text-sm">
+          {[
+            { label: t("items.frameWidthLabel"), value: config.frameWidth, key: "frameWidth" },
+            {
+              label: t("items.frameHeightLabel"),
+              value: config.frameHeight,
+              key: "frameHeight",
+            },
+            {
+              label: t("items.frameCountLabel"),
+              value: config.framesCount,
+              key: "framesCount",
+            },
+            { label: t("items.activeRowLabel"), value: config.rowIndex, key: "rowIndex" },
+            {
+              label: t("items.detectedRowsLabel"),
+              value: rows,
+              key: "rows",
+              disabled: true,
+            },
+            { label: "FPS", value: fps, key: "fps", hint: t("items.fpsHint") },
+            { label: "Zoom", value: zoom, key: "zoom" },
+          ].map(({ label, value, key, disabled, hint }) => (
+            <div key={label} className="space-y-1">
+              <label className="text-xs opacity-70 flex items-center gap-1">
+                {label}
+                {hint && (
+                  <Tooltip content={hint}>
+                    <HelpCircle size={12} className="text-gray-500" />
+                  </Tooltip>
+                )}
+              </label>
+              <input
+                type="number"
+                min={1}
+                value={value}
+                disabled={disabled}
+                onChange={(e) => {
+                  const num = Math.max(1, Number(e.target.value) || 1);
+                  if (key === "fps") setFps(num);
+                  else if (key === "zoom") setZoom(num);
+                  else setConfig((c) => ({ ...c, [key]: num }));
+                }}
+                className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-1.5 disabled:opacity-50"
+              />
+            </div>
+          ))}
+        </div>
+      </SectionCard>
+
+      <SectionCard title={t("items.directionLabel")}>
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex rounded-full border border-gray-700 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setShowBody(true)}
+              className={`px-4 py-1.5 text-xs font-medium transition-colors ${
+                showBody ? "bg-indigo-600 text-white" : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+              }`}
+            >
+              {t("items.withBodyLabel")}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowBody(false)}
+              className={`px-4 py-1.5 text-xs font-medium transition-colors ${
+                !showBody ? "bg-indigo-600 text-white" : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+              }`}
+            >
+              {t("items.withoutBodyLabel")}
+            </button>
+          </div>
+
+          {showBody && bodies.length > 0 && (
+            <select
+              value={bodyId}
+              onChange={(e) => setBodyId(e.target.value)}
+              className="bg-gray-800 border border-gray-700 rounded px-3 py-1.5 text-sm"
+            >
+              {bodies.map((body) => (
+                <option key={body.id} value={body.id}>
+                  {t("items.baseItemFallback", { id: body.id.slice(0, 8) })}
+                </option>
+              ))}
+            </select>
+          )}
+
+          {showBody && bodies.length === 0 && (
+            <span className="text-xs opacity-60">{t("items.noBodyItemFound")}</span>
+          )}
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs uppercase tracking-wide opacity-60">
+              {t("items.directionLabel")}
+            </span>
+            <div className="grid grid-cols-3 grid-rows-3 gap-1 w-28">
+              {DIRECTION_PAD.slice(0, 3).map(({ value, arrow }) => (
+                <DirectionButton key={value} value={value} arrow={arrow} config={config} setConfig={setConfig} />
+              ))}
+              <DirectionButton value={DIRECTION_PAD[3].value} arrow={DIRECTION_PAD[3].arrow} config={config} setConfig={setConfig} />
+              <div className="rounded bg-gray-800/40 flex items-center justify-center text-[10px] text-gray-500">
+                {config.direction}
+              </div>
+              <DirectionButton value={DIRECTION_PAD[4].value} arrow={DIRECTION_PAD[4].arrow} config={config} setConfig={setConfig} />
+              {DIRECTION_PAD.slice(5, 8).map(({ value, arrow }) => (
+                <DirectionButton key={value} value={value} arrow={arrow} config={config} setConfig={setConfig} />
+              ))}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Canvas */}
-      <div className="space-y-3">
-        <canvas
-          ref={canvasRef}
-          width={Math.min(900, Math.max(320, config.frameWidth * zoom * 3))}
-          height={Math.min(
-            650,
-            Math.max(240, config.frameHeight * zoom * Math.min(3, rows + 1)),
-          )}
-          className="border border-gray-700 bg-black/50 rounded-lg mx-auto block shadow-2xl"
-        />
-        <div className="text-center text-sm opacity-70">
-          {t("items.frameRowLabel", { frame: currentFrame + 1, total: config.framesCount, row: config.rowIndex + 1 })}
-          {itemDisplay && ` • ${itemDisplay}`}
+        <div className="space-y-3">
+          <canvas
+            ref={canvasRef}
+            width={Math.min(900, Math.max(320, config.frameWidth * zoom * 3))}
+            height={Math.min(
+              650,
+              Math.max(240, config.frameHeight * zoom * Math.min(3, rows + 1)),
+            )}
+            className="border border-gray-700 bg-black/50 rounded-lg mx-auto block shadow-2xl"
+          />
+          <div className="text-center text-sm opacity-70">
+            {t("items.frameRowLabel", { frame: currentFrame + 1, total: config.framesCount, row: config.rowIndex + 1 })}
+            {itemDisplay && ` • ${itemDisplay}`}
+          </div>
         </div>
-      </div>
+      </SectionCard>
 
-      <div className="flex justify-center">
+      <div className="flex justify-center pb-6">
         <button
           onClick={handleSave}
-          disabled={!file || !config.itemId || !config.animationId || !image}
+          disabled={(!file && !existingImageUrl) || !config.itemId || !config.animationId || !image}
           className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold px-12 py-4 rounded-xl shadow-xl transform active:scale-95 transition-all"
         >
           {t("items.saveSpriteButton")}

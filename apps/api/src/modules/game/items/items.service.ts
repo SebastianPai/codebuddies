@@ -223,6 +223,12 @@ export class ItemsService {
         avatarData: true,
         worldData: true,
         sprites: true,
+        // La lista de /admin/items necesita el nombre real para
+        // distinguir items -- antes solo tenía "Avatar: SHIRT" genérico
+        // repetido para todos los items de un mismo slot.
+        translations: {
+          include: { language: true },
+        },
       },
     });
   }

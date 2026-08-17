@@ -191,5 +191,16 @@
   "noBodyItemFound": "No hay ningún item de cuerpo (BODY) creado todavía",
   "configureSpriteElsewhereHint": "El sprite animado (con vista previa del cuerpo real y las 8 direcciones) se configura en el editor dedicado.",
   "configureSpriteButton": "Configurar sprite animado →",
-  "directionLabel": "Dirección"
+  "directionLabel": "Dirección",
+  "filterAllShort": "Todos",
+  "filterAvatarShort": "Avatar",
+  "filterWorldShort": "Mundo",
+  "filterTextureShort": "Texturas",
+  "searchItemsPlaceholder": "Buscar por nombre...",
+  "noItemsMatchFilter": "Ningún item coincide con este filtro.",
+  "itemCountLabel": "{count} items",
+  "fpsHint": "Solo controla la velocidad de la animación en esta previsualización — no afecta cómo se ve en el juego, es únicamente para que puedas revisar los frames cómodamente.",
+  "spriteEditModeNotice": "Editando el sprite guardado de {item} ({animation}, {direction}). Los valores de abajo ya son los guardados — subí una imagen solo si querés reemplazarla.",
+  "spriteCreateModeNotice": "Este item/animación/dirección todavía no tiene un sprite guardado — se creará uno nuevo al guardar.",
+  "loadingExistingSprite": "Cargando sprite existente..."
 }

@@ -191,5 +191,16 @@
   "noBodyItemFound": "尚未创建任何身体（BODY）物品",
   "configureSpriteElsewhereHint": "动画精灵图（带真实身体预览和全部 8 个方向）请在专用编辑器中配置。",
   "configureSpriteButton": "配置动画精灵图 →",
-  "directionLabel": "方向"
+  "directionLabel": "方向",
+  "filterAllShort": "全部",
+  "filterAvatarShort": "头像",
+  "filterWorldShort": "世界",
+  "filterTextureShort": "纹理",
+  "searchItemsPlaceholder": "按名称搜索...",
+  "noItemsMatchFilter": "没有符合此筛选条件的物品。",
+  "itemCountLabel": "{count} 个物品",
+  "fpsHint": "仅控制此预览中的动画速度——不影响游戏内的实际效果，只是方便你查看各帧。",
+  "spriteEditModeNotice": "正在编辑 {item} 已保存的精灵图（{animation}，{direction}）。下面的数值已是已保存的值——只有想替换图片时才需要上传。",
+  "spriteCreateModeNotice": "该物品/动画/方向组合还没有已保存的精灵图——保存时将创建一个新的。",
+  "loadingExistingSprite": "正在加载已有精灵图..."
 }

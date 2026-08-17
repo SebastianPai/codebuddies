@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { api } from "@/shared/api/client";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
@@ -21,7 +21,26 @@ type Item = {
     placementType?: string;
     isCollidable?: boolean;
   };
+  translations?: Array<{ name: string; language?: { code: string } }>;
 };
+
+type TypeFilter = "all" | "avatar" | "world" | "texture";
+
+const TEXTURE_KINDS = new Set(["FLOOR", "WALL"]);
+
+function getItemType(item: Item): "avatar" | "world" | "texture" | "base" {
+  if (item.avatarData?.slot) return "avatar";
+  if (item.worldData?.kind) {
+    return TEXTURE_KINDS.has(item.worldData.kind) ? "texture" : "world";
+  }
+  return "base";
+}
+
+function getItemName(item: Item, fallback: string) {
+  if (!item.translations?.length) return fallback;
+  const es = item.translations.find((tr) => tr.language?.code === "es");
+  return es?.name || item.translations[0]?.name || fallback;
+}
 
 export default function ItemsPage() {
   const t = useTranslation();
@@ -32,6 +51,8 @@ export default function ItemsPage() {
     3: t("items.rarityLegendary"),
   };
   const [items, setItems] = useState<Item[]>([]);
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
+  const [search, setSearch] = useState("");
 
   async function loadItems() {
     try {
@@ -72,63 +93,133 @@ export default function ItemsPage() {
     loadItems();
   }, []);
 
+  const counts = useMemo(() => {
+    const result = { all: items.length, avatar: 0, world: 0, texture: 0 };
+    items.forEach((item) => {
+      const type = getItemType(item);
+      if (type === "avatar") result.avatar++;
+      else if (type === "world") result.world++;
+      else if (type === "texture") result.texture++;
+    });
+    return result;
+  }, [items]);
+
+  const filteredItems = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return items.filter((item) => {
+      if (typeFilter !== "all" && getItemType(item) !== typeFilter) return false;
+      if (!query) return true;
+      const name = getItemName(item, "").toLowerCase();
+      return name.includes(query);
+    });
+  }, [items, typeFilter, search]);
+
+  const TABS: Array<{ value: TypeFilter; label: string; count: number }> = [
+    { value: "all", label: t("items.filterAllShort"), count: counts.all },
+    { value: "avatar", label: t("items.filterAvatarShort"), count: counts.avatar },
+    { value: "world", label: t("items.filterWorldShort"), count: counts.world },
+    { value: "texture", label: t("items.filterTextureShort"), count: counts.texture },
+  ];
+
   return (
-    <div className="p-10 space-y-8">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-yellow-400">{t("items.itemsTitle")}</h1>
+    <div className="p-10 space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-yellow-400">{t("items.itemsTitle")}</h1>
+          <p className="mt-1 text-sm text-zinc-500">
+            {t("items.itemCountLabel", { count: filteredItems.length })}
+          </p>
+        </div>
         <Link
           href="/admin/items/create"
-          className="bg-yellow-400 text-black px-4 py-2 rounded hover:bg-yellow-300"
+          className="rounded bg-yellow-400 px-4 py-2 font-semibold text-black hover:bg-yellow-300"
         >
           {t("items.createItemLink")}
         </Link>
       </div>
 
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-800 pb-4">
+        <div className="flex flex-wrap gap-2">
+          {TABS.map((tab) => (
+            <button
+              key={tab.value}
+              onClick={() => setTypeFilter(tab.value)}
+              className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
+                typeFilter === tab.value
+                  ? "bg-yellow-400 text-black"
+                  : "bg-zinc-900 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
+              }`}
+            >
+              {tab.label} <span className="opacity-60">({tab.count})</span>
+            </button>
+          ))}
+        </div>
+
+        <input
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder={t("items.searchItemsPlaceholder")}
+          className="w-full max-w-xs rounded-lg border border-zinc-800 bg-black/60 px-3 py-1.5 text-sm text-white outline-none focus:border-yellow-400 sm:w-64"
+        />
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-        {items.map((item) => {
+        {filteredItems.map((item) => {
           const slot = item.avatarData?.slot;
           const kind = item.worldData?.kind;
-          const displayType = slot
+          const typeBadge = slot
             ? t("items.avatarPrefix", { value: slot })
             : kind
               ? t("items.worldPrefix", { value: kind })
               : t("items.baseItemShort");
+          const name = getItemName(item, typeBadge);
 
           return (
             <div
               key={item.id}
-              className="bg-[#111] border border-zinc-800 rounded-lg p-4 hover:border-yellow-400 transition"
+              className="flex flex-col rounded-lg border border-zinc-800 bg-[#111] p-4 transition hover:border-yellow-400"
             >
-              {item.imageUrl && (
+              {item.imageUrl ? (
                 <img
                   src={item.imageUrl}
-                  alt={displayType}
-                  className="w-full h-32 object-contain mb-3"
+                  alt={name}
+                  className="mb-3 h-32 w-full object-contain [image-rendering:pixelated]"
                 />
+              ) : (
+                <div className="mb-3 flex h-32 w-full items-center justify-center rounded bg-black/40 text-xs text-zinc-600">
+                  {t("items.noImage")}
+                </div>
               )}
 
-              <p className="text-sm font-semibold">{displayType}</p>
-              <p className="text-xs text-zinc-500">{t("items.layerLabel", { value: item.layer })}</p>
-              <p className="text-xs text-zinc-500">
-                {t("items.priceMonedasLabel", { price: item.coinsPrice ?? 0 })}
+              <p className="truncate text-sm font-semibold text-white" title={name}>
+                {name}
               </p>
-              <p className="text-xs text-zinc-500">
-                {t("items.shopStateLabel", { value: item.shopVisible ? t("items.visibleLowercase") : t("items.hiddenLowercase") })}
-              </p>
-              {item.worldData && (
+              <p className="text-xs text-zinc-500">{typeBadge}</p>
+
+              <div className="mt-2 space-y-0.5">
                 <p className="text-xs text-zinc-500">
-                  {item.worldData.width ?? 1}x{item.worldData.height ?? 1} ·{" "}
-                  {item.worldData.placementType ?? "FLOOR"}
+                  {t("items.priceMonedasLabel", { price: item.coinsPrice ?? 0 })}
                 </p>
-              )}
-              <p className="text-xs text-zinc-400">
-                {RARITY_LABELS[item.rarity] || t("items.unknownRarity")}
-              </p>
+                <p className="text-xs text-zinc-500">
+                  {t("items.shopStateLabel", {
+                    value: item.shopVisible ? t("items.visibleLowercase") : t("items.hiddenLowercase"),
+                  })}
+                </p>
+                {item.worldData && (
+                  <p className="text-xs text-zinc-500">
+                    {item.worldData.width ?? 1}x{item.worldData.height ?? 1} ·{" "}
+                    {item.worldData.placementType ?? "FLOOR"}
+                  </p>
+                )}
+                <p className="text-xs text-zinc-400">
+                  {RARITY_LABELS[item.rarity] || t("items.unknownRarity")}
+                </p>
+              </div>
 
               {slot && (
                 <button
                   onClick={() => toggleDefault(item)}
-                  className={`mt-2 w-full rounded px-2 py-1 text-xs font-semibold transition ${
+                  className={`mt-3 w-full rounded px-2 py-1 text-xs font-semibold transition ${
                     item.isDefaultForSlot === slot
                       ? "bg-yellow-400 text-black hover:bg-yellow-300"
                       : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200"
@@ -140,17 +231,19 @@ export default function ItemsPage() {
                 </button>
               )}
 
-              <div className="flex justify-between mt-4 text-sm">
-                <Link
-                  href={`/admin/items/${item.id}`}
-                  className="text-blue-400 hover:underline"
-                >
+              <div className="mt-auto flex items-center justify-between pt-4 text-sm">
+                <Link href={`/admin/items/${item.id}`} className="text-blue-400 hover:underline">
                   {t("common.edit")}
                 </Link>
-                <button
-                  onClick={() => deleteItem(item.id)}
-                  className="text-red-400 hover:underline"
-                >
+                {slot && (
+                  <Link
+                    href={`/admin/item-sprites?itemId=${item.id}`}
+                    className="text-yellow-400 hover:underline"
+                  >
+                    {t("items.sprite")}
+                  </Link>
+                )}
+                <button onClick={() => deleteItem(item.id)} className="text-red-400 hover:underline">
                   {t("common.delete")}
                 </button>
               </div>
@@ -160,7 +253,10 @@ export default function ItemsPage() {
       </div>
 
       {items.length === 0 && (
-        <p className="text-center text-zinc-500 py-10">{t("items.noItemsYet")}</p>
+        <p className="py-10 text-center text-zinc-500">{t("items.noItemsYet")}</p>
+      )}
+      {items.length > 0 && filteredItems.length === 0 && (
+        <p className="py-10 text-center text-zinc-500">{t("items.noItemsMatchFilter")}</p>
       )}
     </div>
   );

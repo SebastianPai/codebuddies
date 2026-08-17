@@ -191,5 +191,16 @@
   "noBodyItemFound": "No BODY item has been created yet",
   "configureSpriteElsewhereHint": "The animated sprite (with real body preview and all 8 directions) is configured in the dedicated editor.",
   "configureSpriteButton": "Configure animated sprite →",
-  "directionLabel": "Direction"
+  "directionLabel": "Direction",
+  "filterAllShort": "All",
+  "filterAvatarShort": "Avatar",
+  "filterWorldShort": "World",
+  "filterTextureShort": "Textures",
+  "searchItemsPlaceholder": "Search by name...",
+  "noItemsMatchFilter": "No item matches this filter.",
+  "itemCountLabel": "{count} items",
+  "fpsHint": "Only controls the animation speed in this preview — it doesn't affect how it looks in-game, it's just so you can review the frames comfortably.",
+  "spriteEditModeNotice": "Editing the saved sprite for {item} ({animation}, {direction}). The values below are already the saved ones — upload an image only if you want to replace it.",
+  "spriteCreateModeNotice": "This item/animation/direction doesn't have a saved sprite yet — a new one will be created on save.",
+  "loadingExistingSprite": "Loading existing sprite..."
 }
