@@ -25,6 +25,13 @@ export default class FurniturePlacementSystem {
 
     if (!item) return;
 
+    // Si hay un mueble ya colocado en modo "mover" (LobbyScene.movingRoomItem),
+    // el ghost también viene de buildSystem.start(), pero el click debe
+    // reposicionar ESE item (room:item:move, sin tocar inventario) en vez de
+    // tratarse como colocar uno nuevo desde el inventario — eso lo maneja
+    // LobbyScene.moveSelectedRoomItem().
+    if ((this.scene as any).movingRoomItem) return;
+
     const preview = this.buildSystem.getPreview();
 
     if (!preview) return;

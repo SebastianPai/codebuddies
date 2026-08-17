@@ -1154,8 +1154,15 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
 
   private handleClickToMove(pointer: Phaser.Input.Pointer) {
     if (!this.groundLayer) return;
+    // this.movingRoomItem primero: al mover un mueble ya colocado,
+    // buildSystem.getCurrentItem() también queda con valor (mismo ghost que
+    // colocar uno nuevo), así que el guard de abajo bloqueaba por completo
+    // moveSelectedRoomItem() y el click nunca llegaba a emitir
+    // room:item:move — quedaba muerto detrás de este return.
+    if (this.movingRoomItem) {
+      if (this.moveSelectedRoomItem(pointer)) return;
+    }
     if (this.buildSystem?.getCurrentItem()) return;
-    if (this.moveSelectedRoomItem(pointer)) return;
     if (this.paintSelectedSurfaceTexture(pointer)) return;
     if (this.paintSelectedFloorTile(pointer)) return;
 
