@@ -144,6 +144,13 @@ export default class RoomItemsManager {
           _localY: number,
           event: Phaser.Types.Input.EventData,
         ) => {
+          // Si hay un mueble en mano (modo construcción), dejamos que el
+          // pointerdown suba hasta FurniturePlacementSystem para que lo
+          // coloque encima de este item en vez de seleccionarlo.
+          if ((this.scene as any).buildSystem?.getCurrentItem?.()) {
+            return;
+          }
+
           // Sin esto, el pointerdown global de la escena (this.input.on
           // "pointerdown" -> handleClickToMove) también se dispara y el
           // personaje sale a caminar hacia el mueble clickeado a la vez que
