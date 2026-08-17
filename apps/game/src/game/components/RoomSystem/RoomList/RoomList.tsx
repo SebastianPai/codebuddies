@@ -141,13 +141,26 @@ export default function RoomList({
             <div className={styles.container}>
               <div className={styles.hero}>
                 <div className={styles.heroLeft}>
-                  <ThemeImage
-                    asset={doorAsset}
-                    fallbackSrc="/ui/door.png"
-                    alt={t("rooms.listDoorAlt")}
-                    size={36}
-                    className={styles.heroIcon}
-                  />
+                  {doorAsset ? (
+                    <ThemeImage
+                      asset={doorAsset}
+                      fallbackSrc="/ui/door.png"
+                      alt={t("rooms.listDoorAlt")}
+                      size={36}
+                      className={styles.heroIcon}
+                    />
+                  ) : (
+                    // "/ui/door.png" nunca existió en apps/game/public --
+                    // ThemeImage no tiene un segundo fallback si ese archivo
+                    // 404ea, así que sin un theme activo para ROOM_DOOR se
+                    // veía un ícono roto. DoorOpen ya se usa en este mismo
+                    // archivo como ícono de estado vacío (línea de abajo).
+                    <DoorOpen
+                      size={28}
+                      className={styles.heroIcon}
+                      aria-label={t("rooms.listDoorAlt")}
+                    />
+                  )}
 
                   <div>
                     <h1 className={styles.heroTitle}>{t("rooms.listTitle")}</h1>

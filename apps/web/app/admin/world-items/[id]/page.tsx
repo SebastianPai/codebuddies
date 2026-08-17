@@ -236,6 +236,26 @@ export default function WorldItemDetailsPage() {
                 </p>
               </div>
             </label>
+
+            <label className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                checked={Number(worldItem.directions) === 1}
+                onChange={(e) =>
+                  setWorldItem({
+                    ...worldItem,
+                    directions: e.target.checked ? 1 : 4,
+                    rotatable: e.target.checked ? false : worldItem.rotatable,
+                  })
+                }
+              />
+              <div>
+                <p>{t("items.singleFaceLabel")}</p>
+                <p className="text-xs text-zinc-500">
+                  {t("items.singleFaceHint")}
+                </p>
+              </div>
+            </label>
           </div>
         </div>
 

@@ -7,6 +7,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { AvatarSlotType, WorldItemKind, ItemType } from '@prisma/client';
 import { CreateItemDto } from './dto/create-item.dto';
 import { UpdateItemDto } from './dto/update-item.dto';
+import { buildWorldEngineData } from './engine-data.util';
 
 @Injectable()
 export class ItemsService {
@@ -158,13 +159,14 @@ export class ItemsService {
         );
       }
 
-      const optimizedFootprint = this.buildEngineData({
+      const optimizedFootprint = buildWorldEngineData({
         width,
         height,
         footprintWidth,
         footprintHeight,
         footprints,
         surfaces,
+        faceCount: directions,
       });
 
       await this.prisma.worldItemData.create({
@@ -380,18 +382,20 @@ export class ItemsService {
       footprintWidth !== undefined ||
       footprintHeight !== undefined ||
       footprints !== undefined ||
-      surfaces !== undefined
+      surfaces !== undefined ||
+      directions !== undefined
     ) {
       const existing = await this.prisma.worldItemData.findUnique({
         where: { itemId: id },
       });
-      const optimizedFootprint = this.buildEngineData({
+      const optimizedFootprint = buildWorldEngineData({
         width: width ?? existing?.width ?? 1,
         height: height ?? existing?.height ?? 1,
         footprintWidth: footprintWidth ?? existing?.footprintWidth ?? 1,
         footprintHeight: footprintHeight ?? existing?.footprintHeight ?? 1,
         footprints: footprints ?? existing?.footprints,
         surfaces: surfaces ?? existing?.surfaces,
+        faceCount: directions ?? existing?.directions ?? 4,
       });
 
       worldData.footprints = optimizedFootprint.footprints;
@@ -489,109 +493,6 @@ export class ItemsService {
     await this.prisma.worldItemData.deleteMany({ where: { itemId: id } });
 
     return this.prisma.item.delete({ where: { id } });
-  }
-
-  private buildEngineData(data: {
-    width?: number;
-    height?: number;
-    footprintWidth?: number;
-    footprintHeight?: number;
-    footprints?: any;
-    surfaces?: any;
-  }) {
-    const directions = ['NORTH', 'EAST', 'SOUTH', 'WEST'];
-    const fallbackTiles = this.createRectTiles(
-      Number(data.footprintWidth) || 1,
-      Number(data.footprintHeight) || 1,
-    );
-
-    const normalizeMap = (source: any, fallback: any[]) => {
-      const result: Record<string, any> = {};
-      directions.forEach((direction) => {
-        const entry = source?.[direction] || {};
-        const occupied = this.normalizeTiles(entry.occupied, fallback);
-        const origin = this.normalizeOrigin(entry.origin, occupied);
-
-        result[direction] = {
-          occupied,
-          origin,
-          bounds: this.calculateBounds(occupied),
-        };
-      });
-      return result;
-    };
-
-    const normalizedFootprints = normalizeMap(data.footprints, fallbackTiles);
-    const normalizedSurfaces = normalizeMap(data.surfaces, []);
-
-    return {
-      footprints: normalizedFootprints,
-      surfaces: normalizedSurfaces,
-      engineData: {
-        frameWidth: Math.max(1, Math.floor((Number(data.width) || 4) / 4)),
-        frameHeight: Number(data.height) || 1,
-        tileSize: { width: 64, height: 32 },
-        directions,
-        footprints: normalizedFootprints,
-        surfaces: normalizedSurfaces,
-      },
-    };
-  }
-
-  private createRectTiles(width: number, height: number) {
-    const tiles: Array<{ x: number; y: number }> = [];
-    for (let y = 0; y < Math.max(1, height); y++) {
-      for (let x = 0; x < Math.max(1, width); x++) {
-        tiles.push({ x, y });
-      }
-    }
-    return tiles;
-  }
-
-  private normalizeTiles(source: any, fallback: Array<{ x: number; y: number }>) {
-    if (!Array.isArray(source)) return fallback;
-
-    return source
-      .map((tile) => ({ x: Number(tile?.x), y: Number(tile?.y) }))
-      .filter((tile) => Number.isInteger(tile.x) && Number.isInteger(tile.y));
-  }
-
-  private normalizeOrigin(
-    source: any,
-    occupied: Array<{ x: number; y: number }>,
-  ) {
-    const origin = { x: Number(source?.x), y: Number(source?.y) };
-    if (
-      Number.isInteger(origin.x) &&
-      Number.isInteger(origin.y) &&
-      occupied.some((tile) => tile.x === origin.x && tile.y === origin.y)
-    ) {
-      return origin;
-    }
-
-    return occupied[0] || { x: 0, y: 0 };
-  }
-
-  private calculateBounds(tiles: Array<{ x: number; y: number }>) {
-    if (!tiles.length) {
-      return { minX: 0, minY: 0, maxX: 0, maxY: 0, width: 0, height: 0 };
-    }
-
-    const xs = tiles.map((tile) => tile.x);
-    const ys = tiles.map((tile) => tile.y);
-    const minX = Math.min(...xs);
-    const maxX = Math.max(...xs);
-    const minY = Math.min(...ys);
-    const maxY = Math.max(...ys);
-
-    return {
-      minX,
-      minY,
-      maxX,
-      maxY,
-      width: maxX - minX + 1,
-      height: maxY - minY + 1,
-    };
   }
 
   // ───────────── AVATAR ITEMS ─────────────

@@ -65,6 +65,8 @@
   "stacking": "堆叠",
   "allowsStacking": "允许在上方放置物品",
   "canBeStacked": "可以放在其他物品上",
+  "singleFaceLabel": "仅一面（不可旋转）",
+  "singleFaceHint": "将整张图片作为单个帧使用，而不是切成 4 份。适合逐面测试物品。该物品在游戏中将无法旋转。",
   "interactions": "交互",
   "createWorldItemTitle": "创建世界物品",
   "createWorldItemDescription": "世界物品复用现有的物品流程。请先创建基础物品，然后从列表中配置其世界数据。",

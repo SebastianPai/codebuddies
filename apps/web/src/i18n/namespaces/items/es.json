@@ -65,6 +65,8 @@
   "stacking": "Apilamiento",
   "allowsStacking": "Permite colocar objetos encima",
   "canBeStacked": "Puede colocarse sobre otros",
+  "singleFaceLabel": "Solo una cara (sin rotacion)",
+  "singleFaceHint": "Usa la imagen completa como un unico frame, sin dividirla en 4. Util para probar objetos cara por cara. El objeto no podra rotarse en el juego.",
   "interactions": "Interacciones",
   "createWorldItemTitle": "Crear objeto del mundo",
   "createWorldItemDescription": "Los objetos del mundo reutilizan el flujo existente de items. Crea el item base primero y luego configura sus datos de mundo desde la lista.",

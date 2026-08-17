@@ -3,6 +3,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 
 import { UpdateWorldItemDto } from './dto/update-world-item.dto';
+import { buildWorldEngineData } from '../items/engine-data.util';
 
 @Injectable()
 export class WorldItemDataService {
@@ -69,11 +70,43 @@ export class WorldItemDataService {
       );
     }
 
+    const data: Record<string, any> = { ...dto };
+
+    // El juego nunca lee `frameWidth` crudo -- siempre lee
+    // `worldData.engineData.frameWidth` (con fallback a width/4), así que
+    // si cambia `directions` (1 cara vs 4) o las dimensiones, hay que
+    // recalcular engineData acá también. Antes este endpoint (usado por
+    // /admin/world-items, la config "avanzada" separada del alta inicial
+    // del item) guardaba `directions` como columna suelta pero nunca tocaba
+    // engineData, así que el toggle de "una sola cara" no tenía efecto
+    // real en el juego si se cambiaba desde acá.
+    if (
+      dto.width !== undefined ||
+      dto.height !== undefined ||
+      dto.footprintWidth !== undefined ||
+      dto.footprintHeight !== undefined ||
+      dto.directions !== undefined
+    ) {
+      const optimized = buildWorldEngineData({
+        width: dto.width ?? exists.width,
+        height: dto.height ?? exists.height,
+        footprintWidth: dto.footprintWidth ?? exists.footprintWidth,
+        footprintHeight: dto.footprintHeight ?? exists.footprintHeight,
+        footprints: exists.footprints,
+        surfaces: exists.surfaces,
+        faceCount: dto.directions ?? exists.directions ?? 4,
+      });
+
+      data.footprints = optimized.footprints;
+      data.surfaces = optimized.surfaces;
+      data.engineData = optimized.engineData;
+    }
+
     return this.prisma.worldItemData.update({
       where: {
         itemId,
       },
-      data: dto,
+      data,
       include: {
         item: {
           include: {

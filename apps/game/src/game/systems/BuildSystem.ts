@@ -43,7 +43,14 @@ export default class BuildSystem {
     this.frameWidth = item.worldData.engineData?.frameWidth ?? item.worldData.width / 4;
     this.frameHeight = item.worldData.engineData?.frameHeight ?? item.worldData.height;
 
-    void loadTextureOnce(this.scene, imageUrl).then((textureKey) => this.createPreview(textureKey));
+    void loadTextureOnce(this.scene, imageUrl)
+      .then((textureKey) => this.createPreview(textureKey))
+      .catch((err) => {
+        // Si la textura falla (ej: CORS, 404), antes esto quedaba como una
+        // promesa rechazada sin manejar: no aparecía preview, no se podía
+        // colocar nada, y no había ningún log claro de por qué.
+        console.error("❌ No se pudo cargar la textura del item a construir:", imageUrl, err);
+      });
   }
 
   private createPreview(textureKey: string) {
@@ -135,6 +142,14 @@ export default class BuildSystem {
 
   rotate() {
     if (!this.preview) return;
+
+    // Un item de una sola cara no tiene frames 1-3 en el spritesheet (su
+    // frameWidth es el ancho completo de la imagen) -- rotarlo leería fuera
+    // de los límites de la textura y mostraría un frame roto/vacío.
+    const worldData = this.selectedItem?.worldData;
+    const isSingleFace =
+      (worldData?.directions ?? 4) <= 1 || worldData?.rotatable === false;
+    if (isSingleFace) return;
 
     this.rotation++;
 

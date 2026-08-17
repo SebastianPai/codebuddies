@@ -173,6 +173,13 @@ export default function ItemEditor({
   const [footprintWidth, setFootprintWidth] = useState(initial?.footprintWidth || 1);
   const [footprintHeight, setFootprintHeight] = useState(initial?.footprintHeight || 1);
   const [syncDirections, setSyncDirections] = useState(initial?.syncDirections ?? true);
+  // Antes el editor siempre asumia un spritesheet de 4 caras (rotacion) y
+  // dividia el ancho de la imagen entre 4 sin preguntar, asi que subir una
+  // sola imagen la cortaba en 4 pedazos. Este toggle usa la imagen completa
+  // como un unico frame -- ver items.service.ts#buildEngineData (backend) y
+  // RoomItemsManager/BuildSystem (juego), que ya leen `directions` para
+  // decidir cuantas caras tiene el sprite.
+  const [singleFace, setSingleFace] = useState((initial?.directions ?? 4) === 1);
   const [footprints, setFootprints] = useState<FootprintMap>(
     initial?.footprints || createDefaultFootprint(),
   );
@@ -322,7 +329,8 @@ export default function ItemEditor({
       isCollidable,
       walkable,
       isInteractable,
-      rotatable: true,
+      rotatable: !singleFace,
+      directions: singleFace ? 1 : 4,
       placementType,
       allowsStacking,
       canBeStacked,
@@ -379,8 +387,13 @@ export default function ItemEditor({
           height: Number(height),
           spriteSheetUrl: imageUrl,
           previewImageUrl: imageUrl,
-          frameWidth: category === "world" ? Math.max(1, Math.floor(Number(width) / 4)) : null,
+          frameWidth:
+            category === "world"
+              ? Math.max(1, Math.floor(Number(width) / (singleFace ? 1 : 4)))
+              : null,
           frameHeight: Number(height),
+          directions: category === "world" ? (singleFace ? 1 : 4) : undefined,
+          rotatable: category === "world" ? !singleFace : undefined,
           footprintWidth: category === "texture" ? Number(width) : Number(footprintWidth),
           footprintHeight: category === "texture" ? Number(height) : Number(footprintHeight),
           syncDirections,
@@ -748,6 +761,13 @@ export default function ItemEditor({
                 </label>
               ))}
             </div>
+            <label className="mt-3 flex items-center gap-2 rounded-2xl border border-dashed border-zinc-700 bg-black/50 p-3 text-sm text-zinc-300">
+              <input type="checkbox" checked={singleFace} onChange={(event) => setSingleFace(event.target.checked)} />
+              {t("items.singleFaceLabel")}
+              <Tooltip content={t("items.singleFaceHint")}>
+                <HelpCircle size={14} className="text-zinc-500" />
+              </Tooltip>
+            </label>
           </div>
 
           <FootprintEditor

@@ -19,21 +19,15 @@ export function canonicalAssetKey(url?: string | null) {
   }
 }
 
-export function loadTextureOnce(
-  scene: Phaser.Scene,
-  url?: string | null,
-  options: { key?: string; pixelArt?: boolean } = {},
-) {
-  const sourceUrl = canonicalAssetKey(url);
-  const key = options.key ?? sourceUrl;
-  if (!sourceUrl || !key) return Promise.resolve("");
-  if (scene.textures.exists(key)) return Promise.resolve(key);
+const LOAD_RETRIES = 3;
+const LOAD_RETRY_DELAY_MS = 800;
 
-  const pendingKey = `${scene.game.registry.get("asset-cache-id") ?? "game"}:${key}`;
-  const pending = pendingTextures.get(pendingKey);
-  if (pending) return pending;
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
-  const promise = new Promise<string>((resolve, reject) => {
+function loadImageOnce(scene: Phaser.Scene, key: string, sourceUrl: string) {
+  return new Promise<string>((resolve, reject) => {
     scene.load.setCORS("anonymous");
     scene.load.image(key, sourceUrl);
 
@@ -52,13 +46,57 @@ export function loadTextureOnce(
     scene.load.on("loaderror", onLoadError);
     scene.load.once(`filecomplete-image-${key}`, () => {
       scene.load.off("loaderror", onLoadError);
-      if (options.pixelArt !== false && scene.textures.exists(key)) {
-        scene.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
-      }
       resolve(key);
     });
     if (!scene.load.isLoading()) scene.load.start();
-  }).finally(() => {
+  });
+}
+
+export function loadTextureOnce(
+  scene: Phaser.Scene,
+  url?: string | null,
+  options: { key?: string; pixelArt?: boolean } = {},
+) {
+  const sourceUrl = canonicalAssetKey(url);
+  const key = options.key ?? sourceUrl;
+  if (!sourceUrl || !key) return Promise.resolve("");
+  if (scene.textures.exists(key)) return Promise.resolve(key);
+
+  const pendingKey = `${scene.game.registry.get("asset-cache-id") ?? "game"}:${key}`;
+  const pending = pendingTextures.get(pendingKey);
+  if (pending) return pending;
+
+  const promise = (async () => {
+    let lastError: unknown;
+
+    // Reintenta antes de rendirse -- una falla de carga (CORS, timeout, 5xx
+    // del CDN) suele ser transitoria (ej: un nodo de borde con config
+    // desactualizada), y sin esto un solo hiccup de red dejaba ese slot del
+    // avatar/mueble invisible por el resto de la sesión sin ninguna
+    // oportunidad de recuperarse.
+    for (let attempt = 1; attempt <= LOAD_RETRIES; attempt++) {
+      try {
+        await loadImageOnce(scene, key, sourceUrl);
+        if (options.pixelArt !== false && scene.textures.exists(key)) {
+          scene.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
+        }
+        return key;
+      } catch (err) {
+        lastError = err;
+        if (attempt < LOAD_RETRIES) {
+          console.warn(
+            `⚠️ Reintentando carga de asset (${attempt}/${LOAD_RETRIES}):`,
+            sourceUrl,
+          );
+          await delay(LOAD_RETRY_DELAY_MS * attempt);
+        }
+      }
+    }
+
+    throw lastError instanceof Error
+      ? lastError
+      : new Error(`No se pudo cargar asset: ${sourceUrl}`);
+  })().finally(() => {
     pendingTextures.delete(pendingKey);
   });
 

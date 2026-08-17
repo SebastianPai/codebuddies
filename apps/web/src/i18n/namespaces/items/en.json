@@ -65,6 +65,8 @@
   "stacking": "Stacking",
   "allowsStacking": "Allows objects to be placed on top",
   "canBeStacked": "Can be placed on other objects",
+  "singleFaceLabel": "Single face (no rotation)",
+  "singleFaceHint": "Uses the full image as a single frame instead of slicing it into 4. Useful for testing objects face by face. The item won't be rotatable in-game.",
   "interactions": "Interactions",
   "createWorldItemTitle": "Create world item",
   "createWorldItemDescription": "World items reuse the existing item flow. Create the base item first and then configure its world data from the list.",
