@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { PremiumOrigin, PremiumSubscriptionStatus, Prisma } from '@prisma/client';
+import {
+  PremiumOrigin,
+  PremiumSubscriptionStatus,
+  Prisma,
+} from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { paginate } from '../../../common/dto/pagination.dto';
 
@@ -36,7 +40,9 @@ export class PremiumSubscriptionsRepository {
         take: limit,
         skip: (page - 1) * limit,
         orderBy: { startedAt: 'desc' },
-        include: { user: { select: { id: true, username: true, email: true } } },
+        include: {
+          user: { select: { id: true, username: true, email: true } },
+        },
       }),
       this.prisma.premiumSubscription.count({ where }),
     ]);
@@ -67,7 +73,9 @@ export class PremiumSubscriptionsRepository {
 
   updateStatus(
     id: string,
-    data: { status: PremiumSubscriptionStatus; expiresAt?: Date },
+    data: Partial<Prisma.PremiumSubscriptionUncheckedUpdateInput> & {
+      status: PremiumSubscriptionStatus;
+    },
   ) {
     return this.prisma.premiumSubscription.update({
       where: { id },

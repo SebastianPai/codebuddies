@@ -1,18 +1,17 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import {
-  CertificateAccessType,
-  CertificateOrderStatus,
-  PremiumSubscriptionStatus,
-  Prisma,
-} from '@prisma/client';
+import { CertificateAccessType, CertificateOrderStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { PremiumAccessService } from '../../premium-access/premium-access.service';
 import { CertificateEligibilityResult } from '../types/certificate-status.types';
 
 type PrismaExecutor = PrismaService | Prisma.TransactionClient;
 
 @Injectable()
 export class CertificateEligibilityService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly premiumAccessService: PremiumAccessService,
+  ) {}
 
   async getStatus(
     userId: string,
@@ -149,14 +148,7 @@ export class CertificateEligibilityService {
       };
     }
 
-    const premium = await client.premiumSubscription.findFirst({
-      where: {
-        userId,
-        status: PremiumSubscriptionStatus.ACTIVE,
-        expiresAt: { gt: new Date() },
-      },
-      orderBy: { expiresAt: 'desc' },
-    });
+    const premium = await this.premiumAccessService.hasPremiumAccess(userId, client);
 
     if (premium) {
       return {

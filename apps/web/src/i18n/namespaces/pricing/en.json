@@ -14,6 +14,11 @@
     "body": "Your coins were added to your account. Head back to the game shop to spend them.",
     "cta": "Back to the game"
   },
+  "billing": {
+    "redirecting": "Taking you to the billing portal...",
+    "error": "Couldn't open the billing portal",
+    "backToPricing": "Back to pricing"
+  },
 
   "pro": {
     "name": "CodeBuddies Pro",

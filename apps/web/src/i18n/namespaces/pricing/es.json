@@ -14,6 +14,11 @@
     "body": "Tus monedas se acreditaron a tu cuenta. Ya podes usarlas en la tienda del juego.",
     "cta": "Volver al juego"
   },
+  "billing": {
+    "redirecting": "Te estamos llevando al portal de facturacion...",
+    "error": "No se pudo abrir el portal de facturacion",
+    "backToPricing": "Volver a precios"
+  },
 
   "pro": {
     "name": "CodeBuddies Pro",

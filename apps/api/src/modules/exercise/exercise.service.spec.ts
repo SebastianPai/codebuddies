@@ -20,7 +20,7 @@ describe('ExerciseService', () => {
     createProgress: jest.fn(),
   };
   const premiumAccessService = {
-    isPremium: jest.fn().mockResolvedValue(false),
+    hasPremiumAccess: jest.fn().mockResolvedValue(false),
     hasFullAccess: jest.fn().mockReturnValue(false),
     getLessonIndex: jest.fn().mockResolvedValue(0),
     isLessonLocked: jest.fn().mockResolvedValue(false),

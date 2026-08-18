@@ -14,6 +14,11 @@
     "body": "金币已添加到您的账户，快去游戏商店使用吧。",
     "cta": "返回游戏"
   },
+  "billing": {
+    "redirecting": "正在跳转到账单管理门户...",
+    "error": "无法打开账单管理门户",
+    "backToPricing": "返回价格页面"
+  },
 
   "pro": {
     "name": "CodeBuddies Pro",

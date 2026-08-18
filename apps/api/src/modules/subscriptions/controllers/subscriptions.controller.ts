@@ -16,6 +16,19 @@ export class SubscriptionsController {
     );
   }
 
+  // GET, no POST: solo lee/crea una sesión de portal de un lado (Paddle),
+  // no muta nada nuestro -- el frontend hace fetch autenticado y redirige
+  // (window.location.href) a la URL devuelta, no navega directo acá (un
+  // GET de navegador normal no llevaría el Bearer token).
+  @Get('premium/billing-portal')
+  @UseGuards(JwtAuthGuard)
+  async getBillingPortalUrl(@Req() req: AuthenticatedRequest) {
+    const url = await this.subscriptionsService.getBillingPortalUrl(
+      req.user.userId,
+    );
+    return { url };
+  }
+
   @Post('premium/checkout')
   @UseGuards(JwtAuthGuard)
   createPremiumCheckout(

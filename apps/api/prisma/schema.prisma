@@ -560,6 +560,14 @@ model User {
   birthDate       DateTime?
   country         String?
 
+  // Espejo de Paddle: el customer_id que Paddle asigna la primera vez que
+  // este usuario paga algo (certificado, coins o Premium) -- lo setea
+  // PaddleWebhookService desde transaction.completed/subscription.created
+  // (custom_data.userId, autoritativo) y customer.created/customer.updated
+  // (match por email, best-effort). Único: nunca dos usuarios comparten el
+  // mismo customer de Paddle.
+  paddleCustomerId String? @unique
+
   experience Int @default(0)
   coins      Int @default(0)
   level      Int @default(1)
@@ -2295,6 +2303,23 @@ model PremiumSubscription {
   reason                 String?
   startedAt              DateTime                  @default(now())
   expiresAt              DateTime
+  updatedAt              DateTime                  @updatedAt
+
+  // Espejo crudo de Paddle -- NUNCA se usa para decidir acceso premium (eso
+  // sigue siendo status+expiresAt, ver PremiumAccessService.hasPremiumAccess);
+  // esto es solo para mostrarle al usuario/admin el estado real tal como lo
+  // ve Paddle (ej. "tu suscripción se cancela el 3 de marzo" sin que eso
+  // revoque el acceso hoy).
+  paddleCustomerId           String?
+  paddleProductId            String?
+  paddlePriceId              String?
+  // Valor crudo ('active'|'trialing'|'past_due'|'paused'|'canceled'), a
+  // diferencia de `status` (nuestro enum interno, más grueso).
+  paddleStatus               String?
+  scheduledChangeAction      String?
+  scheduledChangeEffectiveAt DateTime?
+  nextBilledAt               DateTime?
+  trialEndsAt                DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -2307,16 +2332,16 @@ model PremiumSubscription {
 // exactamente una CoinTransaction con reason `coinpurchase:<id>`, nunca al
 // revés). Idempotencia de entrega: ver CoinPurchasesService.completePurchase.
 model CoinPurchase {
-  id                    String             @id @default(uuid())
+  id                    String              @id @default(uuid())
   userId                String
   package               String
   coins                 Int
-  amount                Decimal            @db.Decimal(10, 2)
-  currency              Currency           @default(USD)
-  status                CoinPurchaseStatus @default(PENDING)
+  amount                Decimal             @db.Decimal(10, 2)
+  currency              Currency            @default(USD)
+  status                CoinPurchaseStatus  @default(PENDING)
   provider              PaymentProviderType @default(MOCK)
-  providerTransactionId String?            @unique
-  createdAt             DateTime           @default(now())
+  providerTransactionId String?             @unique
+  createdAt             DateTime            @default(now())
   completedAt           DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -2331,16 +2356,16 @@ model CoinPurchase {
 // WebhookEventsService.recordReceived). Sin relación a User: debe
 // sobrevivir para auditoría/reconciliación aunque se borren cuentas.
 model WebhookEvent {
-  id          String             @id @default(uuid())
+  id          String              @id @default(uuid())
   provider    PaymentProviderType
   eventId     String
   eventType   String
-  status      WebhookEventStatus @default(RECEIVED)
+  status      WebhookEventStatus  @default(RECEIVED)
   payload     Json
   error       String?
-  receivedAt  DateTime           @default(now())
+  receivedAt  DateTime            @default(now())
   processedAt DateTime?
-  retryCount  Int                @default(0)
+  retryCount  Int                 @default(0)
 
   @@unique([provider, eventId])
   @@index([status, receivedAt])
@@ -2565,7 +2590,7 @@ enum FriendChallengeStatus {
 // pendiente/aceptado, sin ganador) y cero código que lo leyera o escribiera
 // en ningún lado — se rediseña acá porque nada dependía del shape anterior.
 model FriendChallenge {
-  id           String  @id @default(uuid())
+  id           String @id @default(uuid())
   challengerId String
   opponentId   String
   courseId     String

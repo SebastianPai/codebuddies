@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { PremiumSubscriptionStatus, Role } from '@prisma/client';
+import { PremiumSubscriptionStatus, Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+
+type PrismaExecutor = PrismaService | Prisma.TransactionClient;
 
 // Servicio chico y sin dependencias de subscriptions/payments a propósito:
 // course/lesson/exercise necesitan poder preguntar "¿este usuario tiene
@@ -11,9 +13,21 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class PremiumAccessService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async isPremium(userId?: string): Promise<boolean> {
+  // Única fuente de verdad de acceso premium en toda la app -- ver el
+  // resto de este servicio y PaddleWebhookService para cómo se mantiene
+  // sincronizado status/expiresAt contra Paddle. Todo lo demás (course,
+  // lesson, exercise, progress, identity, certificate-eligibility) debe
+  // llamar a esto en vez de consultar PremiumSubscription directo.
+  //
+  // `client` opcional (default this.prisma) para poder llamarse dentro de
+  // una transacción existente (ver CertificateEligibilityService) sin leer
+  // por fuera de ella.
+  async hasPremiumAccess(
+    userId?: string,
+    client: PrismaExecutor = this.prisma,
+  ): Promise<boolean> {
     if (!userId) return false;
-    const active = await this.prisma.premiumSubscription.findFirst({
+    const active = await client.premiumSubscription.findFirst({
       where: {
         userId,
         status: PremiumSubscriptionStatus.ACTIVE,

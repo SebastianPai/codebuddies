@@ -16,7 +16,7 @@ describe('LessonService', () => {
     },
   };
   const premiumAccessService = {
-    isPremium: jest.fn().mockResolvedValue(false),
+    hasPremiumAccess: jest.fn().mockResolvedValue(false),
     hasFullAccess: jest.fn().mockReturnValue(false),
     isLessonLocked: jest.fn().mockResolvedValue(false),
   };

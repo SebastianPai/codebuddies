@@ -6,9 +6,10 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { PremiumSubscriptionStatus, Role } from '@prisma/client';
+import { Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
+import { PremiumAccessService } from '../premium-access/premium-access.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -55,6 +56,7 @@ export class IdentityService {
     private jwtService: JwtService,
     private gamificationService: GamificationService,
     private emailService: EmailService,
+    private premiumAccessService: PremiumAccessService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -135,16 +137,11 @@ export class IdentityService {
     return this.generateAuthResponse(userSafe);
   }
 
-  async hasPremium(userId: string): Promise<boolean> {
-    const sub = await this.prisma.premiumSubscription.findFirst({
-      where: {
-        userId,
-        status: PremiumSubscriptionStatus.ACTIVE,
-        expiresAt: { gt: new Date() },
-      },
-      select: { id: true },
-    });
-    return Boolean(sub);
+  // Delegar en PremiumAccessService.hasPremiumAccess() -- única fuente de
+  // verdad de acceso premium en toda la app, ver ese servicio. Antes esto
+  // duplicaba la misma query acá.
+  hasPremium(userId: string): Promise<boolean> {
+    return this.premiumAccessService.hasPremiumAccess(userId);
   }
 
   async updateProfile(userId: string, dto: UpdateProfileDto) {

@@ -5,6 +5,7 @@ import { IdentityService } from './identity.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { GamificationService } from '../gamification/gamification.service';
 import { EmailService } from '../email/email.service';
+import { PremiumAccessService } from '../premium-access/premium-access.service';
 
 describe('IdentityService', () => {
   let service: IdentityService;
@@ -16,6 +17,7 @@ describe('IdentityService', () => {
   const jwtService = { sign: jest.fn().mockReturnValue('signed-jwt') };
   const gamificationService = { getMissionsForUser: jest.fn() };
   const emailService = { sendWelcomeEmail: jest.fn() };
+  const premiumAccessService = { hasPremiumAccess: jest.fn().mockResolvedValue(false) };
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -26,6 +28,7 @@ describe('IdentityService', () => {
         { provide: JwtService, useValue: jwtService },
         { provide: GamificationService, useValue: gamificationService },
         { provide: EmailService, useValue: emailService },
+        { provide: PremiumAccessService, useValue: premiumAccessService },
       ],
     }).compile();
 

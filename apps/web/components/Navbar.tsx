@@ -32,6 +32,7 @@ import {
   Coins,
   Flame,
   Gamepad2,
+  CreditCard,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useCallback, useEffect, useState, useRef } from "react";
@@ -682,6 +683,7 @@ function AccountMenuContent({
       <DropdownItem href="/dashboard" icon={<User size={16} />} label={t("navbar.profile")} />
       <DropdownItem href={`/u/${username}`} icon={<User size={16} />} label={t("navbar.publicProfile")} />
       <DropdownItem href="/certificates" icon={<Award size={16} />} label={t("navbar.certificates")} />
+      <DropdownItem href="/account/billing" icon={<CreditCard size={16} />} label={t("navbar.billing")} />
 
       <DropdownSection title={t("navbar.preferences")} />
       <DropdownItem href="/settings" icon={<Settings size={16} />} label={t("navbar.settings")} />

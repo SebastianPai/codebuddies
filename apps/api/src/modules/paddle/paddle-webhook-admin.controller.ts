@@ -6,6 +6,8 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { Webhooks } from '@paddle/paddle-node-sdk';
+import type { IEvents } from '@paddle/paddle-node-sdk';
 import { Roles } from '../identity/decorators/roles.decorator';
 import { JwtAuthGuard } from '../identity/guards/jwt.guard';
 import { RolesGuard } from '../identity/guards/roles.guard';
@@ -33,17 +35,19 @@ export class PaddleWebhookAdminController {
   ) {}
 
   @Post(':id/reprocess')
-  async reprocess(
-    @Param('id') id: string,
-    @Req() req: AuthenticatedRequest,
-  ) {
+  async reprocess(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     const event = await this.webhookEventsRepository.findById(id);
     if (!event) throw new NotFoundException('Webhook event not found');
 
     try {
-      await this.paddleWebhookService.handleEvent(
-        event.payload as { event_type: string; data: unknown },
+      // Reconstruye el EventEntity tipado desde el payload crudo ya
+      // guardado -- sin volver a verificar firma (no aplica acá, esto es
+      // un reproceso manual disparado por un admin, no un delivery nuevo
+      // de Paddle).
+      const reconstructed = Webhooks.fromJson(
+        event.payload as unknown as IEvents,
       );
+      await this.paddleWebhookService.handleEvent(reconstructed);
       await this.webhookEventsService.markProcessed(event.id);
     } catch (error) {
       await this.webhookEventsService.markFailed(event.id, error);

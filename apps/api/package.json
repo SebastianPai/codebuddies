@@ -43,6 +43,7 @@
     "@nestjs/schedule": "^6.1.1",
     "@nestjs/throttler": "^6.5.0",
     "@nestjs/websockets": "^11.1.16",
+    "@paddle/paddle-node-sdk": "^3.10.0",
     "@prisma/client": "^6.19.2",
     "@socket.io/redis-adapter": "^8.3.0",
     "acron": "^1.0.5",

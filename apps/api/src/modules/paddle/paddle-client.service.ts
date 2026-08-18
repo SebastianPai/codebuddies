@@ -1,4 +1,8 @@
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 
 // Referencia de la API: https://developer.paddle.com/api-reference/overview
 // (Paddle Billing, no la API "Classic"). Se implementa con fetch directo en

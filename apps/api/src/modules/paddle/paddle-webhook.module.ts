@@ -5,6 +5,8 @@ import { CertificatesModule } from '../certificates/certificates.module';
 import { CoinsModule } from '../coins/coins.module';
 import { WebhooksModule } from '../webhooks/webhooks.module';
 import { AdminModule } from '../admin/admin.module';
+import { PrismaModule } from '../../prisma/prisma.module';
+import { PaddleClientModule } from './paddle-client.module';
 import { PaddleWebhookController } from './paddle-webhook.controller';
 import { PaddleWebhookAdminController } from './paddle-webhook-admin.controller';
 import { PaddleWebhookService } from './paddle-webhook.service';
@@ -12,10 +14,9 @@ import { PaddleWebhookService } from './paddle-webhook.service';
 @Module({
   // Depende de Payments/Subscriptions/Coins (por sus repositorios/servicios
   // exportados), de Certificates (para autoemitir al confirmar el pago), de
-  // Webhooks (log + idempotencia genérica) y de Admin (para auditar el
-  // reproceso manual) — nunca al revés, así se evita un ciclo de módulos
-  // con PaddleClientModule (que sí importan Payments/Subscriptions para
-  // armar el checkout).
+  // Webhooks (log + idempotencia genérica), de Admin (para auditar el
+  // reproceso manual) y de PaddleClientModule (para PaddleSdkService,
+  // verificación/parseo de webhooks) — nunca al revés.
   imports: [
     PaymentsModule,
     SubscriptionsModule,
@@ -23,6 +24,8 @@ import { PaddleWebhookService } from './paddle-webhook.service';
     CoinsModule,
     WebhooksModule,
     AdminModule,
+    PrismaModule,
+    PaddleClientModule,
   ],
   controllers: [PaddleWebhookController, PaddleWebhookAdminController],
   providers: [PaddleWebhookService],

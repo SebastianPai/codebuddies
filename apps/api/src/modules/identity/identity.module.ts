@@ -8,6 +8,7 @@ import { JwtAuthGuard } from './guards/jwt.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { GamificationModule } from '../gamification/gamification.module';
 import { EmailModule } from '../email/email.module';
+import { PremiumAccessModule } from '../premium-access/premium-access.module';
 import { JWT_SECRET } from '../../config/env';
 
 @Module({
@@ -15,6 +16,7 @@ import { JWT_SECRET } from '../../config/env';
     PrismaModule,
     GamificationModule,
     EmailModule,
+    PremiumAccessModule,
     JwtModule.register({
       secret: JWT_SECRET,
       signOptions: { expiresIn: '1d' },
