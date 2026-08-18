@@ -60,7 +60,7 @@
     "subtitle": "购买金币用于游戏商店",
     "cta": "购买金币",
     "mostPopular": "最受欢迎",
-    "bonus": "+{bonus} 赠送",
+    "bonus": "已包含 {bonus} 赠送",
     "packs": {
       "coins_500": "小",
       "coins_1100": "热门",

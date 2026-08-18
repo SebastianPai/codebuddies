@@ -32,13 +32,19 @@ export function CoinPackCard({ t, pack, pricesByPriceId, priceStatus, onBuy, che
       )}
 
       <Coins className="mx-auto text-amber-400" size={28} />
-      <p className="mt-3 text-2xl font-black text-[rgb(var(--text))]">{pack.coins.toLocaleString()}</p>
+      {/* Locale fijo ("en-US"): toLocaleString() sin locale explicito usa el
+         default del runtime, que difiere entre el servidor (Node) y el
+         navegador del visitante -- React tira un mismatch de hidratacion
+         (#418) apenas esos dos textos no coinciden byte a byte. */}
+      <p className="mt-3 text-2xl font-black text-[rgb(var(--text))]">
+        {pack.coins.toLocaleString("en-US")}
+      </p>
       <p className="text-xs font-bold uppercase tracking-wide text-[rgb(var(--secondary-text))]">
         {(t.pricing?.coins?.packs?.[pack.key] as string) ?? pack.name}
       </p>
       {pack.bonusCoins ? (
         <p className="mt-1 text-xs font-bold text-green-500">
-          {t("pricing.coins.bonus", { bonus: pack.bonusCoins.toLocaleString() })}
+          {t("pricing.coins.bonus", { bonus: pack.bonusCoins.toLocaleString("en-US") })}
         </p>
       ) : null}
 

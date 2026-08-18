@@ -60,7 +60,7 @@
     "subtitle": "Buy coins to spend in the game shop",
     "cta": "Buy Coins",
     "mostPopular": "Most Popular",
-    "bonus": "+{bonus} bonus",
+    "bonus": "includes {bonus} bonus",
     "packs": {
       "coins_500": "Small",
       "coins_1100": "Popular",

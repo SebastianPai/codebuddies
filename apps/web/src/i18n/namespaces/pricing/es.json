@@ -60,7 +60,7 @@
     "subtitle": "Compra monedas para usar en la tienda del juego",
     "cta": "Buy Coins",
     "mostPopular": "Mas popular",
-    "bonus": "+{bonus} de bonus",
+    "bonus": "incluye {bonus} de bonus",
     "packs": {
       "coins_500": "Small",
       "coins_1100": "Popular",
