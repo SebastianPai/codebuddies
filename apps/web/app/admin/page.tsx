@@ -25,6 +25,7 @@ const certificateActionLabelKeys: Record<string, string> = {
 };
 
 type ChartPoint = { label: string; value: number };
+type RetentionWindow = { eligible: number; retained: number; ratePercent: number };
 type DashboardData = {
   cards: {
     totalUsers: number;
@@ -33,6 +34,12 @@ type DashboardData = {
     lessons: number;
     certificatesIssued: number;
     premiumSubscribers: number;
+  };
+  engagement: {
+    dau: number;
+    wau: number;
+    mau: number;
+    retention: { d1: RetentionWindow; d7: RetentionWindow; d30: RetentionWindow };
   };
   charts: {
     newUsersOverTime: ChartPoint[];
@@ -165,6 +172,51 @@ export default function AdminDashboard() {
             points={dashboard.charts.certificatesIssuedOverTime}
           />
           <Chart title={t("admin.xpEarnedChartTitle")} points={dashboard.charts.xpEarnedOverTime} />
+        </section>
+      )}
+
+      {dashboard && (
+        <section className="rounded-lg border border-zinc-800 bg-[#111] p-6">
+          <h2 className="mb-5 text-xl font-black">{t("admin.engagementTitle")}</h2>
+          <div className="grid gap-4 md:grid-cols-3">
+            {(
+              [
+                [t("admin.dauLabel"), dashboard.engagement.dau],
+                [t("admin.wauLabel"), dashboard.engagement.wau],
+                [t("admin.mauLabel"), dashboard.engagement.mau],
+              ] as const
+            ).map(([label, value]) => (
+              <div key={label} className="rounded border border-zinc-800 bg-black p-4">
+                <p className="text-xs uppercase text-zinc-500">{label}</p>
+                <p className="mt-2 text-2xl font-black text-yellow-400">{value.toLocaleString()}</p>
+              </div>
+            ))}
+          </div>
+
+          <h3 className="mb-4 mt-8 text-sm font-black uppercase text-zinc-500">
+            {t("admin.retentionTitle")}
+          </h3>
+          <div className="grid gap-4 md:grid-cols-3">
+            {(
+              [
+                [t("admin.retentionD1Label"), dashboard.engagement.retention.d1],
+                [t("admin.retentionD7Label"), dashboard.engagement.retention.d7],
+                [t("admin.retentionD30Label"), dashboard.engagement.retention.d30],
+              ] as const
+            ).map(([label, window]) => (
+              <div key={label} className="rounded border border-zinc-800 bg-black p-4">
+                <p className="text-xs uppercase text-zinc-500">{label}</p>
+                <p className="mt-2 text-2xl font-black text-yellow-400">{window.ratePercent}%</p>
+                <p className="mt-1 text-xs text-zinc-500">
+                  {t("admin.retentionCohortLine", {
+                    retained: window.retained,
+                    eligible: window.eligible,
+                    rate: window.ratePercent,
+                  })}
+                </p>
+              </div>
+            ))}
+          </div>
         </section>
       )}
 
