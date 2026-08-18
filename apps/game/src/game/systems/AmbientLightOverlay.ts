@@ -16,22 +16,8 @@ const FADE_OUT_MS = 300;
 export default class AmbientLightOverlay {
   private rect?: Phaser.GameObjects.Rectangle;
   private resizeHandler?: () => void;
-  private camerasToExclude: Phaser.Cameras.Scene2D.Camera[] = [];
 
   constructor(private readonly scene: Phaser.Scene) {}
-
-  // El minimapa (segunda cámara) no debe oscurecerse — pero se recrea en
-  // cada cambio de sala (ver LobbyScene), así que LobbyScene vuelve a
-  // llamar esto cada vez que arma una sala nueva en vez de fijar la cámara
-  // una sola vez en el constructor. Si el rect ya existe (la sala anterior
-  // tenía iluminación prendida), se excluye de inmediato; si no, queda
-  // guardado para cuando setIntensity() lo cree por primera vez.
-  setExcludedCameras(cameras: Phaser.Cameras.Scene2D.Camera[]) {
-    this.camerasToExclude = cameras;
-    if (this.rect) {
-      cameras.forEach((camera) => camera.ignore(this.rect!));
-    }
-  }
 
   setIntensity(intensity: number | null | undefined) {
     const clamped = Phaser.Math.Clamp(Number(intensity) || 0, 0, 100);
@@ -50,8 +36,6 @@ export default class AmbientLightOverlay {
         .setScrollFactor(0)
         .setDepth(AMBIENT_LIGHT_DEPTH)
         .setAlpha(0);
-
-      this.camerasToExclude.forEach((camera) => camera.ignore(this.rect!));
 
       this.resizeHandler = () => {
         this.rect?.setSize(this.scene.scale.width, this.scene.scale.height);

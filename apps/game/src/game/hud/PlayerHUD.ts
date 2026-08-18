@@ -394,16 +394,6 @@ export default class PlayerHUD {
     }
   }
 
-  // Objetos Phaser que componen el HUD, para que la escena pueda excluirlos
-  // de otras cámaras (p. ej. el minimapa) sin depender de propiedades internas.
-  getDisplayObjects(): Phaser.GameObjects.GameObject[] {
-    return [
-      this.usernameText,
-      ...this.chatStack.map((entry) => entry.container),
-      ...this.badgeIcons,
-    ].filter(Boolean) as Phaser.GameObjects.GameObject[];
-  }
-
   // Burbuja de chat real (fondo redondeado + colita + cara del avatar a la
   // izquierda + mensaje a la derecha) en vez de un <Text> plano. Sin nombre
   // adentro — el nombre ya flota arriba de la cabeza (usernameText), ponerlo

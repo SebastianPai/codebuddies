@@ -44,7 +44,6 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
   player!: ModularPlayer;
   otherPlayers!: Phaser.GameObjects.Group;
   hud!: PlayerHUD;
-  minimap!: Phaser.Cameras.Scene2D.Camera;
 
   private loadedTextures: Set<string> = new Set();
   private pcZone!: Phaser.GameObjects.Zone;
@@ -199,7 +198,6 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
               layoutAnchor: this.getCompositionCenter(),
             });
             this.createWorld(user, socket, data.players, data.items);
-            this.ambientLight.setExcludedCameras([this.minimap]);
             this.ambientLight.setIntensity(data.room.ambientLightIntensity);
             this.cameras.main.fadeIn(250, 0, 0, 0);
             this.scheduleRoomThumbnailCapture(2200);
@@ -755,11 +753,6 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     // GameObject muerto.
     this.ambientLight?.destroy();
 
-    if (this.minimap) {
-      this.cameras.remove(this.minimap);
-      this.minimap = undefined as unknown as Phaser.Cameras.Scene2D.Camera;
-    }
-
     this.children.removeAll(true);
     this.backgroundManager?.clear();
 
@@ -882,8 +875,6 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
   }
 
   private setBuildMode(active: boolean) {
-    this.minimap?.setVisible(!active);
-
     const hudContainer = (this.hud as any)?.container;
     if (hudContainer?.setVisible) {
       hudContainer.setVisible(!active);
@@ -1022,17 +1013,6 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     });
 
     this.otherPlayers = this.add.group();
-
-    // x=350 deja el minimapa a la derecha del LeftSidebar (320px de ancho +
-    // margen); en (10,10) quedaba tapado por completo detrás del sidebar,
-    // que es un panel DOM permanente por encima del canvas.
-    this.minimap = this.cameras
-      .add(350, 10, 180, 180)
-      .setZoom(0.15)
-      .setName("minimap")
-      .setBackgroundColor(0x002244);
-    this.minimap.startFollow(this.player);
-    this.minimap.ignore(this.hud.getDisplayObjects());
 
     this.hoverHighlight = this.add
       .polygon(0, 0, [32, 0, 64, 16, 32, 32, 0, 16], 0xffff44, 0.45)
