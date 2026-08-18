@@ -1,0 +1,66 @@
+{
+  "title": "价格",
+  "subtitle": "选择适合你的计划",
+  "loadError": "无法加载价格，请稍后重试。",
+  "loginRequired": "请登录以继续购买",
+
+  "welcome": {
+    "title": "欢迎使用 CodeBuddies Pro",
+    "body": "您的订阅已成功激活，尽情享受所有高级权益吧。",
+    "cta": "前往控制台"
+  },
+  "shop": {
+    "title": "购买完成",
+    "body": "金币已添加到您的账户，快去游戏商店使用吧。",
+    "cta": "返回游戏"
+  },
+
+  "pro": {
+    "name": "CodeBuddies Pro",
+    "description": "无限访问课程、练习和高级权益。",
+    "monthly": "按月",
+    "yearly": "按年",
+    "yearlyBadge": "推荐",
+    "trialBadge": "7天免费试用",
+    "perMonth": "/月",
+    "perYear": "/年",
+    "cta": "开始免费试用",
+    "featuresTitle": "包含内容",
+    "features": [
+      "无限编程课程",
+      "无限编程练习",
+      "互动挑战",
+      "经验值与成就",
+      "高级徽章",
+      "无限证书",
+      "新功能抢先体验",
+      "优先支持"
+    ]
+  },
+
+  "certificate": {
+    "name": "官方 CodeBuddies 证书",
+    "oneTime": "一次性购买",
+    "cta": "购买证书",
+    "features": [
+      "数字验证",
+      "公开验证页面",
+      "PDF 证书",
+      "永久访问"
+    ]
+  },
+
+  "coins": {
+    "title": "金币礼包",
+    "subtitle": "购买金币用于游戏商店",
+    "cta": "购买金币",
+    "mostPopular": "最受欢迎",
+    "bonus": "+{bonus} 赠送",
+    "packs": {
+      "coins_500": "小",
+      "coins_1100": "热门",
+      "coins_3400": "大",
+      "coins_6000": "至尊"
+    }
+  }
+}

@@ -35,7 +35,11 @@ export class CoinPurchasesService {
   // coins se resuelven server-side desde el catálogo, nunca desde el
   // cliente -- evita que alguien manipule el monto a cobrar o los coins a
   // recibir.
-  async purchaseCoins(userId: string, dto: PurchaseCoinsDto) {
+  async purchaseCoins(
+    userId: string,
+    dto: PurchaseCoinsDto,
+    customerEmail?: string,
+  ) {
     const coinPackage = findCoinPackage(dto.packageKey);
     if (!coinPackage) {
       throw new NotFoundException('Coin package not found');
@@ -57,6 +61,7 @@ export class CoinPurchasesService {
       description: `${coinPackage.coins} coins`,
       kind: 'coin_purchase',
       priceIdEnvVar: coinPackage.paddlePriceEnvVar,
+      customerEmail,
     });
 
     await this.repository.updateProviderTransactionId(

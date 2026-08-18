@@ -20,6 +20,10 @@ export class CoinPurchasesController {
     @Req() req: AuthenticatedRequest,
     @Body() dto: PurchaseCoinsDto,
   ) {
-    return this.coinPurchasesService.purchaseCoins(req.user.userId, dto);
+    return this.coinPurchasesService.purchaseCoins(
+      req.user.userId,
+      dto,
+      req.user.email,
+    );
   }
 }

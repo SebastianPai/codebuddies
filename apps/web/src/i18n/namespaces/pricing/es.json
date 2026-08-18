@@ -1,0 +1,66 @@
+{
+  "title": "Precios",
+  "subtitle": "Elegi el plan que se adapte a vos",
+  "loadError": "No se pudieron cargar los precios. Intenta de nuevo mas tarde.",
+  "loginRequired": "Inicia sesion para continuar con la compra",
+
+  "welcome": {
+    "title": "Bienvenido a CodeBuddies Pro",
+    "body": "Tu suscripcion se activo correctamente. Ya podes disfrutar de todos los beneficios premium.",
+    "cta": "Ir al panel"
+  },
+  "shop": {
+    "title": "Compra completada",
+    "body": "Tus monedas se acreditaron a tu cuenta. Ya podes usarlas en la tienda del juego.",
+    "cta": "Volver al juego"
+  },
+
+  "pro": {
+    "name": "CodeBuddies Pro",
+    "description": "Acceso ilimitado a cursos, ejercicios y beneficios premium.",
+    "monthly": "Mensual",
+    "yearly": "Anual",
+    "yearlyBadge": "Recomendado",
+    "trialBadge": "Prueba gratis de 7 dias",
+    "perMonth": "/mes",
+    "perYear": "/ano",
+    "cta": "Start Free Trial",
+    "featuresTitle": "Todo lo que incluye",
+    "features": [
+      "Cursos de programacion ilimitados",
+      "Ejercicios de codigo ilimitados",
+      "Desafios interactivos",
+      "XP y logros",
+      "Insignia Premium",
+      "Certificados ilimitados",
+      "Acceso anticipado a nuevas funciones",
+      "Soporte prioritario"
+    ]
+  },
+
+  "certificate": {
+    "name": "Official CodeBuddies Certificate",
+    "oneTime": "Pago unico",
+    "cta": "Buy Certificate",
+    "features": [
+      "Verificacion digital",
+      "Pagina publica de verificacion",
+      "Certificado en PDF",
+      "Acceso de por vida"
+    ]
+  },
+
+  "coins": {
+    "title": "Paquetes de monedas",
+    "subtitle": "Compra monedas para usar en la tienda del juego",
+    "cta": "Buy Coins",
+    "mostPopular": "Mas popular",
+    "bonus": "+{bonus} de bonus",
+    "packs": {
+      "coins_500": "Small",
+      "coins_1100": "Popular",
+      "coins_3400": "Large",
+      "coins_6000": "Ultimate"
+    }
+  }
+}

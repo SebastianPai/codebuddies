@@ -8,6 +8,7 @@ export interface PaymentCheckoutRequest {
   // Qué se está cobrando (va en custom_data del checkout para que el
   // webhook sepa qué hacer al confirmarse el pago).
   kind: string;
+  customerEmail?: string;
   // Ad-hoc: product_id preexistente + precio armado en el momento con
   // `amount`/`currency` de arriba (certificados, cuyo monto puede variar a
   // futuro por curso). Mutuamente excluyente con priceIdEnvVar.

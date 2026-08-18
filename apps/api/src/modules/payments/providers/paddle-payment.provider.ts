@@ -23,6 +23,7 @@ export class PaddlePaymentProvider implements PaymentProvider {
 
     const transaction = await this.paddleClient.createTransaction({
       items: [item],
+      customerEmail: request.customerEmail,
       customData: { kind: request.kind, orderId: request.orderId },
     });
 

@@ -1,0 +1,66 @@
+{
+  "title": "Pricing",
+  "subtitle": "Choose the plan that fits you",
+  "loadError": "Couldn't load prices. Please try again later.",
+  "loginRequired": "Sign in to continue with your purchase",
+
+  "welcome": {
+    "title": "Welcome to CodeBuddies Pro",
+    "body": "Your subscription is now active. Enjoy every premium perk.",
+    "cta": "Go to dashboard"
+  },
+  "shop": {
+    "title": "Purchase complete",
+    "body": "Your coins were added to your account. Head back to the game shop to spend them.",
+    "cta": "Back to the game"
+  },
+
+  "pro": {
+    "name": "CodeBuddies Pro",
+    "description": "Unlimited access to courses, exercises and premium perks.",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "yearlyBadge": "Recommended",
+    "trialBadge": "7-day Free Trial",
+    "perMonth": "/mo",
+    "perYear": "/yr",
+    "cta": "Start Free Trial",
+    "featuresTitle": "Everything included",
+    "features": [
+      "Unlimited programming courses",
+      "Unlimited coding exercises",
+      "Interactive challenges",
+      "XP & achievements",
+      "Premium badge",
+      "Unlimited certificates",
+      "Early access to new features",
+      "Priority support"
+    ]
+  },
+
+  "certificate": {
+    "name": "Official CodeBuddies Certificate",
+    "oneTime": "One-time purchase",
+    "cta": "Buy Certificate",
+    "features": [
+      "Digital verification",
+      "Public verification page",
+      "PDF Certificate",
+      "Lifetime access"
+    ]
+  },
+
+  "coins": {
+    "title": "Coin Packs",
+    "subtitle": "Buy coins to spend in the game shop",
+    "cta": "Buy Coins",
+    "mostPopular": "Most Popular",
+    "bonus": "+{bonus} bonus",
+    "packs": {
+      "coins_500": "Small",
+      "coins_1100": "Popular",
+      "coins_3400": "Large",
+      "coins_6000": "Ultimate"
+    }
+  }
+}

@@ -41,9 +41,12 @@ import siteZh from "./namespaces/site/zh.json";
 import navbarEs from "./namespaces/navbar/es.json";
 import navbarEn from "./namespaces/navbar/en.json";
 import navbarZh from "./namespaces/navbar/zh.json";
+import pricingEs from "./namespaces/pricing/es.json";
+import pricingEn from "./namespaces/pricing/en.json";
+import pricingZh from "./namespaces/pricing/zh.json";
 
 export const dictionary = {
-  es: { ...es, common: commonEs, admin: adminEs, dashboard: dashboardEs, app: appEs, auth: authEs, gamification: gamificationEs, chat: chatEs, referrals: referralsEs, animations: animationsEs, items: itemsEs, editor: editorEs, site: siteEs, navbar: { ...es.navbar, ...navbarEs } },
-  "en-us": { ...en, common: commonEn, admin: adminEn, dashboard: dashboardEn, app: appEn, auth: authEn, gamification: gamificationEn, chat: chatEn, referrals: referralsEn, animations: animationsEn, items: itemsEn, editor: editorEn, site: siteEn, navbar: { ...en.navbar, ...navbarEn } },
-  "zh-Hans": { ...zh, common: commonZh, admin: adminZh, dashboard: dashboardZh, app: appZh, auth: authZh, gamification: gamificationZh, chat: chatZh, referrals: referralsZh, animations: animationsZh, items: itemsZh, editor: editorZh, site: siteZh, navbar: { ...zh.navbar, ...navbarZh } },
+  es: { ...es, common: commonEs, admin: adminEs, dashboard: dashboardEs, app: appEs, auth: authEs, gamification: gamificationEs, chat: chatEs, referrals: referralsEs, animations: animationsEs, items: itemsEs, editor: editorEs, site: siteEs, navbar: { ...es.navbar, ...navbarEs }, pricing: pricingEs },
+  "en-us": { ...en, common: commonEn, admin: adminEn, dashboard: dashboardEn, app: appEn, auth: authEn, gamification: gamificationEn, chat: chatEn, referrals: referralsEn, animations: animationsEn, items: itemsEn, editor: editorEn, site: siteEn, navbar: { ...en.navbar, ...navbarEn }, pricing: pricingEn },
+  "zh-Hans": { ...zh, common: commonZh, admin: adminZh, dashboard: dashboardZh, app: appZh, auth: authZh, gamification: gamificationZh, chat: chatZh, referrals: referralsZh, animations: animationsZh, items: itemsZh, editor: editorZh, site: siteZh, navbar: { ...zh.navbar, ...navbarZh }, pricing: pricingZh },
 };
