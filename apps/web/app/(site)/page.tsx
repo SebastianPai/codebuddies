@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { api } from "../../utils/api";
 import { useTranslation } from "../../src/i18n/useTranslation"; // ← Asegúrate que la ruta sea correcta
+import { WorldPulseBar } from "../../src/features/world-pulse/world-pulse-bar";
 
 // Interfaces
 interface CoursePreview {
@@ -332,6 +333,9 @@ export default function BrutalistLanding() {
                 {t("site.viewRankingsLink")}
               </Link>
             </div>
+
+            <WorldPulseBar variant="landing" className="mb-10" />
+
             <div className="grid gap-4 md:grid-cols-3">
               {[
                 [t("site.membersLabel"), communityStats?.users ?? 0],
