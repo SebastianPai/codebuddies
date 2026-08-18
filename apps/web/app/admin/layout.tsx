@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "../../hooks/useAuth";
 import Link from "next/link";
 import {
@@ -30,8 +30,10 @@ import {
   Shield,
   AlertTriangle,
   Activity,
+  ChevronDown,
 } from "lucide-react";
 import { useTranslation } from "../../src/i18n/useTranslation";
+import { useDisclosure } from "../../src/shared/hooks/use-disclosure";
 
 export default function AdminLayout({
   children,
@@ -90,7 +92,7 @@ export default function AdminLayout({
 
           {/* CONTENIDO */}
 
-          <SidebarSection title={t("admin.content")}>
+          <SidebarSection id="content" title={t("admin.content")}>
             <SidebarLink
               href="/admin/modules"
               icon={<Layers size={18} />}
@@ -136,7 +138,7 @@ export default function AdminLayout({
 
           {/* GAMIFICACION */}
 
-          <SidebarSection title={t("gamification.title")}>
+          <SidebarSection id="gamification" title={t("gamification.title")}>
             <SidebarLink
               href="/admin/gamification"
               icon={<Target size={18} />}
@@ -164,7 +166,7 @@ export default function AdminLayout({
 
           {/* PERSONALIZACION */}
 
-          <SidebarSection title={t("admin.personalizationNav")}>
+          <SidebarSection id="personalization" title={t("admin.personalizationNav")}>
             <SidebarLink
               href="/admin/animations"
               icon={<Image size={18} />}
@@ -222,7 +224,7 @@ export default function AdminLayout({
 
           {/* SISTEMA */}
 
-          <SidebarSection title={t("admin.system")}>
+          <SidebarSection id="system" title={t("admin.system")}>
             <SidebarLink
               href="/admin/users"
               icon={<User size={18} />}
@@ -320,7 +322,7 @@ export default function AdminLayout({
             />
           </SidebarSection>
 
-          <SidebarSection title={t("admin.maps")}>
+          <SidebarSection id="maps" title={t("admin.maps")}>
             <SidebarLink
               href="/admin/layouts"
               icon={<MapPin size={18} />}
@@ -356,17 +358,47 @@ export default function AdminLayout({
 }
 
 function SidebarSection({
+  id,
   title,
   children,
 }: {
+  id: string;
   title: string;
   children: React.ReactNode;
 }) {
+  const storageKey = `admin-sidebar-section:${id}`;
+  const { isOpen, setIsOpen } = useDisclosure(true);
+
+  useEffect(() => {
+    const stored = window.localStorage.getItem(storageKey);
+    if (stored !== null) setIsOpen(stored === "1");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const toggle = () => {
+    setIsOpen((prev) => {
+      const next = !prev;
+      window.localStorage.setItem(storageKey, next ? "1" : "0");
+      return next;
+    });
+  };
+
   return (
     <div>
-      <p className="text-xs uppercase text-zinc-500 mb-2 px-3">{title}</p>
+      <button
+        type="button"
+        onClick={toggle}
+        aria-expanded={isOpen}
+        className="mb-1 flex w-full items-center justify-between px-3 py-1 text-xs font-semibold uppercase tracking-wide text-zinc-500 transition hover:text-zinc-300"
+      >
+        {title}
+        <ChevronDown
+          size={14}
+          className={`transition-transform ${isOpen ? "rotate-0" : "-rotate-90"}`}
+        />
+      </button>
 
-      <div className="space-y-1">{children}</div>
+      {isOpen && <div className="space-y-1">{children}</div>}
     </div>
   );
 }
@@ -380,19 +412,25 @@ function SidebarLink({
   icon: React.ReactNode;
   label: string;
 }) {
+  const pathname = usePathname();
+  const active =
+    pathname === href || (href !== "/admin" && pathname?.startsWith(`${href}/`));
+
   return (
     <Link
       href={href}
-      className="
+      className={`
       flex items-center gap-3
       px-3 py-2
       rounded-md
       text-sm
-      text-zinc-300
-      hover:bg-zinc-900
-      hover:text-yellow-400
       transition
-      "
+      ${
+        active
+          ? "bg-yellow-400/10 text-yellow-400 font-medium"
+          : "text-zinc-300 hover:bg-zinc-900 hover:text-yellow-400"
+      }
+      `}
     >
       {icon}
       {label}

@@ -121,6 +121,27 @@ export default function ItemsPage() {
     { value: "texture", label: t("items.filterTextureShort"), count: counts.texture },
   ];
 
+  // Cuando se ven "todos", agrupamos por tipo (avatar/mundo/textura/base) en
+  // vez de mezclarlos en una sola grilla, para que se distinga de un vistazo
+  // qué es cada cosa.
+  const groupedItems = useMemo(() => {
+    if (typeFilter !== "all") return null;
+
+    const groups: Array<{ type: TypeFilter | "base"; label: string; items: Item[] }> = [
+      { type: "avatar", label: t("items.filterAvatarShort"), items: [] },
+      { type: "world", label: t("items.filterWorldShort"), items: [] },
+      { type: "texture", label: t("items.filterTextureShort"), items: [] },
+      { type: "base", label: t("items.baseItemShort"), items: [] },
+    ];
+    const byType = new Map(groups.map((g) => [g.type, g]));
+
+    filteredItems.forEach((item) => {
+      byType.get(getItemType(item))?.items.push(item);
+    });
+
+    return groups.filter((g) => g.items.length > 0);
+  }, [filteredItems, typeFilter, t]);
+
   return (
     <div className="p-10 space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -163,94 +184,47 @@ export default function ItemsPage() {
         />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-        {filteredItems.map((item) => {
-          const slot = item.avatarData?.slot;
-          const kind = item.worldData?.kind;
-          const typeBadge = slot
-            ? t("items.avatarPrefix", { value: slot })
-            : kind
-              ? t("items.worldPrefix", { value: kind })
-              : t("items.baseItemShort");
-          const name = getItemName(item, typeBadge);
-
-          return (
-            <div
+      {groupedItems ? (
+        <div className="space-y-8">
+          {groupedItems.map((group) => (
+            <section key={group.type}>
+              <div className="mb-3 flex items-center gap-2">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-400">
+                  {group.label}
+                </h2>
+                <span className="rounded-full bg-zinc-900 px-2 py-0.5 text-xs text-zinc-500">
+                  {group.items.length}
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+                {group.items.map((item) => (
+                  <ItemCard
+                    key={item.id}
+                    item={item}
+                    t={t}
+                    rarityLabels={RARITY_LABELS}
+                    onToggleDefault={toggleDefault}
+                    onDelete={deleteItem}
+                  />
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+          {filteredItems.map((item) => (
+            <ItemCard
               key={item.id}
-              className="flex flex-col rounded-lg border border-zinc-800 bg-[#111] p-4 transition hover:border-yellow-400"
-            >
-              {item.imageUrl ? (
-                <img
-                  src={item.imageUrl}
-                  alt={name}
-                  className="mb-3 h-32 w-full object-contain [image-rendering:pixelated]"
-                />
-              ) : (
-                <div className="mb-3 flex h-32 w-full items-center justify-center rounded bg-black/40 text-xs text-zinc-600">
-                  {t("items.noImage")}
-                </div>
-              )}
-
-              <p className="truncate text-sm font-semibold text-white" title={name}>
-                {name}
-              </p>
-              <p className="text-xs text-zinc-500">{typeBadge}</p>
-
-              <div className="mt-2 space-y-0.5">
-                <p className="text-xs text-zinc-500">
-                  {t("items.priceMonedasLabel", { price: item.coinsPrice ?? 0 })}
-                </p>
-                <p className="text-xs text-zinc-500">
-                  {t("items.shopStateLabel", {
-                    value: item.shopVisible ? t("items.visibleLowercase") : t("items.hiddenLowercase"),
-                  })}
-                </p>
-                {item.worldData && (
-                  <p className="text-xs text-zinc-500">
-                    {item.worldData.width ?? 1}x{item.worldData.height ?? 1} ·{" "}
-                    {item.worldData.placementType ?? "FLOOR"}
-                  </p>
-                )}
-                <p className="text-xs text-zinc-400">
-                  {RARITY_LABELS[item.rarity] || t("items.unknownRarity")}
-                </p>
-              </div>
-
-              {slot && (
-                <button
-                  onClick={() => toggleDefault(item)}
-                  className={`mt-3 w-full rounded px-2 py-1 text-xs font-semibold transition ${
-                    item.isDefaultForSlot === slot
-                      ? "bg-yellow-400 text-black hover:bg-yellow-300"
-                      : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200"
-                  }`}
-                >
-                  {item.isDefaultForSlot === slot
-                    ? t("items.isDefaultForSlotBadge", { slot })
-                    : t("items.setAsDefaultButton", { slot })}
-                </button>
-              )}
-
-              <div className="mt-auto flex items-center justify-between pt-4 text-sm">
-                <Link href={`/admin/items/${item.id}`} className="text-blue-400 hover:underline">
-                  {t("common.edit")}
-                </Link>
-                {slot && (
-                  <Link
-                    href={`/admin/item-sprites?itemId=${item.id}`}
-                    className="text-yellow-400 hover:underline"
-                  >
-                    {t("items.sprite")}
-                  </Link>
-                )}
-                <button onClick={() => deleteItem(item.id)} className="text-red-400 hover:underline">
-                  {t("common.delete")}
-                </button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+              item={item}
+              t={t}
+              rarityLabels={RARITY_LABELS}
+              onToggleDefault={toggleDefault}
+              onDelete={deleteItem}
+            />
+          ))}
+        </div>
+      )}
 
       {items.length === 0 && (
         <p className="py-10 text-center text-zinc-500">{t("items.noItemsYet")}</p>
@@ -258,6 +232,102 @@ export default function ItemsPage() {
       {items.length > 0 && filteredItems.length === 0 && (
         <p className="py-10 text-center text-zinc-500">{t("items.noItemsMatchFilter")}</p>
       )}
+    </div>
+  );
+}
+
+function ItemCard({
+  item,
+  t,
+  rarityLabels,
+  onToggleDefault,
+  onDelete,
+}: {
+  item: Item;
+  t: ReturnType<typeof useTranslation>;
+  rarityLabels: Record<number, string>;
+  onToggleDefault: (item: Item) => void;
+  onDelete: (id: string) => void;
+}) {
+  const slot = item.avatarData?.slot;
+  const kind = item.worldData?.kind;
+  const typeBadge = slot
+    ? t("items.avatarPrefix", { value: slot })
+    : kind
+      ? t("items.worldPrefix", { value: kind })
+      : t("items.baseItemShort");
+  const name = getItemName(item, typeBadge);
+
+  return (
+    <div className="flex flex-col rounded-lg border border-zinc-800 bg-[#111] p-4 transition hover:border-yellow-400">
+      {item.imageUrl ? (
+        <img
+          src={item.imageUrl}
+          alt={name}
+          className="mb-3 h-32 w-full object-contain [image-rendering:pixelated]"
+        />
+      ) : (
+        <div className="mb-3 flex h-32 w-full items-center justify-center rounded bg-black/40 text-xs text-zinc-600">
+          {t("items.noImage")}
+        </div>
+      )}
+
+      <p className="truncate text-sm font-semibold text-white" title={name}>
+        {name}
+      </p>
+      <p className="text-xs text-zinc-500">{typeBadge}</p>
+
+      <div className="mt-2 space-y-0.5">
+        <p className="text-xs text-zinc-500">
+          {t("items.priceMonedasLabel", { price: item.coinsPrice ?? 0 })}
+        </p>
+        <p className="text-xs text-zinc-500">
+          {t("items.shopStateLabel", {
+            value: item.shopVisible ? t("items.visibleLowercase") : t("items.hiddenLowercase"),
+          })}
+        </p>
+        {item.worldData && (
+          <p className="text-xs text-zinc-500">
+            {item.worldData.width ?? 1}x{item.worldData.height ?? 1} ·{" "}
+            {item.worldData.placementType ?? "FLOOR"}
+          </p>
+        )}
+        <p className="text-xs text-zinc-400">
+          {rarityLabels[item.rarity] || t("items.unknownRarity")}
+        </p>
+      </div>
+
+      {slot && (
+        <button
+          onClick={() => onToggleDefault(item)}
+          className={`mt-3 w-full rounded px-2 py-1 text-xs font-semibold transition ${
+            item.isDefaultForSlot === slot
+              ? "bg-yellow-400 text-black hover:bg-yellow-300"
+              : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200"
+          }`}
+        >
+          {item.isDefaultForSlot === slot
+            ? t("items.isDefaultForSlotBadge", { slot })
+            : t("items.setAsDefaultButton", { slot })}
+        </button>
+      )}
+
+      <div className="mt-auto flex items-center justify-between pt-4 text-sm">
+        <Link href={`/admin/items/${item.id}`} className="text-blue-400 hover:underline">
+          {t("common.edit")}
+        </Link>
+        {slot && (
+          <Link
+            href={`/admin/item-sprites?itemId=${item.id}`}
+            className="text-yellow-400 hover:underline"
+          >
+            {t("items.sprite")}
+          </Link>
+        )}
+        <button onClick={() => onDelete(item.id)} className="text-red-400 hover:underline">
+          {t("common.delete")}
+        </button>
+      </div>
     </div>
   );
 }

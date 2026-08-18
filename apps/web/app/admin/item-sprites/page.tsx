@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { Combobox } from "@headlessui/react";
-import { HelpCircle } from "lucide-react";
+import { HelpCircle, ImageIcon, Ruler, Gauge, Compass } from "lucide-react";
 import { api } from "@/shared/api/client";
 import { Tooltip } from "@/shared/ui";
 import { useTranslation } from "../../../src/i18n/useTranslation";
@@ -71,16 +71,21 @@ interface SpriteConfig {
 function SectionCard({
   title,
   hint,
+  icon,
   children,
 }: {
   title: string;
   hint?: string;
+  icon?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <section className="rounded-2xl border border-gray-800 bg-gray-900/40 p-5 space-y-4">
       <div>
-        <h2 className="text-sm font-bold uppercase tracking-wide text-gray-400">{title}</h2>
+        <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-gray-400">
+          {icon}
+          {title}
+        </h2>
         {hint && <p className="mt-1 text-xs text-gray-500">{hint}</p>}
       </div>
       {children}
@@ -574,7 +579,7 @@ function ItemSpriteEditor() {
         <div className="text-xs text-gray-500">{t("items.loadingExistingSprite")}</div>
       )}
 
-      <SectionCard title={t("items.byItemLabel")}>
+      <SectionCard title={t("items.byItemLabel")} icon={<Compass size={16} />}>
         {/* Filtro por estado de sprite */}
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs uppercase tracking-wide opacity-60">
@@ -681,7 +686,7 @@ function ItemSpriteEditor() {
         </div>
       </SectionCard>
 
-      <SectionCard title={t("items.itemSprite")}>
+      <SectionCard title={t("items.itemSprite")} icon={<ImageIcon size={16} />}>
         {/* Dropzone */}
         <div
           onDrop={(e) => {
@@ -726,8 +731,12 @@ function ItemSpriteEditor() {
         </div>
       </SectionCard>
 
-      <SectionCard title={t("items.frameCountLabel")}>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 text-sm">
+      <SectionCard
+        title={t("items.frameGeometryTitle")}
+        hint={t("items.frameGeometryHint")}
+        icon={<Ruler size={16} />}
+      >
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 text-sm">
           {[
             { label: t("items.frameWidthLabel"), value: config.frameWidth, key: "frameWidth" },
             {
@@ -747,9 +756,35 @@ function ItemSpriteEditor() {
               key: "rows",
               disabled: true,
             },
+          ].map(({ label, value, key, disabled }) => (
+            <div key={label} className="space-y-1">
+              <label className="text-xs opacity-70 flex items-center gap-1">{label}</label>
+              <input
+                type="number"
+                min={1}
+                value={value}
+                disabled={disabled}
+                onChange={(e) => {
+                  const num = Math.max(1, Number(e.target.value) || 1);
+                  setConfig((c) => ({ ...c, [key]: num }));
+                }}
+                className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-1.5 disabled:opacity-50"
+              />
+            </div>
+          ))}
+        </div>
+      </SectionCard>
+
+      <SectionCard
+        title={t("items.playbackPreviewTitle")}
+        hint={t("items.playbackPreviewHint")}
+        icon={<Gauge size={16} />}
+      >
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm max-w-md">
+          {[
             { label: "FPS", value: fps, key: "fps", hint: t("items.fpsHint") },
             { label: "Zoom", value: zoom, key: "zoom" },
-          ].map(({ label, value, key, disabled, hint }) => (
+          ].map(({ label, value, key, hint }) => (
             <div key={label} className="space-y-1">
               <label className="text-xs opacity-70 flex items-center gap-1">
                 {label}
@@ -763,21 +798,19 @@ function ItemSpriteEditor() {
                 type="number"
                 min={1}
                 value={value}
-                disabled={disabled}
                 onChange={(e) => {
                   const num = Math.max(1, Number(e.target.value) || 1);
                   if (key === "fps") setFps(num);
-                  else if (key === "zoom") setZoom(num);
-                  else setConfig((c) => ({ ...c, [key]: num }));
+                  else setZoom(num);
                 }}
-                className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-1.5 disabled:opacity-50"
+                className="w-full bg-gray-800 border border-gray-700 rounded px-3 py-1.5"
               />
             </div>
           ))}
         </div>
       </SectionCard>
 
-      <SectionCard title={t("items.directionLabel")}>
+      <SectionCard title={t("items.directionLabel")} icon={<Compass size={16} />}>
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex rounded-full border border-gray-700 overflow-hidden">
             <button
