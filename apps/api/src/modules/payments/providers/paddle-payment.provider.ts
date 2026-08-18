@@ -17,10 +17,10 @@ export class PaddlePaymentProvider implements PaymentProvider {
   async createCheckout(
     request: PaymentCheckoutRequest,
   ): Promise<PaymentCheckoutResult> {
-    const productId = process.env.PADDLE_CERTIFICATE_PRODUCT_ID;
+    const productId = process.env[request.productIdEnvVar];
     if (!productId) {
       throw new InternalServerErrorException(
-        'PADDLE_CERTIFICATE_PRODUCT_ID no está configurado',
+        `${request.productIdEnvVar} no está configurado`,
       );
     }
 
@@ -40,7 +40,7 @@ export class PaddlePaymentProvider implements PaymentProvider {
           },
         },
       ],
-      customData: { kind: 'certificate_order', orderId: request.orderId },
+      customData: { kind: request.kind, orderId: request.orderId },
     });
 
     return {

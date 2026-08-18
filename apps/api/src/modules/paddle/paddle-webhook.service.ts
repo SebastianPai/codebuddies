@@ -2,12 +2,14 @@ import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { createHmac, timingSafeEqual } from 'crypto';
 import {
   CertificateOrderStatus,
+  PremiumOrigin,
   PremiumSubscriptionStatus,
   SubscriptionProviderType,
 } from '@prisma/client';
 import { CertificateOrdersRepository } from '../payments/repositories/certificate-orders.repository';
 import { PremiumSubscriptionsRepository } from '../subscriptions/repositories/premium-subscriptions.repository';
 import { CertificatesService } from '../certificates/services/certificates.service';
+import { CoinPurchasesService } from '../coins/services/coin-purchases.service';
 
 // Todo lo que sigue está implementado contra la documentación pública de
 // Paddle Billing (https://developer.paddle.com/webhooks/overview), pero sin
@@ -23,6 +25,7 @@ export class PaddleWebhookService {
     private readonly certificateOrdersRepository: CertificateOrdersRepository,
     private readonly premiumSubscriptionsRepository: PremiumSubscriptionsRepository,
     private readonly certificatesService: CertificatesService,
+    private readonly coinPurchasesService: CoinPurchasesService,
   ) {}
 
   // Formato del header: "ts=<unix_seconds>;h1=<hmac_sha256_hex>". El HMAC
@@ -123,6 +126,22 @@ export class PaddleWebhookService {
       this.logger.debug(
         `Transacción de suscripción premium completada: ${data.id} (subscription ${data.subscription_id})`,
       );
+      return;
+    }
+
+    if (kind === 'coin_purchase') {
+      const purchaseId = data?.custom_data?.orderId as string | undefined;
+      if (!purchaseId) {
+        this.logger.warn('transaction.completed de coins sin orderId en custom_data');
+        return;
+      }
+      // completePurchase es idempotente (compare-and-swap sobre status), así
+      // que no hace falta chequear acá si ya se procesó -- el propio
+      // WebhookEvent (provider+eventId único) ya filtra reintentos del mismo
+      // delivery, y esto además protege contra cualquier otro camino que
+      // termine llamándolo dos veces para la misma compra.
+      await this.coinPurchasesService.completePurchase(purchaseId, data?.id ?? null);
+      return;
     }
   }
 
@@ -159,6 +178,7 @@ export class PaddleWebhookService {
       providerSubscriptionId,
       status,
       expiresAt,
+      origin: PremiumOrigin.PAYMENT,
     });
   }
 

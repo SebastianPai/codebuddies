@@ -82,6 +82,8 @@ export class PaymentsService {
       amount: Number(order.amount),
       currency: order.currency,
       description: `Certificate order ${order.id}`,
+      kind: 'certificate_order',
+      productIdEnvVar: 'PADDLE_CERTIFICATE_PRODUCT_ID',
     });
 
     await this.certificateOrdersRepository.updateProviderPayment(

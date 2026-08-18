@@ -28,6 +28,9 @@ import { CertificatesModule } from './modules/certificates/certificates.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { PaddleWebhookModule } from './modules/paddle/paddle-webhook.module';
+import { CoinsModule } from './modules/coins/coins.module';
+import { WebhooksModule } from './modules/webhooks/webhooks.module';
+import { ReconciliationModule } from './modules/reconciliation/reconciliation.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { RankingsModule } from './modules/rankings/rankings.module';
 import { ProfilesModule } from './modules/profiles/profiles.module';
@@ -90,6 +93,9 @@ import { ScheduleModule } from '@nestjs/schedule';
     CourseProjectsModule,
     ContentDiscussionModule,
     PaddleWebhookModule,
+    CoinsModule,
+    WebhooksModule,
+    ReconciliationModule,
     AdminModule,
     RankingsModule,
     RealtimeModule,
