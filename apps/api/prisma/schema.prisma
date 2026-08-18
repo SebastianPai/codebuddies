@@ -217,6 +217,29 @@ enum SubscriptionProviderType {
   PADDLE
 }
 
+enum CoinPurchaseStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+enum WebhookEventStatus {
+  RECEIVED
+  PROCESSED
+  FAILED
+  IGNORED
+}
+
+// Distingue un PremiumSubscription nacido de un pago real (webhook del
+// provider) de uno otorgado a mano desde el admin — nunca se deben mezclar
+// silenciosamente (ver AdminUsersService.grantPremium / PaddleWebhookService).
+enum PremiumOrigin {
+  PAYMENT
+  ADMIN
+}
+
 enum FriendshipStatus {
   PENDING
   ACCEPTED
@@ -607,6 +630,7 @@ model User {
 
   coinTransactions CoinTransaction[]
   xpTransactions   XPTransaction[]
+  coinPurchases    CoinPurchase[]
 
   // Relaciones bidireccionales añadidas
   postComments           PostComment[]
@@ -2262,6 +2286,13 @@ model PremiumSubscription {
   provider               SubscriptionProviderType  @default(MOCK)
   providerSubscriptionId String?                   @unique
   status                 PremiumSubscriptionStatus @default(ACTIVE)
+  // origin/grantedByAdminId/reason: quién y por qué existe esta fila.
+  // origin default ADMIN porque, hoy, la única vía realmente ejercitada es
+  // el otorgamiento manual (ver migración 20260817_* para el backfill
+  // exacto de filas preexistentes según su `provider`).
+  origin                 PremiumOrigin             @default(ADMIN)
+  grantedByAdminId       String?
+  reason                 String?
   startedAt              DateTime                  @default(now())
   expiresAt              DateTime
 
@@ -2269,6 +2300,51 @@ model PremiumSubscription {
 
   @@index([userId, status])
   @@index([expiresAt])
+}
+
+// Compra de monedas con dinero real (no confundir con CoinTransaction, que
+// es el ledger interno de saldo — cada CoinPurchase COMPLETED genera
+// exactamente una CoinTransaction con reason `coinpurchase:<id>`, nunca al
+// revés). Idempotencia de entrega: ver CoinPurchasesService.completePurchase.
+model CoinPurchase {
+  id                    String             @id @default(uuid())
+  userId                String
+  package               String
+  coins                 Int
+  amount                Decimal            @db.Decimal(10, 2)
+  currency              Currency           @default(USD)
+  status                CoinPurchaseStatus @default(PENDING)
+  provider              PaymentProviderType @default(MOCK)
+  providerTransactionId String?            @unique
+  createdAt             DateTime           @default(now())
+  completedAt           DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([status, createdAt])
+}
+
+// Log genérico de webhooks entrantes de cualquier provider de pago, con
+// clave de idempotencia real: @@unique([provider, eventId]) — un segundo
+// delivery del mismo evento nunca vuelve a disparar el procesamiento (ver
+// WebhookEventsService.recordReceived). Sin relación a User: debe
+// sobrevivir para auditoría/reconciliación aunque se borren cuentas.
+model WebhookEvent {
+  id          String             @id @default(uuid())
+  provider    PaymentProviderType
+  eventId     String
+  eventType   String
+  status      WebhookEventStatus @default(RECEIVED)
+  payload     Json
+  error       String?
+  receivedAt  DateTime           @default(now())
+  processedAt DateTime?
+  retryCount  Int                @default(0)
+
+  @@unique([provider, eventId])
+  @@index([status, receivedAt])
+  @@index([provider, eventType])
 }
 
 // Planes mostrados en /pricing, editables desde el panel admin en vez de
