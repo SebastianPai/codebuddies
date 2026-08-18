@@ -14,5 +14,8 @@
   "frame": "Frame",
   "uploading": "Subiendo...",
   "upload": "Subir",
-  "uploaded": "Subido"
+  "uploaded": "Subido",
+  "saved": "Animacion guardada",
+  "saveError": "No se pudo guardar la animacion",
+  "deleteError": "No se pudo eliminar la animacion"
 }

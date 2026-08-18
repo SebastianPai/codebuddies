@@ -2,6 +2,7 @@
 
 import useSWR from "swr";
 import { useParams, useRouter } from "next/navigation";
+import { toast } from "react-toastify";
 import AnimationForm from "../components/AnimationForm";
 import { api } from "@/shared/api/client";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
@@ -18,15 +19,22 @@ export default function EditPage() {
   if (isLoading) return <div className="p-6">{t("common.loading")}</div>;
 
   const handleUpdate = async (values: any) => {
-    await api.patch(`/animations/${id}`, values);
-
-    router.refresh();
+    try {
+      await api.patch(`/animations/${id}`, values);
+      toast.success(t("animations.saved"));
+      router.refresh();
+    } catch (err: any) {
+      toast.error(err?.message || t("animations.saveError"));
+    }
   };
 
   const handleDelete = async () => {
-    await api.delete(`/animations/${id}`);
-
-    router.push("/admin/animations");
+    try {
+      await api.delete(`/animations/${id}`);
+      router.push("/admin/animations");
+    } catch (err: any) {
+      toast.error(err?.message || t("animations.deleteError"));
+    }
   };
 
   return (

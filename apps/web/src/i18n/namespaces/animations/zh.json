@@ -14,5 +14,8 @@
   "frame": "帧",
   "uploading": "上传中...",
   "upload": "上传",
-  "uploaded": "已上传"
+  "uploaded": "已上传",
+  "saved": "动画已保存",
+  "saveError": "无法保存动画",
+  "deleteError": "无法删除动画"
 }

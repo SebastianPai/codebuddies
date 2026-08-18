@@ -65,7 +65,18 @@ export default function AnimationForm({ initialData, onSubmit }: any) {
       </label>
 
       <button
-        onClick={() => onSubmit(form)}
+        onClick={() =>
+          // Solo los campos editables: form viene sembrado del GET completo
+          // (initialData), así que arrastraba id/createdAt -- el backend
+          // usa forbidNonWhitelisted y rechazaba el PATCH entero con 400.
+          onSubmit({
+            name: form.name,
+            type: form.type,
+            variant: form.variant,
+            speed: form.speed,
+            loop: form.loop,
+          })
+        }
         className="bg-black text-white px-4 py-2 rounded-xl"
       >
         {t("animations.save")}
