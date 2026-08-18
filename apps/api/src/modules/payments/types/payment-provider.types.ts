@@ -6,12 +6,17 @@ export interface PaymentCheckoutRequest {
   currency: string;
   description: string;
   // Qué se está cobrando (va en custom_data del checkout para que el
-  // webhook sepa qué hacer al confirmarse el pago) y qué variable de
-  // entorno tiene el product_id de Paddle correspondiente — así un solo
-  // PaddlePaymentProvider sirve para certificados, coins, o lo que se
-  // agregue después, sin duplicar la clase por cada producto.
+  // webhook sepa qué hacer al confirmarse el pago).
   kind: string;
-  productIdEnvVar: string;
+  // Ad-hoc: product_id preexistente + precio armado en el momento con
+  // `amount`/`currency` de arriba (certificados, cuyo monto puede variar a
+  // futuro por curso). Mutuamente excluyente con priceIdEnvVar.
+  productIdEnvVar?: string;
+  // Precio fijo preconfigurado en el dashboard de Paddle (paquetes de
+  // monedas: cada paquete es su propio product+price real en Paddle, no un
+  // product genérico con precio ad-hoc). Mutuamente excluyente con
+  // productIdEnvVar.
+  priceIdEnvVar?: string;
 }
 
 export interface PaymentCheckoutResult {

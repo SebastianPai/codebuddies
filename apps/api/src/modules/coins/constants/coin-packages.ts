@@ -6,13 +6,16 @@ export interface CoinPackage {
   key: string;
   coins: number;
   priceUsd: number;
+  // Cada paquete es su propio product+price real en Paddle (no un product
+  // genérico con precio ad-hoc) -- ver PaddlePaymentProvider.
+  paddlePriceEnvVar: string;
 }
 
 export const COIN_PACKAGES: CoinPackage[] = [
-  { key: 'coins_500', coins: 500, priceUsd: 4.99 },
-  { key: 'coins_1200', coins: 1200, priceUsd: 9.99 },
-  { key: 'coins_3000', coins: 3000, priceUsd: 19.99 },
-  { key: 'coins_7000', coins: 7000, priceUsd: 39.99 },
+  { key: 'coins_500', coins: 500, priceUsd: 2.99, paddlePriceEnvVar: 'PADDLE_COIN_PRICE_ID_500' },
+  { key: 'coins_1100', coins: 1100, priceUsd: 5.49, paddlePriceEnvVar: 'PADDLE_COIN_PRICE_ID_1100' },
+  { key: 'coins_3400', coins: 3400, priceUsd: 13.99, paddlePriceEnvVar: 'PADDLE_COIN_PRICE_ID_3400' },
+  { key: 'coins_6000', coins: 6000, priceUsd: 19.99, paddlePriceEnvVar: 'PADDLE_COIN_PRICE_ID_6000' },
 ];
 
 export function findCoinPackage(key: string): CoinPackage | undefined {

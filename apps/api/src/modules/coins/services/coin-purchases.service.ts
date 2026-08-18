@@ -56,7 +56,7 @@ export class CoinPurchasesService {
       currency: Currency.USD,
       description: `${coinPackage.coins} coins`,
       kind: 'coin_purchase',
-      productIdEnvVar: 'PADDLE_COINS_PRODUCT_ID',
+      priceIdEnvVar: coinPackage.paddlePriceEnvVar,
     });
 
     await this.repository.updateProviderTransactionId(
