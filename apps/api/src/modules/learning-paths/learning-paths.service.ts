@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AdminAuditService } from '../admin/services/admin-audit.service';
+import { CertificateEligibilityService } from '../certificates/services/certificate-eligibility.service';
 import {
   SetPathCoursesDto,
   UpsertLearningPathDto,
@@ -11,10 +12,15 @@ export class LearningPathsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly adminAuditService: AdminAuditService,
+    private readonly certificateEligibilityService: CertificateEligibilityService,
   ) {}
 
   private pickTranslation(
-    translations: Array<{ title: string; description: string | null; language: { code: string } }>,
+    translations: Array<{
+      title: string;
+      description: string | null;
+      language: { code: string };
+    }>,
     lang: string,
   ) {
     return (
@@ -24,9 +30,12 @@ export class LearningPathsService {
     );
   }
 
-  private courseTitle(course: {
-    translations: Array<{ title: string; language: { code: string } }>;
-  }, lang: string) {
+  private courseTitle(
+    course: {
+      translations: Array<{ title: string; language: { code: string } }>;
+    },
+    lang: string,
+  ) {
     return (
       course.translations.find((t) => t.language.code === lang)?.title ||
       course.translations.find((t) => t.language.code === 'es')?.title ||
@@ -71,7 +80,16 @@ export class LearningPathsService {
     });
   }
 
-  async getPublicBySlugOrId(slugOrId: string, lang: string) {
+  // Sección 6/7 del pedido de producto: el mapa visual necesita, por cada
+  // curso, si ya está completado, si está bloqueado (y por qué) y cuánto
+  // se gana al completarlo — todo real, no decorativo. "Bloqueado" combina
+  // dos señales que ya existían en el dominio pero nunca se cruzaban: el
+  // orden secuencial dentro de la ruta (curso N requiere el N-1 de la
+  // misma ruta) y los prerrequisitos explícitos del curso (CoursePrerequisite,
+  // que pueden apuntar a cursos fuera de la ruta). Sin userId (visitante
+  // anónimo), se muestra la estructura completa pero nada aparece
+  // completado — el mapa sigue siendo honesto, no oculta el mecanismo.
+  async getPublicBySlugOrId(slugOrId: string, lang: string, userId?: string) {
     const path = await this.prisma.learningPath.findFirst({
       where: { OR: [{ slug: slugOrId }, { id: slugOrId }], active: true },
       include: {
@@ -81,7 +99,27 @@ export class LearningPathsService {
           where: { course: { status: 'PUBLISHED' } },
           include: {
             course: {
-              include: { translations: { include: { language: true } } },
+              include: {
+                translations: { include: { language: true } },
+                prerequisites: {
+                  include: {
+                    prerequisiteCourse: {
+                      include: {
+                        translations: { include: { language: true } },
+                      },
+                    },
+                  },
+                },
+                lessons: {
+                  where: { status: 'PUBLISHED' },
+                  select: {
+                    exercises: {
+                      where: { status: 'PUBLISHED' },
+                      select: { experience: true, coins: true },
+                    },
+                  },
+                },
+              },
             },
           },
         },
@@ -90,18 +128,90 @@ export class LearningPathsService {
     if (!path) throw new NotFoundException('Learning path not found');
 
     const translation = this.pickTranslation(path.translations, lang);
+
+    const completedByCourseId = new Map<string, boolean>();
+    if (userId) {
+      await Promise.all(
+        path.courses.map(async (entry) => {
+          completedByCourseId.set(
+            entry.course.id,
+            await this.certificateEligibilityService.isCourseCompleted(
+              userId,
+              entry.course.id,
+            ),
+          );
+        }),
+      );
+    }
+
+    let previousCourseCompleted = true;
+    let previousCourseTitle: string | null = null;
+    const courses = path.courses.map((entry) => {
+      const exercises = entry.course.lessons.flatMap(
+        (lesson) => lesson.exercises,
+      );
+      const xpReward = exercises.reduce(
+        (sum, ex) => sum + (ex.experience || 0),
+        0,
+      );
+      const coinsReward = exercises.reduce(
+        (sum, ex) => sum + (ex.coins || 0),
+        0,
+      );
+
+      const completed = completedByCourseId.get(entry.course.id) ?? false;
+
+      const unmetPrerequisites = userId
+        ? entry.course.prerequisites.filter(
+            (p) => !completedByCourseId.get(p.prerequisiteCourseId),
+          )
+        : entry.course.prerequisites;
+
+      const locked = !previousCourseCompleted || unmetPrerequisites.length > 0;
+
+      const requires: string[] = [];
+      if (!previousCourseCompleted && previousCourseTitle)
+        requires.push(previousCourseTitle);
+      requires.push(
+        ...unmetPrerequisites.map(
+          (p) => this.courseTitle(p.prerequisiteCourse, lang) ?? '',
+        ),
+      );
+
+      previousCourseCompleted = completed;
+      previousCourseTitle = this.courseTitle(entry.course, lang);
+
+      return {
+        id: entry.course.id,
+        order: entry.order,
+        title: this.courseTitle(entry.course, lang),
+        difficulty: entry.course.difficulty,
+        imageUrl: entry.course.imageUrl,
+        xpReward,
+        coinsReward,
+        completed,
+        locked,
+        requires: [...new Set(requires.filter(Boolean))],
+      };
+    });
+
+    const completedCount = courses.filter((c) => c.completed).length;
+
     return {
       id: path.id,
       slug: path.slug,
       imageUrl: path.imageUrl,
       title: translation?.title ?? null,
       description: translation?.description ?? null,
-      courses: path.courses.map((entry) => ({
-        id: entry.course.id,
-        order: entry.order,
-        title: this.courseTitle(entry.course, lang),
-        difficulty: entry.course.difficulty,
-      })),
+      progress: {
+        completedCount,
+        totalCount: courses.length,
+        percent:
+          courses.length > 0
+            ? Math.round((completedCount / courses.length) * 100)
+            : 0,
+      },
+      courses,
     };
   }
 

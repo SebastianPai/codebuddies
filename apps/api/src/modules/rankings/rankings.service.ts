@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CacheService } from '../../cache/cache.service';
+import { RealtimeService } from '../realtime/realtime.service';
 
 type LeaderboardMetric =
   | 'experience'
@@ -16,25 +17,33 @@ type LeaderboardMetric =
 // en cada progress/exercise submit.
 const BOARDS_CACHE_KEY = 'rankings:boards';
 const COMMUNITY_STATS_CACHE_KEY = 'rankings:community-stats';
+const WORLD_PULSE_CACHE_KEY = 'rankings:world-pulse';
 const CACHE_TTL_SECONDS = 30;
+// El pulso "hoy" se sirve más fresco que los tableros — es la sección de la
+// home que más se supone que se sienta "viva" en tiempo real.
+const WORLD_PULSE_CACHE_TTL_SECONDS = 15;
 
 @Injectable()
 export class RankingsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cacheService: CacheService,
+    private readonly realtimeService: RealtimeService,
   ) {}
 
   async getRankings(currentUserId?: string) {
     const [topXp, topCoins, topStreaks, topCertificates, topCoinsSpent] =
-      await this.cacheService.getOrSet(BOARDS_CACHE_KEY, CACHE_TTL_SECONDS, () =>
-        Promise.all([
-          this.topUsersByField('experience'),
-          this.topUsersByField('coins'),
-          this.topUsersByField('streak'),
-          this.topUsersByRelation('certificates'),
-          this.topCoinsSpent(),
-        ]),
+      await this.cacheService.getOrSet(
+        BOARDS_CACHE_KEY,
+        CACHE_TTL_SECONDS,
+        () =>
+          Promise.all([
+            this.topUsersByField('experience'),
+            this.topUsersByField('coins'),
+            this.topUsersByField('streak'),
+            this.topUsersByRelation('certificates'),
+            this.topCoinsSpent(),
+          ]),
       );
 
     return {
@@ -63,24 +72,103 @@ export class RankingsService {
   }
 
   async getCommunityStats() {
-    return this.cacheService.getOrSet(COMMUNITY_STATS_CACHE_KEY, CACHE_TTL_SECONDS, async () => {
-      const [users, certificates, xp, topLearners, streakLeaders] =
-        await Promise.all([
-          this.prisma.user.count(),
-          this.prisma.certificate.count(),
-          this.prisma.user.aggregate({ _sum: { experience: true } }),
-          this.topUsersByField('experience'),
-          this.topUsersByField('streak'),
+    return this.cacheService.getOrSet(
+      COMMUNITY_STATS_CACHE_KEY,
+      CACHE_TTL_SECONDS,
+      async () => {
+        const [users, certificates, xp, topLearners, streakLeaders] =
+          await Promise.all([
+            this.prisma.user.count(),
+            this.prisma.certificate.count(),
+            this.prisma.user.aggregate({ _sum: { experience: true } }),
+            this.topUsersByField('experience'),
+            this.topUsersByField('streak'),
+          ]);
+
+        return {
+          users,
+          certificatesIssued: certificates,
+          totalXpEarned: xp._sum.experience ?? 0,
+          topLearners: topLearners.slice(0, 3),
+          streakLeaders: streakLeaders.slice(0, 3),
+        };
+      },
+    );
+  }
+
+  // Sección 10 del pedido de producto: "mundo vivo" — actividad real de
+  // HOY, no acumulada histórica como community-stats. onlineNow se calcula
+  // siempre fresco (es un Map en memoria, no vale la pena cachearlo); el
+  // resto sale de las mismas tablas append-only que ya alimentan
+  // rankings/dashboard admin (Completion, XPTransaction, CoinTransaction,
+  // Certificate, UserMissionProgress) — cero datos inventados.
+  async getWorldPulse() {
+    const today = this.startOfTodayUtc();
+
+    const counts = await this.cacheService.getOrSet(
+      WORLD_PULSE_CACHE_KEY,
+      WORLD_PULSE_CACHE_TTL_SECONDS,
+      async () => {
+        const [
+          exercisesCompleted,
+          missionsCompleted,
+          certificatesEarned,
+          coinsEarnedAgg,
+          xpEarnedAgg,
+          activeLearnersToday,
+        ] = await Promise.all([
+          this.prisma.completion.count({
+            where: { exerciseId: { not: null }, createdAt: { gte: today } },
+          }),
+          // completedAt se fija una sola vez al completar y sobrevive el
+          // paso a CLAIMED (ver gamification.service.ts) — filtrar solo por
+          // fecha, no por status, para no perder las que ya se reclamaron.
+          this.prisma.userMissionProgress.count({
+            where: { completedAt: { gte: today } },
+          }),
+          this.prisma.certificate.count({
+            where: { issuedAt: { gte: today } },
+          }),
+          this.prisma.coinTransaction.aggregate({
+            _sum: { amount: true },
+            where: { amount: { gt: 0 }, createdAt: { gte: today } },
+          }),
+          this.prisma.xPTransaction.aggregate({
+            _sum: { amount: true },
+            where: { amount: { gt: 0 }, createdAt: { gte: today } },
+          }),
+          this.prisma.user.count({
+            where: {
+              OR: [
+                { activities: { some: { createdAt: { gte: today } } } },
+                { completions: { some: { createdAt: { gte: today } } } },
+              ],
+            },
+          }),
         ]);
 
-      return {
-        users,
-        certificatesIssued: certificates,
-        totalXpEarned: xp._sum.experience ?? 0,
-        topLearners: topLearners.slice(0, 3),
-        streakLeaders: streakLeaders.slice(0, 3),
-      };
-    });
+        return {
+          exercisesCompleted,
+          missionsCompleted,
+          certificatesEarned,
+          coinsEarned: coinsEarnedAgg._sum.amount ?? 0,
+          xpEarned: xpEarnedAgg._sum.amount ?? 0,
+          activeLearnersToday,
+        };
+      },
+    );
+
+    return {
+      onlineNow: this.realtimeService.getOnlineCount(),
+      today: counts,
+    };
+  }
+
+  private startOfTodayUtc() {
+    const now = new Date();
+    return new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+    );
   }
 
   private async topUsersByField(field: 'experience' | 'coins' | 'streak') {

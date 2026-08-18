@@ -43,6 +43,16 @@ export class RealtimeService {
     return (this.sessionsByUser.get(userId)?.size ?? 0) > 0;
   }
 
+  // Cuántos usuarios distintos tienen al menos una pestaña con el stream SSE
+  // abierto ahora mismo — usado para el pulso de actividad global ("N
+  // Buddies learning now"). En memoria del proceso: con más de un dyno de
+  // api subestima el total real, igual que cualquier otro estado en
+  // memoria de este servicio (ver RedisIoAdapter para el gateway de juego,
+  // que sí es multi-dyno; este SSE de presencia no lo es todavía).
+  getOnlineCount() {
+    return this.sessionsByUser.size;
+  }
+
   emitToUser(userId: string, event: RealtimeEvent) {
     this.getStream(userId).next({ type: event.type, data: event.payload });
   }
@@ -52,7 +62,9 @@ export class RealtimeService {
   }
 
   emitToAll(event: RealtimeEvent) {
-    [...this.streams.keys()].forEach((userId) => this.emitToUser(userId, event));
+    [...this.streams.keys()].forEach((userId) =>
+      this.emitToUser(userId, event),
+    );
   }
 
   forceOffline(userId: string, sessionId?: string) {

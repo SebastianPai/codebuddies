@@ -15,6 +15,11 @@ export class RankingsController {
     return this.rankingsService.getCommunityStats();
   }
 
+  @Get('world-pulse')
+  getWorldPulse() {
+    return this.rankingsService.getWorldPulse();
+  }
+
   // Antes de :id implícito de /seasons/:id — estas rutas van primero para
   // que Nest no intente matchear "current"/"seasons" como parte de otra ruta.
   @Get('seasons/current')

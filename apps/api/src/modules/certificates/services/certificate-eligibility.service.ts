@@ -40,10 +40,13 @@ export class CertificateEligibilityService {
     };
   }
 
-  private async isCourseCompleted(
+  // Público (BE3): reutilizado por LearningPathsService para calcular
+  // bloqueo/progreso real en el mapa de rutas de aprendizaje, en vez de
+  // reimplementar "¿este usuario completó este curso?" por tercera vez.
+  async isCourseCompleted(
     userId: string,
     courseId: string,
-    client: PrismaExecutor,
+    client: PrismaExecutor = this.prisma,
   ) {
     const course = await client.course.findUnique({
       where: { id: courseId },
