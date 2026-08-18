@@ -31,6 +31,7 @@ import {
   Zap,
   Coins,
   Flame,
+  Gamepad2,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useCallback, useEffect, useState, useRef } from "react";
@@ -39,7 +40,7 @@ import { useReward } from "../contexts/RewardContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "../src/i18n/useTranslation";
 import { useLanguage, type Lang } from "../src/i18n/LanguageContext";
-import { getRealtimeUrl } from "@/config/env";
+import { getRealtimeUrl, getGameUrl } from "@/config/env";
 import { useGlobalNotifications } from "./notifications/GlobalNotificationsProvider";
 import { useThemeAsset } from "../hooks/useThemeAsset";
 import { ThemeImage, THEME_IMAGE_SPRITE_KEYFRAMES } from "./ThemeImage";
@@ -312,6 +313,13 @@ export default function Navbar() {
               </NavLink>
             ))}
 
+            <a
+              href={getGameUrl()}
+              className="flex items-center gap-1.5 px-4 py-2 ml-1 rounded-full text-sm font-bold bg-[rgb(var(--primary))] text-[rgb(var(--button-text))] shadow-lg hover:scale-[1.03] transition-all"
+            >
+              <Gamepad2 size={16} /> {t("navbar.playGame")}
+            </a>
+
             <div className="w-[1px] h-6 bg-[rgb(var(--border))] mx-3" />
 
             <div className="relative" ref={langMenuRef}>
@@ -479,6 +487,15 @@ export default function Navbar() {
                     </div>
                   </motion.div>
                 )}
+
+                <motion.div variants={mobileItemVariants}>
+                  <a
+                    href={getGameUrl()}
+                    className="flex items-center justify-center gap-2 rounded-2xl bg-[rgb(var(--primary))] px-4 py-3 text-sm font-bold text-[rgb(var(--button-text))] shadow-lg"
+                  >
+                    <Gamepad2 size={18} /> {t("navbar.playGame")}
+                  </a>
+                </motion.div>
 
                 <motion.div variants={mobileItemVariants} className="flex flex-col gap-1">
                   <DropdownSection title={t("navbar.navigation")} />
