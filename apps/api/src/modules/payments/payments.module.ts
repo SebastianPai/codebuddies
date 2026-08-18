@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { PaddleClientModule } from '../paddle/paddle-client.module';
 import { PaymentsController } from './controllers/payments.controller';
+import { AdminPaymentsController } from './controllers/admin-payments.controller';
 import { MockPaymentProvider } from './providers/mock-payment.provider';
 import { PaddlePaymentProvider } from './providers/paddle-payment.provider';
 import { CertificateOrdersRepository } from './repositories/certificate-orders.repository';
@@ -10,7 +11,7 @@ import { PAYMENT_PROVIDER } from './types/payment-provider.types';
 
 @Module({
   imports: [PrismaModule, PaddleClientModule],
-  controllers: [PaymentsController],
+  controllers: [PaymentsController, AdminPaymentsController],
   providers: [
     PaymentsService,
     CertificateOrdersRepository,

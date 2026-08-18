@@ -2,7 +2,9 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import {
   CertificateAccessType,
   NotificationType,
+  PremiumOrigin,
   PremiumSubscriptionStatus,
+  Prisma,
   Role,
 } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
@@ -26,21 +28,44 @@ export class AdminUsersService {
     private readonly adminAudit: AdminAuditService,
   ) {}
 
-  async listUsers(query = '', page = 1, limit = 20) {
-    const where = query
-      ? {
-          OR: [
-            { email: { contains: query, mode: 'insensitive' as const } },
-            { username: { contains: query, mode: 'insensitive' as const } },
-          ],
-        }
-      : undefined;
+  async listUsers(
+    query = '',
+    page = 1,
+    limit = 20,
+    filters: {
+      role?: Role;
+      premiumOnly?: boolean;
+      sortBy?: 'createdAt' | 'coins' | 'experience' | 'lastLoginAt';
+      sortOrder?: 'asc' | 'desc';
+    } = {},
+  ) {
+    const where: Prisma.UserWhereInput = {
+      ...(query
+        ? {
+            OR: [
+              { email: { contains: query, mode: 'insensitive' as const } },
+              { username: { contains: query, mode: 'insensitive' as const } },
+            ],
+          }
+        : {}),
+      ...(filters.role ? { role: filters.role } : {}),
+      ...(filters.premiumOnly
+        ? {
+            premiumSubscriptions: {
+              some: {
+                status: PremiumSubscriptionStatus.ACTIVE,
+                expiresAt: { gt: new Date() },
+              },
+            },
+          }
+        : {}),
+    };
 
     const [items, total] = await Promise.all([
       this.prisma.user.findMany({
         take: limit,
         skip: (page - 1) * limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { [filters.sortBy ?? 'createdAt']: filters.sortOrder ?? 'desc' },
         where,
         select: {
           id: true,
@@ -52,13 +77,14 @@ export class AdminUsersService {
           level: true,
           streak: true,
           createdAt: true,
+          lastLoginAt: true,
           premiumSubscriptions: {
             where: {
               status: PremiumSubscriptionStatus.ACTIVE,
               expiresAt: { gt: new Date() },
             },
             take: 1,
-            select: { id: true, expiresAt: true },
+            select: { id: true, expiresAt: true, origin: true },
           },
           _count: {
             select: {
@@ -73,6 +99,93 @@ export class AdminUsersService {
     ]);
 
     return paginate(items, total, page, limit);
+  }
+
+  // "User 360": todo lo que un admin necesita ver de un usuario en un solo
+  // request, en vez de ir a buscarlo a media docena de pantallas distintas.
+  // Cada bloque trae solo lo más reciente (con su total) -- el detalle
+  // completo de cada uno vive en su propia lista paginada ya existente
+  // (coins ledger, audit log, etc.), esto es un resumen de entrada.
+  async getUserDetail(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        role: true,
+        avatarUrl: true,
+        experience: true,
+        coins: true,
+        level: true,
+        streak: true,
+        bestStreak: true,
+        energy: true,
+        country: true,
+        createdAt: true,
+        lastLoginAt: true,
+      },
+    });
+    if (!user) throw new BadRequestException('User not found');
+
+    const [
+      premiumSubscriptions,
+      certificates,
+      certificateOrders,
+      coinPurchases,
+      recentCoinTransactions,
+      recentXpTransactions,
+      recentAuditLog,
+      referralProfile,
+    ] = await Promise.all([
+      this.prisma.premiumSubscription.findMany({
+        where: { userId },
+        orderBy: { startedAt: 'desc' },
+      }),
+      this.prisma.certificate.findMany({
+        where: { userId },
+        orderBy: { issuedAt: 'desc' },
+        take: 10,
+      }),
+      this.prisma.certificateOrder.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      }),
+      this.prisma.coinPurchase.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      }),
+      this.prisma.coinTransaction.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      }),
+      this.prisma.xPTransaction.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      }),
+      this.prisma.adminActionLog.findMany({
+        where: { targetUserId: userId },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+      }),
+      this.prisma.referralProfile.findUnique({ where: { userId } }),
+    ]);
+
+    return {
+      user,
+      premiumSubscriptions,
+      certificates,
+      certificateOrders,
+      coinPurchases,
+      recentCoinTransactions,
+      recentXpTransactions,
+      recentAuditLog,
+      referralProfile,
+    };
   }
 
   async updateUser(adminId: string, userId: string, dto: AdminUserActionDto) {
@@ -108,7 +221,7 @@ export class AdminUsersService {
           return user;
         });
       case AdminUserAction.GRANT_PREMIUM:
-        return this.grantPremium(adminId, userId);
+        return this.grantPremium(adminId, userId, dto.reason);
       case AdminUserAction.REVOKE_PREMIUM:
         return this.prisma.$transaction(async (tx) => {
           const result = await tx.premiumSubscription.updateMany({
@@ -206,7 +319,7 @@ export class AdminUsersService {
     });
   }
 
-  private async grantPremium(adminId: string, userId: string) {
+  private async grantPremium(adminId: string, userId: string, reason?: string) {
     const expiresAt = new Date();
     expiresAt.setFullYear(expiresAt.getFullYear() + 1);
 
@@ -216,6 +329,9 @@ export class AdminUsersService {
           userId,
           status: PremiumSubscriptionStatus.ACTIVE,
           expiresAt,
+          origin: PremiumOrigin.ADMIN,
+          grantedByAdminId: adminId,
+          reason,
         },
       });
       await this.adminAudit.log(tx, {

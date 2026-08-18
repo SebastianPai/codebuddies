@@ -13,6 +13,7 @@ import { Roles } from '../../identity/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../identity/guards/jwt.guard';
 import { RolesGuard } from '../../identity/guards/roles.guard';
 import { PaginationQueryDto } from '../../../common/dto/pagination.dto';
+import { ListUsersQueryDto } from '../dto/list-users.dto';
 import { AdminUserActionDto } from '../dto/admin-user-action.dto';
 import { CertificateAccessActionDto } from '../dto/certificate-access-action.dto';
 import { AdminDashboardService } from '../services/admin-dashboard.service';
@@ -43,8 +44,18 @@ export class AdminController {
   }
 
   @Get('users')
-  listUsers(@Query('q') query: string | undefined, @Query() pagination: PaginationQueryDto) {
-    return this.usersService.listUsers(query ?? '', pagination.page, pagination.limit);
+  listUsers(@Query() query: ListUsersQueryDto) {
+    return this.usersService.listUsers(query.q ?? '', query.page, query.limit, {
+      role: query.role,
+      premiumOnly: query.premiumOnly,
+      sortBy: query.sortBy,
+      sortOrder: query.sortOrder,
+    });
+  }
+
+  @Get('users/:userId')
+  getUserDetail(@Param('userId') userId: string) {
+    return this.usersService.getUserDetail(userId);
   }
 
   @Patch('users/:userId')

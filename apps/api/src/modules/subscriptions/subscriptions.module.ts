@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { PaddleClientModule } from '../paddle/paddle-client.module';
 import { SubscriptionsController } from './controllers/subscriptions.controller';
+import { AdminSubscriptionsController } from './controllers/admin-subscriptions.controller';
 import { MockSubscriptionProvider } from './providers/mock-subscription.provider';
 import { PaddleSubscriptionProvider } from './providers/paddle-subscription.provider';
 import { PremiumSubscriptionsRepository } from './repositories/premium-subscriptions.repository';
@@ -10,7 +11,7 @@ import { SUBSCRIPTION_PROVIDER } from './types/subscription-provider.types';
 
 @Module({
   imports: [PrismaModule, PaddleClientModule],
-  controllers: [SubscriptionsController],
+  controllers: [SubscriptionsController, AdminSubscriptionsController],
   providers: [
     SubscriptionsService,
     PremiumSubscriptionsRepository,
