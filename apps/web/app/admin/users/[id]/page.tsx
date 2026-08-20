@@ -10,6 +10,8 @@ import {
   CreditCard,
   Crown,
   Shield,
+  ShieldAlert,
+  ShieldCheck,
   ShieldOff,
   User as UserIcon,
 } from "lucide-react";
@@ -31,6 +33,9 @@ interface UserDetail {
   country: string | null;
   createdAt: string;
   lastLoginAt: string | null;
+  suspended: boolean;
+  suspendedAt: string | null;
+  suspendedReason: string | null;
 }
 
 interface PremiumSubscription {
@@ -205,12 +210,48 @@ export default function UserDetailPage() {
                   <Crown size={11} /> Premium
                 </span>
               )}
+              {user.suspended && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-red-900/40 px-2 py-0.5 text-xs text-red-400">
+                  <ShieldAlert size={11} /> {t("admin.suspendedBadge")}
+                </span>
+              )}
             </h1>
             <p className="text-sm text-zinc-500">{user.email}</p>
           </div>
         </div>
 
         <div className="flex gap-2">
+          {user.suspended ? (
+            <button
+              disabled={busy}
+              onClick={() => {
+                if (!confirm(t("admin.confirmUnsuspendUser"))) return;
+                runAction("UNSUSPEND_USER");
+              }}
+              className="flex items-center gap-1.5 rounded bg-zinc-800 px-3 py-1.5 text-xs font-semibold text-green-400 hover:bg-zinc-700 disabled:opacity-50"
+            >
+              <ShieldCheck size={14} />
+              {t("admin.unsuspendUserAction")}
+            </button>
+          ) : (
+            <button
+              disabled={busy}
+              onClick={() => {
+                const reason = window.prompt(t("admin.promptSuspendReason"));
+                if (reason === null) return;
+                if (!reason.trim()) {
+                  toast.error(t("admin.reasonRequiredError"));
+                  return;
+                }
+                if (!confirm(t("admin.confirmSuspendUser"))) return;
+                runAction("SUSPEND_USER", undefined, reason);
+              }}
+              className="flex items-center gap-1.5 rounded bg-red-950/50 px-3 py-1.5 text-xs font-semibold text-red-400 hover:bg-red-950 disabled:opacity-50"
+            >
+              <ShieldAlert size={14} />
+              {t("admin.suspendUserAction")}
+            </button>
+          )}
           {user.role === "ADMIN" ? (
             <button
               disabled={busy}
@@ -238,6 +279,15 @@ export default function UserDetailPage() {
           )}
         </div>
       </div>
+
+      {user.suspended && (
+        <div className="rounded-lg border border-red-900 bg-red-950/30 p-4 text-sm text-red-300">
+          <p className="font-semibold">
+            {user.suspendedAt && t("admin.suspendedSinceLabel", { date: new Date(user.suspendedAt).toLocaleString() })}
+          </p>
+          {user.suspendedReason && <p className="mt-1 text-red-400">{user.suspendedReason}</p>}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <StatCard label={t("admin.coinsColumnLabel")} value={user.coins} icon={<Coins size={16} />} />

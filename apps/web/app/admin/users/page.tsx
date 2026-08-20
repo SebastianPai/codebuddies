@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { toast } from "react-toastify";
-import { Crown, Search } from "lucide-react";
+import { Crown, Search, ShieldAlert } from "lucide-react";
 import { api } from "@/shared/api/client";
 import { useTranslation } from "../../../src/i18n/useTranslation";
 import { Pagination } from "../../../src/shared/ui";
@@ -19,6 +19,7 @@ interface AdminUserListItem {
   streak: number;
   createdAt: string;
   lastLoginAt: string | null;
+  suspended: boolean;
   premiumSubscriptions: Array<{ id: string; expiresAt: string; origin: "PAYMENT" | "ADMIN" }>;
   _count: { certificates: number; certificateAccesses: number; completions: number };
 }
@@ -203,7 +204,14 @@ export default function AdminUsersPage() {
                 return (
                   <tr key={u.id} className="border-b border-zinc-900 last:border-0 hover:bg-zinc-950">
                     <td className="px-4 py-3">
-                      <p className="font-medium text-white">{u.username}</p>
+                      <p className="flex items-center gap-1.5 font-medium text-white">
+                        {u.username}
+                        {u.suspended && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-red-900/40 px-1.5 py-0.5 text-[10px] text-red-400">
+                            <ShieldAlert size={10} /> {t("admin.suspendedBadge")}
+                          </span>
+                        )}
+                      </p>
                       <p className="text-xs text-zinc-500">{u.email}</p>
                     </td>
                     <td className="px-4 py-3">

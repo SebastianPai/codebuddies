@@ -38,6 +38,7 @@ import {
   ShoppingBag,
   Search,
   ChevronRight,
+  ShieldAlert,
 } from "lucide-react";
 import { useTranslation } from "../../src/i18n/useTranslation";
 import { useDisclosure } from "../../src/shared/hooks/use-disclosure";
@@ -273,6 +274,11 @@ export default function AdminLayout({
             href: "/admin/content-reports",
             label: t("admin.contentReportsNav"),
             icon: <AlertTriangle size={18} />,
+          },
+          {
+            href: "/admin/fraud-alerts",
+            label: t("admin.fraudAlertsNav"),
+            icon: <ShieldAlert size={18} />,
           },
         ],
       },
