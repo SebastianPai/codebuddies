@@ -14,6 +14,8 @@ export interface User {
   streak?: number;
   bestStreak?: number;
   marketingEmailsEnabled?: boolean;
+  nameEffectId?: string | null;
+  isPremium?: boolean;
 }
 
 interface AuthResponse {

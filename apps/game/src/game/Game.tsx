@@ -512,6 +512,7 @@ export default function Game() {
           {currentUser && (
             <LeftSidebar
               username={currentUser.username || "Jugador"}
+              nameEffectId={currentUser.nameEffectId}
               level={stats?.level || currentUser.level || 1}
               coins={stats?.coins || currentUser.coins || 0}
               diamonds={stats?.diamonds || currentUser.diamonds || 0}
@@ -751,6 +752,7 @@ export default function Game() {
           inventory={inventory}
           avatar={avatar}
           username={currentUser.username}
+          nameEffectId={currentUser.nameEffectId}
           onEquipAvatarItem={handleEquipAvatarItem}
           onClose={() => setShowAvatarStudio(false)}
         />

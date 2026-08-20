@@ -47,6 +47,7 @@ import { useThemeAsset } from "../hooks/useThemeAsset";
 import { ThemeImage, THEME_IMAGE_SPRITE_KEYFRAMES } from "./ThemeImage";
 import { RainbowButton } from "@/shared/ui/rainbow-button";
 import { CurrencyIcon } from "@/shared/ui/currency-icon";
+import { RarityText } from "@/shared/ui/rarity-text";
 
 const INACTIVE_MS = 5 * 60 * 1000;
 const PRESENCE_SESSION_KEY = "codebuddies:presence-session-id";
@@ -389,9 +390,13 @@ export default function Navbar() {
                 >
                   <User size={14} className="text-[rgb(var(--primary))]" />
 
-                  <span className="text-xs font-bold uppercase truncate max-w-[120px] text-[rgb(var(--text))]">
+                  <RarityText
+                    effect={user?.username ? user?.nameEffectId : null}
+                    as="span"
+                    className="text-xs font-bold uppercase truncate max-w-[120px]"
+                  >
                     {displayName}
-                  </span>
+                  </RarityText>
                 </button>
 
                 <AnimatePresence>
@@ -478,9 +483,13 @@ export default function Navbar() {
                         <User size={18} />
                       </span>
                       <span className="flex flex-col overflow-hidden">
-                        <span className="truncate text-sm font-bold text-[rgb(var(--text))]">
+                        <RarityText
+                          effect={user?.username ? user?.nameEffectId : null}
+                          as="span"
+                          className="truncate text-sm font-bold"
+                        >
                           {displayName}
-                        </span>
+                        </RarityText>
                         <span className="text-xs text-[rgb(var(--secondary-text))]">
                           {t("navbar.account")}
                         </span>

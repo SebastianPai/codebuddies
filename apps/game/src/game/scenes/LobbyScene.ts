@@ -1010,6 +1010,7 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
       username: user.username,
       level: user.level || 1,
       chatBubbleThemeId: user.chatBubbleThemeId ?? undefined,
+      nameEffectId: user.nameEffectId ?? undefined,
     });
 
     this.otherPlayers = this.add.group();

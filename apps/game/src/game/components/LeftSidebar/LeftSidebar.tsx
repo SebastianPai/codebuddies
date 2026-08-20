@@ -7,6 +7,7 @@ import "./LeftSidebar.css";
 
 import AvatarPreview from "../AvatarEditor/AvatarPreview";
 import UserBadges from "../shared/UserBadges";
+import RarityText from "../shared/RarityText";
 import { useAvatar } from "../../hooks/useAvatar";
 import { useSocket } from "../../hooks/useSocket";
 import { getNotifications } from "../../network/notifications";
@@ -47,6 +48,7 @@ const LEVEL_TIER_LABEL_KEYS: Record<string, string> = {
 
 type Props = {
   username: string;
+  nameEffectId?: string | null;
   level: number;
   coins: number;
   diamonds: number;
@@ -66,6 +68,7 @@ type Props = {
 
 function LeftSidebar({
   username,
+  nameEffectId,
   level,
   coins,
   diamonds,
@@ -409,7 +412,7 @@ function LeftSidebar({
 
             <div className="profile-info">
               <h2>
-                {username}
+                <RarityText effect={nameEffectId}>{username}</RarityText>
                 <UserBadges username={username} size={13} />
               </h2>
               <div className="online-row">

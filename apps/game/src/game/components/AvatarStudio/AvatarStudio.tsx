@@ -5,6 +5,7 @@ import Draggable from "react-draggable";
 
 import AvatarInventory from "../Avatar/AvatarInventory";
 import AvatarPreview from "../AvatarEditor/AvatarPreview";
+import RarityText from "../shared/RarityText";
 import { useDialogBehavior } from "../shared/useDialogBehavior";
 import { useTranslation } from "../../../i18n/useTranslation";
 import styles from "./AvatarStudio.module.css";
@@ -13,6 +14,7 @@ interface Props {
   inventory: any[];
   avatar?: any;
   username?: string;
+  nameEffectId?: string | null;
   onClose: () => void;
   onEquipAvatarItem?: (item: any, color?: number) => void;
 }
@@ -21,6 +23,7 @@ export default function AvatarStudio({
   inventory,
   avatar,
   username,
+  nameEffectId,
   onClose,
   onEquipAvatarItem,
 }: Props) {
@@ -65,7 +68,9 @@ export default function AvatarStudio({
                 height={132}
               />
             </div>
-            <strong>{displayUsername}</strong>
+            <strong>
+              <RarityText effect={nameEffectId}>{displayUsername}</RarityText>
+            </strong>
             <p>{t("avatar.studioDescription")}</p>
           </aside>
 

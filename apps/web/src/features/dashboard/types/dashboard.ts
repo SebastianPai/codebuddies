@@ -7,6 +7,7 @@ export interface DashboardUser {
   coins: number;
   level: number;
   streak: number;
+  nameEffectId?: string | null;
   completions?: number;
   certificates?: number;
   enrollments?: number;

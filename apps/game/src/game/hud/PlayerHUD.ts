@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { getEffectDefinition, VISUAL_EFFECTS } from "@codebuddies/visual-effects";
 import ModularPlayer from "../players/ModularPlayer";
 import { getUserBadges, getBadgeConfigCached, type BadgeIconConfig } from "../network/badges";
 import { loadTextureOnce } from "../utils/phaserAssetCache";
@@ -25,6 +26,14 @@ export interface HUDConfig {
   chatBubbleStyle?: Partial<ChatBubbleStyle>;
   /** Tema de color de burbuja (ver CHAT_BUBBLE_THEMES). Default: "classic". */
   chatBubbleThemeId?: string;
+  /**
+   * Efecto visual de nombre elegido por el jugador (ver
+   * @codebuddies/visual-effects). El canvas de Phaser no puede pintar el
+   * degradado animado que usa el resto de la app (background-clip:text es
+   * CSS/DOM), así que acá se aproxima con el color sólido representativo
+   * del efecto (glowColor) — mismo alcance que Text de Phaser permite hoy.
+   */
+  nameEffectId?: string | null;
 }
 
 type BadgeKind = "VERIFIED" | "CREATOR";
@@ -220,6 +229,13 @@ export default class PlayerHUD {
     this.username = config.username;
     const HUD_DEPTH = PlayerHUD.HUD_DEPTH;
     const style: NameplateStyle = { ...DEFAULT_NAMEPLATE_STYLE, ...config.nameplateStyle };
+    const hasNameEffect =
+      !!config.nameEffectId &&
+      config.nameEffectId !== "common" &&
+      config.nameEffectId in VISUAL_EFFECTS;
+    if (hasNameEffect) {
+      style.textColor = getEffectDefinition(config.nameEffectId).glowColor;
+    }
     this.chatBubbleStyle = { ...DEFAULT_CHAT_BUBBLE_STYLE, ...config.chatBubbleStyle };
     this.chatBubbleTheme = resolveChatBubbleTheme(config.chatBubbleThemeId);
 

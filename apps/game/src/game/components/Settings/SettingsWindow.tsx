@@ -153,7 +153,7 @@ export default function SettingsWindow({ username, onClose, onUsernameChanged }:
       variant="floating"
       title={t("settings.title")}
       onClose={onClose}
-      style={{ width: "min(440px, calc(100vw - 24px))" }}
+      style={{ width: "min(720px, calc(100vw - 24px))" }}
     >
       <div className={styles.sections}>
         <section className={styles.section}>

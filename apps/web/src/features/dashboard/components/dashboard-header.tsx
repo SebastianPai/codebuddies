@@ -1,6 +1,7 @@
 import { Flame, Trophy, Zap } from "lucide-react";
 import { useTranslation } from "@/i18n/useTranslation";
 import { CurrencyIcon } from "@/shared/ui/currency-icon";
+import { RarityText } from "@/shared/ui/rarity-text";
 import type { DashboardUser } from "../types/dashboard";
 
 interface DashboardHeaderProps {
@@ -28,7 +29,10 @@ export function DashboardHeader({ user, xp, coins, streak, rank }: DashboardHead
               {t("dashboard.activeSystem")}
             </div>
             <h1 className="text-4xl font-black leading-none tracking-tight md:text-6xl">
-              {t("dashboard.hello")} <span className="text-[rgb(var(--primary))]">{user.username}</span>
+              {t("dashboard.hello")}{" "}
+              <RarityText effect={user.nameEffectId} className="text-[rgb(var(--primary))]">
+                {user.username}
+              </RarityText>
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-relaxed text-[rgb(var(--secondary-text))] md:text-base">
               {t("dashboard.description")}

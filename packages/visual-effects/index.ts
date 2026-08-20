@@ -445,7 +445,25 @@ export function getNameEffectCatalog(): VisualEffectDefinition[] {
 }
 
 /** Safe lookup with fallback to "common" (i.e. no visible effect) for null/unknown ids. */
+// Sin id (usuario no eligió Name Effect) es un caso distinto de "rareza
+// Common" explícita: no debe pisar el color que ya traiga el contenedor
+// (ej. un username dorado por diseño) con el gris neutro de VISUAL_EFFECTS.common.
+// Por eso el fallback "sin id" no trae textClassName/borderClassName —
+// noop real — mientras que pasar el string "common" explícito sí devuelve
+// el estilo gris intencional (ítem de rareza Common, etc.).
+const NO_EFFECT: VisualEffectDefinition = {
+  id: "common",
+  label: "Default",
+  usage: [],
+  unlockRule: "free",
+  textClassName: "",
+  gradientStops: ["#8a8f98"],
+  glowColor: "#8a8f98",
+  reducedMotionFallback: "solid",
+};
+
 export function getEffectDefinition(id: string | null | undefined): VisualEffectDefinition {
-  if (id && id in VISUAL_EFFECTS) return VISUAL_EFFECTS[id as EffectId];
-  return VISUAL_EFFECTS.common;
+  if (!id) return NO_EFFECT;
+  if (id in VISUAL_EFFECTS) return VISUAL_EFFECTS[id as EffectId];
+  return NO_EFFECT;
 }
