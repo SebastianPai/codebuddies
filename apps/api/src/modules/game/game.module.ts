@@ -22,6 +22,7 @@ import { AvatarHandler } from './ws/handlers/avatar.handler';
 import { PlayerHandler } from './ws/handlers/player.handler';
 import { BackgroundsModule } from './backgrounds/backgrounds.module';
 import { JWT_SECRET } from '../../config/env';
+import { PremiumAccessModule } from '../premium-access/premium-access.module';
 
 @Module({
   imports: [
@@ -35,6 +36,12 @@ import { JWT_SECRET } from '../../config/env';
     PlayerModule,
     RoomItemsModule,
     BackgroundsModule,
+    // GameModule declara su propia copia de ItemsService/ItemsController
+    // (independiente de ItemsModule, que las vuelve a declarar por su
+    // cuenta -- duplicación preexistente, no introducida acá). Como
+    // ItemsService ahora inyecta PremiumAccessService para el accessType
+    // PREMIUM de buyItem, esta copia también necesita el módulo.
+    PremiumAccessModule,
   ],
   providers: [
     GameService,
