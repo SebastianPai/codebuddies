@@ -553,6 +553,19 @@ model User {
   // un enum nuevo hubiera sido mas arriesgado de auditar que un flag aparte.
   isSystemAccount Boolean   @default(false)
   emailVerified   Boolean   @default(true)
+
+  // Suspensión de cuenta (ban) -- separado de Role a propósito: un STUDENT
+  // suspendido y un ADMIN suspendido usan el mismo flag, sin mezclar
+  // "qué puede hacer" con "puede entrar". Bloquea LOGIN nuevo de inmediato;
+  // un token ya emitido sigue siendo válido hasta que expira (el resto de
+  // la app valida JWTs sin consultar la base en cada request -- ver
+  // JwtStrategy). suspendedByAdminId sin FK, mismo criterio que
+  // AdminActionLog: debe sobrevivir si se borra la cuenta del admin.
+  suspended          Boolean   @default(false)
+  suspendedAt        DateTime?
+  suspendedReason    String?
+  suspendedByAdminId String?
+
   avatarUrl       String?
   avatarBorder    String?
   location        String?
