@@ -8,6 +8,16 @@ import {
   BuyItemDto,
   ShopItemsRequestDto,
 } from '../dto/shop.dto';
+import { isKnownRarity, getRarityDefinition } from '../../../../common/economy';
+
+// apps/game (Shop.tsx) traducía la rareza con su propia tabla numérica
+// hardcodeada (0-3, sin Uncommon) -- ahora recibe la key canónica calculada
+// acá desde la misma fuente que usa la validación de precios, y solo la usa
+// para elegir qué string traducir. Nunca vuelve a declarar su propia tabla.
+function resolveRarityKey(rarity: number | null | undefined): string {
+  const value = typeof rarity === 'number' ? rarity : 0;
+  return isKnownRarity(value) ? getRarityDefinition(value).key : getRarityDefinition(0).key;
+}
 
 @Injectable()
 export class ShopHandler {
@@ -40,6 +50,7 @@ export class ShopHandler {
           imageUrl: i.imageUrl,
           layer: i.layer,
           rarity: i.rarity,
+          rarityKey: resolveRarityKey(i.rarity),
           colorable: i.colorable,
 
           // Datos para avatar
@@ -163,6 +174,7 @@ export class ShopHandler {
         coinsPrice: item.coinsPrice,
         gemsPrice: item.gemsPrice,
         rarity: item.rarity,
+        rarityKey: resolveRarityKey(item.rarity),
         colorable: item.colorable,
         avatarData: item.avatarData,
         worldData: item.worldData,

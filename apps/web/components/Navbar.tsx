@@ -33,6 +33,7 @@ import {
   Flame,
   Gamepad2,
   CreditCard,
+  Ticket,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useCallback, useEffect, useState, useRef } from "react";
@@ -694,6 +695,7 @@ function AccountMenuContent({
         badge={unreadCount}
         onClick={resetUnread}
       />
+      <DropdownItem href="/battle-pass" icon={<Ticket size={16} />} label={t("navbar.battlePass")} />
       <DropdownItem href="/missions" icon={<Target size={16} />} label={t("navbar.missions")} />
       <DropdownItem href="/achievements" icon={<Trophy size={16} />} label={t("navbar.achievements")} />
       <DropdownItem href="/badges" icon={<Award size={16} />} label={t("navbar.badges")} />

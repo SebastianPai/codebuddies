@@ -16,7 +16,7 @@ import { UpsertMissionDto } from './dto/upsert-mission.dto';
 import { UpsertMissionCategoryDto } from './dto/upsert-mission-category.dto';
 import { UpsertRewardBundleDto } from './dto/upsert-reward-bundle.dto';
 
-type RewardConfig = {
+export type RewardConfig = {
   type: GamificationRewardType | string;
   amount?: number;
   itemId?: string;
@@ -652,7 +652,12 @@ export class GamificationService {
     return rewards.map((reward) => reward as RewardConfig);
   }
 
-  private async grantRewards(
+  // Público a propósito: es el único punto de entrega de recompensas de
+  // todo el juego (coins/XP/items/badges/titles + fila en RewardLedgerEntry
+  // para historial/dashboard/fraude), pensado para que otros módulos lo
+  // reusen en vez de reimplementar la entrega -- ver BattlePassService,
+  // que lo llama al reclamar un tier en vez de tener su propio ledger.
+  async grantRewards(
     tx: Prisma.TransactionClient,
     userId: string,
     sourceType: RewardSourceType,

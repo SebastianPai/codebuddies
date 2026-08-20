@@ -1,17 +1,34 @@
 import {
   Injectable,
   BadRequestException,
+  ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { AvatarSlotType, WorldItemKind, ItemType } from '@prisma/client';
+import {
+  AvatarSlotType,
+  ItemAccessType,
+  WorldItemKind,
+  ItemType,
+} from '@prisma/client';
 import { CreateItemDto } from './dto/create-item.dto';
 import { UpdateItemDto } from './dto/update-item.dto';
 import { buildWorldEngineData } from './engine-data.util';
+import { PremiumAccessService } from '../../premium-access/premium-access.service';
+import { RARITY_DEFINITIONS, assertValidShopPrice } from '../../../common/economy';
 
 @Injectable()
 export class ItemsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private premiumAccessService: PremiumAccessService,
+  ) {}
+
+  // Fuente única de verdad de rareza expuesta a los frontends (admin,
+  // futuro Shop/Marketplace/Analytics) -- ver GET /items/rarity-catalog.
+  getRarityCatalog() {
+    return RARITY_DEFINITIONS;
+  }
 
   // ───────────── CREATE ITEM ─────────────
   async createItem(dto: CreateItemDto) {
@@ -62,6 +79,11 @@ export class ItemsService {
         'No puedes especificar slot y kind al mismo tiempo',
       );
     }
+
+    // Valida coinsPrice contra el rango de la rareza elegida -- no se
+    // aplica retroactivamente a items existentes, solo a lo que se crea de
+    // acá en más (ver assertValidShopPrice).
+    assertValidShopPrice(rarity, coinsPrice);
 
     const item = await this.prisma.item.create({
       data: {
@@ -483,6 +505,24 @@ export class ItemsService {
       }
     }
 
+    // Solo valida si esta edición toca precio o rareza -- editar cualquier
+    // otro campo (nombre, descripción, imagen...) de un item existente
+    // nunca debe fallar por un precio legado que ya estaba fuera de rango
+    // antes de esta fase (ver auditoría: ningún precio actual se tocó).
+    if (itemData.coinsPrice !== undefined || itemData.rarity !== undefined) {
+      const current = await this.prisma.item.findUnique({
+        where: { id },
+        select: { rarity: true, coinsPrice: true },
+      });
+      if (!current) {
+        throw new NotFoundException(`Item con ID ${id} no encontrado`);
+      }
+      const nextRarity = itemData.rarity ?? current.rarity;
+      const nextCoinsPrice =
+        itemData.coinsPrice !== undefined ? itemData.coinsPrice : current.coinsPrice;
+      assertValidShopPrice(nextRarity, nextCoinsPrice);
+    }
+
     return this.prisma.item.update({
       where: { id },
       data: itemData,
@@ -613,6 +653,11 @@ export class ItemsService {
   }
 
   // ───────────── BUY ITEM (FIXED) ─────────────
+  // accessType ya no es decorativo: cada valor tiene un comportamiento
+  // explícito. FREE es la única puerta que hoy usan los 18 items reales;
+  // PREMIUM/VIP/EVENT quedan implementados y con tests aunque todavía no
+  // haya ningún item usándolos, para que dejen de ser una promesa vacía del
+  // schema (ver auditoría de economía).
   async buyItem(userId: string, itemId: string) {
     const item = await this.prisma.item.findUnique({
       where: { id: itemId },
@@ -625,14 +670,47 @@ export class ItemsService {
       throw new BadRequestException('Este item no se puede comprar');
     }
 
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-    });
-
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('Usuario no encontrado');
 
+    switch (item.accessType) {
+      case ItemAccessType.FREE:
+        break;
+
+      case ItemAccessType.PREMIUM: {
+        const hasPremium = await this.premiumAccessService.hasPremiumAccess(userId);
+        if (!hasPremium) {
+          throw new ForbiddenException(
+            'Este item requiere una suscripción Premium activa',
+          );
+        }
+        break;
+      }
+
+      // No existe ningún sistema de VIP implementado en la app (no hay
+      // suscripción/rol VIP en ningún otro lado del código) -- tratar VIP
+      // como si fuera Premium acá sería inventar un acceso que nadie
+      // otorgó nunca. Hasta que exista un VipAccessService real, un item
+      // VIP simplemente no se vende por este flujo.
+      case ItemAccessType.VIP:
+        throw new BadRequestException(
+          'Los items VIP no están disponibles para compra todavía',
+        );
+
+      // EVENT existe para objetos que se otorgan por participar de un
+      // evento, no por pagar coins -- que tenga coinsPrice seteado no lo
+      // habilita a comprarse por acá.
+      case ItemAccessType.EVENT:
+        throw new BadRequestException(
+          'Este item es exclusivo de eventos y no está disponible en la tienda',
+        );
+
+      default:
+        throw new BadRequestException('accessType de item desconocido');
+    }
+
     await this.prisma.$transaction(async (tx) => {
-      // Debito condicional en una sola sentencia UPDATE...WHERE: si dos
+      // Débito condicional en una sola sentencia UPDATE...WHERE: si dos
       // compras del mismo usuario llegan a la vez, la segunda ve el saldo
       // ya descontado por la primera y no matchea el WHERE (count=0), en
       // vez de que ambas lean el saldo viejo y decrementen igual (doble
@@ -654,20 +732,37 @@ export class ItemsService {
         },
       });
 
-      await tx.userItem.upsert({
-        where: {
-          userId_itemId: { userId, itemId },
-        },
-        update: {
-          amount: { increment: 1 },
-        },
-        create: {
-          userId,
-          itemId,
-          amount: 1,
-          source: 'shop',
-        },
+      const existing = await tx.userItem.findUnique({
+        where: { userId_itemId: { userId, itemId } },
       });
+
+      if (existing) {
+        // Mismo patrón compare-and-swap que el débito de coins: solo
+        // incrementa si todavía hay lugar bajo maxStack en el momento en
+        // que el UPDATE corre -- una segunda compra concurrente que ya vio
+        // amount en el tope no matchea el WHERE (count=0) y se rechaza, en
+        // vez de las dos leyendo el mismo amount viejo e incrementando por
+        // encima del límite.
+        const stacked = await tx.userItem.updateMany({
+          where: { userId, itemId, amount: { lt: item.maxStack } },
+          data: { amount: { increment: 1 } },
+        });
+
+        if (stacked.count === 0) {
+          throw new BadRequestException(
+            `Ya alcanzaste el máximo de este item (${item.maxStack})`,
+          );
+        }
+      } else {
+        // La unique constraint [userId, itemId] es la guarda real contra
+        // una carrera en la primera compra: si dos requests concurrentes
+        // llegan acá sin fila previa, solo uno de los dos INSERT gana: el
+        // otro tira P2002 y aborta toda la transacción (coins incluidos),
+        // sin dejar estado a medias.
+        await tx.userItem.create({
+          data: { userId, itemId, amount: 1, source: 'shop' },
+        });
+      }
     });
 
     return { success: true };

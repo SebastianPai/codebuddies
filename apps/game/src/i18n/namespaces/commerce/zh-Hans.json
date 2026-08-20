@@ -53,6 +53,7 @@
   "kindInteractive": "互动物品",
   "itemFallbackName": "物品",
   "rarityCommon": "普通",
+  "rarityUncommon": "非凡",
   "rarityRare": "稀有",
   "rarityEpic": "史诗",
   "rarityLegendary": "传说",

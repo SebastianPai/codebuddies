@@ -25,15 +25,20 @@ type TabType = "avatar" | "world" | "textures" | "backgrounds";
 
 const ITEMS_PER_PAGE = 12;
 
-// item.rarity llega como un tier numérico (0,1,2,3...) desde la base de
-// datos, no como texto — mostrarlo tal cual (con "?? COMMON", que nunca
-// dispara porque 0 no es null/undefined) hacía que se viera un número suelto
-// al lado del precio, dando la falsa impresión de dos precios ("10 10").
-const RARITY_KEYS = ["commerce.rarityCommon", "commerce.rarityRare", "commerce.rarityEpic", "commerce.rarityLegendary"];
-function getRarityLabel(rarity: unknown, t: (key: string) => string): string {
-  if (typeof rarity === "string" && rarity.trim()) return rarity;
-  const tier = typeof rarity === "number" ? rarity : 0;
-  return t(RARITY_KEYS[Math.max(0, Math.min(tier, RARITY_KEYS.length - 1))]);
+// item.rarity es un tier numérico, pero la key canónica (common/uncommon/
+// rare/epic/legendary) ya viene calculada desde el backend como
+// item.rarityKey (ver ShopHandler + apps/api/src/common/economy) -- acá
+// solo se traduce esa key, nunca se vuelve a declarar la tabla de rareza.
+const RARITY_TRANSLATION_KEYS: Record<string, string> = {
+  common: "commerce.rarityCommon",
+  uncommon: "commerce.rarityUncommon",
+  rare: "commerce.rarityRare",
+  epic: "commerce.rarityEpic",
+  legendary: "commerce.rarityLegendary",
+};
+function getRarityLabel(rarityKey: unknown, t: (key: string) => string): string {
+  const key = typeof rarityKey === "string" ? rarityKey : "common";
+  return t(RARITY_TRANSLATION_KEYS[key] ?? RARITY_TRANSLATION_KEYS.common);
 }
 
 export default function Shop({ socket, inventory = [], onClose }: Props) {
@@ -299,7 +304,7 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
                     ) : (
                       <CurrencyBadge currency="coins" amount={item.coinsPrice} size="sm" />
                     )}
-                    <span className={styles.rarity}>{getRarityLabel(item.rarity, t)}</span>
+                    <span className={styles.rarity}>{getRarityLabel(item.rarityKey, t)}</span>
                   </div>
                   <Button
                     variant="primary"

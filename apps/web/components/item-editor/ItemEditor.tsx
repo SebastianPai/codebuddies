@@ -14,6 +14,7 @@ import AvatarItemPreview from "./AvatarItemPreview";
 import CachedImage from "../shared/CachedImage";
 import { Tooltip } from "../../src/shared/ui";
 import { useTranslation } from "../../src/i18n/useTranslation";
+import { capitalizeRarityKey, useRarityCatalog } from "../../src/features/items/useRarityCatalog";
 
 /** Persistent caption for a field, with an optional "?" tooltip for non-obvious values. */
 function FieldLabel({ text, hint }: { text: string; hint?: string }) {
@@ -72,13 +73,6 @@ const SLOT_LAYERS: Record<(typeof AVATAR_SLOTS)[number], number> = {
   ACCESSORY_RIGHT: 13,
 };
 
-const RARITIES = [
-  { labelKey: "items.rarityCommon", value: 0 },
-  { labelKey: "items.rarityRare", value: 1 },
-  { labelKey: "items.rarityEpic", value: 2 },
-  { labelKey: "items.rarityLegendary", value: 3 },
-];
-
 type EditorMode = "admin" | "creator";
 type ItemKind = "avatar" | "world" | "texture";
 
@@ -125,6 +119,7 @@ export default function ItemEditor({
   onSubmit,
 }: ItemEditorProps) {
   const t = useTranslation();
+  const rarities = useRarityCatalog();
   const [category, setCategory] = useState<ItemKind>(getInitialKind(initial));
   const [name, setName] = useState(initial?.name ?? initial?.title ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
@@ -521,14 +516,24 @@ export default function ItemEditor({
       <section className="grid gap-4 md:grid-cols-4">
         <LabeledField text={t("items.coins")} hint={t("items.coinsHint")}>
           <input type="number" min="0" value={coinsPrice} onChange={(event) => setCoinsPrice(Number(event.target.value))} className={fieldClass} />
+          {(() => {
+            const selected = rarities.find((r) => r.id === rarity);
+            return selected ? (
+              <p className="mt-1 text-xs text-zinc-500">
+                {t("items.rarityRangeHint", { min: selected.minCoins, max: selected.maxCoins })}
+              </p>
+            ) : null;
+          })()}
         </LabeledField>
         <LabeledField text={t("items.gems")} hint={t("items.gemsHint")}>
           <input type="number" min="0" value={gemsPrice} onChange={(event) => setGemsPrice(Number(event.target.value))} className={fieldClass} />
         </LabeledField>
         <LabeledField text={t("items.rarityLabel")} hint={t("items.rarityHint")}>
           <select value={rarity} onChange={(event) => setRarity(Number(event.target.value))} className={fieldClass}>
-            {RARITIES.map((rarityOption) => (
-              <option key={rarityOption.value} value={rarityOption.value}>{t(rarityOption.labelKey)}</option>
+            {rarities.map((rarityOption) => (
+              <option key={rarityOption.id} value={rarityOption.id}>
+                {t(`items.rarity${capitalizeRarityKey(rarityOption.key)}`)}
+              </option>
             ))}
           </select>
         </LabeledField>

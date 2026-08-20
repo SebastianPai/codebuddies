@@ -43,6 +43,16 @@ export class ItemsController {
       : this.itemsService.findAllItems();
   }
 
+  // Fuente única de verdad de rareza para consumidores admin (Item Editor,
+  // ItemsPage) -- debe ir antes de ':id' para que Nest no la matchee como
+  // un id. El Shop en vivo (apps/game) no llama a esta API REST (todo el
+  // controller está gateado ADMIN, ver comentario de arriba); recibe la
+  // misma info vía el payload de shop:items (ver ShopHandler).
+  @Get('rarity-catalog')
+  async getRarityCatalog() {
+    return this.itemsService.getRarityCatalog();
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.itemsService.findItemById(id);

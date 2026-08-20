@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { api } from "@/shared/api/client";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
+import { capitalizeRarityKey, useRarityCatalog } from "@/features/items/useRarityCatalog";
 
 type Item = {
   id: string;
@@ -44,12 +45,14 @@ function getItemName(item: Item, fallback: string) {
 
 export default function ItemsPage() {
   const t = useTranslation();
-  const RARITY_LABELS: Record<number, string> = {
-    0: t("items.rarityCommon"),
-    1: t("items.rarityRare"),
-    2: t("items.rarityEpic"),
-    3: t("items.rarityLegendary"),
-  };
+  const rarities = useRarityCatalog();
+  const RARITY_LABELS: Record<number, string> = useMemo(() => {
+    const map: Record<number, string> = {};
+    for (const rarity of rarities) {
+      map[rarity.id] = t(`items.rarity${capitalizeRarityKey(rarity.key)}`);
+    }
+    return map;
+  }, [rarities, t]);
   const [items, setItems] = useState<Item[]>([]);
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [search, setSearch] = useState("");

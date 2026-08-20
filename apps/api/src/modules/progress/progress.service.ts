@@ -11,6 +11,7 @@ import { RewardService } from '../game/reward/reward.service';
 import { ReferralValidationService } from '../referrals/services/referral-validation.service';
 import { computeStreakUpdate } from '../../common/utils/streak.util';
 import { PremiumAccessService } from '../premium-access/premium-access.service';
+import { BattlePassService } from '../battle-pass/services/battle-pass.service';
 
 @Injectable()
 export class ProgressService {
@@ -21,6 +22,7 @@ export class ProgressService {
     private readonly rewardService: RewardService,
     private readonly referralValidationService: ReferralValidationService,
     private readonly premiumAccessService: PremiumAccessService,
+    private readonly battlePassService: BattlePassService,
   ) {}
 
   async createProgress(userId: string, dto: CreateProgressDto, role?: Role) {
@@ -187,6 +189,9 @@ export class ProgressService {
               reason: `progress:${activityType}`,
             },
           });
+          // XP de Battle Pass separado de User.experience -- ver
+          // BattlePassService.awardXp. No-op si no hay temporada activa.
+          await this.battlePassService.awardXp(userId, xpToAdd, tx);
         }
 
         if (coinsToAdd > 0) {

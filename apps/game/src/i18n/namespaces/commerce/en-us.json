@@ -53,6 +53,7 @@
   "kindInteractive": "Interactive",
   "itemFallbackName": "Item",
   "rarityCommon": "COMMON",
+  "rarityUncommon": "UNCOMMON",
   "rarityRare": "RARE",
   "rarityEpic": "EPIC",
   "rarityLegendary": "LEGENDARY",
