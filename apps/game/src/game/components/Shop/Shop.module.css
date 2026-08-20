@@ -91,7 +91,6 @@
   font-family: "Inter", system-ui, sans-serif;
   font-size: 10px;
   font-weight: 700;
-  color: var(--cb-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }

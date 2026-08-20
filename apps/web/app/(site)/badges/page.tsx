@@ -9,6 +9,8 @@ import {
   GamificationSkeleton,
 } from "../../../components/gamification/GamificationState";
 import { useTranslation } from "../../../src/i18n/useTranslation";
+import { resolveLooseRarityEffect } from "@codebuddies/visual-effects";
+import { RarityText } from "@/shared/ui/rarity-text";
 
 interface Badge {
   id: string;
@@ -85,9 +87,13 @@ export default function BadgesPage() {
                       <p className="mt-1 text-sm text-[rgb(var(--secondary-text))]">{badge.description}</p>
                     )}
                     {badge.rarity && (
-                      <span className="mt-2 inline-block rounded-full border border-[rgb(var(--border))] px-2 py-0.5 text-[10px] font-bold uppercase text-[rgb(var(--secondary-text))]">
+                      <RarityText
+                        effect={resolveLooseRarityEffect(badge.rarity).id}
+                        as="span"
+                        className="mt-2 inline-block rounded-full border border-[rgb(var(--border))] px-2 py-0.5 text-[10px] font-bold uppercase"
+                      >
                         {badge.rarity}
-                      </span>
+                      </RarityText>
                     )}
                   </div>
                 </div>
@@ -113,6 +119,15 @@ export default function BadgesPage() {
                 <h3 className="font-black">{title.name}</h3>
                 {title.description && (
                   <p className="mt-1 text-sm text-[rgb(var(--secondary-text))]">{title.description}</p>
+                )}
+                {title.rarity && (
+                  <RarityText
+                    effect={resolveLooseRarityEffect(title.rarity).id}
+                    as="span"
+                    className="mt-2 inline-block rounded-full border border-[rgb(var(--border))] px-2 py-0.5 text-[10px] font-bold uppercase"
+                  >
+                    {title.rarity}
+                  </RarityText>
                 )}
               </article>
             ))}

@@ -2,6 +2,7 @@
 
 import { ReactNode, useState } from "react";
 import { Lock, Star, ZoomIn, type LucideIcon } from "lucide-react";
+import { getEffectDefinition, resolveItemRarityEffect } from "@codebuddies/visual-effects";
 
 import styles from "./ItemCard.module.css";
 import ItemPreview from "../UI/ItemPreview";
@@ -29,6 +30,8 @@ interface Props {
    *  qué significa "favorito" para él. */
   isFavorite?: boolean;
   onToggleFavorite?: () => void;
+  /** Item.rarity (0-4). Adds the shared rarity border treatment when present. */
+  rarity?: number;
 }
 
 // Celda de item compartida por Inventory, Shop, BuildModePanel y
@@ -51,12 +54,21 @@ export default function ItemCard({
   className = "",
   isFavorite,
   onToggleFavorite,
+  rarity,
 }: Props) {
   const t = useTranslation();
   const [zoomOpen, setZoomOpen] = useState(false);
   const label = title ?? item?.name ?? t("hud.itemPreview.fallbackLabel");
   const imageUrl: string | undefined = item?.imageUrl || item?.previewUrl || item?.thumbnailUrl;
-  const classes = [styles.card, selected ? styles.selected : "", locked ? styles.locked : "", className]
+  const rarityBorderClass =
+    rarity != null ? getEffectDefinition(resolveItemRarityEffect(rarity).id).borderClassName : undefined;
+  const classes = [
+    styles.card,
+    selected ? styles.selected : "",
+    locked ? styles.locked : "",
+    rarityBorderClass ?? "",
+    className,
+  ]
     .filter(Boolean)
     .join(" ");
 

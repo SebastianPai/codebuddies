@@ -1,24 +1,46 @@
+import type { ReactNode } from "react";
 import { ChevronRight } from "lucide-react";
+import { classNames } from "@/shared/utils/class-names";
 
 interface RainbowButtonProps {
   text: string;
   onClick?: () => void;
+  href?: string;
+  icon?: ReactNode;
   className?: string;
 }
 
-export function RainbowButton({ text, onClick, className }: RainbowButtonProps) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`group relative inline-flex items-center justify-center gap-2 border-2 border-[rgb(var(--text))] bg-gradient-to-r from-yellow-400 via-orange-400 to-purple-500 px-6 py-3 font-black uppercase tracking-widest text-[rgb(var(--button-text))] shadow-[4px_4px_0_0_rgb(var(--text))] transition-all duration-150 hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_0_rgb(var(--text))] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none ${className}`}
-    >
-      <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,transparent_20%,#000_120%)] opacity-10 mix-blend-overlay" />
-      <span className="relative z-10">{text}</span>
+const SHARED_CLASSES =
+  "cb-fx-border-rainbow cb-fx-glow-rainbow group inline-flex items-center justify-center gap-1.5 rounded-full bg-[rgb(var(--card))] px-4 py-2 text-sm font-bold transition-transform duration-200 ease-out hover:scale-[1.03] active:scale-[0.98]";
+
+/**
+ * Premium rainbow CTA — pill shape, animated gradient ring (shared rarity
+ * token system), shimmering text, static glow, subtle scale on hover/press.
+ * Used for high-stakes calls to action (e.g. the navbar PLAY button).
+ */
+export function RainbowButton({ text, onClick, href, icon, className }: RainbowButtonProps) {
+  const content = (
+    <>
+      {icon}
+      <span className="cb-fx-text-rainbow font-bold tracking-wide">{text}</span>
       <ChevronRight
-        size={18}
-        className="relative z-10 transition-transform group-hover:translate-x-1"
+        size={15}
+        className="text-[rgb(var(--text))] transition-transform duration-200 group-hover:translate-x-0.5"
       />
+    </>
+  );
+
+  if (href) {
+    return (
+      <a href={href} onClick={onClick} className={classNames(SHARED_CLASSES, className)}>
+        {content}
+      </a>
+    );
+  }
+
+  return (
+    <button type="button" onClick={onClick} className={classNames(SHARED_CLASSES, className)}>
+      {content}
     </button>
   );
 }

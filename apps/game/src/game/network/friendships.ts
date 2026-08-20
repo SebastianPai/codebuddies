@@ -9,6 +9,7 @@ export type PersonSummary = {
   id: string;
   username: string;
   avatarUrl?: string | null;
+  nameEffectId?: string | null;
   level?: number;
   online?: boolean;
 };

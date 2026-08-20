@@ -12,6 +12,7 @@ import Button from "../shared/Button";
 import ItemGrid from "../shared/ItemGrid";
 import ItemCard from "../shared/ItemCard";
 import CurrencyBadge from "../shared/CurrencyBadge";
+import RarityText from "../shared/RarityText";
 import { useTranslation } from "../../../i18n/useTranslation";
 
 interface Props {
@@ -292,6 +293,7 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
             <ItemCard
               key={item.id}
               item={item}
+              rarity={item.rarity}
               title={owned && item.type === "BACKGROUND" ? `${getLabel(item)} ✓` : getLabel(item)}
               stackCount={item.type !== "BACKGROUND" ? inventoryMap.get(item.id) : undefined}
               footer={
@@ -304,7 +306,9 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
                     ) : (
                       <CurrencyBadge currency="coins" amount={item.coinsPrice} size="sm" />
                     )}
-                    <span className={styles.rarity}>{getRarityLabel(item.rarityKey, t)}</span>
+                    <RarityText effect={item.rarityKey} className={styles.rarity}>
+                      {getRarityLabel(item.rarityKey, t)}
+                    </RarityText>
                   </div>
                   <Button
                     variant="primary"

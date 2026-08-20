@@ -16,6 +16,7 @@ import {
 import { useChat } from "./ChatProvider";
 import { audioManager } from "../../audio/AudioManager";
 import UserBadges from "../shared/UserBadges";
+import RarityText from "../shared/RarityText";
 import { useDialogBehavior } from "../shared/useDialogBehavior";
 import { useTranslation } from "../../../i18n/useTranslation";
 
@@ -130,7 +131,12 @@ export default function MessagesPanel({ onClose }: Props) {
               key={conversation.id}
               className={styles.conversationRow}
               onClick={() =>
-                openChat(conversation.partner.id, conversation.partner.username, conversation.partner.avatarUrl)
+                openChat(
+                  conversation.partner.id,
+                  conversation.partner.username,
+                  conversation.partner.avatarUrl,
+                  conversation.partner.nameEffectId,
+                )
               }
             >
               {conversation.partner.avatarUrl ? (
@@ -143,7 +149,7 @@ export default function MessagesPanel({ onClose }: Props) {
               )}
               <div className={styles.conversationInfo}>
                 <div className={styles.conversationUser}>
-                  {conversation.partner.username}
+                  <RarityText effect={conversation.partner.nameEffectId}>{conversation.partner.username}</RarityText>
                   <UserBadges username={conversation.partner.username} size={12} />
                 </div>
                 {conversation.lastMessage && (

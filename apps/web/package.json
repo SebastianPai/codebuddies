@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@codebuddies/visual-effects": "workspace:*",
     "@headlessui/react": "^2.2.9",
     "@monaco-editor/react": "^4.7.0",
     "@paddle/paddle-js": "^1.6.4",

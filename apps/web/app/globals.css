@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "@codebuddies/visual-effects/effects.css";
 
 :root {
   /* CodeBuddies Dark Design System */

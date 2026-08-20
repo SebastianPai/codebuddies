@@ -24,6 +24,7 @@ export class ProfilesService {
         username: true,
         avatarUrl: true,
         avatarBorder: true,
+        nameEffectId: true,
         experience: true,
         coins: true,
         level: true,
@@ -157,6 +158,7 @@ export class ProfilesService {
       username: user.username,
       avatarUrl: user.avatarUrl,
       avatarBorder: user.avatarBorder,
+      nameEffectId: user.nameEffectId,
 
       level: user.level,
       xp: user.experience,

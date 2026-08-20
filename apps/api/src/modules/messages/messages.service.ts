@@ -69,7 +69,7 @@ export class MessagesService {
       include: {
         participants: {
           include: {
-            user: { select: { id: true, username: true, avatarUrl: true } },
+            user: { select: { id: true, username: true, avatarUrl: true, nameEffectId: true } },
           },
         },
         messages: { orderBy: { createdAt: 'desc' }, take: 1 },
@@ -106,7 +106,7 @@ export class MessagesService {
     return this.prisma.messageRequest.findMany({
       where: { receiverId: userId, status: MessageRequestStatus.PENDING },
       include: {
-        sender: { select: { id: true, username: true, avatarUrl: true } },
+        sender: { select: { id: true, username: true, avatarUrl: true, nameEffectId: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -148,7 +148,7 @@ export class MessagesService {
       orderBy: { createdAt: 'asc' },
       take: 100,
       include: {
-        sender: { select: { id: true, username: true, avatarUrl: true } },
+        sender: { select: { id: true, username: true, avatarUrl: true, nameEffectId: true } },
       },
     });
   }
@@ -167,7 +167,7 @@ export class MessagesService {
     const message = await this.prisma.message.create({
       data: { conversationId, senderId: userId, body, deliveredAt },
       include: {
-        sender: { select: { id: true, username: true, avatarUrl: true } },
+        sender: { select: { id: true, username: true, avatarUrl: true, nameEffectId: true } },
       },
     });
     await this.prisma.conversation.update({

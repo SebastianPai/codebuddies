@@ -207,6 +207,9 @@ importers:
 
   apps/game:
     dependencies:
+      '@codebuddies/visual-effects':
+        specifier: workspace:*
+        version: link:../../packages/visual-effects
       easystarjs:
         specifier: ^0.4.4
         version: 0.4.4
@@ -262,6 +265,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@codebuddies/visual-effects':
+        specifier: workspace:*
+        version: link:../../packages/visual-effects
       '@headlessui/react':
         specifier: ^2.2.9
         version: 2.2.9(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
@@ -364,6 +370,8 @@ importers:
         version: 5.9.3
 
   packages/core: {}
+
+  packages/visual-effects: {}
 
 packages:
 

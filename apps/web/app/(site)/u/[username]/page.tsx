@@ -4,7 +4,6 @@ import { use, useEffect, useState, useCallback } from "react";
 import {
   Award,
   CalendarDays,
-  Coins,
   Flame,
   Trophy,
   UserPlus,
@@ -17,12 +16,15 @@ import { api } from "../../../../utils/api";
 import { useAuth } from "../../../../hooks/useAuth";
 import Image from "next/image";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
+import { CurrencyIcon } from "@/shared/ui/currency-icon";
+import { RarityText } from "@/shared/ui/rarity-text";
 
 type Profile = {
   id: string;
   username: string;
   avatarUrl: string | null;
   avatarBorder: string | null;
+  nameEffectId: string | null;
   level: number;
   xp: number;
   coins: number;
@@ -205,7 +207,7 @@ export default function PublicProfilePage({
           {/* Información */}
           <div className="flex-1 text-center md:text-left">
             <h1 className="text-6xl font-black tracking-tighter">
-              @{profile.username}
+              <RarityText effect={profile.nameEffectId}>@{profile.username}</RarityText>
             </h1>
             <p className="text-2xl text-zinc-400 mt-2">
               {t("site.globalRank", { rank: profile.xpRank })}
@@ -277,7 +279,7 @@ export default function PublicProfilePage({
           value={profile.xp.toLocaleString()}
         />
         <Stat
-          icon={<Coins />}
+          icon={<CurrencyIcon currency="coins" size={16} />}
           label={t("site.coinsStatLabel")}
           value={profile.coins.toLocaleString()}
         />

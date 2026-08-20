@@ -623,6 +623,12 @@ model User {
   // no acá (Prisma no valida contra una suscripcion activa).
   chatBubbleThemeId String?
 
+  // Efecto visual del nombre (ver @codebuddies/visual-effects en el
+  // monorepo). null = sin efecto (equivalente a "common"). Algunos ids son
+  // Premium — se valida en IdentityService#updateProfile, mismo criterio
+  // que chatBubbleThemeId.
+  nameEffectId String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

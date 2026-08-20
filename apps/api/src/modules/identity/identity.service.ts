@@ -26,6 +26,32 @@ const PREMIUM_CHAT_BUBBLE_THEMES = new Set([
   'rose',
   'sunset',
 ]);
+
+// Espejo de SUPPORTED_NAME_EFFECTS en update-profile.dto.ts — "common" y
+// "uncommon" son gratis, el resto exige Premium. Mismo criterio que
+// PREMIUM_CHAT_BUBBLE_THEMES.
+const PREMIUM_NAME_EFFECTS = new Set([
+  'rare',
+  'epic',
+  'legendary',
+  'rainbow',
+  'diamond',
+  'mythic',
+  'divine',
+  'galaxy',
+  'aurora',
+  'ice',
+  'fire',
+  'emerald',
+  'ruby',
+  'sapphire',
+  'holographic',
+  'obsidian',
+  'cyber',
+  'matrix',
+  'electric',
+  'crystal',
+]);
 import { attachReferralToRegistration } from '../referrals/referrals.registration';
 import { GamificationService } from '../gamification/gamification.service';
 import { EmailService } from '../email/email.service';
@@ -45,6 +71,7 @@ type AuthUser = {
   uiLanguage?: string;
   pcTheme?: string;
   chatBubbleThemeId?: string | null;
+  nameEffectId?: string | null;
 };
 
 @Injectable()
@@ -147,6 +174,7 @@ export class IdentityService {
       uiLanguage: loginUser.uiLanguage,
       pcTheme: loginUser.pcTheme,
       chatBubbleThemeId: loginUser.chatBubbleThemeId,
+      nameEffectId: loginUser.nameEffectId,
     };
     return this.generateAuthResponse(userSafe);
   }
@@ -171,6 +199,13 @@ export class IdentityService {
       }
     }
 
+    if (dto.nameEffectId && PREMIUM_NAME_EFFECTS.has(dto.nameEffectId)) {
+      const premium = await this.hasPremium(userId);
+      if (!premium) {
+        throw new ForbiddenException('Este efecto de nombre requiere Premium');
+      }
+    }
+
     return this.prisma.user.update({
       where: { id: userId },
       data: {
@@ -179,6 +214,7 @@ export class IdentityService {
         uiLanguage: dto.uiLanguage,
         pcTheme: dto.pcTheme,
         chatBubbleThemeId: dto.chatBubbleThemeId,
+        nameEffectId: dto.nameEffectId,
       },
       select: {
         birthDate: true,
@@ -186,6 +222,7 @@ export class IdentityService {
         uiLanguage: true,
         pcTheme: true,
         chatBubbleThemeId: true,
+        nameEffectId: true,
       },
     });
   }
@@ -258,6 +295,7 @@ export class IdentityService {
       uiLanguage: user.uiLanguage,
       pcTheme: user.pcTheme,
       chatBubbleThemeId: user.chatBubbleThemeId,
+      nameEffectId: user.nameEffectId,
       isPremium,
       birthDate: user.birthDate,
       country: user.country,
@@ -283,6 +321,7 @@ export class IdentityService {
       uiLanguage: true,
       pcTheme: true,
       chatBubbleThemeId: true,
+      nameEffectId: true,
     } as const;
   }
 

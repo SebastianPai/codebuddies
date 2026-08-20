@@ -8,6 +8,7 @@ export type PublicProfile = {
   username: string;
   avatarUrl: string | null;
   avatarBorder?: string | null;
+  nameEffectId?: string | null;
   level: number;
   xp: number;
   coursesCompleted: number;

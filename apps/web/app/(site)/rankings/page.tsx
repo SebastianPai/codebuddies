@@ -7,6 +7,9 @@ import { api } from "../../../utils/api";
 import { useAuth } from "../../../hooks/useAuth";
 import { useTranslation } from "../../../src/i18n/useTranslation";
 import { Button, EmptyState, ErrorState, Skeleton } from "../../../src/shared/ui";
+import { RarityBorder } from "@/shared/ui/rarity-border";
+import { RarityText } from "@/shared/ui/rarity-text";
+import { resolvePodiumEffect } from "@codebuddies/visual-effects";
 
 type RankingEntry = {
   rank: number;
@@ -157,23 +160,46 @@ export default function RankingsPage() {
             />
           ) : (
             <div className="grid gap-2 sm:grid-cols-2">
-              {season.entries.slice(0, 10).map((entry) => (
-                <div
-                  key={entry.userId}
-                  className={`flex items-center justify-between rounded-lg border p-3 ${
-                    entry.userId === user?.userId
-                      ? "border-[rgb(var(--primary))] bg-[rgb(var(--primary)/0.1)]"
-                      : "border-[rgb(var(--border))]"
-                  }`}
-                >
-                  <span className="truncate font-black">
-                    #{entry.rank} {entry.user?.username ?? "—"}
-                  </span>
-                  <span className="font-mono font-black text-[rgb(var(--primary))]">
-                    {entry.xpEarned.toLocaleString()} XP
-                  </span>
-                </div>
-              ))}
+              {season.entries.slice(0, 10).map((entry) => {
+                const podium = resolvePodiumEffect(entry.rank);
+                const rowContent = (
+                  <div className="flex items-center justify-between p-3">
+                    {podium ? (
+                      <RarityText effect={podium.id} as="span" className="truncate font-black">
+                        #{entry.rank} {entry.user?.username ?? "—"}
+                      </RarityText>
+                    ) : (
+                      <span className="truncate font-black">
+                        #{entry.rank} {entry.user?.username ?? "—"}
+                      </span>
+                    )}
+                    <span className="font-mono font-black text-[rgb(var(--primary))]">
+                      {entry.xpEarned.toLocaleString()} XP
+                    </span>
+                  </div>
+                );
+
+                if (podium) {
+                  return (
+                    <RarityBorder key={entry.userId} effect={podium.id} glow className="rounded-lg">
+                      {rowContent}
+                    </RarityBorder>
+                  );
+                }
+
+                return (
+                  <div
+                    key={entry.userId}
+                    className={`rounded-lg border ${
+                      entry.userId === user?.userId
+                        ? "border-[rgb(var(--primary))] bg-[rgb(var(--primary)/0.1)]"
+                        : "border-[rgb(var(--border))]"
+                    }`}
+                  >
+                    {rowContent}
+                  </div>
+                );
+              })}
             </div>
           )}
         </section>
@@ -197,23 +223,44 @@ export default function RankingsPage() {
                 )}
                 {(board?.entries ?? []).map((entry) => {
                   const isCurrent = entry.userId === user?.userId;
+                  const podium = resolvePodiumEffect(entry.rank);
+                  const rowContent = (
+                    <div className="flex items-center justify-between p-4">
+                      <div className="min-w-0">
+                        {podium ? (
+                          <RarityText effect={podium.id} as="p" className="truncate font-black">
+                            #{entry.rank} {entry.username}
+                          </RarityText>
+                        ) : (
+                          <p className="truncate font-black">
+                            #{entry.rank} {entry.username}
+                          </p>
+                        )}
+                      </div>
+                      <p className="font-mono font-black text-[rgb(var(--primary))]">
+                        {entry.value.toLocaleString()}
+                      </p>
+                    </div>
+                  );
+
+                  if (podium) {
+                    return (
+                      <RarityBorder key={entry.userId} effect={podium.id} glow className="rounded-lg">
+                        {rowContent}
+                      </RarityBorder>
+                    );
+                  }
+
                   return (
                     <div
                       key={entry.userId}
-                      className={`flex items-center justify-between rounded-lg border p-4 ${
+                      className={`rounded-lg border ${
                         isCurrent
                           ? "border-[rgb(var(--primary))] bg-[rgb(var(--primary)/0.1)]"
                           : "border-[rgb(var(--border))]"
                       }`}
                     >
-                      <div className="min-w-0">
-                        <p className="truncate font-black">
-                          #{entry.rank} {entry.username}
-                        </p>
-                      </div>
-                      <p className="font-mono font-black text-[rgb(var(--primary))]">
-                        {entry.value.toLocaleString()}
-                      </p>
+                      {rowContent}
                     </div>
                   );
                 })}

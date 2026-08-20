@@ -15,6 +15,7 @@ const hostname = assetsHostname();
 
 const nextConfig: NextConfig = {
   /* config options here */
+  transpilePackages: ["@codebuddies/visual-effects"],
   images: {
     remotePatterns: hostname
       ? [

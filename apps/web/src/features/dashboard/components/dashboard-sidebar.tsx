@@ -4,6 +4,9 @@ import { useTranslation } from "@/i18n/useTranslation";
 import { Button, ProgressBar, Skeleton } from "@/shared/ui";
 import { classNames } from "@/shared/utils/class-names";
 import { FOCUS_RING, PRESSABLE } from "@/shared/ui/styles";
+import { RarityBorder } from "@/shared/ui/rarity-border";
+import { RarityText } from "@/shared/ui/rarity-text";
+import { resolvePodiumEffect } from "@codebuddies/visual-effects";
 import type { DailyMission, DashboardUser, ReferralOverview, TopPlayerEntry } from "../types/dashboard";
 
 type LoadStatus = "loading" | "error" | "ready";
@@ -171,20 +174,43 @@ export function DashboardSidebar({
           ) : topPlayers.length === 0 ? (
             <p className="text-sm text-[rgb(var(--secondary-text))]">{t("dashboard.noPlayersYet")}</p>
           ) : (
-            topPlayers.map((player) => (
-              <div key={player.userId} className="flex items-center justify-between rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--background))] p-4">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[rgb(var(--button))] font-black text-[rgb(var(--button-text))]">
-                    #{player.rank}
+            topPlayers.map((player) => {
+              const podium = resolvePodiumEffect(player.rank);
+              const row = (
+                <div className="flex items-center justify-between rounded-2xl bg-[rgb(var(--background))] p-4">
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[rgb(var(--button))] font-black text-[rgb(var(--button-text))]">
+                      #{player.rank}
+                    </div>
+                    <div>
+                      {podium ? (
+                        <RarityText effect={podium.id} as="h3" className="font-bold">
+                          {player.username}
+                        </RarityText>
+                      ) : (
+                        <h3 className="font-bold">{player.username}</h3>
+                      )}
+                      <p className="text-sm text-[rgb(var(--secondary-text))]">{player.value.toLocaleString()} XP</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-bold">{player.username}</h3>
-                    <p className="text-sm text-[rgb(var(--secondary-text))]">{player.value.toLocaleString()} XP</p>
-                  </div>
+                  <Trophy size={18} className="text-[rgb(var(--primary))]" />
                 </div>
-                <Trophy size={18} className="text-[rgb(var(--primary))]" />
-              </div>
-            ))
+              );
+
+              if (podium) {
+                return (
+                  <RarityBorder key={player.userId} effect={podium.id} glow className="rounded-2xl">
+                    {row}
+                  </RarityBorder>
+                );
+              }
+
+              return (
+                <div key={player.userId} className="rounded-2xl border border-[rgb(var(--border))]">
+                  {row}
+                </div>
+              );
+            })
           )}
         </div>
         <div className="mt-6 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--background))] p-4">

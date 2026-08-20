@@ -17,13 +17,19 @@ import { audioManager } from "../../audio/AudioManager";
 import Modal from "../shared/Modal";
 import Button from "../shared/Button";
 import UserBadges from "../shared/UserBadges";
+import RarityText from "../shared/RarityText";
 import { Globe, Lock, MessageCircle } from "lucide-react";
 import { useTranslation } from "../../../i18n/useTranslation";
 
 type Props = {
   username: string;
   onClose: () => void;
-  onOpenChat: (userId: string, username: string, avatarUrl?: string | null) => void;
+  onOpenChat: (
+    userId: string,
+    username: string,
+    avatarUrl?: string | null,
+    nameEffectId?: string | null,
+  ) => void;
 };
 
 export default function ProfileModal({ username, onClose, onOpenChat }: Props) {
@@ -172,7 +178,7 @@ export default function ProfileModal({ username, onClose, onOpenChat }: Props) {
       title={
         !loading && !error && profile ? (
           <>
-            {profile.username}
+            <RarityText effect={profile.nameEffectId}>{profile.username}</RarityText>
             <UserBadges verified={profile.verified} isCreator={profile.isCreator} size={14} className={styles.titleBadges} />
           </>
         ) : (
@@ -222,7 +228,7 @@ export default function ProfileModal({ username, onClose, onOpenChat }: Props) {
               variant="primary"
               size="sm"
               fullWidth
-              onClick={() => onOpenChat(profile.id, profile.username, profile.avatarUrl)}
+              onClick={() => onOpenChat(profile.id, profile.username, profile.avatarUrl, profile.nameEffectId)}
             >
               <MessageCircle size={14} /> {t("quickmenu.message")}
             </Button>

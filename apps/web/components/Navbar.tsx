@@ -29,7 +29,6 @@ import {
   ChevronDown,
   Shield,
   Zap,
-  Coins,
   Flame,
   Gamepad2,
   CreditCard,
@@ -46,6 +45,8 @@ import { getRealtimeUrl, getGameUrl } from "@/config/env";
 import { useGlobalNotifications } from "./notifications/GlobalNotificationsProvider";
 import { useThemeAsset } from "../hooks/useThemeAsset";
 import { ThemeImage, THEME_IMAGE_SPRITE_KEYFRAMES } from "./ThemeImage";
+import { RainbowButton } from "@/shared/ui/rainbow-button";
+import { CurrencyIcon } from "@/shared/ui/currency-icon";
 
 const INACTIVE_MS = 5 * 60 * 1000;
 const PRESENCE_SESSION_KEY = "codebuddies:presence-session-id";
@@ -304,7 +305,8 @@ export default function Navbar() {
             </div>
 
             <span className="text-xl font-bold tracking-tight text-[rgb(var(--text))]">
-              {t("navbar.brandCode")}<span className="text-[rgb(var(--primary))]">{t("navbar.brandBuddies")}</span>
+              {t("navbar.brandCode")}
+              <span className="cb-fx-text-electric">{t("navbar.brandBuddies")}</span>
             </span>
           </Link>
 
@@ -315,12 +317,12 @@ export default function Navbar() {
               </NavLink>
             ))}
 
-            <a
+            <RainbowButton
               href={getGameUrl()}
-              className="flex items-center gap-1.5 px-4 py-2 ml-1 rounded-full text-sm font-bold bg-[rgb(var(--primary))] text-[rgb(var(--button-text))] shadow-lg hover:scale-[1.03] transition-all"
-            >
-              <Gamepad2 size={16} /> {t("navbar.playGame")}
-            </a>
+              text={t("navbar.playGame")}
+              icon={<Gamepad2 size={16} className="text-[rgb(var(--text))]" />}
+              className="ml-1"
+            />
 
             <div className="w-[1px] h-6 bg-[rgb(var(--border))] mx-3" />
 
@@ -491,12 +493,12 @@ export default function Navbar() {
                 )}
 
                 <motion.div variants={mobileItemVariants}>
-                  <a
+                  <RainbowButton
                     href={getGameUrl()}
-                    className="flex items-center justify-center gap-2 rounded-2xl bg-[rgb(var(--primary))] px-4 py-3 text-sm font-bold text-[rgb(var(--button-text))] shadow-lg"
-                  >
-                    <Gamepad2 size={18} /> {t("navbar.playGame")}
-                  </a>
+                    text={t("navbar.playGame")}
+                    icon={<Gamepad2 size={18} className="text-[rgb(var(--text))]" />}
+                    className="w-full rounded-2xl py-3"
+                  />
                 </motion.div>
 
                 <motion.div variants={mobileItemVariants} className="flex flex-col gap-1">
@@ -649,7 +651,7 @@ function StatsPill({
       </span>
       <span className="w-px h-3 bg-[rgb(var(--border))]" />
       <span className="flex items-center gap-1 text-amber-400">
-        <Coins size={13} /> {(user.coins ?? 0).toLocaleString()}
+        <CurrencyIcon currency="coins" size={13} /> {(user.coins ?? 0).toLocaleString()}
       </span>
       {(user.streak ?? 0) > 0 && (
         <>

@@ -39,6 +39,7 @@ export default function AvatarItemCard({
   return (
     <ItemCard
       item={inv.item}
+      rarity={inv.item?.rarity}
       title={itemName}
       stackCount={inv.amount}
       selected={equipped}

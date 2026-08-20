@@ -137,6 +137,7 @@ export default function Inventory({
               <ItemCard
                 key={inv.id}
                 item={inv.item}
+                rarity={inv.item?.rarity}
                 title={inv.item.worldData?.kind === "WALL" ? t("commerce.inventoryWallLabel") : t("commerce.inventoryFloorLabel")}
                 titleIcon={inv.item.worldData?.kind === "WALL" ? Square : Grid3x3}
                 stackCount={inv.amount ?? inv.quantity ?? 1}
@@ -160,6 +161,7 @@ export default function Inventory({
             <ItemCard
               key={inv.id}
               item={inv.item}
+              rarity={inv.item?.rarity}
               title={inv.item?.name || t("commerce.inventoryItemFallbackName")}
               stackCount={inv.amount ?? inv.quantity ?? 1}
               footer={

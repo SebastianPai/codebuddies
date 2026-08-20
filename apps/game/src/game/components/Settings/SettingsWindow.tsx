@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BadgeCheck, Check, Globe, Lock, MessageSquare, User } from "lucide-react";
+import { BadgeCheck, Check, Globe, Lock, MessageSquare, Sparkles, User } from "lucide-react";
+import { getNameEffectCatalog } from "@codebuddies/visual-effects";
 
 import Modal from "../shared/Modal";
 import Button from "../shared/Button";
 import UserBadges from "../shared/UserBadges";
+import RarityText from "../shared/RarityText";
 import { updateUsername } from "../../network/auth";
 import { notifyBadgesChanged } from "../../hooks/useUserBadges";
 import {
@@ -16,11 +18,13 @@ import {
 } from "../../network/badges";
 import { CHAT_BUBBLE_THEMES } from "../../hud/nameplateStyles";
 import { useChatBubbleTheme } from "../../hooks/useChatBubbleTheme";
+import { useNameEffect } from "../../hooks/useNameEffect";
 import { useTranslation } from "../../../i18n/useTranslation";
 import { useLanguage, type Lang } from "../../../i18n/LanguageContext";
 import styles from "./SettingsWindow.module.css";
 
 const CHAT_THEME_LIST = Object.values(CHAT_BUBBLE_THEMES);
+const NAME_EFFECT_LIST = getNameEffectCatalog();
 
 function hexOf(color: number) {
   return `#${color.toString(16).padStart(6, "0")}`;
@@ -72,6 +76,20 @@ export default function SettingsWindow({ username, onClose, onUsernameChanged }:
       ? t("settings.chatThemePremiumRequired")
       : chatThemeErrorCode === "SAVE_ERROR"
         ? t("settings.chatThemeSaveError")
+        : "";
+
+  const {
+    effectId: nameEffectId,
+    isPremium: isPremiumForNameEffect,
+    saving: savingNameEffect,
+    error: nameEffectErrorCode,
+    selectEffect,
+  } = useNameEffect();
+  const nameEffectError =
+    nameEffectErrorCode === "PREMIUM_REQUIRED"
+      ? t("settings.nameEffectPremiumRequired")
+      : nameEffectErrorCode === "SAVE_ERROR"
+        ? t("settings.nameEffectSaveError")
         : "";
 
   const saveUsername = async () => {
@@ -297,6 +315,46 @@ export default function SettingsWindow({ username, onClose, onUsernameChanged }:
               })}
             </div>
             {themeError && <p className={styles.error}>{themeError}</p>}
+          </div>
+        </section>
+
+        <section className={styles.section}>
+          <header className={styles.sectionHeader}>
+            <span className={styles.sectionIcon}>
+              <Sparkles size={15} />
+            </span>
+            <div>
+              <h3 className={styles.sectionTitle}>{t("settings.nameEffectSectionTitle")}</h3>
+              <p className={styles.sectionHint}>{t("settings.nameEffectSectionHint")}</p>
+            </div>
+          </header>
+
+          <div className={styles.sectionBody}>
+            <div className={styles.nameEffectGrid}>
+              {NAME_EFFECT_LIST.map((effect) => {
+                const locked = effect.unlockRule === "premium" && !isPremiumForNameEffect;
+                const selected = nameEffectId === effect.id;
+                return (
+                  <button
+                    key={effect.id}
+                    type="button"
+                    className={`${styles.nameEffectOption} ${
+                      selected ? styles.nameEffectOptionSelected : ""
+                    } ${locked ? styles.nameEffectOptionLocked : ""}`}
+                    disabled={savingNameEffect}
+                    onClick={() => void selectEffect(effect.id, effect.unlockRule)}
+                  >
+                    {locked ? (
+                      <Lock size={12} />
+                    ) : selected ? (
+                      <Check size={12} />
+                    ) : null}
+                    <RarityText effect={effect.id}>{username}</RarityText>
+                  </button>
+                );
+              })}
+            </div>
+            {nameEffectError && <p className={styles.error}>{nameEffectError}</p>}
           </div>
         </section>
 

@@ -144,6 +144,47 @@
   gap: 8px;
 }
 
+.nameEffectGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.nameEffectOption {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: var(--cb-radius-sm);
+  border: 1px solid var(--cb-border);
+  background: rgba(255, 255, 255, 0.03);
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 120ms ease, border-color 120ms ease;
+}
+
+.nameEffectOption:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(250, 204, 21, 0.4);
+}
+
+.nameEffectOption:disabled {
+  cursor: not-allowed;
+}
+
+.nameEffectOptionSelected {
+  outline: 2px solid var(--cb-accent);
+  outline-offset: 1px;
+}
+
+.nameEffectOptionLocked {
+  opacity: 0.55;
+}
+
 .themeSwatch {
   position: relative;
   display: flex;

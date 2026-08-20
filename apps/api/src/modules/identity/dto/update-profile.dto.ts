@@ -17,6 +17,36 @@ export const SUPPORTED_CHAT_BUBBLE_THEMES = [
   'sunset',
 ] as const;
 
+// Espejo de los ids con usage:"nameEffect" en
+// packages/visual-effects/index.ts — el nivel Premium de cada uno se valida
+// en IdentityService#updateProfile, acá solo se valida que sea un id
+// conocido. apps/api no depende del paquete de tokens (frontend-only),
+// mismo criterio que SUPPORTED_CHAT_BUBBLE_THEMES.
+export const SUPPORTED_NAME_EFFECTS = [
+  'common',
+  'uncommon',
+  'rare',
+  'epic',
+  'legendary',
+  'rainbow',
+  'diamond',
+  'mythic',
+  'divine',
+  'galaxy',
+  'aurora',
+  'ice',
+  'fire',
+  'emerald',
+  'ruby',
+  'sapphire',
+  'holographic',
+  'obsidian',
+  'cyber',
+  'matrix',
+  'electric',
+  'crystal',
+] as const;
+
 export class UpdateProfileDto {
   @IsOptional()
   @IsDateString()
@@ -41,4 +71,9 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsIn(SUPPORTED_CHAT_BUBBLE_THEMES)
   chatBubbleThemeId?: string;
+
+  // Ver comentario en schema.prisma junto a User.nameEffectId.
+  @IsOptional()
+  @IsIn(SUPPORTED_NAME_EFFECTS)
+  nameEffectId?: string;
 }

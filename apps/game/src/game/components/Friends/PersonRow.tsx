@@ -2,6 +2,7 @@
 
 import styles from "./PersonRow.module.css";
 import UserBadges from "../shared/UserBadges";
+import RarityText from "../shared/RarityText";
 
 export type PersonRowAction = {
   label: string;
@@ -13,6 +14,7 @@ export type PersonRowAction = {
 type Props = {
   username: string;
   avatarUrl?: string | null;
+  nameEffectId?: string | null;
   online?: boolean;
   subtitle?: string;
   actions?: PersonRowAction[];
@@ -22,6 +24,7 @@ type Props = {
 export default function PersonRow({
   username,
   avatarUrl,
+  nameEffectId,
   online,
   subtitle,
   actions = [],
@@ -47,7 +50,7 @@ export default function PersonRow({
 
       <div className={styles.info}>
         <div className={styles.username}>
-          {username}
+          <RarityText effect={nameEffectId}>{username}</RarityText>
           <UserBadges username={username} size={12} />
         </div>
         {subtitle && <div className={styles.subtitle}>{subtitle}</div>}

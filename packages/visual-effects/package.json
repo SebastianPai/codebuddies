@@ -1,0 +1,14 @@
+{
+  "name": "@codebuddies/visual-effects",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Centralized rarity/premium visual effects design tokens and CSS shared by apps/web and apps/game",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./effects.css": "./effects.css"
+  },
+  "license": "UNLICENSED",
+  "packageManager": "pnpm@10.30.2"
+}

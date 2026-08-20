@@ -651,6 +651,7 @@ function BuildItemGrid({
         <ItemCard
           key={inv.id}
           item={inv.item}
+          rarity={inv.item?.rarity}
           title={inv.item?.name || inv.item?.worldData?.kind || t("buildmode.itemFallbackName")}
           stackCount={inv.amount ?? inv.quantity ?? 1}
           onClick={() => onAction(inv.item)}

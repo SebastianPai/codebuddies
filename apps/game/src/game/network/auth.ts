@@ -18,6 +18,7 @@ export type GameUser = {
   uiLanguage?: string;
   pcTheme?: string;
   chatBubbleThemeId?: string | null;
+  nameEffectId?: string | null;
   isPremium?: boolean;
 };
 

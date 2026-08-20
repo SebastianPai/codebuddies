@@ -10,6 +10,7 @@ import { showGameAlert } from "../../utils/dialog";
 import { audioManager } from "../../audio/AudioManager";
 import { useChat } from "../Chat/ChatProvider";
 import Button from "../shared/Button";
+import RarityText from "../shared/RarityText";
 import { useTranslation } from "../../../i18n/useTranslation";
 
 type Props = {
@@ -66,7 +67,7 @@ export default function PlayerQuickMenu({ username, x, y, onClose }: Props) {
 
   const handleMessage = () => {
     if (!profile) return;
-    openChat(profile.id, profile.username, profile.avatarUrl);
+    openChat(profile.id, profile.username, profile.avatarUrl, profile.nameEffectId);
     onClose();
   };
 
@@ -137,7 +138,9 @@ export default function PlayerQuickMenu({ username, x, y, onClose }: Props) {
           <div className={styles.avatarFallback}>{username.slice(0, 1).toUpperCase()}</div>
         )}
         <div className={styles.headInfo}>
-          <span className={styles.username}>{username}</span>
+          <RarityText as="span" effect={profile?.nameEffectId} className={styles.username}>
+            {username}
+          </RarityText>
           {profile && <span className={styles.level}>{t("quickmenu.level", { level: profile.level })}</span>}
         </div>
       </div>

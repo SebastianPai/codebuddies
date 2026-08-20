@@ -5,6 +5,8 @@ import Link from "next/link";
 import { api } from "@/shared/api/client";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
 import { capitalizeRarityKey, useRarityCatalog } from "@/features/items/useRarityCatalog";
+import { resolveItemRarityEffect } from "@codebuddies/visual-effects";
+import { RarityText } from "@/shared/ui/rarity-text";
 
 type Item = {
   id: string;
@@ -295,9 +297,9 @@ function ItemCard({
             {item.worldData.placementType ?? "FLOOR"}
           </p>
         )}
-        <p className="text-xs text-zinc-400">
+        <RarityText effect={resolveItemRarityEffect(item.rarity).id} as="p" className="text-xs font-semibold">
           {rarityLabels[item.rarity] || t("items.unknownRarity")}
-        </p>
+        </RarityText>
       </div>
 
       {slot && (

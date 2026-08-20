@@ -15,6 +15,7 @@ import CachedImage from "../shared/CachedImage";
 import { Tooltip } from "../../src/shared/ui";
 import { useTranslation } from "../../src/i18n/useTranslation";
 import { capitalizeRarityKey, useRarityCatalog } from "../../src/features/items/useRarityCatalog";
+import { resolveItemRarityEffect } from "@codebuddies/visual-effects";
 
 /** Persistent caption for a field, with an optional "?" tooltip for non-obvious values. */
 function FieldLabel({ text, hint }: { text: string; hint?: string }) {
@@ -529,13 +530,20 @@ export default function ItemEditor({
           <input type="number" min="0" value={gemsPrice} onChange={(event) => setGemsPrice(Number(event.target.value))} className={fieldClass} />
         </LabeledField>
         <LabeledField text={t("items.rarityLabel")} hint={t("items.rarityHint")}>
-          <select value={rarity} onChange={(event) => setRarity(Number(event.target.value))} className={fieldClass}>
-            {rarities.map((rarityOption) => (
-              <option key={rarityOption.id} value={rarityOption.id}>
-                {t(`items.rarity${capitalizeRarityKey(rarityOption.key)}`)}
-              </option>
-            ))}
-          </select>
+          <div className="flex items-center gap-2">
+            <span
+              aria-hidden="true"
+              className="h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10"
+              style={{ background: resolveItemRarityEffect(rarity).gradientStops[0] }}
+            />
+            <select value={rarity} onChange={(event) => setRarity(Number(event.target.value))} className={fieldClass}>
+              {rarities.map((rarityOption) => (
+                <option key={rarityOption.id} value={rarityOption.id}>
+                  {t(`items.rarity${capitalizeRarityKey(rarityOption.key)}`)}
+                </option>
+              ))}
+            </select>
+          </div>
         </LabeledField>
         <LabeledField text={t("items.languageLabel")} hint={t("items.languageHint")}>
           <select value={languageCode} onChange={(event) => setLanguageCode(event.target.value)} className={fieldClass}>

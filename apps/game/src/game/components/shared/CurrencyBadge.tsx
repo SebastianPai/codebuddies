@@ -94,7 +94,7 @@ export default function CurrencyBadge({ currency, amount, size = "md", className
       className={`${styles.badge} ${styles[size]} ${className}`}
       aria-label={showAmount ? `${amount?.toLocaleString() ?? 0} ${label}` : label}
     >
-      <span className={styles.icon} aria-hidden="true">
+      <span className={`${styles.icon} ${styles[currency] ?? ""}`} aria-hidden="true">
         <Icon size={size === "sm" ? 12 : 15} />
       </span>
       {showAmount ? (

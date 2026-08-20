@@ -13,6 +13,7 @@ import {
 } from "../../network/messages";
 import { audioManager } from "../../audio/AudioManager";
 import UserBadges from "../shared/UserBadges";
+import RarityText from "../shared/RarityText";
 import { useTranslation } from "../../../i18n/useTranslation";
 
 type Props = {
@@ -20,6 +21,7 @@ type Props = {
   partnerId: string;
   partnerUsername: string;
   partnerAvatarUrl?: string | null;
+  partnerNameEffectId?: string | null;
   onClose: () => void;
   onViewProfile: () => void;
 };
@@ -39,6 +41,7 @@ export default function ChatWindow({
   partnerId,
   partnerUsername,
   partnerAvatarUrl,
+  partnerNameEffectId,
   onClose,
   onViewProfile,
 }: Props) {
@@ -139,7 +142,9 @@ export default function ChatWindow({
         ) : (
           <div className={styles.avatarFallback}>{partnerUsername.slice(0, 1).toUpperCase()}</div>
         )}
-        <span className={styles.username}>{partnerUsername}</span>
+        <RarityText as="span" effect={partnerNameEffectId} className={styles.username}>
+          {partnerUsername}
+        </RarityText>
         <UserBadges username={partnerUsername} size={13} />
         <button
           className={styles.closeBtn}

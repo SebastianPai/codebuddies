@@ -1,0 +1,461 @@
+/*
+ * @codebuddies/visual-effects
+ *
+ * Framework-agnostic CSS layer for the premium visual effects system.
+ * Consumed identically by apps/web (Tailwind v4) and apps/game (plain CSS
+ * Modules) via `@import "@codebuddies/visual-effects/effects.css"`.
+ *
+ * Performance contract: every animated effect below only ever animates
+ * `background-position`. Nothing here animates `filter`, `box-shadow`, or
+ * triggers layout — safe to render on hundreds of simultaneous names/cards.
+ * Glow is a separate, static (non-animated), opt-in class.
+ *
+ * Reduced motion is handled once, globally, by class-name convention — no
+ * per-effect media query duplication.
+ *
+ * Border technique: cb-fx-border-* draws its gradient ring on a `::before`
+ * pseudo-element using a mask-composite cutout, NOT the element's own
+ * `background`/`border` shorthand. This lets it be applied directly onto
+ * an already-styled host (e.g. ItemCard's `.card`, which has its own
+ * background/border) without the two declarations clobbering each other —
+ * the ring composites on top instead of replacing the host's surface.
+ */
+
+@media (prefers-reduced-motion: reduce) {
+  [class*="cb-fx-text-"],
+  [class*="cb-fx-border-"]::before {
+    animation: none !important;
+    background-position: 0% 50% !important;
+  }
+}
+
+@keyframes cb-fx-shimmer-sweep {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: -250% 50%;
+  }
+}
+
+@keyframes cb-fx-holo-sweep {
+  0%,
+  100% {
+    background-position: 0% 0%;
+  }
+  50% {
+    background-position: 100% 100%;
+  }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Shared bases — every cb-fx-text-x / cb-fx-border-x class composes these */
+/* ---------------------------------------------------------------------- */
+[class*="cb-fx-text-"] {
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+[class*="cb-fx-border-"] {
+  position: relative;
+  isolation: isolate;
+}
+[class*="cb-fx-border-"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 2px;
+  border-radius: inherit;
+  background-repeat: no-repeat;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Common / Uncommon — free tiers, no animation, no border */
+/* ---------------------------------------------------------------------- */
+.cb-fx-text-common {
+  background-image: none;
+  -webkit-background-clip: initial;
+  background-clip: initial;
+  color: #94a3b8;
+}
+
+.cb-fx-text-uncommon {
+  background-image: linear-gradient(100deg, #7cc576, #4f9c5a);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Rarity tiers */
+/* ---------------------------------------------------------------------- */
+.cb-fx-text-rare {
+  background-image: linear-gradient(100deg, #5b9bd5, #3a6ea5);
+}
+.cb-fx-border-rare::before {
+  background-image: linear-gradient(100deg, #5b9bd5, #3a6ea5);
+}
+.cb-fx-glow-rare {
+  box-shadow: 0 0 10px 0 color-mix(in srgb, #4a86c2 40%, transparent);
+}
+
+.cb-fx-text-epic {
+  background-image: linear-gradient(100deg, #a78bfa, #7c5cff, #a78bfa);
+  background-size: 250% 100%;
+  animation: cb-fx-shimmer-sweep 3.4s linear infinite;
+}
+.cb-fx-border-epic::before {
+  background-image: linear-gradient(120deg, #a78bfa, #7c5cff, #a78bfa);
+  background-size: 250% 250%;
+  animation: cb-fx-shimmer-sweep 3.4s linear infinite;
+}
+.cb-fx-glow-epic {
+  box-shadow: 0 0 12px 1px color-mix(in srgb, #8b6df0 40%, transparent);
+}
+
+.cb-fx-text-legendary {
+  background-image: linear-gradient(100deg, #ff8a00, #ffd23f, #ff8a00);
+  background-size: 250% 100%;
+  animation: cb-fx-shimmer-sweep 3s linear infinite;
+}
+.cb-fx-border-legendary::before {
+  background-image: linear-gradient(120deg, #ff8a00, #ffd23f, #ff8a00, #ffd23f);
+  background-size: 300% 300%;
+  animation: cb-fx-shimmer-sweep 3s linear infinite;
+}
+.cb-fx-glow-legendary {
+  box-shadow: 0 0 14px 1px color-mix(in srgb, #ffb02e 45%, transparent);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Leaderboard podium ranks */
+/* ---------------------------------------------------------------------- */
+.cb-fx-text-goldRank {
+  background-image: linear-gradient(
+    100deg,
+    #92702c 0%,
+    #f9e28c 20%,
+    #fff8dc 35%,
+    #d4af37 50%,
+    #fff8dc 65%,
+    #f9e28c 80%,
+    #92702c 100%
+  );
+  background-size: 250% 100%;
+  animation: cb-fx-shimmer-sweep 3s linear infinite;
+}
+.cb-fx-border-goldRank::before {
+  background-image: linear-gradient(120deg, #92702c, #f9e28c, #fff8dc, #d4af37, #fff8dc, #f9e28c, #92702c);
+  background-size: 250% 250%;
+  animation: cb-fx-shimmer-sweep 3s linear infinite;
+}
+.cb-fx-glow-goldRank {
+  box-shadow: 0 0 12px 1px color-mix(in srgb, #d4af37 45%, transparent);
+}
+
+.cb-fx-text-silverRank {
+  background-image: linear-gradient(
+    100deg,
+    #75808c 0%,
+    #e4e9ee 20%,
+    #ffffff 35%,
+    #c2cad3 50%,
+    #ffffff 65%,
+    #e4e9ee 80%,
+    #75808c 100%
+  );
+  background-size: 250% 100%;
+  animation: cb-fx-shimmer-sweep 3s linear infinite;
+}
+.cb-fx-border-silverRank::before {
+  background-image: linear-gradient(120deg, #75808c, #e4e9ee, #ffffff, #c2cad3, #ffffff, #e4e9ee, #75808c);
+  background-size: 250% 250%;
+  animation: cb-fx-shimmer-sweep 3s linear infinite;
+}
+.cb-fx-glow-silverRank {
+  box-shadow: 0 0 12px 1px color-mix(in srgb, #c2cad3 45%, transparent);
+}
+
+.cb-fx-text-bronzeRank {
+  background-image: linear-gradient(
+    100deg,
+    #7a4a28 0%,
+    #d59a6a 20%,
+    #f0c797 35%,
+    #b06f3f 50%,
+    #f0c797 65%,
+    #d59a6a 80%,
+    #7a4a28 100%
+  );
+  background-size: 250% 100%;
+  animation: cb-fx-shimmer-sweep 3s linear infinite;
+}
+.cb-fx-border-bronzeRank::before {
+  background-image: linear-gradient(120deg, #7a4a28, #d59a6a, #f0c797, #b06f3f, #f0c797, #d59a6a, #7a4a28);
+  background-size: 250% 250%;
+  animation: cb-fx-shimmer-sweep 3s linear infinite;
+}
+.cb-fx-glow-bronzeRank {
+  box-shadow: 0 0 12px 1px color-mix(in srgb, #b06f3f 45%, transparent);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Extended / seasonal set */
+/* ---------------------------------------------------------------------- */
+.cb-fx-text-rainbow {
+  background-image: linear-gradient(90deg, #ff004c, #ff9900, #fbef19, #22e07a, #21b2ff, #a259ff, #ff004c);
+  background-size: 300% 100%;
+  animation: cb-fx-shimmer-sweep 4s linear infinite;
+}
+.cb-fx-border-rainbow::before {
+  background-image: linear-gradient(90deg, #ff004c, #ff9900, #fbef19, #22e07a, #21b2ff, #a259ff, #ff004c);
+  background-size: 300% 300%;
+  animation: cb-fx-shimmer-sweep 4s linear infinite;
+}
+.cb-fx-glow-rainbow {
+  box-shadow: 0 0 14px 1px color-mix(in srgb, #a259ff 40%, transparent);
+}
+
+.cb-fx-text-diamond {
+  background-image: linear-gradient(100deg, #e0f7ff, #ffffff, #b8e6ff, #ffffff, #e0f7ff);
+  background-size: 250% 100%;
+  animation: cb-fx-shimmer-sweep 3.2s linear infinite;
+}
+.cb-fx-border-diamond::before {
+  background-image: linear-gradient(100deg, #e0f7ff, #ffffff, #b8e6ff, #ffffff, #e0f7ff);
+  background-size: 250% 250%;
+  animation: cb-fx-shimmer-sweep 3.2s linear infinite;
+}
+.cb-fx-glow-diamond {
+  box-shadow: 0 0 12px 1px color-mix(in srgb, #bfeaff 45%, transparent);
+}
+
+.cb-fx-text-mythic {
+  background-image: linear-gradient(100deg, #ff5cad, #7b2ff7, #ff5cad);
+  background-size: 250% 100%;
+  animation: cb-fx-shimmer-sweep 3.4s linear infinite;
+}
+.cb-fx-border-mythic::before {
+  background-image: linear-gradient(120deg, #ff5cad, #7b2ff7, #ff5cad);
+  background-size: 250% 250%;
+  animation: cb-fx-shimmer-sweep 3.4s linear infinite;
+}
+.cb-fx-glow-mythic {
+  box-shadow: 0 0 14px 1px color-mix(in srgb, #c04ce0 40%, transparent);
+}
+
+.cb-fx-text-divine {
+  background-image: linear-gradient(115deg, #fff8e1, #ffd700, #fff8e1);
+  background-size: 300% 300%;
+  animation: cb-fx-holo-sweep 6s ease-in-out infinite;
+}
+.cb-fx-border-divine::before {
+  background-image: linear-gradient(115deg, #fff8e1, #ffd700, #fff8e1);
+  background-size: 300% 300%;
+  animation: cb-fx-holo-sweep 6s ease-in-out infinite;
+}
+.cb-fx-glow-divine {
+  box-shadow: 0 0 14px 1px color-mix(in srgb, #f2d675 45%, transparent);
+}
+
+.cb-fx-text-galaxy {
+  background-image: linear-gradient(115deg, #241a45, #6a3fd6, #a37bff, #241a45);
+  background-size: 300% 300%;
+  animation: cb-fx-holo-sweep 6.5s ease-in-out infinite;
+}
+.cb-fx-border-galaxy::before {
+  background-image: linear-gradient(115deg, #241a45, #6a3fd6, #a37bff, #241a45);
+  background-size: 300% 300%;
+  animation: cb-fx-holo-sweep 6.5s ease-in-out infinite;
+}
+.cb-fx-glow-galaxy {
+  box-shadow: 0 0 14px 1px color-mix(in srgb, #6a3fd6 40%, transparent);
+}
+
+.cb-fx-text-aurora {
+  background-image: linear-gradient(115deg, #4dd8b0, #7c9eff, #c98bff, #4dd8b0);
+  background-size: 300% 300%;
+  animation: cb-fx-holo-sweep 6s ease-in-out infinite;
+}
+.cb-fx-border-aurora::before {
+  background-image: linear-gradient(115deg, #4dd8b0, #7c9eff, #c98bff, #4dd8b0);
+  background-size: 300% 300%;
+  animation: cb-fx-holo-sweep 6s ease-in-out infinite;
+}
+.cb-fx-glow-aurora {
+  box-shadow: 0 0 12px 1px color-mix(in srgb, #7c9eff 40%, transparent);
+}
+
+.cb-fx-text-ice {
+  background-image: linear-gradient(100deg, #cdeeff, #eaffff, #a9d8ff);
+  background-size: 250% 100%;
+  animation: cb-fx-shimmer-sweep 3.6s linear infinite;
+}
+.cb-fx-border-ice::before {
+  background-image: linear-gradient(120deg, #cdeeff, #eaffff, #a9d8ff);
+  background-size: 250% 250%;
+  animation: cb-fx-shimmer-sweep 3.6s linear infinite;
+}
+.cb-fx-glow-ice {
+  box-shadow: 0 0 12px 1px color-mix(in srgb, #bfe7ff 45%, transparent);
+}
+
+.cb-fx-text-fire {
+  background-image: linear-gradient(100deg, #e2542f, #f2a33d, #e2542f);
+  background-size: 250% 100%;
+  animation: cb-fx-shimmer-sweep 3.2s linear infinite;
+}
+.cb-fx-border-fire::before {
+  background-image: linear-gradient(120deg, #e2542f, #f2a33d, #e2542f);
+  background-size: 250% 250%;
+  animation: cb-fx-shimmer-sweep 3.2s linear infinite;
+}
+.cb-fx-glow-fire {
+  box-shadow: 0 0 14px 1px color-mix(in srgb, #e2782f 40%, transparent);
+}
+
+.cb-fx-text-emerald {
+  background-image: linear-gradient(100deg, #0f9d63, #6be3a5, #0f9d63);
+  background-size: 250% 100%;
+  animation: cb-fx-shimmer-sweep 3.4s linear infinite;
+}
+.cb-fx-border-emerald::before {
+  background-image: linear-gradient(120deg, #0f9d63, #6be3a5, #0f9d63);
+  background-size: 250% 250%;
+  animation: cb-fx-shimmer-sweep 3.4s linear infinite;
+}
+.cb-fx-glow-emerald {
+  box-shadow: 0 0 12px 1px color-mix(in srgb, #2bb87e 40%, transparent);
+}
+
+.cb-fx-text-ruby {
+  background-image: linear-gradient(100deg, #a3213e, #ff6f91, #a3213e);
+  background-size: 250% 100%;
+  animation: cb-fx-shimmer-sweep 3.4s linear infinite;
+}
+.cb-fx-border-ruby::before {
+  background-image: linear-gradient(120deg, #a3213e, #ff6f91, #a3213e);
+  background-size: 250% 250%;
+  animation: cb-fx-shimmer-sweep 3.4s linear infinite;
+}
+.cb-fx-glow-ruby {
+  box-shadow: 0 0 12px 1px color-mix(in srgb, #c93b5c 40%, transparent);
+}
+
+.cb-fx-text-sapphire {
+  background-image: linear-gradient(100deg, #1e3a8a, #60a5fa, #1e3a8a);
+  background-size: 250% 100%;
+  animation: cb-fx-shimmer-sweep 3.4s linear infinite;
+}
+.cb-fx-border-sapphire::before {
+  background-image: linear-gradient(120deg, #1e3a8a, #60a5fa, #1e3a8a);
+  background-size: 250% 250%;
+  animation: cb-fx-shimmer-sweep 3.4s linear infinite;
+}
+.cb-fx-glow-sapphire {
+  box-shadow: 0 0 12px 1px color-mix(in srgb, #3f6fc4 40%, transparent);
+}
+
+.cb-fx-text-holographic {
+  background-image: linear-gradient(115deg, #ff9ecb 0%, #a0e7ff 20%, #d1ff9e 40%, #ffe89e 60%, #d1a0ff 80%, #ff9ecb 100%);
+  background-size: 300% 300%;
+  animation: cb-fx-holo-sweep 6s ease-in-out infinite;
+}
+.cb-fx-border-holographic::before {
+  background-image: linear-gradient(115deg, #ff9ecb, #a0e7ff, #d1ff9e, #ffe89e, #d1a0ff, #ff9ecb);
+  background-size: 300% 300%;
+  animation: cb-fx-holo-sweep 6s ease-in-out infinite;
+}
+.cb-fx-glow-holographic {
+  box-shadow: 0 0 14px 1px color-mix(in srgb, #c9a0ff 40%, transparent);
+}
+
+.cb-fx-text-obsidian {
+  background-image: linear-gradient(100deg, #0d0d12, #3a2a52, #0d0d12);
+  background-size: 250% 100%;
+  animation: cb-fx-shimmer-sweep 4s linear infinite;
+}
+.cb-fx-border-obsidian::before {
+  background-image: linear-gradient(120deg, #0d0d12, #3a2a52, #0d0d12);
+  background-size: 250% 250%;
+  animation: cb-fx-shimmer-sweep 4s linear infinite;
+}
+.cb-fx-glow-obsidian {
+  box-shadow: 0 0 12px 1px color-mix(in srgb, #4a3670 45%, transparent);
+}
+
+.cb-fx-text-cyber {
+  background-image: linear-gradient(100deg, #4fd8c4, #b06bff, #4fd8c4);
+  background-size: 250% 100%;
+  animation: cb-fx-shimmer-sweep 3s linear infinite;
+}
+.cb-fx-border-cyber::before {
+  background-image: linear-gradient(120deg, #4fd8c4, #b06bff, #4fd8c4);
+  background-size: 250% 250%;
+  animation: cb-fx-shimmer-sweep 3s linear infinite;
+}
+.cb-fx-glow-cyber {
+  box-shadow: 0 0 12px 1px color-mix(in srgb, #7fb8e0 40%, transparent);
+}
+
+.cb-fx-text-matrix {
+  background-image: linear-gradient(100deg, #0d2b1a, #3ddc84, #0d2b1a);
+  background-size: 250% 100%;
+  animation: cb-fx-shimmer-sweep 3.2s linear infinite;
+}
+.cb-fx-border-matrix::before {
+  background-image: linear-gradient(120deg, #0d2b1a, #3ddc84, #0d2b1a);
+  background-size: 250% 250%;
+  animation: cb-fx-shimmer-sweep 3.2s linear infinite;
+}
+.cb-fx-glow-matrix {
+  box-shadow: 0 0 12px 1px color-mix(in srgb, #2fb86e 40%, transparent);
+}
+
+.cb-fx-text-electric {
+  background-image: linear-gradient(100deg, #7df9ff, #2596ff, #7df9ff);
+  background-size: 250% 100%;
+  animation: cb-fx-shimmer-sweep 2.8s linear infinite;
+}
+.cb-fx-border-electric::before {
+  background-image: linear-gradient(120deg, #7df9ff, #2596ff, #7df9ff);
+  background-size: 250% 250%;
+  animation: cb-fx-shimmer-sweep 2.8s linear infinite;
+}
+.cb-fx-glow-electric {
+  box-shadow: 0 0 12px 1px color-mix(in srgb, #4fb8ff 40%, transparent);
+}
+
+.cb-fx-text-crystal {
+  background-image: linear-gradient(115deg, #f5e9ff, #d7c3ff, #f5e9ff);
+  background-size: 300% 300%;
+  animation: cb-fx-holo-sweep 5.5s ease-in-out infinite;
+}
+.cb-fx-border-crystal::before {
+  background-image: linear-gradient(115deg, #f5e9ff, #d7c3ff, #f5e9ff);
+  background-size: 300% 300%;
+  animation: cb-fx-holo-sweep 5.5s ease-in-out infinite;
+}
+.cb-fx-glow-crystal {
+  box-shadow: 0 0 12px 1px color-mix(in srgb, #d7c3ff 45%, transparent);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Currency identity — static (non-gradient) colors for coin/gem icons.   */
+/* background-clip:text doesn't render well on small SVG icon strokes, so */
+/* currency icons get a distinct solid tint instead of a shimmer.         */
+/* ---------------------------------------------------------------------- */
+.cb-fx-currency-coins {
+  color: #e0a729;
+}
+.cb-fx-currency-gems {
+  color: #7c5cff;
+}

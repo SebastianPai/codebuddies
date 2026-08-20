@@ -264,8 +264,8 @@ export class FriendshipsService {
 
   private friendshipUsers() {
     return {
-      requester: { select: { id: true, username: true, avatarUrl: true } },
-      addressee: { select: { id: true, username: true, avatarUrl: true } },
+      requester: { select: { id: true, username: true, avatarUrl: true, nameEffectId: true } },
+      addressee: { select: { id: true, username: true, avatarUrl: true, nameEffectId: true } },
     };
   }
 
@@ -288,6 +288,7 @@ export class FriendshipsService {
         id: true,
         username: true,
         avatarUrl: true,
+        nameEffectId: true,
         level: true,
         experience: true,
       },
@@ -489,6 +490,7 @@ export class FriendshipsService {
         id: true,
         username: true,
         avatarUrl: true,
+        nameEffectId: true,
         level: true,
         experience: true,
       },

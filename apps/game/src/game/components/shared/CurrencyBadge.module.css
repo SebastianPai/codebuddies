@@ -18,6 +18,17 @@
   color: var(--cb-accent);
 }
 
+/* Distinct static identity per currency instead of one accent color for
+   everything (see @codebuddies/visual-effects/effects.css cb-fx-currency-*;
+   hardcoded here too since CSS Modules can't import the TS token values). */
+.coins {
+  color: #e0a729;
+}
+
+.gems {
+  color: #7c5cff;
+}
+
 .sm {
   font-size: 11px;
 }

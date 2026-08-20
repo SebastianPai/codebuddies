@@ -1,5 +1,6 @@
-import { Coins, Flame, Trophy, Zap } from "lucide-react";
+import { Flame, Trophy, Zap } from "lucide-react";
 import { useTranslation } from "@/i18n/useTranslation";
+import { CurrencyIcon } from "@/shared/ui/currency-icon";
 import type { DashboardUser } from "../types/dashboard";
 
 interface DashboardHeaderProps {
@@ -15,7 +16,7 @@ export function DashboardHeader({ user, xp, coins, streak, rank }: DashboardHead
   const stats = [
     { icon: <Zap size={18} />, label: "XP", value: xp.toLocaleString() },
     { icon: <Flame size={18} />, label: t("dashboard.streak"), value: String(streak) },
-    { icon: <Coins size={18} />, label: "Coins", value: coins.toLocaleString() },
+    { icon: <CurrencyIcon currency="coins" size={18} />, label: "Coins", value: coins.toLocaleString() },
     { icon: <Trophy size={18} />, label: t("dashboard.rank"), value: rank ? `#${rank}` : "-" },
   ];
   return (

@@ -273,6 +273,7 @@ export default function FriendsPanel({ onClose }: Props) {
           key={entry.id}
           username={entry.friend.username}
           avatarUrl={entry.friend.avatarUrl}
+          nameEffectId={entry.friend.nameEffectId}
           online={entry.online}
           subtitle={entry.friend.level ? t("friends.levelSubtitle", { level: entry.friend.level }) : undefined}
           onClick={() => openProfile(entry.friend.username)}
@@ -280,7 +281,8 @@ export default function FriendsPanel({ onClose }: Props) {
             {
               label: t("quickmenu.message"),
               tone: "primary",
-              onClick: () => openChat(entry.friend.id, entry.friend.username, entry.friend.avatarUrl),
+              onClick: () =>
+                openChat(entry.friend.id, entry.friend.username, entry.friend.avatarUrl, entry.friend.nameEffectId),
             },
             {
               label: t("common.delete"),
@@ -307,6 +309,7 @@ export default function FriendsPanel({ onClose }: Props) {
               key={request.id}
               username={request.requester.username}
               avatarUrl={request.requester.avatarUrl}
+              nameEffectId={request.requester.nameEffectId}
               onClick={() => openProfile(request.requester.username)}
               actions={[
                 { label: t("common.accept"), tone: "primary", onClick: () => void handleAccept(request.id) },
@@ -322,6 +325,7 @@ export default function FriendsPanel({ onClose }: Props) {
               key={request.id}
               username={request.addressee.username}
               avatarUrl={request.addressee.avatarUrl}
+              nameEffectId={request.addressee.nameEffectId}
               subtitle={t("friends.pendingLabel")}
               actions={[{ label: t("common.cancel"), tone: "ghost", onClick: () => void handleReject(request.id) }]}
             />
@@ -347,6 +351,7 @@ export default function FriendsPanel({ onClose }: Props) {
           key={result.id}
           username={result.username}
           avatarUrl={result.avatarUrl}
+          nameEffectId={result.nameEffectId}
           online={result.online}
           subtitle={result.mutualCount > 0 ? t("friends.mutualFriendsCount", { count: result.mutualCount }) : undefined}
           onClick={() => openProfile(result.username)}
@@ -375,6 +380,7 @@ export default function FriendsPanel({ onClose }: Props) {
         key={result.id}
         username={result.username}
         avatarUrl={result.avatarUrl}
+        nameEffectId={result.nameEffectId}
         online={result.online}
         subtitle={result.mutualCount > 0 ? t("friends.mutualFriendsCount", { count: result.mutualCount }) : undefined}
         onClick={() => openProfile(result.username)}

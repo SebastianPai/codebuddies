@@ -1,9 +1,10 @@
 "use client";
 
-import { Coins, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import type { CoinPack } from "@/config/paddle-catalog";
 import type { PriceByPriceId } from "../lib/usePricePreview";
 import type { Translate } from "./translate.type";
+import { CurrencyIcon } from "@/shared/ui/currency-icon";
 
 interface CoinPackCardProps {
   t: Translate;
@@ -31,7 +32,7 @@ export function CoinPackCard({ t, pack, pricesByPriceId, priceStatus, onBuy, che
         </span>
       )}
 
-      <Coins className="mx-auto text-amber-400" size={28} />
+      <CurrencyIcon currency="coins" className="mx-auto" size={28} />
       {/* Locale fijo ("en-US"): toLocaleString() sin locale explicito usa el
          default del runtime, que difiere entre el servidor (Node) y el
          navegador del visitante -- React tira un mismatch de hidratacion

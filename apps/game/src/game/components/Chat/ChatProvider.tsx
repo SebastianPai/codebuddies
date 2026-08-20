@@ -22,10 +22,16 @@ type OpenChat = {
   partnerId: string;
   partnerUsername: string;
   partnerAvatarUrl?: string | null;
+  partnerNameEffectId?: string | null;
 };
 
 type ChatContextType = {
-  openChat: (partnerId: string, partnerUsername: string, partnerAvatarUrl?: string | null) => void;
+  openChat: (
+    partnerId: string,
+    partnerUsername: string,
+    partnerAvatarUrl?: string | null,
+    partnerNameEffectId?: string | null,
+  ) => void;
   openProfile: (username: string) => void;
 };
 
@@ -45,7 +51,12 @@ export default function ChatProvider({ children }: { children: React.ReactNode }
   const [viewingProfile, setViewingProfile] = useState<string | null>(null);
 
   const openChat = useCallback(
-    async (partnerId: string, partnerUsername: string, partnerAvatarUrl?: string | null) => {
+    async (
+      partnerId: string,
+      partnerUsername: string,
+      partnerAvatarUrl?: string | null,
+      partnerNameEffectId?: string | null,
+    ) => {
       setOpenChats((current) => {
         if (current.some((chat) => chat.partnerId === partnerId)) return current;
         return current;
@@ -71,7 +82,7 @@ export default function ChatProvider({ children }: { children: React.ReactNode }
 
           const next = [
             ...current,
-            { conversationId: result.id, partnerId, partnerUsername, partnerAvatarUrl },
+            { conversationId: result.id, partnerId, partnerUsername, partnerAvatarUrl, partnerNameEffectId },
           ];
 
           return next.length > MAX_OPEN_CHATS ? next.slice(next.length - MAX_OPEN_CHATS) : next;
@@ -108,6 +119,7 @@ export default function ChatProvider({ children }: { children: React.ReactNode }
             partnerId={chat.partnerId}
             partnerUsername={chat.partnerUsername}
             partnerAvatarUrl={chat.partnerAvatarUrl}
+            partnerNameEffectId={chat.partnerNameEffectId}
             onClose={() => closeChat(chat.conversationId)}
             onViewProfile={() => openProfile(chat.partnerUsername)}
           />
@@ -118,9 +130,9 @@ export default function ChatProvider({ children }: { children: React.ReactNode }
         <ProfileModal
           username={viewingProfile}
           onClose={() => setViewingProfile(null)}
-          onOpenChat={(partnerId, partnerUsername, partnerAvatarUrl) => {
+          onOpenChat={(partnerId, partnerUsername, partnerAvatarUrl, partnerNameEffectId) => {
             setViewingProfile(null);
-            void openChat(partnerId, partnerUsername, partnerAvatarUrl);
+            void openChat(partnerId, partnerUsername, partnerAvatarUrl, partnerNameEffectId);
           }}
         />
       )}
