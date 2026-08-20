@@ -10,6 +10,7 @@ import { CertificateOrdersRepository } from '../repositories/certificate-orders.
 import { PAYMENT_PROVIDER } from '../types/payment-provider.types';
 import type { PaymentProvider } from '../types/payment-provider.types';
 import { PurchaseCertificateDto } from '../dto/purchase-certificate.dto';
+import { getActivePaymentProviderType } from '../utils/active-payment-provider.util';
 
 // Precio plano para comprar el certificado de UN curso individual — el
 // contenido de los cursos es gratis, esto es lo único que se cobra fuera de
@@ -63,6 +64,7 @@ export class PaymentsService {
         ),
         currency: Currency.USD,
         status: CertificateOrderStatus.PENDING,
+        paymentProvider: getActivePaymentProviderType(),
       }));
 
     const checkout = await this.createCheckoutForOrder(order.id);

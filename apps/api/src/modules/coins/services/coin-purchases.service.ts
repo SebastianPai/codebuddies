@@ -11,6 +11,7 @@ import { PAYMENT_PROVIDER } from '../../payments/types/payment-provider.types';
 import type { PaymentProvider } from '../../payments/types/payment-provider.types';
 import { PurchaseCoinsDto } from '../dto/purchase-coins.dto';
 import { findCoinPackage } from '../constants/coin-packages';
+import { getActivePaymentProviderType } from '../../payments/utils/active-payment-provider.util';
 
 @Injectable()
 export class CoinPurchasesService {
@@ -52,6 +53,7 @@ export class CoinPurchasesService {
       amount: coinPackage.priceUsd,
       currency: Currency.USD,
       status: CoinPurchaseStatus.PENDING,
+      provider: getActivePaymentProviderType(),
     });
 
     const checkout = await this.paymentProvider.createCheckout({
