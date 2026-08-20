@@ -9,6 +9,8 @@ export enum AdminUserAction {
   REMOVE_XP = 'REMOVE_XP',
   ADD_COINS = 'ADD_COINS',
   REMOVE_COINS = 'REMOVE_COINS',
+  SUSPEND_USER = 'SUSPEND_USER',
+  UNSUSPEND_USER = 'UNSUSPEND_USER',
 }
 
 export class AdminUserActionDto {

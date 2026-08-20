@@ -143,6 +143,14 @@ export class BackgroundsService {
         data: { coins: { decrement: background.coinsPrice } },
       });
 
+      await tx.coinTransaction.create({
+        data: {
+          userId,
+          amount: -background.coinsPrice,
+          reason: `background:${backgroundId}`,
+        },
+      });
+
       return tx.userRoomBackground.upsert({
         where: { userId_backgroundId: { userId, backgroundId } },
         update: {},

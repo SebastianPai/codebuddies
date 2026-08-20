@@ -20,6 +20,24 @@ import {
 import { NotificationsService } from '../../notifications/notifications.service';
 import { AdminAuditService } from './admin-audit.service';
 
+// Todo tx.user.update() de este servicio debe usar esto -- sin él, Prisma
+// devuelve el registro completo (incluyendo el hash bcrypt de password) y
+// eso terminaba viajando tal cual como respuesta HTTP de PATCH
+// /admin/users/:id, aunque ningún frontend lo usa (ambas pantallas que
+// llaman esta acción solo hacen un refetch después, nunca leen el body).
+const SAFE_USER_SELECT = {
+  id: true,
+  username: true,
+  email: true,
+  role: true,
+  experience: true,
+  coins: true,
+  level: true,
+  suspended: true,
+  suspendedAt: true,
+  suspendedReason: true,
+} as const;
+
 @Injectable()
 export class AdminUsersService {
   constructor(
@@ -35,6 +53,7 @@ export class AdminUsersService {
     filters: {
       role?: Role;
       premiumOnly?: boolean;
+      suspendedOnly?: boolean;
       sortBy?: 'createdAt' | 'coins' | 'experience' | 'lastLoginAt';
       sortOrder?: 'asc' | 'desc';
     } = {},
@@ -49,6 +68,7 @@ export class AdminUsersService {
           }
         : {}),
       ...(filters.role ? { role: filters.role } : {}),
+      ...(filters.suspendedOnly ? { suspended: true } : {}),
       ...(filters.premiumOnly
         ? {
             premiumSubscriptions: {
@@ -78,6 +98,7 @@ export class AdminUsersService {
           streak: true,
           createdAt: true,
           lastLoginAt: true,
+          suspended: true,
           premiumSubscriptions: {
             where: {
               status: PremiumSubscriptionStatus.ACTIVE,
@@ -124,6 +145,10 @@ export class AdminUsersService {
         country: true,
         createdAt: true,
         lastLoginAt: true,
+        suspended: true,
+        suspendedAt: true,
+        suspendedReason: true,
+        suspendedByAdminId: true,
       },
     });
     if (!user) throw new BadRequestException('User not found');
@@ -195,6 +220,7 @@ export class AdminUsersService {
           const user = await tx.user.update({
             where: { id: userId },
             data: { role: Role.ADMIN },
+            select: SAFE_USER_SELECT,
           });
           await this.adminAudit.log(tx, {
             adminId,
@@ -210,6 +236,7 @@ export class AdminUsersService {
           const user = await tx.user.update({
             where: { id: userId },
             data: { role: Role.STUDENT },
+            select: SAFE_USER_SELECT,
           });
           await this.adminAudit.log(tx, {
             adminId,
@@ -242,9 +269,68 @@ export class AdminUsersService {
       case AdminUserAction.ADD_COINS:
       case AdminUserAction.REMOVE_COINS:
         return this.adjustCoins(adminId, userId, dto);
+      case AdminUserAction.SUSPEND_USER:
+        return this.suspendUser(adminId, userId, dto.reason);
+      case AdminUserAction.UNSUSPEND_USER:
+        return this.unsuspendUser(adminId, userId);
       default:
         throw new BadRequestException('Unsupported action');
     }
+  }
+
+  // Bloquea LOGIN nuevo de inmediato (ver IdentityService#login). Un token
+  // ya emitido antes de la suspensión sigue siendo válido hasta que expira
+  // -- el resto de la app no consulta la base en cada request (JwtStrategy
+  // solo valida la firma), así que revocar sesiones activas al instante
+  // requeriría una lista de tokens invalidados que hoy no existe en ningún
+  // lado de este codebase. Documentado, no escondido.
+  private async suspendUser(adminId: string, userId: string, reason?: string) {
+    if (!reason) throw new BadRequestException('Reason is required to suspend a user');
+
+    return this.prisma.$transaction(async (tx) => {
+      const user = await tx.user.update({
+        where: { id: userId },
+        data: {
+          suspended: true,
+          suspendedAt: new Date(),
+          suspendedReason: reason,
+          suspendedByAdminId: adminId,
+        },
+        select: SAFE_USER_SELECT,
+      });
+      await this.adminAudit.log(tx, {
+        adminId,
+        action: AdminUserAction.SUSPEND_USER,
+        targetUserId: userId,
+        targetType: 'User',
+        targetId: userId,
+        metadata: { reason },
+      });
+      return user;
+    });
+  }
+
+  private async unsuspendUser(adminId: string, userId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const user = await tx.user.update({
+        where: { id: userId },
+        data: {
+          suspended: false,
+          suspendedAt: null,
+          suspendedReason: null,
+          suspendedByAdminId: null,
+        },
+        select: SAFE_USER_SELECT,
+      });
+      await this.adminAudit.log(tx, {
+        adminId,
+        action: AdminUserAction.UNSUSPEND_USER,
+        targetUserId: userId,
+        targetType: 'User',
+        targetId: userId,
+      });
+      return user;
+    });
   }
 
   async listCertificateAccesses(page = 1, limit = 20) {
@@ -372,6 +458,7 @@ export class AdminUsersService {
               ? { increment: amount }
               : { decrement: Math.abs(amount) },
         },
+        select: SAFE_USER_SELECT,
       });
       await this.adminAudit.log(tx, {
         adminId,
@@ -406,6 +493,7 @@ export class AdminUsersService {
               ? { increment: amount }
               : { decrement: Math.abs(amount) },
         },
+        select: SAFE_USER_SELECT,
       });
       await this.adminAudit.log(tx, {
         adminId,

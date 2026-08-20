@@ -646,6 +646,14 @@ export class ItemsService {
         throw new BadRequestException('No tienes monedas suficientes');
       }
 
+      await tx.coinTransaction.create({
+        data: {
+          userId,
+          amount: -item.coinsPrice!,
+          reason: `item:${itemId}`,
+        },
+      });
+
       await tx.userItem.upsert({
         where: {
           userId_itemId: { userId, itemId },

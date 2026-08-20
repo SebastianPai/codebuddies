@@ -106,6 +106,8 @@ export class IdentityService {
       select: {
         ...this.authUserSelect(),
         password: true,
+        suspended: true,
+        suspendedReason: true,
       },
     });
 
@@ -113,6 +115,18 @@ export class IdentityService {
 
     const valid = await bcrypt.compare(dto.password, user.password);
     if (!valid) throw new UnauthorizedException('Credenciales invalidas');
+
+    // Chequeo después de validar la contraseña (no antes) para no revelarle
+    // a alguien sin la contraseña correcta si la cuenta está suspendida.
+    // Esto bloquea logins NUEVOS -- un token ya emitido sigue siendo válido
+    // hasta que expira, ver el comentario en el schema sobre `suspended`.
+    if (user.suspended) {
+      throw new UnauthorizedException(
+        user.suspendedReason
+          ? `Cuenta suspendida: ${user.suspendedReason}`
+          : 'Cuenta suspendida',
+      );
+    }
 
     const loginUser = await this.applyDailyLoginStreak(user.id);
 

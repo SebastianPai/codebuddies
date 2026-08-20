@@ -48,6 +48,7 @@ export class AdminController {
     return this.usersService.listUsers(query.q ?? '', query.page, query.limit, {
       role: query.role,
       premiumOnly: query.premiumOnly,
+      suspendedOnly: query.suspendedOnly,
       sortBy: query.sortBy,
       sortOrder: query.sortOrder,
     });

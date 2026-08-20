@@ -17,6 +17,11 @@ export class ListUsersQueryDto extends PaginationQueryDto {
   premiumOnly?: boolean;
 
   @IsOptional()
+  @Transform(({ value }) => value === 'true' || value === true)
+  @IsBoolean()
+  suspendedOnly?: boolean;
+
+  @IsOptional()
   @IsIn(['createdAt', 'coins', 'experience', 'lastLoginAt'])
   sortBy?: 'createdAt' | 'coins' | 'experience' | 'lastLoginAt';
 

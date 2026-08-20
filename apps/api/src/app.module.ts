@@ -31,6 +31,7 @@ import { PaddleWebhookModule } from './modules/paddle/paddle-webhook.module';
 import { CoinsModule } from './modules/coins/coins.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { ReconciliationModule } from './modules/reconciliation/reconciliation.module';
+import { FraudDetectionModule } from './modules/fraud-detection/fraud-detection.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { RankingsModule } from './modules/rankings/rankings.module';
 import { ProfilesModule } from './modules/profiles/profiles.module';
@@ -96,6 +97,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     CoinsModule,
     WebhooksModule,
     ReconciliationModule,
+    FraudDetectionModule,
     AdminModule,
     RankingsModule,
     RealtimeModule,
