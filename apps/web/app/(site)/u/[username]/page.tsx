@@ -281,7 +281,7 @@ export default function PublicProfilePage({
         <Stat
           icon={<CurrencyIcon currency="coins" size={16} />}
           label={t("site.coinsStatLabel")}
-          value={profile.coins.toLocaleString()}
+          value={<RarityText effect="goldRank">{profile.coins.toLocaleString()}</RarityText>}
         />
         <Stat
           icon={<Flame />}
@@ -321,7 +321,7 @@ function Stat({
 }: {
   icon?: React.ReactNode;
   label: string;
-  value: string | number;
+  value: React.ReactNode;
 }) {
   return (
     <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 hover:border-[rgb(var(--primary))/40] transition-all">

@@ -659,8 +659,9 @@ function StatsPill({
         <Zap size={13} /> {(user.experience ?? 0).toLocaleString()}
       </span>
       <span className="w-px h-3 bg-[rgb(var(--border))]" />
-      <span className="flex items-center gap-1 text-amber-400">
-        <CurrencyIcon currency="coins" size={13} /> {(user.coins ?? 0).toLocaleString()}
+      <span className="flex items-center gap-1">
+        <CurrencyIcon currency="coins" size={13} />
+        <RarityText effect="goldRank">{(user.coins ?? 0).toLocaleString()}</RarityText>
       </span>
       {(user.streak ?? 0) > 0 && (
         <>

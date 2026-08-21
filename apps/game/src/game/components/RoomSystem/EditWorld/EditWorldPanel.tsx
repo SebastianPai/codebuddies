@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { UserMinus, Ban, Shield, Trash2, Plus, Camera, ImageOff } from "lucide-react";
 import Modal from "../../shared/Modal";
 import Button from "../../shared/Button";
+import RarityText from "../../shared/RarityText";
 import { EffectivePermissions } from "../../../types/permissions";
 import { useTranslation } from "../../../../i18n/useTranslation";
 import styles from "./EditWorldPanel.module.css";
@@ -43,7 +44,7 @@ interface RoomDetails {
   rating: number;
   totalVotes: number;
   createdAt: string;
-  owner?: { id: string; username: string };
+  owner?: { id: string; username: string; nameEffectId?: string | null };
   background?: { id: string } | null;
   _count?: { users: number; ratings?: number };
 }
@@ -454,7 +455,13 @@ function StatsTab({ room }: { room: RoomDetails }) {
     <div className={styles.infoGrid}>
       <div className={styles.infoRow}>
         <span>{t("editworld.infoOwner")}</span>
-        <strong>{room.owner?.username ?? "—"}</strong>
+        <strong>
+          {room.owner?.username ? (
+            <RarityText effect={room.owner.nameEffectId}>{room.owner.username}</RarityText>
+          ) : (
+            "—"
+          )}
+        </strong>
       </div>
       <div className={styles.infoRow}>
         <span>{t("editworld.infoVisitors")}</span>

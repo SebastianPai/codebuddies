@@ -98,7 +98,11 @@ export default function CurrencyBadge({ currency, amount, size = "md", className
         <Icon size={size === "sm" ? 12 : 15} />
       </span>
       {showAmount ? (
-        <span className={styles.amount}>{displayedAmount.toLocaleString()}</span>
+        <span
+          className={`${styles.amount} ${currency === "coins" ? "cb-fx-text-goldRank" : ""}`}
+        >
+          {displayedAmount.toLocaleString()}
+        </span>
       ) : (
         <span className={styles.amount}>{label}</span>
       )}

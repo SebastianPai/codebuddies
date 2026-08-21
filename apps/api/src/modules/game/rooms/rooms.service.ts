@@ -61,7 +61,7 @@ export class RoomsService {
         backgroundId: background?.id || null,
       },
       include: {
-        owner: { select: { username: true } },
+        owner: { select: { username: true, nameEffectId: true } },
         background: true,
         layout: true,
       },
@@ -72,7 +72,7 @@ export class RoomsService {
     return this.prisma.room.findMany({
       where: { isPublic: true },
       include: {
-        owner: { select: { username: true } },
+        owner: { select: { username: true, nameEffectId: true } },
         background: {
           select: { name: true, imageUrl: true, previewUrl: true },
         },
@@ -92,7 +92,7 @@ export class RoomsService {
         ],
       },
       include: {
-        owner: { select: { username: true } },
+        owner: { select: { username: true, nameEffectId: true } },
         background: {
           select: { name: true, imageUrl: true, previewUrl: true },
         },
@@ -148,7 +148,7 @@ export class RoomsService {
     return this.prisma.room.findUnique({
       where: { id: roomId },
       include: {
-        owner: { select: { username: true, id: true } },
+        owner: { select: { username: true, id: true, nameEffectId: true } },
         users: true,
         permissions: true,
         background: true,
@@ -1085,7 +1085,7 @@ export class RoomsService {
     return this.prisma.room.findUnique({
       where: { id: roomId },
       include: {
-        owner: { select: { id: true, username: true } },
+        owner: { select: { id: true, username: true, nameEffectId: true } },
         background: true,
         _count: { select: { users: true, ratings: true } },
         ratings: { select: { value: true } },

@@ -17,7 +17,11 @@ export function DashboardHeader({ user, xp, coins, streak, rank }: DashboardHead
   const stats = [
     { icon: <Zap size={18} />, label: "XP", value: xp.toLocaleString() },
     { icon: <Flame size={18} />, label: t("dashboard.streak"), value: String(streak) },
-    { icon: <CurrencyIcon currency="coins" size={18} />, label: "Coins", value: coins.toLocaleString() },
+    {
+      icon: <CurrencyIcon currency="coins" size={18} />,
+      label: "Coins",
+      value: <RarityText effect="goldRank">{coins.toLocaleString()}</RarityText>,
+    },
     { icon: <Trophy size={18} />, label: t("dashboard.rank"), value: rank ? `#${rank}` : "-" },
   ];
   return (

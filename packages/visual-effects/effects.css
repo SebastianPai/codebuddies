@@ -454,7 +454,9 @@
 /* currency icons get a distinct solid tint instead of a shimmer.         */
 /* ---------------------------------------------------------------------- */
 .cb-fx-currency-coins {
-  color: #e0a729;
+  /* Mismo dorado que cb-fx-text-goldRank -- el ícono (trazo SVG) no puede
+     animar el shimmer de texto, pero comparte el tono exacto. */
+  color: #d4af37;
 }
 .cb-fx-currency-gems {
   color: #7c5cff;

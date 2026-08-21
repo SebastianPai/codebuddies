@@ -5,6 +5,7 @@ import styles from "./RoomCard.module.css";
 import CachedGameImage from "../../shared/CachedGameImage";
 import ImagePreviewModal from "../../shared/ImagePreviewModal";
 import UserBadges from "../../shared/UserBadges";
+import RarityText from "../../shared/RarityText";
 import { useTranslation } from "../../../../i18n/useTranslation";
 
 interface RoomCardProps {
@@ -94,7 +95,12 @@ export default function RoomCard({ room, onJoin, onView }: RoomCardProps) {
             <span className={styles.statLabel}>{t("rooms.cardOwnerLabel")}</span>
 
             <span className={styles.ownerName}>
-              <Crown size={12} /> {room.owner?.username ?? t("rooms.cardUnknownOwner")}
+              <Crown size={12} />{" "}
+              {room.owner?.username ? (
+                <RarityText effect={room.owner.nameEffectId}>{room.owner.username}</RarityText>
+              ) : (
+                t("rooms.cardUnknownOwner")
+              )}
               {room.owner?.username && <UserBadges username={room.owner.username} size={11} />}
             </span>
           </div>

@@ -5,6 +5,7 @@ import type { CoinPack } from "@/config/paddle-catalog";
 import type { PriceByPriceId } from "../lib/usePricePreview";
 import type { Translate } from "./translate.type";
 import { CurrencyIcon } from "@/shared/ui/currency-icon";
+import { RarityText } from "@/shared/ui/rarity-text";
 
 interface CoinPackCardProps {
   t: Translate;
@@ -37,8 +38,8 @@ export function CoinPackCard({ t, pack, pricesByPriceId, priceStatus, onBuy, che
          default del runtime, que difiere entre el servidor (Node) y el
          navegador del visitante -- React tira un mismatch de hidratacion
          (#418) apenas esos dos textos no coinciden byte a byte. */}
-      <p className="mt-3 text-2xl font-black text-[rgb(var(--text))]">
-        {pack.coins.toLocaleString("en-US")}
+      <p className="mt-3 text-2xl font-black">
+        <RarityText effect="goldRank">{pack.coins.toLocaleString("en-US")}</RarityText>
       </p>
       <p className="text-xs font-bold uppercase tracking-wide text-[rgb(var(--secondary-text))]">
         {(t.pricing?.coins?.packs?.[pack.key] as string) ?? pack.name}

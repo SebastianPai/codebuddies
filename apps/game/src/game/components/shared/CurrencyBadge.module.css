@@ -22,7 +22,11 @@
    everything (see @codebuddies/visual-effects/effects.css cb-fx-currency-*;
    hardcoded here too since CSS Modules can't import the TS token values). */
 .coins {
-  color: #e0a729;
+  /* Mismo dorado que cb-fx-text-goldRank (packages/visual-effects) -- el
+     ícono es un trazo SVG, no puede animar el shimmer de texto, pero
+     comparte el tono exacto para que se lea como "el mismo oro" que el
+     monto de al lado. */
+  color: #d4af37;
 }
 
 .gems {

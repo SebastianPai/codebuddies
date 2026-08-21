@@ -14,6 +14,7 @@ export interface Room {
   owner: {
     id: string;
     username: string;
+    nameEffectId?: string | null;
   };
   background?: {
     id: string;

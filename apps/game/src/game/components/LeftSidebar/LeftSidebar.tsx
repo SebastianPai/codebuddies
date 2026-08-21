@@ -438,7 +438,7 @@ function LeftSidebar({
             <div className="currency-row">
               <div className="currency-card">
                 <span className="currency-label">{t("hud.sidebar.coins")}</span>
-                <strong>{coins.toLocaleString()}</strong>
+                <strong className="cb-fx-text-goldRank">{coins.toLocaleString()}</strong>
               </div>
               <div className="currency-card">
                 <span className="currency-label">{t("hud.sidebar.diamonds")}</span>

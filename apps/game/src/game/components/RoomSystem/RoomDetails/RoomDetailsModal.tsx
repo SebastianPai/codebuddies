@@ -7,6 +7,7 @@ import styles from "./RoomDetailsModal.module.css";
 import Modal from "../../shared/Modal";
 import Button from "../../shared/Button";
 import UserBadges from "../../shared/UserBadges";
+import RarityText from "../../shared/RarityText";
 import { useTranslation } from "../../../../i18n/useTranslation";
 
 interface Props {
@@ -59,7 +60,12 @@ export default function RoomDetailsModal({ room, onClose, onJoin }: Props) {
         </p>
 
         <p className={styles.ownerLine}>
-          <strong>{t("rooms.detailsOwnerLabel")}</strong> {room.owner?.username || t("rooms.cardUnknownOwner")}
+          <strong>{t("rooms.detailsOwnerLabel")}</strong>{" "}
+          {room.owner?.username ? (
+            <RarityText effect={room.owner.nameEffectId}>{room.owner.username}</RarityText>
+          ) : (
+            t("rooms.cardUnknownOwner")
+          )}
           {room.owner?.username && <UserBadges username={room.owner.username} size={12} />}
         </p>
 
