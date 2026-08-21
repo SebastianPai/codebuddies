@@ -17,8 +17,8 @@ export default function SettingsPage() {
   const [savingProfile, setSavingProfile] = useState(false);
 
   const [username, setUsername] = useState("");
-  const [isPremium, setIsPremium] = useState(false);
   const [nameEffectId, setNameEffectId] = useState("common");
+  const [unlockedEffectIds, setUnlockedEffectIds] = useState<string[]>(["common"]);
   const [savingNameEffect, setSavingNameEffect] = useState(false);
   const [nameEffectError, setNameEffectError] = useState("");
 
@@ -33,22 +33,22 @@ export default function SettingsPage() {
         birthDate: string | null;
         country: string | null;
         username: string;
-        isPremium: boolean;
         nameEffectId: string | null;
+        unlockedEffectIds: string[];
       }>("/identity/me")
       .then((data) => {
         if (data.birthDate) setBirthDate(data.birthDate.slice(0, 10));
         if (data.country) setCountry(data.country);
         setUsername(data.username);
-        setIsPremium(data.isPremium);
         setNameEffectId(data.nameEffectId || "common");
+        setUnlockedEffectIds(data.unlockedEffectIds ?? ["common"]);
       })
       .catch(() => {});
   }, []);
 
-  const selectNameEffect = async (id: string, tier: "free" | "premium") => {
+  const selectNameEffect = async (id: string) => {
     setNameEffectError("");
-    if (tier === "premium" && !isPremium) {
+    if (!unlockedEffectIds.includes(id)) {
       setNameEffectError(t("site.nameEffectPremiumRequired"));
       return;
     }
@@ -121,14 +121,21 @@ export default function SettingsPage() {
         <p className="mt-1 text-sm text-[rgb(var(--secondary-text))]">{t("site.nameEffectHint")}</p>
         <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
           {NAME_EFFECT_LIST.map((effect) => {
-            const locked = effect.unlockRule === "premium" && !isPremium;
+            const locked = !unlockedEffectIds.includes(effect.id);
             const selected = nameEffectId === effect.id;
+            const lockHint =
+              effect.unlockRule === "premium"
+                ? t("site.nameEffectLockedPremiumHint")
+                : effect.unlockRule === "ownable"
+                  ? t("site.nameEffectLockedOwnableHint")
+                  : undefined;
             return (
               <button
                 key={effect.id}
                 type="button"
                 disabled={savingNameEffect}
-                onClick={() => void selectNameEffect(effect.id, effect.unlockRule)}
+                title={locked ? lockHint : undefined}
+                onClick={() => void selectNameEffect(effect.id)}
                 className={`flex items-center gap-1.5 rounded-lg border p-2.5 text-sm font-bold transition-colors disabled:cursor-not-allowed ${
                   selected
                     ? "border-[rgb(var(--primary))] bg-[rgb(var(--primary)/0.08)]"

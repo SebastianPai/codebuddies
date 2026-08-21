@@ -23,6 +23,8 @@ import { PlayerHandler } from './ws/handlers/player.handler';
 import { BackgroundsModule } from './backgrounds/backgrounds.module';
 import { JWT_SECRET } from '../../config/env';
 import { PremiumAccessModule } from '../premium-access/premium-access.module';
+import { NotificationsModule } from '../notifications/notifications.module';
+import { RealtimeModule } from '../realtime/realtime.module';
 
 @Module({
   imports: [
@@ -40,8 +42,12 @@ import { PremiumAccessModule } from '../premium-access/premium-access.module';
     // (independiente de ItemsModule, que las vuelve a declarar por su
     // cuenta -- duplicación preexistente, no introducida acá). Como
     // ItemsService ahora inyecta PremiumAccessService para el accessType
-    // PREMIUM de buyItem, esta copia también necesita el módulo.
+    // PREMIUM de buyItem, esta copia también necesita el módulo. Mismo
+    // criterio: ItemsService.giftItem inyecta Notifications/Realtime para
+    // avisarle al destinatario del regalo.
     PremiumAccessModule,
+    NotificationsModule,
+    RealtimeModule,
   ],
   providers: [
     GameService,

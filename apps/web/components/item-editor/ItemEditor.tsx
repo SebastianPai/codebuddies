@@ -15,7 +15,7 @@ import CachedImage from "../shared/CachedImage";
 import { Tooltip } from "../../src/shared/ui";
 import { useTranslation } from "../../src/i18n/useTranslation";
 import { capitalizeRarityKey, useRarityCatalog } from "../../src/features/items/useRarityCatalog";
-import { resolveItemRarityEffect } from "@codebuddies/visual-effects";
+import { resolveItemRarityEffect, getOwnableEffectIds, getEffectDefinition } from "@codebuddies/visual-effects";
 
 /** Persistent caption for a field, with an optional "?" tooltip for non-obvious values. */
 function FieldLabel({ text, hint }: { text: string; hint?: string }) {
@@ -75,7 +75,7 @@ const SLOT_LAYERS: Record<(typeof AVATAR_SLOTS)[number], number> = {
 };
 
 type EditorMode = "admin" | "creator";
-type ItemKind = "avatar" | "world" | "texture";
+type ItemKind = "avatar" | "world" | "texture" | "effect";
 
 type ItemEditorProps = {
   initial?: any;
@@ -98,6 +98,7 @@ const fieldClass =
 
 function getInitialKind(initial?: any): ItemKind {
   if (initial?.formCategory) return initial.formCategory;
+  if (initial?.type === "EFFECT" || initial?.effectKey) return "effect";
   if (initial?.type === "AVATAR_ITEM" || initial?.avatarData || initial?.slot) {
     return "avatar";
   }
@@ -132,6 +133,7 @@ export default function ItemEditor({
     Array.isArray(initial?.tags) ? initial.tags.join(", ") : initial?.category ?? "",
   );
   const [rarity, setRarity] = useState(initial?.rarity ?? 0);
+  const [effectKey, setEffectKey] = useState(initial?.effectKey ?? getOwnableEffectIds()[0]);
   const [coinsPrice, setCoinsPrice] = useState(initial?.coinsPrice ?? initial?.priceCoins ?? 100);
   const [gemsPrice, setGemsPrice] = useState(initial?.gemsPrice ?? 0);
   const [shopVisible, setShopVisible] = useState(initial?.shopVisible ?? mode === "admin");
@@ -289,6 +291,16 @@ export default function ItemEditor({
       tags: compactTags(tags),
       colorable,
     };
+
+    if (category === "effect") {
+      // Sin rareza real (ver Item.effectKey en schema.prisma) -- baseData
+      // trae rarity=0 (Common) por defecto, pero createItem/updateItem ya
+      // saltan la validación de precio-por-rareza cuando viene effectKey.
+      return {
+        ...baseData,
+        effectKey,
+      };
+    }
 
     if (category === "avatar") {
       const layer = SLOT_LAYERS[slot as keyof typeof SLOT_LAYERS] ?? 0;
@@ -469,6 +481,7 @@ export default function ItemEditor({
               <option value="world">{t("items.world")}</option>
               <option value="avatar">{t("items.avatar")}</option>
               <option value="texture">{t("items.texture")}</option>
+              {mode === "admin" && <option value="effect">{t("items.effect")}</option>}
             </select>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
@@ -529,22 +542,41 @@ export default function ItemEditor({
         <LabeledField text={t("items.gems")} hint={t("items.gemsHint")}>
           <input type="number" min="0" value={gemsPrice} onChange={(event) => setGemsPrice(Number(event.target.value))} className={fieldClass} />
         </LabeledField>
-        <LabeledField text={t("items.rarityLabel")} hint={t("items.rarityHint")}>
-          <div className="flex items-center gap-2">
-            <span
-              aria-hidden="true"
-              className="h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10"
-              style={{ background: resolveItemRarityEffect(rarity).gradientStops[0] }}
-            />
-            <select value={rarity} onChange={(event) => setRarity(Number(event.target.value))} className={fieldClass}>
-              {rarities.map((rarityOption) => (
-                <option key={rarityOption.id} value={rarityOption.id}>
-                  {t(`items.rarity${capitalizeRarityKey(rarityOption.key)}`)}
-                </option>
-              ))}
-            </select>
-          </div>
-        </LabeledField>
+        {category === "effect" ? (
+          <LabeledField text={t("items.effectKeyLabel")} hint={t("items.effectKeyHint")}>
+            <div className="flex items-center gap-2">
+              <span
+                aria-hidden="true"
+                className="h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10"
+                style={{ background: getEffectDefinition(effectKey).gradientStops[0] }}
+              />
+              <select value={effectKey} onChange={(event) => setEffectKey(event.target.value)} className={fieldClass}>
+                {getOwnableEffectIds().map((id) => (
+                  <option key={id} value={id}>
+                    {getEffectDefinition(id).label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </LabeledField>
+        ) : (
+          <LabeledField text={t("items.rarityLabel")} hint={t("items.rarityHint")}>
+            <div className="flex items-center gap-2">
+              <span
+                aria-hidden="true"
+                className="h-3 w-3 shrink-0 rounded-full ring-1 ring-black/10"
+                style={{ background: resolveItemRarityEffect(rarity).gradientStops[0] }}
+              />
+              <select value={rarity} onChange={(event) => setRarity(Number(event.target.value))} className={fieldClass}>
+                {rarities.map((rarityOption) => (
+                  <option key={rarityOption.id} value={rarityOption.id}>
+                    {t(`items.rarity${capitalizeRarityKey(rarityOption.key)}`)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </LabeledField>
+        )}
         <LabeledField text={t("items.languageLabel")} hint={t("items.languageHint")}>
           <select value={languageCode} onChange={(event) => setLanguageCode(event.target.value)} className={fieldClass}>
             <option value="es">{t("items.spanish")}</option>
@@ -564,7 +596,19 @@ export default function ItemEditor({
         </label>
       </section>
 
-      {category === "avatar" ? (
+      {category === "effect" ? (
+        <section className="rounded-3xl border border-zinc-800 bg-black/40 p-5">
+          <h3 className="text-xl font-black text-white">{t("items.effectItemTitle")}</h3>
+          <p className="mt-1 text-sm text-zinc-500">{t("items.effectItemDescription")}</p>
+          <div className="mt-4 rounded-2xl border border-zinc-800 bg-black/60 p-4">
+            <span
+              className={`${getEffectDefinition(effectKey).textClassName} text-2xl font-black`}
+            >
+              {name.trim() || getEffectDefinition(effectKey).label}
+            </span>
+          </div>
+        </section>
+      ) : category === "avatar" ? (
         <section className="space-y-5">
           <div className="rounded-3xl border border-zinc-800 bg-black/40 p-5">
             <h3 className="text-xl font-black text-white">{t("items.avatarItem")}</h3>

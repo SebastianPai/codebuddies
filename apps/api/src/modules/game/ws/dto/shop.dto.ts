@@ -29,3 +29,11 @@ export class BuyBackgroundDto {
   @IsString()
   backgroundId!: string;
 }
+
+export class GiftItemDto {
+  @IsString()
+  itemId!: string;
+
+  @IsString()
+  recipientUsername!: string;
+}

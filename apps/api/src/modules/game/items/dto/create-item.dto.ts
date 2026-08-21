@@ -78,6 +78,13 @@ export class CreateItemDto {
   @IsEnum(WorldItemKind)
   kind?: WorldItemKind;
 
+  // Discriminador: si viene effectKey → es item de tipo EFFECT (ver
+  // @codebuddies/visual-effects). No exclusivo con slot/kind a nivel tipo,
+  // pero createItem/updateItem lo tratan como tal.
+  @IsOptional()
+  @IsString()
+  effectKey?: string;
+
   @IsOptional()
   @IsInt()
   width?: number;

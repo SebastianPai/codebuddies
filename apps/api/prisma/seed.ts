@@ -4,6 +4,7 @@ import { seedJsCourse } from './seed-js-course';
 import { seedLearningGamification } from './seed-learning-gamification';
 import { seedPricingPlans } from './seed-pricing-plans';
 import { seedBattlePass } from './seed-battle-pass';
+import { seedEffectItems } from './seed-effect-items';
 
 const prisma = new PrismaClient();
 
@@ -135,6 +136,7 @@ async function main() {
   await seedLearningGamification(prisma);
   await seedPricingPlans(prisma);
   await seedBattlePass(prisma);
+  await seedEffectItems(prisma);
 
   console.log(
     'Seed completado! Idiomas, usuario ADMIN y templates de email creados.',

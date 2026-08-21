@@ -29,6 +29,7 @@ import {
 import {
   BuyBackgroundDto,
   BuyItemDto,
+  GiftItemDto,
   ShopItemsRequestDto,
 } from './ws/dto/shop.dto';
 import { GetItemSpritesDto } from './ws/dto/item-sprites.dto';
@@ -195,6 +196,14 @@ export class GameGateway
     @ConnectedSocket() socket: Socket,
   ) {
     this.shopHandler.handleBuyBackground(socket, data);
+  }
+
+  @SubscribeMessage('shop:item:gift')
+  handleGiftItem(
+    @MessageBody() data: GiftItemDto,
+    @ConnectedSocket() socket: Socket,
+  ) {
+    this.shopHandler.handleGiftItem(socket, data);
   }
 
   // ==================== INVENTORY ====================

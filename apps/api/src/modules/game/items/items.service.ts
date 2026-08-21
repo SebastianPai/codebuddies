@@ -10,18 +10,26 @@ import {
   ItemAccessType,
   WorldItemKind,
   ItemType,
+  NotificationType,
 } from '@prisma/client';
 import { CreateItemDto } from './dto/create-item.dto';
 import { UpdateItemDto } from './dto/update-item.dto';
 import { buildWorldEngineData } from './engine-data.util';
 import { PremiumAccessService } from '../../premium-access/premium-access.service';
-import { RARITY_DEFINITIONS, assertValidShopPrice } from '../../../common/economy';
+import {
+  RARITY_DEFINITIONS,
+  assertValidShopPrice,
+} from '../../../common/economy';
+import { NotificationsService } from '../../notifications/notifications.service';
+import { RealtimeService } from '../../realtime/realtime.service';
 
 @Injectable()
 export class ItemsService {
   constructor(
     private prisma: PrismaService,
     private premiumAccessService: PremiumAccessService,
+    private notificationsService: NotificationsService,
+    private realtimeService: RealtimeService,
   ) {}
 
   // Fuente única de verdad de rareza expuesta a los frontends (admin,
@@ -72,6 +80,7 @@ export class ItemsService {
       footprints,
       surfaces,
       itemSprite,
+      effectKey,
     } = dto;
 
     if (slot && kind) {
@@ -80,10 +89,14 @@ export class ItemsService {
       );
     }
 
-    // Valida coinsPrice contra el rango de la rareza elegida -- no se
-    // aplica retroactivamente a items existentes, solo a lo que se crea de
-    // acá en más (ver assertValidShopPrice).
-    assertValidShopPrice(rarity, coinsPrice);
+    // Los items EFFECT no tienen "rareza" en el sentido de items de
+    // avatar/mundo -- su precio no está bandeado por rarity (ver
+    // packages/visual-effects/index.ts, son un eje de acceso aparte:
+    // free/premium/ownable). Saltar la validación acá, no forzar una
+    // rareza artificial solo para pasarla.
+    if (!effectKey) {
+      assertValidShopPrice(rarity, coinsPrice);
+    }
 
     const item = await this.prisma.item.create({
       data: {
@@ -97,7 +110,14 @@ export class ItemsService {
         tags,
         ...(accessType && { accessType }),
         colorable,
-        type: slot ? ItemType.AVATAR : kind ? ItemType.WORLD : undefined,
+        effectKey,
+        type: effectKey
+          ? ItemType.EFFECT
+          : slot
+            ? ItemType.AVATAR
+            : kind
+              ? ItemType.WORLD
+              : undefined,
       },
       include: {
         avatarData: true,
@@ -512,15 +532,21 @@ export class ItemsService {
     if (itemData.coinsPrice !== undefined || itemData.rarity !== undefined) {
       const current = await this.prisma.item.findUnique({
         where: { id },
-        select: { rarity: true, coinsPrice: true },
+        select: { rarity: true, coinsPrice: true, effectKey: true },
       });
       if (!current) {
         throw new NotFoundException(`Item con ID ${id} no encontrado`);
       }
-      const nextRarity = itemData.rarity ?? current.rarity;
-      const nextCoinsPrice =
-        itemData.coinsPrice !== undefined ? itemData.coinsPrice : current.coinsPrice;
-      assertValidShopPrice(nextRarity, nextCoinsPrice);
+      // Ver comentario en createItem -- items EFFECT no validan precio
+      // contra banda de rareza.
+      if (!(itemData.effectKey ?? current.effectKey)) {
+        const nextRarity = itemData.rarity ?? current.rarity;
+        const nextCoinsPrice =
+          itemData.coinsPrice !== undefined
+            ? itemData.coinsPrice
+            : current.coinsPrice;
+        assertValidShopPrice(nextRarity, nextCoinsPrice);
+      }
     }
 
     return this.prisma.item.update({
@@ -678,7 +704,8 @@ export class ItemsService {
         break;
 
       case ItemAccessType.PREMIUM: {
-        const hasPremium = await this.premiumAccessService.hasPremiumAccess(userId);
+        const hasPremium =
+          await this.premiumAccessService.hasPremiumAccess(userId);
         if (!hasPremium) {
           throw new ForbiddenException(
             'Este item requiere una suscripción Premium activa',
@@ -768,6 +795,107 @@ export class ItemsService {
     return { success: true };
   }
 
+  // ───────────── GIFT ITEM ─────────────
+  // Mismo criterio de acceso que buyItem: solo items FREE+shopVisible se
+  // pueden regalar (evita que esto se vuelva un transfer genérico de
+  // cualquier item -- ver ItemGift.effectKey / plan de entitlements de
+  // efectos, que es el primer caso de uso real). El pago sale del que
+  // regala; el UserItem se crea a nombre del destinatario.
+  async giftItem(senderId: string, itemId: string, recipientUsername: string) {
+    const recipient = await this.prisma.user.findUnique({
+      where: { username: recipientUsername },
+      select: { id: true, username: true },
+    });
+    if (!recipient)
+      throw new NotFoundException('Usuario destinatario no encontrado');
+    if (recipient.id === senderId) {
+      throw new BadRequestException('No podés regalarte un item a vos mismo');
+    }
+
+    const item = await this.prisma.item.findUnique({ where: { id: itemId } });
+    if (!item) throw new NotFoundException('Item no encontrado');
+    if (!item.shopVisible) throw new BadRequestException('Item no disponible');
+    if (item.accessType !== ItemAccessType.FREE) {
+      throw new BadRequestException('Este item no se puede regalar');
+    }
+    if (!item.coinsPrice || item.coinsPrice <= 0) {
+      throw new BadRequestException('Este item no se puede regalar');
+    }
+
+    const sender = await this.prisma.user.findUnique({
+      where: { id: senderId },
+    });
+    if (!sender) throw new NotFoundException('Usuario no encontrado');
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      // Mismo débito condicional que buyItem -- ver comentario ahí.
+      const debited = await tx.user.updateMany({
+        where: { id: senderId, coins: { gte: item.coinsPrice! } },
+        data: { coins: { decrement: item.coinsPrice! } },
+      });
+      if (debited.count === 0) {
+        throw new BadRequestException('No tienes monedas suficientes');
+      }
+
+      await tx.coinTransaction.create({
+        data: {
+          userId: senderId,
+          amount: -item.coinsPrice!,
+          reason: `gift:${itemId}:${recipient.id}`,
+        },
+      });
+
+      const existing = await tx.userItem.findUnique({
+        where: { userId_itemId: { userId: recipient.id, itemId } },
+      });
+
+      if (existing) {
+        const stacked = await tx.userItem.updateMany({
+          where: {
+            userId: recipient.id,
+            itemId,
+            amount: { lt: item.maxStack },
+          },
+          data: { amount: { increment: 1 } },
+        });
+        if (stacked.count === 0) {
+          throw new BadRequestException(
+            `El destinatario ya alcanzó el máximo de este item (${item.maxStack})`,
+          );
+        }
+      } else {
+        await tx.userItem.create({
+          data: { userId: recipient.id, itemId, amount: 1, source: 'gift' },
+        });
+      }
+
+      const gift = await tx.itemGift.create({
+        data: {
+          itemId,
+          giftedById: senderId,
+          recipientId: recipient.id,
+          coinsSpent: item.coinsPrice!,
+        },
+      });
+
+      return gift;
+    });
+
+    const notification = await this.notificationsService.create({
+      userId: recipient.id,
+      type: NotificationType.REWARD_GRANTED,
+      title: 'Recibiste un regalo',
+      body: `${sender.username} te regaló ${item.effectKey ? `el efecto de nombre "${item.effectKey}"` : 'un item'}.`,
+      metadata: { itemId, giftId: result.id, giftedBy: senderId },
+    });
+    this.realtimeService.emitToUser(recipient.id, {
+      type: 'notification:new',
+      payload: { itemId, giftedBy: sender.username, notification },
+    });
+
+    return { success: true, giftId: result.id };
+  }
+
   // ───────────── SHOP (FIXED FILTERS) ─────────────
   async getShopItems(query: {
     sort?: 'new' | 'old' | 'cheap' | 'expensive' | 'popular';
@@ -847,7 +975,9 @@ export class ItemsService {
   }
 
   async removeBuildFavorite(userId: string, itemId: string) {
-    await this.prisma.roomBuildFavorite.deleteMany({ where: { userId, itemId } });
+    await this.prisma.roomBuildFavorite.deleteMany({
+      where: { userId, itemId },
+    });
 
     return this.listBuildFavorites(userId);
   }

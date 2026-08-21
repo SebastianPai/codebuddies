@@ -46,11 +46,19 @@ export type EffectUsage =
   | "nameEffect"
   | "rankPodium";
 
+// Los tres niveles de acceso a un Name Effect (ver plan de entitlements):
+// - "free": todos, siempre.
+// - "premium": incluido con una suscripción Premium activa (10 efectos).
+// - "ownable": no viene con Premium -- se compra en la tienda con coins, se
+//   puede regalar (ItemsService.giftItem) u obtener como recompensa de
+//   Battle Pass. Requiere un Item real (type: EFFECT, effectKey: este id).
+// En los tres casos, un usuario ADMIN tiene todo desbloqueado sin excepción
+// (ver IdentityService#getUnlockedEffectIds en apps/api).
 export interface VisualEffectDefinition {
   id: EffectId;
   label: string;
   usage: EffectUsage[];
-  unlockRule: "free" | "premium";
+  unlockRule: "free" | "premium" | "ownable";
   /** Gradient-clip text treatment class (always present). */
   textClassName: string;
   /** Card/row border+glow treatment class. Starts at "rare" — common/uncommon have none. */
@@ -172,7 +180,7 @@ export const VISUAL_EFFECTS: Record<EffectId, VisualEffectDefinition> = {
     id: "rainbow",
     label: "Rainbow",
     usage: ["nameEffect", "badgeRarity"],
-    unlockRule: "premium",
+    unlockRule: "ownable",
     textClassName: "cb-fx-text-rainbow",
     borderClassName: "cb-fx-border-rainbow",
     glowClassName: "cb-fx-glow-rainbow",
@@ -198,7 +206,7 @@ export const VISUAL_EFFECTS: Record<EffectId, VisualEffectDefinition> = {
     id: "mythic",
     label: "Mythic",
     usage: ["nameEffect", "itemRarity"],
-    unlockRule: "premium",
+    unlockRule: "ownable",
     textClassName: "cb-fx-text-mythic",
     borderClassName: "cb-fx-border-mythic",
     glowClassName: "cb-fx-glow-mythic",
@@ -211,7 +219,7 @@ export const VISUAL_EFFECTS: Record<EffectId, VisualEffectDefinition> = {
     id: "divine",
     label: "Divine",
     usage: ["nameEffect", "itemRarity"],
-    unlockRule: "premium",
+    unlockRule: "ownable",
     textClassName: "cb-fx-text-divine",
     borderClassName: "cb-fx-border-divine",
     glowClassName: "cb-fx-glow-divine",
@@ -224,7 +232,7 @@ export const VISUAL_EFFECTS: Record<EffectId, VisualEffectDefinition> = {
     id: "galaxy",
     label: "Galaxy",
     usage: ["nameEffect", "itemRarity"],
-    unlockRule: "premium",
+    unlockRule: "ownable",
     textClassName: "cb-fx-text-galaxy",
     borderClassName: "cb-fx-border-galaxy",
     glowClassName: "cb-fx-glow-galaxy",
@@ -237,7 +245,7 @@ export const VISUAL_EFFECTS: Record<EffectId, VisualEffectDefinition> = {
     id: "aurora",
     label: "Aurora",
     usage: ["nameEffect", "itemRarity"],
-    unlockRule: "premium",
+    unlockRule: "ownable",
     textClassName: "cb-fx-text-aurora",
     borderClassName: "cb-fx-border-aurora",
     glowClassName: "cb-fx-glow-aurora",
@@ -315,7 +323,7 @@ export const VISUAL_EFFECTS: Record<EffectId, VisualEffectDefinition> = {
     id: "holographic",
     label: "Holographic",
     usage: ["nameEffect", "itemRarity"],
-    unlockRule: "premium",
+    unlockRule: "ownable",
     textClassName: "cb-fx-text-holographic",
     borderClassName: "cb-fx-border-holographic",
     glowClassName: "cb-fx-glow-holographic",
@@ -328,7 +336,7 @@ export const VISUAL_EFFECTS: Record<EffectId, VisualEffectDefinition> = {
     id: "obsidian",
     label: "Obsidian",
     usage: ["nameEffect", "itemRarity"],
-    unlockRule: "premium",
+    unlockRule: "ownable",
     textClassName: "cb-fx-text-obsidian",
     borderClassName: "cb-fx-border-obsidian",
     glowClassName: "cb-fx-glow-obsidian",
@@ -354,7 +362,7 @@ export const VISUAL_EFFECTS: Record<EffectId, VisualEffectDefinition> = {
     id: "matrix",
     label: "Matrix",
     usage: ["nameEffect", "itemRarity"],
-    unlockRule: "premium",
+    unlockRule: "ownable",
     textClassName: "cb-fx-text-matrix",
     borderClassName: "cb-fx-border-matrix",
     glowClassName: "cb-fx-glow-matrix",
@@ -380,7 +388,7 @@ export const VISUAL_EFFECTS: Record<EffectId, VisualEffectDefinition> = {
     id: "crystal",
     label: "Crystal",
     usage: ["nameEffect", "itemRarity"],
-    unlockRule: "premium",
+    unlockRule: "ownable",
     textClassName: "cb-fx-text-crystal",
     borderClassName: "cb-fx-border-crystal",
     glowClassName: "cb-fx-glow-crystal",
@@ -437,11 +445,21 @@ export function resolvePodiumEffect(rank: number): VisualEffectDefinition | null
   return null;
 }
 
-/** Effects eligible for the Premium "Name Effect" picker. */
+/** Effects eligible for the Premium "Name Effect" picker (all tiers — free/premium/ownable). */
 export function getNameEffectCatalog(): VisualEffectDefinition[] {
   return EFFECT_IDS.map((id) => VISUAL_EFFECTS[id]).filter((effect) =>
     effect.usage.includes("nameEffect"),
   );
+}
+
+/**
+ * Effects sold individually as shop items (not included with Premium) — one
+ * real Item per id (type: EFFECT, effectKey: id), seeded by
+ * apps/api/prisma/seed-effect-items.ts. Used by the admin ItemEditor's
+ * effectKey dropdown and by the Shop's "Effects" tab.
+ */
+export function getOwnableEffectIds(): EffectId[] {
+  return EFFECT_IDS.filter((id) => VISUAL_EFFECTS[id].unlockRule === "ownable");
 }
 
 /** Safe lookup with fallback to "common" (i.e. no visible effect) for null/unknown ids. */

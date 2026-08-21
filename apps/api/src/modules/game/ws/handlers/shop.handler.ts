@@ -6,6 +6,7 @@ import { BackgroundsService } from '../../backgrounds/backgrounds.service';
 import {
   BuyBackgroundDto,
   BuyItemDto,
+  GiftItemDto,
   ShopItemsRequestDto,
 } from '../dto/shop.dto';
 import { isKnownRarity, getRarityDefinition } from '../../../../common/economy';
@@ -16,7 +17,9 @@ import { isKnownRarity, getRarityDefinition } from '../../../../common/economy';
 // para elegir qué string traducir. Nunca vuelve a declarar su propia tabla.
 function resolveRarityKey(rarity: number | null | undefined): string {
   const value = typeof rarity === 'number' ? rarity : 0;
-  return isKnownRarity(value) ? getRarityDefinition(value).key : getRarityDefinition(0).key;
+  return isKnownRarity(value)
+    ? getRarityDefinition(value).key
+    : getRarityDefinition(0).key;
 }
 
 @Injectable()
@@ -52,6 +55,10 @@ export class ShopHandler {
           rarity: i.rarity,
           rarityKey: resolveRarityKey(i.rarity),
           colorable: i.colorable,
+
+          // Solo para type === "EFFECT" -- id de @codebuddies/visual-effects
+          // que este item desbloquea (ver Shop.tsx pestaña "effects").
+          effectKey: i.effectKey ?? null,
 
           // Datos para avatar
           slot: i.avatarData?.slot ?? null,
@@ -130,6 +137,40 @@ export class ShopHandler {
       this.logger.error(`Error al comprar item ${data.itemId}`, err);
       socket.emit('shop:item:error', {
         message: err.message || 'No se pudo completar la compra',
+      });
+    }
+  }
+
+  // ====================== REGALAR ITEM ======================
+  async handleGiftItem(socket: Socket, data: GiftItemDto) {
+    const userId = socket.data.user?.userId;
+    if (!userId) {
+      return socket.emit('shop:item:error', { message: 'No autenticado' });
+    }
+    if (!data.itemId || !data.recipientUsername) {
+      return socket.emit('shop:item:error', {
+        message: 'itemId y recipientUsername son requeridos',
+      });
+    }
+
+    try {
+      await this.itemsService.giftItem(
+        userId,
+        data.itemId,
+        data.recipientUsername,
+      );
+      socket.emit('shop:item:gifted', {
+        itemId: data.itemId,
+        recipientUsername: data.recipientUsername,
+        message: 'Regalo enviado exitosamente',
+      });
+      this.logger.log(
+        `Usuario ${userId} regaló item ${data.itemId} a ${data.recipientUsername}`,
+      );
+    } catch (err: any) {
+      this.logger.error(`Error al regalar item ${data.itemId}`, err);
+      socket.emit('shop:item:error', {
+        message: err.message || 'No se pudo enviar el regalo',
       });
     }
   }

@@ -80,13 +80,13 @@ export default function SettingsWindow({ username, onClose, onUsernameChanged }:
 
   const {
     effectId: nameEffectId,
-    isPremium: isPremiumForNameEffect,
+    unlockedEffectIds,
     saving: savingNameEffect,
     error: nameEffectErrorCode,
     selectEffect,
   } = useNameEffect();
   const nameEffectError =
-    nameEffectErrorCode === "PREMIUM_REQUIRED"
+    nameEffectErrorCode === "NOT_UNLOCKED"
       ? t("settings.nameEffectPremiumRequired")
       : nameEffectErrorCode === "SAVE_ERROR"
         ? t("settings.nameEffectSaveError")
@@ -332,8 +332,14 @@ export default function SettingsWindow({ username, onClose, onUsernameChanged }:
           <div className={styles.sectionBody}>
             <div className={styles.nameEffectGrid}>
               {NAME_EFFECT_LIST.map((effect) => {
-                const locked = effect.unlockRule === "premium" && !isPremiumForNameEffect;
+                const locked = !unlockedEffectIds.includes(effect.id);
                 const selected = nameEffectId === effect.id;
+                const lockHint =
+                  effect.unlockRule === "premium"
+                    ? t("settings.nameEffectLockedPremiumHint")
+                    : effect.unlockRule === "ownable"
+                      ? t("settings.nameEffectLockedOwnableHint")
+                      : undefined;
                 return (
                   <button
                     key={effect.id}
@@ -342,7 +348,8 @@ export default function SettingsWindow({ username, onClose, onUsernameChanged }:
                       selected ? styles.nameEffectOptionSelected : ""
                     } ${locked ? styles.nameEffectOptionLocked : ""}`}
                     disabled={savingNameEffect}
-                    onClick={() => void selectEffect(effect.id, effect.unlockRule)}
+                    title={locked ? lockHint : undefined}
+                    onClick={() => void selectEffect(effect.id)}
                   >
                     {locked ? (
                       <Lock size={12} />

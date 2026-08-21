@@ -6,7 +6,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { Role } from '@prisma/client';
+import { ItemType, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PremiumAccessService } from '../premium-access/premium-access.service';
@@ -14,6 +14,14 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { computeStreakUpdate } from '../../common/utils/streak.util';
+import {
+  FREE_NAME_EFFECTS,
+  OWNABLE_NAME_EFFECTS,
+  PREMIUM_NAME_EFFECTS,
+} from '../../common/economy/effect-access';
+import { attachReferralToRegistration } from '../referrals/referrals.registration';
+import { GamificationService } from '../gamification/gamification.service';
+import { EmailService } from '../email/email.service';
 
 // Espejo de CHAT_BUBBLE_THEMES en apps/game/.../hud/nameplateStyles.ts — el
 // DTO ya valida que sea un id conocido (@IsIn), esto solo decide cuáles de
@@ -26,35 +34,6 @@ const PREMIUM_CHAT_BUBBLE_THEMES = new Set([
   'rose',
   'sunset',
 ]);
-
-// Espejo de SUPPORTED_NAME_EFFECTS en update-profile.dto.ts — "common" y
-// "uncommon" son gratis, el resto exige Premium. Mismo criterio que
-// PREMIUM_CHAT_BUBBLE_THEMES.
-const PREMIUM_NAME_EFFECTS = new Set([
-  'rare',
-  'epic',
-  'legendary',
-  'rainbow',
-  'diamond',
-  'mythic',
-  'divine',
-  'galaxy',
-  'aurora',
-  'ice',
-  'fire',
-  'emerald',
-  'ruby',
-  'sapphire',
-  'holographic',
-  'obsidian',
-  'cyber',
-  'matrix',
-  'electric',
-  'crystal',
-]);
-import { attachReferralToRegistration } from '../referrals/referrals.registration';
-import { GamificationService } from '../gamification/gamification.service';
-import { EmailService } from '../email/email.service';
 
 type AuthUser = {
   id: string;
@@ -186,6 +165,44 @@ export class IdentityService {
     return this.premiumAccessService.hasPremiumAccess(userId);
   }
 
+  // Une los tres tiers (free / premium / ownable) más el bypass de ADMIN en
+  // una sola lista de ids que este usuario puede usar hoy como Name Effect
+  // -- fuente de verdad para el gate de updateProfile y para lo que
+  // getProfile expone al frontend (así el picker no repite esta lógica).
+  async getUnlockedEffectIds(userId: string): Promise<string[]> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+
+    if (user?.role === Role.ADMIN) {
+      return [
+        ...FREE_NAME_EFFECTS,
+        ...PREMIUM_NAME_EFFECTS,
+        ...OWNABLE_NAME_EFFECTS,
+      ];
+    }
+
+    const unlocked = new Set<string>(FREE_NAME_EFFECTS);
+
+    const [isPremium, ownedEffectItems] = await Promise.all([
+      this.hasPremium(userId),
+      this.prisma.userItem.findMany({
+        where: { userId, item: { type: ItemType.EFFECT } },
+        select: { item: { select: { effectKey: true } } },
+      }),
+    ]);
+
+    if (isPremium) {
+      for (const id of PREMIUM_NAME_EFFECTS) unlocked.add(id);
+    }
+    for (const userItem of ownedEffectItems) {
+      if (userItem.item.effectKey) unlocked.add(userItem.item.effectKey);
+    }
+
+    return Array.from(unlocked);
+  }
+
   async updateProfile(userId: string, dto: UpdateProfileDto) {
     // El DTO ya validó que sea un id conocido (@IsIn) — acá solo falta
     // confirmar que, si es un tema Premium, el usuario realmente lo tenga.
@@ -199,10 +216,12 @@ export class IdentityService {
       }
     }
 
-    if (dto.nameEffectId && PREMIUM_NAME_EFFECTS.has(dto.nameEffectId)) {
-      const premium = await this.hasPremium(userId);
-      if (!premium) {
-        throw new ForbiddenException('Este efecto de nombre requiere Premium');
+    if (dto.nameEffectId) {
+      const unlocked = await this.getUnlockedEffectIds(userId);
+      if (!unlocked.includes(dto.nameEffectId)) {
+        throw new ForbiddenException(
+          'No tenés este efecto de nombre desbloqueado',
+        );
       }
     }
 
@@ -277,7 +296,10 @@ export class IdentityService {
 
     if (!user) throw new UnauthorizedException('Usuario no encontrado');
 
-    const isPremium = await this.hasPremium(userId);
+    const [isPremium, unlockedEffectIds] = await Promise.all([
+      this.hasPremium(userId),
+      this.getUnlockedEffectIds(userId),
+    ]);
 
     return {
       id: user.id,
@@ -296,6 +318,7 @@ export class IdentityService {
       pcTheme: user.pcTheme,
       chatBubbleThemeId: user.chatBubbleThemeId,
       nameEffectId: user.nameEffectId,
+      unlockedEffectIds,
       isPremium,
       birthDate: user.birthDate,
       country: user.country,

@@ -19,6 +19,8 @@ export type GameUser = {
   pcTheme?: string;
   chatBubbleThemeId?: string | null;
   nameEffectId?: string | null;
+  /** Ids de @codebuddies/visual-effects que este usuario puede usar hoy (free + premium si aplica + items comprados; todo si es ADMIN). */
+  unlockedEffectIds?: string[];
   isPremium?: boolean;
 };
 

@@ -95,6 +95,43 @@
   letter-spacing: 0.04em;
 }
 
+.footerActions {
+  display: flex;
+  gap: var(--cb-space-2);
+}
+
+.giftForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cb-space-1);
+  width: 100%;
+}
+
+.giftInput {
+  width: 100%;
+  border-radius: var(--cb-radius-sm);
+  border: 1px solid var(--cb-border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--cb-text);
+  font-size: 12px;
+  padding: 6px 8px;
+}
+
+.giftActions {
+  display: flex;
+  gap: var(--cb-space-2);
+}
+
+.giftActions > * {
+  flex: 1;
+}
+
+.giftError {
+  font-size: 11px;
+  color: #f87171;
+  margin: 0;
+}
+
 .pagination {
   display: flex;
   justify-content: center;

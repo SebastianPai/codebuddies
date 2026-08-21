@@ -94,6 +94,11 @@ enum InteractionType {
 enum ItemType {
   AVATAR
   WORLD
+  // Item cosmético abstracto (no se equipa en un slot de avatar ni se coloca
+  // en el mundo) -- desbloquea un efecto visual de @codebuddies/visual-effects
+  // para usar como Name Effect (y a futuro, bordes de burbuja de chat, etc.).
+  // Ver Item.effectKey.
+  EFFECT
 }
 
 enum ItemAccessType {
@@ -680,6 +685,9 @@ model User {
   rooms  Room[]
   apps   App[]
 
+  itemGiftsSent     ItemGift[] @relation("ItemGiftsSent")
+  itemGiftsReceived ItemGift[] @relation("ItemGiftsReceived")
+
   roomUsers           RoomUser[]
   roomPermissions     RoomPermission[]
   roomRequests        RoomJoinRequest[]
@@ -851,6 +859,10 @@ model Item {
 
   type ItemType?
 
+  // Solo para type == EFFECT: id del efecto en @codebuddies/visual-effects
+  // (ej. "galaxy") que este item desbloquea. Un item por effectKey.
+  effectKey String?
+
   maxStack Int @default(1)
 
   accessType ItemAccessType @default(FREE)
@@ -877,6 +889,7 @@ model Item {
   avatarSlots    AvatarSlot[]
   roomItems      RoomItem[]
   buildFavorites RoomBuildFavorite[]
+  gifts          ItemGift[]
 }
 
 model AvatarItemData {
@@ -1001,6 +1014,30 @@ model UserItem {
   @@unique([userId, itemId])
   @@index([userId])
   @@index([itemId])
+}
+
+// Auditoría de "compré este item para regalárselo a otro usuario" (ver
+// ItemsService.giftItem). El UserItem resultante queda a nombre del
+// recipient con source: "gift"; este registro es solo para historial/
+// notificación, no participa en la lógica de desbloqueo.
+model ItemGift {
+  id String @id @default(uuid())
+
+  itemId String
+  item   Item   @relation(fields: [itemId], references: [id])
+
+  giftedById String
+  giftedBy   User   @relation("ItemGiftsSent", fields: [giftedById], references: [id])
+
+  recipientId String
+  recipient   User   @relation("ItemGiftsReceived", fields: [recipientId], references: [id])
+
+  coinsSpent Int
+
+  createdAt DateTime @default(now())
+
+  @@index([giftedById])
+  @@index([recipientId])
 }
 
 model AvatarSlot {

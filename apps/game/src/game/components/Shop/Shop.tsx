@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Socket } from "socket.io-client";
-import { Globe, Shirt } from "lucide-react";
+import { Globe, Shirt, Sparkles } from "lucide-react";
 
 import styles from "./Shop.module.css";
 import { requestGameConfirm, showGameAlert } from "../../utils/dialog";
@@ -22,7 +22,7 @@ interface Props {
 }
 
 type SortType = "new" | "old" | "cheap" | "expensive" | "popular";
-type TabType = "avatar" | "world" | "textures" | "backgrounds";
+type TabType = "avatar" | "world" | "textures" | "backgrounds" | "effects";
 
 const ITEMS_PER_PAGE = 12;
 
@@ -51,6 +51,10 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
   const [currentPage, setCurrentPage] = useState(1);
   const [buyingItemId, setBuyingItemId] = useState<string | null>(null);
   const buyingSafetyTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [giftTargetId, setGiftTargetId] = useState<string | null>(null);
+  const [giftUsername, setGiftUsername] = useState("");
+  const [sendingGift, setSendingGift] = useState(false);
+  const [giftError, setGiftError] = useState("");
 
   const inventoryMap = useMemo(() => {
     const map = new Map<string, number>();
@@ -81,14 +85,35 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
       window.dispatchEvent(new CustomEvent("fx:sparkle"));
     };
 
+    const handleGifted = () => {
+      requestItems();
+      setSendingGift(false);
+      setGiftTargetId(null);
+      setGiftUsername("");
+      audioManager.play("coin");
+      window.dispatchEvent(new CustomEvent("fx:sparkle"));
+    };
+    const handleShopError = (data: { message?: string }) => {
+      // Comparte el evento con errores de compra (que hoy no muestran nada
+      // en UI) -- acá solo reacciona si había un regalo en curso, para no
+      // interferir con el flujo de compra.
+      if (!giftTargetId) return;
+      setSendingGift(false);
+      setGiftError(data?.message || t("commerce.giftGenericError"));
+    };
+
     socket.on("shop:items", handleItems);
     socket.on("shop:item:bought", handleBought);
+    socket.on("shop:item:gifted", handleGifted);
+    socket.on("shop:item:error", handleShopError);
 
     return () => {
       socket.off("shop:items", handleItems);
       socket.off("shop:item:bought", handleBought);
+      socket.off("shop:item:gifted", handleGifted);
+      socket.off("shop:item:error", handleShopError);
     };
-  }, [socket, sort]);
+  }, [socket, sort, giftTargetId, t]);
 
   useEffect(() => {
     return () => {
@@ -136,6 +161,42 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
       setBuyingItemId(null);
       buyingSafetyTimeout.current = null;
     }, 8000);
+  };
+
+  const openGiftForm = (itemId: string) => {
+    setGiftError("");
+    setGiftUsername("");
+    setGiftTargetId(itemId);
+  };
+
+  const cancelGift = () => {
+    setGiftTargetId(null);
+    setGiftUsername("");
+    setGiftError("");
+  };
+
+  const sendGift = async (itemId: string) => {
+    const trimmed = giftUsername.trim();
+    if (!trimmed) {
+      setGiftError(t("commerce.giftUsernameRequired"));
+      return;
+    }
+    const item = items.find((current) => current.id === itemId);
+
+    const confirmed = await requestGameConfirm({
+      title: t("commerce.giftConfirmTitle"),
+      message: t("commerce.giftConfirmMessage", {
+        name: item?.name || t("commerce.shopDefaultItemName"),
+        username: trimmed,
+      }),
+      confirmLabel: t("commerce.giftConfirmButton"),
+      cancelLabel: t("common.cancel"),
+    });
+    if (!confirmed) return;
+
+    setGiftError("");
+    setSendingGift(true);
+    socket?.emit("shop:item:gift", { itemId, recipientUsername: trimmed });
   };
 
   const getLabel = (item: any) => {
@@ -187,11 +248,13 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
       const isWorld = item.type === "WORLD" || !!item.kind || !!item.worldData;
       const kind = item.kind || item.worldData?.kind;
       const isTexture = isWorld && (kind === "FLOOR" || kind === "WALL");
+      const isEffect = item.type === "EFFECT";
 
       if (activeTab === "avatar" && !isAvatar) return false;
       if (activeTab === "world" && (!isWorld || isTexture)) return false;
       if (activeTab === "textures" && !isTexture) return false;
       if (activeTab === "backgrounds" && item.type !== "BACKGROUND") return false;
+      if (activeTab === "effects" && !isEffect) return false;
 
       return (
         item.id?.toLowerCase().includes(term) ||
@@ -248,6 +311,12 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
         >
           {t("commerce.shopTabBackgrounds")}
         </button>
+        <button
+          className={`${styles.tab} ${activeTab === "effects" ? styles.active : ""}`}
+          onClick={() => setActiveTab("effects")}
+        >
+          <Sparkles size={14} /> {t("commerce.shopTabEffects")}
+        </button>
       </div>
 
       <div className={styles.shopBanner}>
@@ -258,7 +327,9 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
               ? t("commerce.shopBannerTextures")
               : activeTab === "backgrounds"
                 ? t("commerce.shopBannerBackgrounds")
-                : t("commerce.shopBannerWorld")}
+                : activeTab === "effects"
+                  ? t("commerce.shopBannerEffects")
+                  : t("commerce.shopBannerWorld")}
         </h2>
 
         <p>{t("commerce.shopItemsAvailable", { count: items.length })}</p>
@@ -294,6 +365,7 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
               key={item.id}
               item={item}
               rarity={item.rarity}
+              effectPreview={item.type === "EFFECT" ? item.effectKey : undefined}
               title={owned && item.type === "BACKGROUND" ? `${getLabel(item)} ✓` : getLabel(item)}
               stackCount={item.type !== "BACKGROUND" ? inventoryMap.get(item.id) : undefined}
               footer={
@@ -306,25 +378,60 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
                     ) : (
                       <CurrencyBadge currency="coins" amount={item.coinsPrice} size="sm" />
                     )}
-                    <RarityText effect={item.rarityKey} className={styles.rarity}>
-                      {getRarityLabel(item.rarityKey, t)}
-                    </RarityText>
+                    {item.type !== "EFFECT" && (
+                      <RarityText effect={item.rarityKey} className={styles.rarity}>
+                        {getRarityLabel(item.rarityKey, t)}
+                      </RarityText>
+                    )}
                   </div>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    fullWidth
-                    onClick={() => void buyItem(item.id)}
-                    disabled={isBuying || alreadyHasBackground}
-                  >
-                    {alreadyHasBackground
-                      ? t("commerce.shopAlreadyOwned")
-                      : isBuying
-                        ? t("commerce.shopBuying")
-                        : owned
-                          ? t("commerce.shopBuyAnother")
-                          : t("commerce.shopBuy")}
-                  </Button>
+                  {giftTargetId === item.id ? (
+                    <div className={styles.giftForm}>
+                      <input
+                        className={styles.giftInput}
+                        placeholder={t("commerce.giftUsernamePlaceholder")}
+                        value={giftUsername}
+                        onChange={(e) => setGiftUsername(e.target.value)}
+                        disabled={sendingGift}
+                      />
+                      <div className={styles.giftActions}>
+                        <Button variant="secondary" size="sm" onClick={cancelGift} disabled={sendingGift}>
+                          {t("common.cancel")}
+                        </Button>
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={() => void sendGift(item.id)}
+                          disabled={sendingGift}
+                        >
+                          {sendingGift ? t("commerce.giftSending") : t("commerce.giftSend")}
+                        </Button>
+                      </div>
+                      {giftError && <p className={styles.giftError}>{giftError}</p>}
+                    </div>
+                  ) : (
+                    <div className={styles.footerActions}>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        fullWidth
+                        onClick={() => void buyItem(item.id)}
+                        disabled={isBuying || alreadyHasBackground}
+                      >
+                        {alreadyHasBackground
+                          ? t("commerce.shopAlreadyOwned")
+                          : isBuying
+                            ? t("commerce.shopBuying")
+                            : owned
+                              ? t("commerce.shopBuyAnother")
+                              : t("commerce.shopBuy")}
+                      </Button>
+                      {item.type === "EFFECT" && (
+                        <Button variant="secondary" size="sm" onClick={() => openGiftForm(item.id)}>
+                          {t("commerce.giftButton")}
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </div>
               }
             />

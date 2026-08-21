@@ -15,6 +15,7 @@ export interface User {
   bestStreak?: number;
   marketingEmailsEnabled?: boolean;
   nameEffectId?: string | null;
+  unlockedEffectIds?: string[];
   isPremium?: boolean;
 }
 

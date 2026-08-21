@@ -7,6 +7,7 @@ import { getEffectDefinition, resolveItemRarityEffect } from "@codebuddies/visua
 import styles from "./ItemCard.module.css";
 import ItemPreview from "../UI/ItemPreview";
 import ImagePreviewModal from "./ImagePreviewModal";
+import RarityText from "./RarityText";
 import { useTranslation } from "../../../i18n/useTranslation";
 
 interface Props {
@@ -32,6 +33,13 @@ interface Props {
   onToggleFavorite?: () => void;
   /** Item.rarity (0-4). Adds the shared rarity border treatment when present. */
   rarity?: number;
+  /**
+   * Item.effectKey (solo type === "EFFECT"): en vez del borde derivado de
+   * rarity, muestra el efecto real que este item desbloquea -- borde +
+   * título con el propio degradado, para que el item "se muestre a sí
+   * mismo" en la tienda. Tiene prioridad sobre `rarity` si está presente.
+   */
+  effectPreview?: string | null;
 }
 
 // Celda de item compartida por Inventory, Shop, BuildModePanel y
@@ -55,18 +63,24 @@ export default function ItemCard({
   isFavorite,
   onToggleFavorite,
   rarity,
+  effectPreview,
 }: Props) {
   const t = useTranslation();
   const [zoomOpen, setZoomOpen] = useState(false);
   const label = title ?? item?.name ?? t("hud.itemPreview.fallbackLabel");
   const imageUrl: string | undefined = item?.imageUrl || item?.previewUrl || item?.thumbnailUrl;
-  const rarityBorderClass =
-    rarity != null ? getEffectDefinition(resolveItemRarityEffect(rarity).id).borderClassName : undefined;
+  const borderClass = effectPreview
+    ? getEffectDefinition(effectPreview).borderClassName
+    : rarity != null
+      ? getEffectDefinition(resolveItemRarityEffect(rarity).id).borderClassName
+      : undefined;
+  const glowClass = effectPreview ? getEffectDefinition(effectPreview).glowClassName : undefined;
   const classes = [
     styles.card,
     selected ? styles.selected : "",
     locked ? styles.locked : "",
-    rarityBorderClass ?? "",
+    borderClass ?? "",
+    glowClass ?? "",
     className,
   ]
     .filter(Boolean)
@@ -92,7 +106,13 @@ export default function ItemCard({
         </div>
         <span className={styles.title} title={label}>
           {TitleIcon && <TitleIcon size={12} className={styles.titleIcon} />}
-          <span className={styles.titleText}>{label}</span>
+          {effectPreview ? (
+            <RarityText effect={effectPreview} className={styles.titleText}>
+              {label}
+            </RarityText>
+          ) : (
+            <span className={styles.titleText}>{label}</span>
+          )}
         </span>
         {actionHint && <span className={styles.actionHint}>{actionHint}</span>}
       </button>
