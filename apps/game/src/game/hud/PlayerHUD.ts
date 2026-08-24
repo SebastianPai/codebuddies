@@ -1,5 +1,9 @@
 import Phaser from "phaser";
 import { getEffectDefinition, VISUAL_EFFECTS, type VisualEffectDefinition } from "@codebuddies/visual-effects";
+import NameGradientPipeline, {
+  ensureNameGradientPipeline,
+  NAME_GRADIENT_PIPELINE_KEY,
+} from "./NameGradientPipeline";
 import ModularPlayer from "../players/ModularPlayer";
 import { getUserBadges, getBadgeConfigCached, type BadgeIconConfig } from "../network/badges";
 import { loadTextureOnce } from "../utils/phaserAssetCache";
@@ -28,10 +32,11 @@ export interface HUDConfig {
   chatBubbleThemeId?: string;
   /**
    * Efecto visual de nombre elegido por el jugador (ver
-   * @codebuddies/visual-effects). El canvas de Phaser no puede pintar el
-   * degradado animado que usa el resto de la app (background-clip:text es
-   * CSS/DOM), así que acá se aproxima con el color sólido representativo
-   * del efecto (glowColor) — mismo alcance que Text de Phaser permite hoy.
+   * @codebuddies/visual-effects). Con WebGL disponible, se renderiza con el
+   * mismo degradado animado multicolor que la versión CSS/DOM, vía un
+   * PostFXPipeline nativo de Phaser (ver NameGradientPipeline.ts). Si el
+   * renderer cayó a Canvas (sin WebGL), cae a color sólido representativo
+   * del efecto — nunca texto invisible ni roto.
    */
   nameEffectId?: string | null;
 }
@@ -223,15 +228,12 @@ export default class PlayerHUD {
   private readonly chatBubbleTheme: ChatBubbleTheme;
   private avatarLayers: FaceLayer[] = [];
 
-  // Name Effect: el color base ya lo puede pintar Text.setColor (ver
-  // applyNameEffect), pero el shimmer animado (equivalente a
-  // background-clip:text + gradiente en movimiento, que Phaser no tiene
-  // nativo) se aproxima con un Rectangle en blend ADD recortado a la forma
-  // exacta del texto vía BitmapMask -- ver createShimmer/destroyShimmer.
+  // Name Effect: ver applyNameEffectVisuals -- con WebGL, el degradado
+  // multicolor animado lo pinta NameGradientPipeline (un PostFXPipeline
+  // nativo de Phaser) directamente sobre usernameText; no hace falta
+  // ningún GameObject/máscara/tween extra ni reposicionamiento manual en
+  // update(), el pipeline sigue al texto automáticamente.
   private nameEffectId: string | null = null;
-  private shimmerHighlight?: Phaser.GameObjects.Rectangle;
-  private shimmerTween?: Phaser.Tweens.Tween;
-  private shimmerOffset = 0;
 
   private static prefersReducedMotion(): boolean {
     return (
@@ -284,9 +286,7 @@ export default class PlayerHUD {
       .setAlpha(0)
       .setVisible(!!this.sprite);
 
-    if (initialDefinition?.animationName && !PlayerHUD.prefersReducedMotion()) {
-      this.createShimmer(initialDefinition);
-    }
+    this.applyNameEffectVisuals(initialDefinition);
 
     void this.loadBadges(config.username);
   }
@@ -294,8 +294,8 @@ export default class PlayerHUD {
   // Llamado por PlayerSocketSystem al recibir "playerNameEffectUpdated"
   // (tanto para uno mismo como para otros jugadores ya visibles en la
   // sala) — actualiza el nameplate en el lugar, sin recrear el sprite ni
-  // el HUD. Si el id no cambió realmente, no reinicia la animación (evita
-  // que un evento redundante corte el shimmer a mitad de camino).
+  // el HUD. Si el id no cambió realmente, no hace nada (evita reiniciar la
+  // animación del shader por un evento redundante).
   setNameEffect(nameEffectId: string | null | undefined) {
     const normalized = nameEffectId ?? null;
     if (normalized === this.nameEffectId) return;
@@ -305,68 +305,50 @@ export default class PlayerHUD {
       !!normalized && normalized !== "common" && normalized in VISUAL_EFFECTS;
     const definition = hasEffect ? getEffectDefinition(normalized) : null;
 
-    this.usernameText.setColor(definition ? definition.glowColor : DEFAULT_NAMEPLATE_STYLE.textColor);
+    this.applyNameEffectVisuals(definition);
+  }
 
-    // Cleanup primero, siempre -- si venía de otro efecto animado, se corta
-    // su tween/máscara/rectángulo antes de (opcionalmente) crear el nuevo,
-    // así nunca quedan dos shimmers superpuestos para el mismo jugador.
-    this.destroyShimmer();
+  // Sin animación (tiers gratis, o prefers-reduced-motion) -> color sólido
+  // de siempre, sin pipeline: la mayoría de los jugadores no paga ningún
+  // costo extra. Con animación + WebGL disponible -> el relleno se pinta
+  // blanco (así la textura ya renderizada sirve de máscara de las letras,
+  // ver NameGradientPipeline) y se adjunta el shader compartido con los
+  // colores/velocidad de ESTE efecto. Sin WebGL (renderer cayó a Canvas) ->
+  // color sólido representativo, nunca texto invisible ni roto.
+  private applyNameEffectVisuals(definition: VisualEffectDefinition | null) {
+    if (!definition?.animationName || PlayerHUD.prefersReducedMotion()) {
+      this.usernameText.resetPostPipeline();
+      this.usernameText.setColor(definition ? definition.glowColor : DEFAULT_NAMEPLATE_STYLE.textColor);
+      return;
+    }
 
-    if (definition?.animationName && !PlayerHUD.prefersReducedMotion()) {
-      this.createShimmer(definition);
+    if (!ensureNameGradientPipeline(this.scene)) {
+      this.usernameText.resetPostPipeline();
+      this.usernameText.setColor(definition.glowColor);
+      return;
+    }
+
+    this.usernameText.setColor("#ffffff");
+    this.usernameText.setPostPipeline(NAME_GRADIENT_PIPELINE_KEY);
+
+    const attached = this.usernameText.getPostPipeline(NameGradientPipeline);
+    const pipeline = Array.isArray(attached) ? attached[0] : attached;
+    if (pipeline instanceof NameGradientPipeline) {
+      const { speed, angleDeg } = PlayerHUD.shimmerParamsFor(definition.animationName);
+      pipeline.setGradient(definition.gradientStops, speed, angleDeg);
     }
   }
 
-  // Rectangle chico en blend ADD, recortado a la silueta exacta de
-  // usernameText vía BitmapMask (mismo principio que background-clip:text
-  // en CSS: solo se ve el brillo donde hay glyph). Se anima un offset
-  // numérico con addCounter en vez de mover el propio GameObject por tween
-  // directo, para que update() sea la única fuente de verdad de posición
-  // (igual que ya hace con el sprite) -- el tween solo aporta el valor de
-  // desplazamiento relativo, sin pelear con el seguimiento del jugador.
-  private createShimmer(definition: VisualEffectDefinition) {
-    const width = Math.max(30, this.usernameText.width || 60);
-    const height = Math.max(12, this.usernameText.height || 16);
-    const baseX = this.sprite ? this.sprite.x : this.usernameText.x;
-    const baseY = this.sprite ? this.sprite.y - 50 : this.usernameText.y;
-
-    const highlight = this.scene.add
-      .rectangle(baseX, baseY, width * 0.35, height * 1.8, 0xffffff, 0.9)
-      .setBlendMode(Phaser.BlendModes.ADD)
-      .setAngle(18)
-      .setDepth(PlayerHUD.HUD_DEPTH + 1)
-      .setVisible(!!this.sprite);
-
-    highlight.setMask(this.usernameText.createBitmapMask());
-    this.shimmerHighlight = highlight;
-
-    const halfRange = width * 0.75;
-    this.shimmerOffset = -halfRange;
-
-    this.shimmerTween = this.scene.tweens.addCounter({
-      from: -halfRange,
-      to: halfRange,
-      duration: 1600,
-      ease: "Sine.easeInOut",
-      yoyo: true,
-      repeat: -1,
-      // Desincroniza el arranque entre jugadores -- sin esto, todo el mundo
-      // brilla al mismo tiempo y se lee como un flash estroboscopio grupal
-      // en vez de un shimmer individual por nombre.
-      delay: Phaser.Math.Between(0, 1400),
-      onUpdate: (tween) => {
-        this.shimmerOffset = tween.getValue() ?? 0;
-      },
-    });
-  }
-
-  private destroyShimmer() {
-    this.shimmerTween?.stop();
-    this.shimmerTween = undefined;
-    this.shimmerHighlight?.clearMask();
-    this.shimmerHighlight?.destroy();
-    this.shimmerHighlight = undefined;
-    this.shimmerOffset = 0;
+  // Mapea la "familia" de animación ya definida en
+  // packages/visual-effects/index.ts a parámetros del shader, para que el
+  // barrido dentro de Phaser se sienta consistente con su equivalente CSS:
+  // shimmer-sweep = barrido rápido, casi horizontal; holo-sweep = más
+  // lento y diagonal (misma idea que las dos @keyframes de effects.css).
+  private static shimmerParamsFor(
+    animationName: VisualEffectDefinition["animationName"],
+  ): { speed: number; angleDeg: number } {
+    if (animationName === "cb-fx-holo-sweep") return { speed: 0.18, angleDeg: 45 };
+    return { speed: 0.35, angleDeg: 15 };
   }
 
   private async loadBadges(username: string) {
@@ -472,14 +454,10 @@ export default class PlayerHUD {
     this.usernameText.setPosition(this.sprite.x, this.sprite.y - 50);
     this.usernameText.setVisible(true);
 
-    // El shimmer sigue al jugador exactamente como usernameText -- el tween
-    // solo anima shimmerOffset (ver createShimmer), la posición real se
-    // recalcula acá cada frame igual que el resto del HUD.
-    if (this.shimmerHighlight) {
-      this.shimmerHighlight
-        .setPosition(this.sprite.x + this.shimmerOffset, this.sprite.y - 50)
-        .setVisible(true);
-    }
+    // El degradado animado (NameGradientPipeline) no necesita nada acá --
+    // al estar adjunto directamente a usernameText, sigue su posición
+    // automáticamente. Antes (versión Rectangle+máscara) esto sí requería
+    // reposicionar un GameObject aparte cada frame.
 
     // Fade-in suave la primera vez que el nombre tiene dónde aparecer (en
     // vez de aparecer de golpe) — solo una vez por HUD, no en cada frame.
@@ -697,7 +675,8 @@ export default class PlayerHUD {
   }
 
   destroy() {
-    this.destroyShimmer();
+    // usernameText.destroy() también libera su PostFXPipeline adjunto (si
+    // había uno) -- no hace falta un cleanup aparte para el shader.
     this.usernameText.destroy();
     this.chatStack.forEach((entry) => entry.container.destroy());
     this.chatStack = [];
