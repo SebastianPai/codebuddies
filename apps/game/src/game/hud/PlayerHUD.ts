@@ -3,6 +3,7 @@ import { getEffectDefinition, VISUAL_EFFECTS, type VisualEffectDefinition } from
 import NameGradientPipeline, {
   ensureNameGradientPipeline,
   NAME_GRADIENT_PIPELINE_KEY,
+  type GradientAnimationKind,
 } from "./NameGradientPipeline";
 import ModularPlayer from "../players/ModularPlayer";
 import { getUserBadges, getBadgeConfigCached, type BadgeIconConfig } from "../network/badges";
@@ -316,7 +317,14 @@ export default class PlayerHUD {
   // colores/velocidad de ESTE efecto. Sin WebGL (renderer cayó a Canvas) ->
   // color sólido representativo, nunca texto invisible ni roto.
   private applyNameEffectVisuals(definition: VisualEffectDefinition | null) {
-    if (!definition?.animationName || PlayerHUD.prefersReducedMotion()) {
+    // gradientAnimation puede faltar en teoría (efecto sin ese campo
+    // poblado en el catálogo) -- tratamos eso igual que "sin animación",
+    // nunca como crash: cae a color sólido, nunca texto roto/invisible.
+    if (
+      !definition?.animationName ||
+      !definition.gradientAnimation ||
+      PlayerHUD.prefersReducedMotion()
+    ) {
       this.usernameText.resetPostPipeline();
       this.usernameText.setColor(definition ? definition.glowColor : DEFAULT_NAMEPLATE_STYLE.textColor);
       return;
@@ -334,21 +342,15 @@ export default class PlayerHUD {
     const attached = this.usernameText.getPostPipeline(NameGradientPipeline);
     const pipeline = Array.isArray(attached) ? attached[0] : attached;
     if (pipeline instanceof NameGradientPipeline) {
-      const { speed, angleDeg } = PlayerHUD.shimmerParamsFor(definition.animationName);
-      pipeline.setGradient(definition.gradientStops, speed, angleDeg);
+      const { angleDeg, sizeX, sizeY, durationMs } = definition.gradientAnimation;
+      const kind: GradientAnimationKind =
+        definition.animationName === "cb-fx-holo-sweep" ? "holo" : "shimmer";
+      // Mismo "box" que usaría el elemento DOM real para el cálculo del
+      // ángulo de linear-gradient() -- el propio tamaño renderizado del
+      // texto (con outline incluido, igual que el box de un <span> real).
+      const aspect = this.usernameText.width / Math.max(1, this.usernameText.height);
+      pipeline.setGradient(definition.gradientStops, { angleDeg, sizeX, sizeY, durationMs, kind }, aspect);
     }
-  }
-
-  // Mapea la "familia" de animación ya definida en
-  // packages/visual-effects/index.ts a parámetros del shader, para que el
-  // barrido dentro de Phaser se sienta consistente con su equivalente CSS:
-  // shimmer-sweep = barrido rápido, casi horizontal; holo-sweep = más
-  // lento y diagonal (misma idea que las dos @keyframes de effects.css).
-  private static shimmerParamsFor(
-    animationName: VisualEffectDefinition["animationName"],
-  ): { speed: number; angleDeg: number } {
-    if (animationName === "cb-fx-holo-sweep") return { speed: 0.18, angleDeg: 45 };
-    return { speed: 0.35, angleDeg: 15 };
   }
 
   private async loadBadges(username: string) {

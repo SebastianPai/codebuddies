@@ -72,6 +72,26 @@ export interface VisualEffectDefinition {
   /** Omitted = static gradient, no motion (common/uncommon). */
   animationName?: "cb-fx-shimmer-sweep" | "cb-fx-holo-sweep";
   reducedMotionFallback: "static-gradient" | "solid";
+  /**
+   * Parámetros EXACTOS de `linear-gradient(...)` + `background-size` +
+   * `animation: ... Xs` tal como están hoy en la clase `cb-fx-text-*` de
+   * effects.css -- única fuente de verdad para cualquier renderer que no
+   * sea CSS (hoy: el shader WebGL de apps/game, ver NameGradientPipeline).
+   * Solo presente cuando `animationName` también lo está: un efecto
+   * estático no tiene animación que describir. Si effects.css cambia estos
+   * valores para un efecto, este objeto debe actualizarse para que siga
+   * siendo el mismo número -- no hay forma de derivarlo en runtime desde
+   * el CSS ya compilado.
+   */
+  gradientAnimation?: {
+    /** Ángulo de linear-gradient(), en grados, convención CSS (0=arriba, 90=derecha, sentido horario). */
+    angleDeg: number;
+    /** background-size en fracción del propio elemento (250% -> 2.5), no en píxeles. */
+    sizeX: number;
+    sizeY: number;
+    /** Duración de un ciclo completo, en ms (el `Xs` de `animation: ... Xs`). */
+    durationMs: number;
+  };
 }
 
 const ALL_DISPLAY_USAGE: EffectUsage[] = ["itemRarity", "badgeRarity", "nameEffect"];
@@ -120,6 +140,7 @@ export const VISUAL_EFFECTS: Record<EffectId, VisualEffectDefinition> = {
     gradientStops: ["#a78bfa", "#7c5cff", "#a78bfa"],
     glowColor: "#8b6df0",
     animationName: "cb-fx-shimmer-sweep",
+    gradientAnimation: { angleDeg: 100, sizeX: 2.5, sizeY: 1, durationMs: 3400 },
     reducedMotionFallback: "static-gradient",
   },
   legendary: {
@@ -133,6 +154,7 @@ export const VISUAL_EFFECTS: Record<EffectId, VisualEffectDefinition> = {
     gradientStops: ["#ff8a00", "#ffd23f", "#ff8a00"],
     glowColor: "#ffb02e",
     animationName: "cb-fx-shimmer-sweep",
+    gradientAnimation: { angleDeg: 100, sizeX: 2.5, sizeY: 1, durationMs: 3000 },
     reducedMotionFallback: "static-gradient",
   },
 
@@ -147,6 +169,7 @@ export const VISUAL_EFFECTS: Record<EffectId, VisualEffectDefinition> = {
     gradientStops: ["#92702c", "#f9e28c", "#fff8dc", "#d4af37", "#fff8dc", "#f9e28c", "#92702c"],
     glowColor: "#d4af37",
     animationName: "cb-fx-shimmer-sweep",
+    gradientAnimation: { angleDeg: 100, sizeX: 2.5, sizeY: 1, durationMs: 3000 },
     reducedMotionFallback: "static-gradient",
   },
   silverRank: {
@@ -160,6 +183,7 @@ export const VISUAL_EFFECTS: Record<EffectId, VisualEffectDefinition> = {
     gradientStops: ["#75808c", "#e4e9ee", "#ffffff", "#c2cad3", "#ffffff", "#e4e9ee", "#75808c"],
     glowColor: "#c2cad3",
     animationName: "cb-fx-shimmer-sweep",
+    gradientAnimation: { angleDeg: 100, sizeX: 2.5, sizeY: 1, durationMs: 3000 },
     reducedMotionFallback: "static-gradient",
   },
   bronzeRank: {
@@ -173,6 +197,7 @@ export const VISUAL_EFFECTS: Record<EffectId, VisualEffectDefinition> = {
     gradientStops: ["#7a4a28", "#d59a6a", "#f0c797", "#b06f3f", "#f0c797", "#d59a6a", "#7a4a28"],
     glowColor: "#b06f3f",
     animationName: "cb-fx-shimmer-sweep",
+    gradientAnimation: { angleDeg: 100, sizeX: 2.5, sizeY: 1, durationMs: 3000 },
     reducedMotionFallback: "static-gradient",
   },
 
@@ -187,6 +212,7 @@ export const VISUAL_EFFECTS: Record<EffectId, VisualEffectDefinition> = {
     gradientStops: ["#ff004c", "#ff9900", "#fbef19", "#22e07a", "#21b2ff", "#a259ff", "#ff004c"],
     glowColor: "#a259ff",
     animationName: "cb-fx-shimmer-sweep",
+    gradientAnimation: { angleDeg: 90, sizeX: 3, sizeY: 1, durationMs: 4000 },
     reducedMotionFallback: "static-gradient",
   },
   diamond: {
@@ -200,6 +226,7 @@ export const VISUAL_EFFECTS: Record<EffectId, VisualEffectDefinition> = {
     gradientStops: ["#e0f7ff", "#ffffff", "#b8e6ff", "#ffffff", "#e0f7ff"],
     glowColor: "#bfeaff",
     animationName: "cb-fx-shimmer-sweep",
+    gradientAnimation: { angleDeg: 100, sizeX: 2.5, sizeY: 1, durationMs: 3200 },
     reducedMotionFallback: "static-gradient",
   },
   mythic: {
@@ -213,6 +240,7 @@ export const VISUAL_EFFECTS: Record<EffectId, VisualEffectDefinition> = {
     gradientStops: ["#ff5cad", "#7b2ff7", "#ff5cad"],
     glowColor: "#c04ce0",
     animationName: "cb-fx-shimmer-sweep",
+    gradientAnimation: { angleDeg: 100, sizeX: 2.5, sizeY: 1, durationMs: 3400 },
     reducedMotionFallback: "static-gradient",
   },
   divine: {
@@ -226,6 +254,7 @@ export const VISUAL_EFFECTS: Record<EffectId, VisualEffectDefinition> = {
     gradientStops: ["#fff8e1", "#ffd700", "#fff8e1"],
     glowColor: "#f2d675",
     animationName: "cb-fx-holo-sweep",
+    gradientAnimation: { angleDeg: 115, sizeX: 3, sizeY: 3, durationMs: 6000 },
     reducedMotionFallback: "static-gradient",
   },
   galaxy: {
@@ -239,6 +268,7 @@ export const VISUAL_EFFECTS: Record<EffectId, VisualEffectDefinition> = {
     gradientStops: ["#241a45", "#6a3fd6", "#a37bff", "#241a45"],
     glowColor: "#6a3fd6",
     animationName: "cb-fx-holo-sweep",
+    gradientAnimation: { angleDeg: 115, sizeX: 3, sizeY: 3, durationMs: 6500 },
     reducedMotionFallback: "static-gradient",
   },
   aurora: {
@@ -252,6 +282,7 @@ export const VISUAL_EFFECTS: Record<EffectId, VisualEffectDefinition> = {
     gradientStops: ["#4dd8b0", "#7c9eff", "#c98bff", "#4dd8b0"],
     glowColor: "#7c9eff",
     animationName: "cb-fx-holo-sweep",
+    gradientAnimation: { angleDeg: 115, sizeX: 3, sizeY: 3, durationMs: 6000 },
     reducedMotionFallback: "static-gradient",
   },
   ice: {
@@ -265,6 +296,7 @@ export const VISUAL_EFFECTS: Record<EffectId, VisualEffectDefinition> = {
     gradientStops: ["#cdeeff", "#eaffff", "#a9d8ff"],
     glowColor: "#bfe7ff",
     animationName: "cb-fx-shimmer-sweep",
+    gradientAnimation: { angleDeg: 100, sizeX: 2.5, sizeY: 1, durationMs: 3600 },
     reducedMotionFallback: "static-gradient",
   },
   fire: {
@@ -278,6 +310,7 @@ export const VISUAL_EFFECTS: Record<EffectId, VisualEffectDefinition> = {
     gradientStops: ["#e2542f", "#f2a33d", "#e2542f"],
     glowColor: "#e2782f",
     animationName: "cb-fx-shimmer-sweep",
+    gradientAnimation: { angleDeg: 100, sizeX: 2.5, sizeY: 1, durationMs: 3200 },
     reducedMotionFallback: "static-gradient",
   },
   emerald: {
@@ -291,6 +324,7 @@ export const VISUAL_EFFECTS: Record<EffectId, VisualEffectDefinition> = {
     gradientStops: ["#0f9d63", "#6be3a5", "#0f9d63"],
     glowColor: "#2bb87e",
     animationName: "cb-fx-shimmer-sweep",
+    gradientAnimation: { angleDeg: 100, sizeX: 2.5, sizeY: 1, durationMs: 3400 },
     reducedMotionFallback: "static-gradient",
   },
   ruby: {
@@ -304,6 +338,7 @@ export const VISUAL_EFFECTS: Record<EffectId, VisualEffectDefinition> = {
     gradientStops: ["#a3213e", "#ff6f91", "#a3213e"],
     glowColor: "#c93b5c",
     animationName: "cb-fx-shimmer-sweep",
+    gradientAnimation: { angleDeg: 100, sizeX: 2.5, sizeY: 1, durationMs: 3400 },
     reducedMotionFallback: "static-gradient",
   },
   sapphire: {
@@ -317,6 +352,7 @@ export const VISUAL_EFFECTS: Record<EffectId, VisualEffectDefinition> = {
     gradientStops: ["#1e3a8a", "#60a5fa", "#1e3a8a"],
     glowColor: "#3f6fc4",
     animationName: "cb-fx-shimmer-sweep",
+    gradientAnimation: { angleDeg: 100, sizeX: 2.5, sizeY: 1, durationMs: 3400 },
     reducedMotionFallback: "static-gradient",
   },
   holographic: {
@@ -330,6 +366,7 @@ export const VISUAL_EFFECTS: Record<EffectId, VisualEffectDefinition> = {
     gradientStops: ["#ff9ecb", "#a0e7ff", "#d1ff9e", "#ffe89e", "#d1a0ff", "#ff9ecb"],
     glowColor: "#c9a0ff",
     animationName: "cb-fx-holo-sweep",
+    gradientAnimation: { angleDeg: 115, sizeX: 3, sizeY: 3, durationMs: 6000 },
     reducedMotionFallback: "static-gradient",
   },
   obsidian: {
@@ -343,6 +380,7 @@ export const VISUAL_EFFECTS: Record<EffectId, VisualEffectDefinition> = {
     gradientStops: ["#0d0d12", "#3a2a52", "#0d0d12"],
     glowColor: "#4a3670",
     animationName: "cb-fx-shimmer-sweep",
+    gradientAnimation: { angleDeg: 100, sizeX: 2.5, sizeY: 1, durationMs: 4000 },
     reducedMotionFallback: "static-gradient",
   },
   cyber: {
@@ -356,6 +394,7 @@ export const VISUAL_EFFECTS: Record<EffectId, VisualEffectDefinition> = {
     gradientStops: ["#4fd8c4", "#b06bff", "#4fd8c4"],
     glowColor: "#7fb8e0",
     animationName: "cb-fx-shimmer-sweep",
+    gradientAnimation: { angleDeg: 100, sizeX: 2.5, sizeY: 1, durationMs: 3000 },
     reducedMotionFallback: "static-gradient",
   },
   matrix: {
@@ -369,6 +408,7 @@ export const VISUAL_EFFECTS: Record<EffectId, VisualEffectDefinition> = {
     gradientStops: ["#0d2b1a", "#3ddc84", "#0d2b1a"],
     glowColor: "#2fb86e",
     animationName: "cb-fx-shimmer-sweep",
+    gradientAnimation: { angleDeg: 100, sizeX: 2.5, sizeY: 1, durationMs: 3200 },
     reducedMotionFallback: "static-gradient",
   },
   electric: {
@@ -382,6 +422,7 @@ export const VISUAL_EFFECTS: Record<EffectId, VisualEffectDefinition> = {
     gradientStops: ["#7df9ff", "#2596ff", "#7df9ff"],
     glowColor: "#4fb8ff",
     animationName: "cb-fx-shimmer-sweep",
+    gradientAnimation: { angleDeg: 100, sizeX: 2.5, sizeY: 1, durationMs: 2800 },
     reducedMotionFallback: "static-gradient",
   },
   crystal: {
@@ -395,6 +436,7 @@ export const VISUAL_EFFECTS: Record<EffectId, VisualEffectDefinition> = {
     gradientStops: ["#f5e9ff", "#d7c3ff", "#f5e9ff"],
     glowColor: "#d7c3ff",
     animationName: "cb-fx-holo-sweep",
+    gradientAnimation: { angleDeg: 115, sizeX: 3, sizeY: 3, durationMs: 5500 },
     reducedMotionFallback: "static-gradient",
   },
 };

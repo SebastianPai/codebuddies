@@ -1,35 +1,34 @@
 import Phaser from "phaser";
 
-// Primer shader custom del proyecto -- reemplaza el hack anterior (Rectangle
-// en blend ADD + BitmapMask) por un PostFXPipeline real de Phaser, aplicado
-// directamente sobre el Text ya renderizado (ver PlayerHUD.applyNameEffect).
+// Reproduce EXACTAMENTE (no "parecido") el degradado animado que
+// packages/visual-effects/effects.css pinta sobre `.cb-fx-text-*` con
+// `background-clip: text` + `background-image: linear-gradient(...)` +
+// `background-size` + `animation: ... background-position`. Ver
+// VisualEffectDefinition.gradientAnimation -- ese objeto (colors, angleDeg,
+// sizeX/Y, durationMs) es la ÚNICA fuente de verdad; este archivo no
+// hardcodea el ángulo/tamaño/velocidad de ningún efecto, solo sabe cómo
+// convertir esos parámetros en la matemática que un shader necesita.
 //
-// Técnica (equivalente nativo de Phaser a background-clip:text + gradiente
-// animado en CSS):
-//   1. Cuando el efecto tiene animación, el Text se pinta en BLANCO puro
-//      (en vez de un color fijo) -- eso hace que la textura ya renderizada
-//      por Phaser sirva de máscara: relleno = blanco, contorno = oscuro
-//      (mismo #0b0f1a que ya usa DEFAULT_NAMEPLATE_STYLE.outlineColor en
-//      TODOS los nameplates, así que hardcodearlo acá no rompe nada).
-//   2. Este shader lee esa textura, distingue relleno de contorno por
-//      luminosidad (src.r), y solo el relleno recibe el degradado --
-//      el contorno se mantiene intacto para no perder legibilidad.
-//   3. El color del degradado sale de hasta 8 uniforms vec3 individuales
-//      (no un array) para no depender del indexado dinámico de arrays en
-//      GLSL ES 1.00, que en hardware WebGL1 viejo/móvil no siempre es
-//      portable -- acá cada acceso a "colorAt(i)" es un if-chain con un
-//      índice de loop de cota constante, 100% portable.
-//   4. El barrido es dot(uv, dirección) + tiempo, en loop (fract) -- en
-//      espacio UV (0-1 dentro del propio glyph), no en píxeles de pantalla,
-//      así el efecto es invariante al zoom de cámara (1x/2x/3x) sin ningún
-//      código extra.
+// Arquitectura (texto como máscara, igual que antes):
+//   1. Con animación, usernameText se pinta en BLANCO puro -- la textura ya
+//      renderizada por Phaser sirve de máscara: relleno = blanco, contorno
+//      = oscuro (mismo #0b0f1a de siempre).
+//   2. Este shader distingue relleno de contorno por luminosidad (src.r) y
+//      solo el relleno recibe el degradado.
+//   3. La posición dentro del degradado ("gradT", 0-1) es una función
+//      AFINE de la UV del fragmento: gradT = Ku*u + Kv*v + Kconst. Ku/Kv
+//      salen del ángulo+aspect-ratio+background-size del efecto (constantes
+//      mientras no cambie el texto/efecto); Kconst es lo único que depende
+//      del tiempo (posición animada, background-position), y se recalcula
+//      en la CPU (TS) una vez por frame -- no en el shader. Ver
+//      `computeStaticCoeffs`/`computeKconst` más abajo para la derivación.
 const FRAGMENT_SHADER = `
 precision mediump float;
 
 uniform sampler2D uMainSampler;
-uniform float uTime;
-uniform float uSpeed;
-uniform vec2 uDirection;
+uniform float uKu;
+uniform float uKv;
+uniform float uKconst;
 uniform int uColorCount;
 uniform vec3 uColor0;
 uniform vec3 uColor1;
@@ -67,7 +66,9 @@ void main() {
   int count = uColorCount;
   if (count < 2) count = 2;
 
-  float t = fract(dot(outTexCoord, uDirection) + uTime * uSpeed);
+  // CSS linear-gradient() clampea (no envuelve) más allá del primer/último
+  // stop -- por eso clamp(), no fract() como en la versión anterior.
+  float t = clamp(uKu * outTexCoord.x + uKv * outTexCoord.y + uKconst, 0.0, 1.0);
   float segF = t * float(count - 1);
 
   vec3 gradColor = uColor0;
@@ -87,9 +88,11 @@ void main() {
   float fillness = smoothstep(FILL_LOW, FILL_HIGH, src.r);
   vec3 finalColor = mix(OUTLINE_COLOR, gradColor, fillness);
 
-  // RGB premultiplicado por alpha -- mismo criterio que espera el
-  // pipeline por defecto de Phaser para blend correcto en los bordes
-  // antialiaseados del texto.
+  // RGB premultiplicado por alpha -- mismo criterio que espera el pipeline
+  // por defecto de Phaser para blend correcto en los bordes antialiaseados.
+  // Los colores en sí NO se linealizan/gamma-corrigen antes del mix() de
+  // arriba -- CSS tampoco lo hace por defecto con linear-gradient(#hex...),
+  // interpola directo en sRGB codificado, así que este mix() ya coincide.
   gl_FragColor = vec4(finalColor * src.a, src.a);
 }
 `;
@@ -97,31 +100,173 @@ void main() {
 export const NAME_GRADIENT_PIPELINE_KEY = "NameGradientPipeline";
 const MAX_COLOR_STOPS = 8;
 
-interface PendingGradient {
-  colorsHex: string[];
-  speed: number;
+export type GradientAnimationKind = "shimmer" | "holo";
+
+export interface GradientAnimationParams {
+  /** Ángulo de linear-gradient(), grados, convención CSS (ver VisualEffectDefinition.gradientAnimation). */
   angleDeg: number;
+  /** background-size en fracción del propio elemento (250% -> 2.5). */
+  sizeX: number;
+  sizeY: number;
+  /** Duración de un ciclo completo, ms. */
+  durationMs: number;
+  /** Qué @keyframes de effects.css reproducir: shimmer-sweep (barrido lineal, 1 eje) u holo-sweep (diagonal, ease-in-out, ida y vuelta). */
+  kind: GradientAnimationKind;
 }
 
-// Instancia UNA sola vez por juego (ver ensureRegistered) -- Phaser compila
-// el shader una sola vez para el key, y cada Text que lo usa
-// (setPostPipeline) obtiene una instancia liviana propia que comparte el
-// WebGLProgram compilado, solo con sus propios uniforms (colores/velocidad/
-// dirección). Con 30-100 nameplates visibles, el costo por jugador es
-// "algunos floats seteados", no "un shader nuevo compilado".
+interface PendingGradient {
+  colorsHex: string[];
+  anim: GradientAnimationParams;
+  /** Ancho/alto del propio usernameText (px) -- mismo rol que el "box" del elemento DOM en el cálculo del ángulo del gradiente CSS. */
+  aspect: number;
+}
+
+interface StaticCoeffs {
+  ku: number;
+  kv: number;
+  rg: number;
+  sinT: number;
+  cosT: number;
+  L: number;
+  sizeX: number;
+  sizeY: number;
+}
+
+// Solver estándar de cubic-bezier (algoritmo de WebKit/UnitBezier, dominio
+// público, el mismo usado por los navegadores para `animation-timing-
+// function`). Necesario porque `cb-fx-holo-sweep` usa `ease-in-out` ==
+// cubic-bezier(0.42, 0, 0.58, 1) -- sin esto, el barrido diagonal de
+// galaxy/holographic/etc. se movería a velocidad constante en vez de
+// acelerar/desacelerar como en CSS.
+//
+// Se resuelve en TypeScript (no GLSL): la curva solo depende del tiempo,
+// no de la posición del fragmento, así que evaluarla una vez por frame en
+// la CPU (dentro de onPreRender) es exacto y evita iteración Newton-
+// Raphson dentro del shader (más simple, más portable a WebGL1/móvil).
+class UnitBezier {
+  private readonly ax: number;
+  private readonly bx: number;
+  private readonly cx: number;
+  private readonly ay: number;
+  private readonly by: number;
+  private readonly cy: number;
+
+  constructor(p1x: number, p1y: number, p2x: number, p2y: number) {
+    this.cx = 3 * p1x;
+    this.bx = 3 * (p2x - p1x) - this.cx;
+    this.ax = 1 - this.cx - this.bx;
+    this.cy = 3 * p1y;
+    this.by = 3 * (p2y - p1y) - this.cy;
+    this.ay = 1 - this.cy - this.by;
+  }
+
+  private sampleCurveX(t: number) {
+    return ((this.ax * t + this.bx) * t + this.cx) * t;
+  }
+
+  private sampleCurveY(t: number) {
+    return ((this.ay * t + this.by) * t + this.cy) * t;
+  }
+
+  private sampleCurveDerivativeX(t: number) {
+    return (3 * this.ax * t + 2 * this.bx) * t + this.cx;
+  }
+
+  private solveCurveX(x: number, epsilon = 1e-6) {
+    let t2 = x;
+    for (let i = 0; i < 8; i++) {
+      const x2 = this.sampleCurveX(t2) - x;
+      if (Math.abs(x2) < epsilon) return t2;
+      const d2 = this.sampleCurveDerivativeX(t2);
+      if (Math.abs(d2) < 1e-6) break;
+      t2 = t2 - x2 / d2;
+    }
+    let t0 = 0;
+    let t1 = 1;
+    t2 = x;
+    if (t2 < t0) return t0;
+    if (t2 > t1) return t1;
+    while (t0 < t1) {
+      const x2 = this.sampleCurveX(t2);
+      if (Math.abs(x2 - x) < epsilon) return t2;
+      if (x > x2) t0 = t2;
+      else t1 = t2;
+      t2 = (t1 - t0) * 0.5 + t0;
+    }
+    return t2;
+  }
+
+  solve(x: number) {
+    return this.sampleCurveY(this.solveCurveX(x));
+  }
+}
+
+// CSS `ease-in-out` == cubic-bezier(0.42, 0, 0.58, 1) (valor estándar del
+// spec, no un ajuste nuestro).
+const EASE_IN_OUT = new UnitBezier(0.42, 0, 0.58, 1);
+
+// Constantes de las DOS @keyframes reales de effects.css -- son globales y
+// compartidas por todos los efectos de esa familia (no escalan con el
+// background-size de cada efecto individual, effects.css las define una
+// sola vez arriba del archivo):
+//   @keyframes cb-fx-shimmer-sweep { 0% { background-position: 0% 50%; } 100% { background-position: -250% 50%; } }
+//   @keyframes cb-fx-holo-sweep    { 0%,100% { background-position: 0% 0%; } 50% { background-position: 100% 100%; } }
+const SHIMMER_TARGET_X = -2.5;
+const SHIMMER_FIXED_Y = 0.5;
+const HOLO_PEAK = 1;
+
+function bgPositionFraction(kind: GradientAnimationKind, progress: number): { bx: number; by: number } {
+  if (kind === "shimmer") {
+    // linear infinite, un solo tramo 0->100%.
+    return { bx: SHIMMER_TARGET_X * progress, by: SHIMMER_FIXED_Y };
+  }
+
+  // holo-sweep: ease-in-out infinite, triangular (0,0) -> (1,1) -> (0,0).
+  // El timing-function de CSS se aplica dentro de cada tramo de keyframes
+  // por separado (mismo cubic-bezier en ambos, acá).
+  const inFirstHalf = progress < 0.5;
+  const local = inFirstHalf ? progress / 0.5 : (progress - 0.5) / 0.5;
+  const eased = EASE_IN_OUT.solve(local);
+  const v = (inFirstHalf ? eased : 1 - eased) * HOLO_PEAK;
+  return { bx: v, by: v };
+}
+
+function computeStaticCoeffs(anim: GradientAnimationParams, aspect: number): StaticCoeffs {
+  const rad = Phaser.Math.DegToRad(anim.angleDeg);
+  const sinT = Math.sin(rad);
+  const cosT = Math.cos(rad);
+  // "Generation box" del gradiente = el tamaño real que ocupa el
+  // background-image ya escalado por background-size, en px -- lo único
+  // que importa de eso para el ángulo es su aspect ratio (Rg).
+  const rg = (anim.sizeX / anim.sizeY) * aspect;
+  const L = Math.abs(rg * sinT) + Math.abs(cosT);
+  const ku = (rg * sinT) / (anim.sizeX * L);
+  const kv = -cosT / (anim.sizeY * L);
+  return { ku, kv, rg, sinT, cosT, L, sizeX: anim.sizeX, sizeY: anim.sizeY };
+}
+
+function computeKconst(coeffs: StaticCoeffs, bx: number, by: number): number {
+  const imgOriginU = bx * (1 - coeffs.sizeX);
+  const imgOriginV = by * (1 - coeffs.sizeY);
+  return (
+    0.5 -
+    ((coeffs.rg * coeffs.sinT) / coeffs.L) * (imgOriginU / coeffs.sizeX + 0.5) +
+    (coeffs.cosT / coeffs.L) * (imgOriginV / coeffs.sizeY + 0.5)
+  );
+}
+
+// Instancia UNA sola vez por Text (ver PlayerHUD#applyNameEffectVisuals).
+// Las Post FX Pipelines de Phaser NO bootean (compilan/bindean su shader)
+// en el constructor -- bootean recién en el primer draw real (ver
+// PostFXPipeline#postBatch -> bootFX). Por eso `setGradient` NUNCA escribe
+// uniforms directamente (revienta con "Cannot read properties of
+// undefined (reading 'set3f')" si se llama antes del primer draw) -- solo
+// guarda los parámetros; el push real ocurre en onPreRender, que Phaser
+// solo invoca después de bootear el pipeline.
 export default class NameGradientPipeline extends Phaser.Renderer.WebGL.Pipelines.PostFXPipeline {
-  // Las Post FX Pipelines de Phaser NO bootean (compilan/bindean su shader)
-  // en el constructor -- bootean recién en el primer draw real (ver
-  // PostFXPipeline#postBatch -> bootFX). Por eso `currentShader` (y por lo
-  // tanto set1f/set2f/set3f/set1i) NO existe todavía justo después de
-  // `setPostPipeline()`. Llamar a esos setters de forma síncrona ahí
-  // (como hacía la versión anterior de este archivo) revienta con
-  // "Cannot read properties of undefined (reading 'set3f')" -- confirmado
-  // con un harness Phaser standalone. La solución: guardar los valores
-  // pedidos en un campo plano (sin tocar GL) y aplicarlos recién dentro de
-  // onPreRender, que Phaser solo invoca después de bootear el pipeline.
   private pending: PendingGradient | null = null;
-  private applied: PendingGradient | null = null;
+  private coeffs: StaticCoeffs | null = null;
+  private appliedFor: PendingGradient | null = null;
 
   constructor(game: Phaser.Game) {
     super({
@@ -132,21 +277,38 @@ export default class NameGradientPipeline extends Phaser.Renderer.WebGL.Pipeline
   }
 
   onPreRender() {
-    this.set1f("uTime", this.game.loop.time / 1000);
+    const pending = this.pending;
+    if (!pending) return;
 
-    if (this.pending && this.pending !== this.applied) {
-      this.applyGradient(this.pending);
-      this.applied = this.pending;
+    // Ku/Kv (y los colores) solo dependen del efecto+aspect del texto, no
+    // del tiempo -- se recalculan/reenvían solo si `pending` cambió desde
+    // el último frame (cambio de efecto o de username), nunca en cada
+    // frame. Todo esto vive acá (no en `setGradient`) porque Phaser recién
+    // garantiza `currentShader` listo dentro de onPreRender -- ver nota de
+    // clase.
+    if (this.appliedFor !== pending) {
+      this.coeffs = computeStaticCoeffs(pending.anim, pending.aspect);
+      this.applyColors(pending.colorsHex);
+      this.appliedFor = pending;
     }
+    const coeffs = this.coeffs!;
+
+    const progress = (this.game.loop.time % pending.anim.durationMs) / pending.anim.durationMs;
+    const { bx, by } = bgPositionFraction(pending.anim.kind, progress);
+    const kconst = computeKconst(coeffs, bx, by);
+
+    this.set1f("uKu", coeffs.ku);
+    this.set1f("uKv", coeffs.kv);
+    this.set1f("uKconst", kconst);
   }
 
-  // Puede llamarse en cualquier momento (incluso antes del primer render) --
-  // solo guarda los valores. El push real de uniforms ocurre en onPreRender.
-  setGradient(colorsHex: string[], speed: number, angleDeg: number) {
-    this.pending = { colorsHex, speed, angleDeg };
+  // Llamado por PlayerHUD cada vez que cambia el efecto/username (nunca
+  // por frame): guarda los parámetros pedidos, sin tocar GL todavía.
+  setGradient(colorsHex: string[], anim: GradientAnimationParams, aspect: number) {
+    this.pending = { colorsHex, anim, aspect };
   }
 
-  private applyGradient({ colorsHex, speed, angleDeg }: PendingGradient) {
+  private applyColors(colorsHex: string[]) {
     const stops = colorsHex.slice(0, MAX_COLOR_STOPS);
     for (let i = 0; i < MAX_COLOR_STOPS; i++) {
       const hex = stops[i] ?? stops[stops.length - 1] ?? "#ffffff";
@@ -154,10 +316,6 @@ export default class NameGradientPipeline extends Phaser.Renderer.WebGL.Pipeline
       this.set3f(`uColor${i}`, color.redGL, color.greenGL, color.blueGL);
     }
     this.set1i("uColorCount", Math.max(2, stops.length));
-    this.set1f("uSpeed", speed);
-
-    const rad = Phaser.Math.DegToRad(angleDeg);
-    this.set2f("uDirection", Math.cos(rad), Math.sin(rad));
   }
 }
 
@@ -166,7 +324,7 @@ export default class NameGradientPipeline extends Phaser.Renderer.WebGL.Pipeline
 // Devuelve false (y no registra nada) si el renderer activo no es WebGL --
 // PostFX es una feature exclusiva de WebGL; en Canvas, setPostPipeline() es
 // un no-op silencioso, así que ni vale la pena intentarlo (ver
-// PlayerHUD#applyNameEffect para el fallback a color sólido).
+// PlayerHUD#applyNameEffectVisuals para el fallback a color sólido).
 export function ensureNameGradientPipeline(scene: Phaser.Scene): boolean {
   const renderer = scene.game.renderer;
   if (renderer.type !== Phaser.WEBGL) return false;
