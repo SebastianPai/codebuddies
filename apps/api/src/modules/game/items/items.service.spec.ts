@@ -3,6 +3,8 @@ import { BadRequestException, ForbiddenException, NotFoundException } from '@nes
 import { ItemsService } from './items.service';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { PremiumAccessService } from '../../premium-access/premium-access.service';
+import { NotificationsService } from '../../notifications/notifications.service';
+import { RealtimeService } from '../../realtime/realtime.service';
 
 describe('ItemsService', () => {
   let service: ItemsService;
@@ -22,6 +24,8 @@ describe('ItemsService', () => {
   const premiumAccessService = {
     hasPremiumAccess: jest.fn().mockResolvedValue(false),
   };
+  const notificationsService = { create: jest.fn() };
+  const realtimeService = { emitToUser: jest.fn(), emitToUsers: jest.fn(), isOnline: jest.fn() };
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -32,6 +36,8 @@ describe('ItemsService', () => {
         ItemsService,
         { provide: PrismaService, useValue: prisma },
         { provide: PremiumAccessService, useValue: premiumAccessService },
+        { provide: NotificationsService, useValue: notificationsService },
+        { provide: RealtimeService, useValue: realtimeService },
       ],
     }).compile();
 

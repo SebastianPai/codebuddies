@@ -110,6 +110,27 @@ export default class PlayerSocketSystem {
     });
   };
 
+  // Emitido por GameGateway#broadcastNameEffectUpdate (server.to(room), así
+  // que también nos llega a nosotros mismos cuando somos quien cambió el
+  // efecto — mismo patrón que handlePlayerAvatarUpdated: branch por
+  // data.playerId === socket.id, sin recrear sprite ni HUD, solo
+  // hud.setNameEffect() que hace su propio cleanup/rebuild del shimmer.
+  private handlePlayerNameEffectUpdated = (data: {
+    playerId: string;
+    nameEffectId: string | null;
+  }) => {
+    if (data.playerId === this.socket.id) {
+      (this.scene as any).hud?.setNameEffect(data.nameEffectId);
+      return;
+    }
+
+    const other = (this.scene as any).otherPlayers
+      .getChildren()
+      .find((c: any) => c.playerId === data.playerId);
+
+    other?.hud?.setNameEffect(data.nameEffectId);
+  };
+
   initialize() {
     this.socket.on("newPlayer", this.handleNewPlayer);
     this.socket.on("playerMoved", this.handlePlayerMoved);
@@ -117,6 +138,7 @@ export default class PlayerSocketSystem {
     this.socket.on("playerReaction", this.handlePlayerReaction);
     this.socket.on("playerDisconnected", this.handlePlayerDisconnected);
     this.socket.on("playerAvatarUpdated", this.handlePlayerAvatarUpdated);
+    this.socket.on("playerNameEffectUpdated", this.handlePlayerNameEffectUpdated);
   }
 
   destroy() {
@@ -126,5 +148,6 @@ export default class PlayerSocketSystem {
     this.socket.off("playerReaction", this.handlePlayerReaction);
     this.socket.off("playerDisconnected", this.handlePlayerDisconnected);
     this.socket.off("playerAvatarUpdated", this.handlePlayerAvatarUpdated);
+    this.socket.off("playerNameEffectUpdated", this.handlePlayerNameEffectUpdated);
   }
 }

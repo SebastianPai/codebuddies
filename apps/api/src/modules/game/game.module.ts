@@ -65,5 +65,9 @@ import { RealtimeModule } from '../realtime/realtime.module';
     PlayerHandler,
   ],
   controllers: [GameController, ItemsController],
+  // GameGateway expuesto para que IdentityModule pueda empujar
+  // broadcastNameEffectUpdate() al cambiar el perfil vía HTTP -- ver
+  // identity.module.ts / identity.service.ts#updateProfile.
+  exports: [GameGateway],
 })
 export class GameModule {}

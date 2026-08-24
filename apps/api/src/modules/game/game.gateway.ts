@@ -117,6 +117,25 @@ export class GameGateway
     this.playerHandler.handleDisconnect(socket);
   }
 
+  // Único punto de entrada para que código FUERA del gateway (hoy:
+  // IdentityService#updateProfile, una request HTTP) empuje una
+  // actualización realtime a la room de un jugador. No hay @SubscribeMessage
+  // acá porque nadie la dispara desde un socket -- ver
+  // PlayerHandler#broadcastNameEffectUpdate para la lógica real (resolver
+  // userId -> socket -> room y emitir). Devuelve false si el usuario no
+  // tiene una conexión de juego activa ahora mismo (no hay nada que
+  // sincronizar; el próximo join ya trae el valor nuevo desde la DB).
+  broadcastNameEffectUpdate(
+    userId: string,
+    nameEffectId: string | null,
+  ): boolean {
+    return this.playerHandler.broadcastNameEffectUpdate(
+      this.server,
+      userId,
+      nameEffectId,
+    );
+  }
+
   // ====================== HANDLERS ======================
 
   @SubscribeMessage('playerChat')

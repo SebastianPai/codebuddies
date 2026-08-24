@@ -5,6 +5,7 @@ import { JwtService } from '@nestjs/jwt';
 import { AvatarService } from '../../avatar/avatar.service';
 import { PlayerService } from '../../player/player.service';
 import { EnergyService } from '../../energy/energy.service';
+import { PrismaService } from '../../../../prisma/prisma.service';
 
 import { ParsedAvatar } from '../dto/avatar.dto';
 import {
@@ -25,6 +26,9 @@ interface Player {
   avatar: ParsedAvatar;
   currentAnimation?: string;
   lastMoveAt?: number;
+  // Ver @codebuddies/visual-effects — mismo id que User.nameEffectId, cacheado
+  // acá al conectar para no pegarle a la DB en cada broadcast de movimiento/chat.
+  nameEffectId?: string | null;
 }
 
 // Límite generoso de velocidad (px/s) para el anti-teleport de handlePlayerMove:
@@ -46,6 +50,10 @@ export class PlayerHandler {
   // en vez de confiar en que el cliente reconecte por su cuenta.
   private sessionExpiryTimers: Map<string, NodeJS.Timeout> = new Map();
   public userAvatars: Record<string, ParsedAvatar> = {};
+  // Cache en memoria de User.nameEffectId por userId, poblado al conectar
+  // (ver handleConnection) y refrescado en cada broadcastNameEffectUpdate.
+  // Mismo criterio que userAvatars: evita una query por cada buildPlayer().
+  public userNameEffects: Record<string, string | null> = {};
   public players: Record<string, Player> = {}; // público para que el gateway pueda acceder si es necesario
 
   constructor(
@@ -53,6 +61,7 @@ export class PlayerHandler {
     private readonly avatarService: AvatarService,
     private readonly playerService: PlayerService,
     private readonly energyService: EnergyService,
+    private readonly prisma: PrismaService,
   ) {}
 
   private readCookie(cookies: string | undefined, name: string) {
@@ -74,6 +83,7 @@ export class PlayerHandler {
     room: string,
     avatar: ParsedAvatar,
   ): Player {
+    const userId = socket.data.user?.userId;
     return {
       id: socket.id,
       x: 100,
@@ -82,6 +92,7 @@ export class PlayerHandler {
       username: socket.data.user.username || 'Jugador',
       avatar,
       currentAnimation: 'idle',
+      nameEffectId: userId ? (this.userNameEffects[userId] ?? null) : null,
     };
   }
 
@@ -242,6 +253,19 @@ export class PlayerHandler {
 
       const avatar = await this.ensureDefaultAvatar(userId);
 
+      // Una sola query liviana además de la del avatar -- se cachea en
+      // userNameEffects y de ahí la lee buildPlayer() sin volver a la DB.
+      try {
+        const dbUser = await this.prisma.user.findUnique({
+          where: { id: userId },
+          select: { nameEffectId: true },
+        });
+        this.userNameEffects[userId] = dbUser?.nameEffectId ?? null;
+      } catch (err) {
+        this.logger.warn(`No se pudo cargar nameEffectId de ${userId}`);
+        this.userNameEffects[userId] = null;
+      }
+
       this.userToSocketId.set(userId, socket.id);
       this.socketToUserId.set(socket.id, userId);
 
@@ -390,6 +414,37 @@ export class PlayerHandler {
     // Por ahora lo dejamos aquí, luego podemos moverlo a un handler separado
     // (necesitaríamos inyectar ItemSpritesService)
     socket.emit('itemSprites:error', { message: 'Handler en construcción' });
+  }
+
+  // ====================== NAME EFFECT (realtime, disparado desde HTTP) ======================
+  // Llamado por GameGateway#broadcastNameEffectUpdate cuando
+  // IdentityService.updateProfile persiste un nameEffectId nuevo. No es un
+  // @SubscribeMessage -- lo dispara una request HTTP, no un evento de socket.
+  // Sigue el mismo patrón que AvatarHandler#handleEquipItem/handleUpdateAvatar
+  // (server.to(room), incluye al propio emisor -- así el jugador que cambió
+  // su efecto lo ve reflejado por el mismo camino que todos los demás, sin
+  // un código local aparte). Devuelve false si el usuario no tiene un socket
+  // conectado ahora mismo (nada que emitir) o no está dentro de ninguna sala.
+  broadcastNameEffectUpdate(
+    server: Server,
+    userId: string,
+    nameEffectId: string | null,
+  ): boolean {
+    this.userNameEffects[userId] = nameEffectId;
+
+    const socketId = this.userToSocketId.get(userId);
+    if (!socketId) return false;
+
+    const player = this.players[socketId];
+    if (!player) return false;
+
+    player.nameEffectId = nameEffectId;
+
+    server.to(player.room).emit('playerNameEffectUpdated', {
+      playerId: socketId,
+      nameEffectId,
+    });
+    return true;
   }
 
   // Getters útiles

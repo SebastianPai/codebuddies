@@ -9,6 +9,7 @@ import { RolesGuard } from './guards/roles.guard';
 import { GamificationModule } from '../gamification/gamification.module';
 import { EmailModule } from '../email/email.module';
 import { PremiumAccessModule } from '../premium-access/premium-access.module';
+import { GameModule } from '../game/game.module';
 import { JWT_SECRET } from '../../config/env';
 
 @Module({
@@ -17,6 +18,10 @@ import { JWT_SECRET } from '../../config/env';
     GamificationModule,
     EmailModule,
     PremiumAccessModule,
+    // Para IdentityService#updateProfile -> GameGateway.broadcastNameEffectUpdate
+    // (sincronizar el Name Effect en tiempo real dentro del juego). GameModule
+    // no importa IdentityModule en ningún punto de su árbol -- sin ciclo.
+    GameModule,
     JwtModule.register({
       secret: JWT_SECRET,
       signOptions: { expiresIn: '1d' },

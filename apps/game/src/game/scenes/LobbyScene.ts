@@ -1614,6 +1614,7 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
       playerSprite: other,
       username: playerData.username,
       level: playerData.level || 1,
+      nameEffectId: playerData.nameEffectId ?? undefined,
     });
 
     this.otherPlayers.add(other);

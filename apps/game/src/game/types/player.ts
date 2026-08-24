@@ -9,6 +9,8 @@ export interface Player {
   avatar: AvatarData;
   level?: number;
   coins?: number;
+  /** Ver @codebuddies/visual-effects — id del efecto elegido para el nombre flotante. */
+  nameEffectId?: string | null;
 
   animation?: string; // opcional para animar movimiento
 

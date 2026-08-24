@@ -46,6 +46,7 @@ interface Player {
   username: string;
   avatar: ParsedAvatar;
   currentAnimation?: string;
+  nameEffectId?: string | null;
 }
 
 @Injectable()

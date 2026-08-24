@@ -10,6 +10,7 @@ import { ItemType, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PremiumAccessService } from '../premium-access/premium-access.service';
+import { GameGateway } from '../game/game.gateway';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -63,6 +64,7 @@ export class IdentityService {
     private gamificationService: GamificationService,
     private emailService: EmailService,
     private premiumAccessService: PremiumAccessService,
+    private gameGateway: GameGateway,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -225,7 +227,7 @@ export class IdentityService {
       }
     }
 
-    return this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id: userId },
       data: {
         birthDate: dto.birthDate ? new Date(dto.birthDate) : undefined,
@@ -244,6 +246,18 @@ export class IdentityService {
         nameEffectId: true,
       },
     });
+
+    // Solo si este PATCH realmente tocó nameEffectId (no en cada cambio de
+    // perfil) y solo DESPUÉS de que la DB confirmó el update. Sincroniza el
+    // nameplate en tiempo real dentro de la sala actual del jugador (si está
+    // conectado por WS) — ver PlayerHandler#broadcastNameEffectUpdate. Si no
+    // tiene una sesión de juego activa ahora mismo, no hay nada que
+    // sincronizar: el próximo join ya trae el valor nuevo desde la DB.
+    if (dto.nameEffectId !== undefined) {
+      this.gameGateway.broadcastNameEffectUpdate(userId, updated.nameEffectId);
+    }
+
+    return updated;
   }
 
   async updateUsername(userId: string, username: string) {
