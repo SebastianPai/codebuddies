@@ -18,7 +18,9 @@ import { audioManager } from "../../audio/AudioManager";
 import UserBadges from "../shared/UserBadges";
 import RarityText from "../shared/RarityText";
 import { useDialogBehavior } from "../shared/useDialogBehavior";
+import { useWindowChrome } from "../shared/useWindowChrome";
 import { useTranslation } from "../../../i18n/useTranslation";
+import chromeStyles from "../shared/windowChrome.module.css";
 
 type Props = {
   onClose: () => void;
@@ -29,6 +31,7 @@ export default function MessagesPanel({ onClose }: Props) {
   const { openChat } = useChat();
   const nodeRef = useRef<HTMLDivElement>(null);
   useDialogBehavior(nodeRef, onClose);
+  const { isSheet, draggableProps } = useWindowChrome();
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [requests, setRequests] = useState<MessageRequestItem[]>([]);
@@ -84,15 +87,18 @@ export default function MessagesPanel({ onClose }: Props) {
     }
   };
 
-  return (
-    <Draggable nodeRef={nodeRef} handle={`.${styles.windowHeader}`}>
-      <div ref={nodeRef} className={styles.window}>
-        <div className={styles.windowHeader}>
-          <span className={styles.title}>{t("chat.panelTitle")}</span>
-          <button className={styles.closeBtn} aria-label={t("chat.closeMessagesAriaLabel")} onClick={onClose}>
-            <X size={14} />
-          </button>
-        </div>
+  const panel = (
+    <div ref={nodeRef} className={`${styles.window} ${isSheet ? styles.sheet : ""}`}>
+      <div className={styles.windowHeader}>
+        <span className={styles.title}>{t("chat.panelTitle")}</span>
+        <button
+          className={`${styles.closeBtn} ${chromeStyles.closeHitArea}`}
+          aria-label={t("chat.closeMessagesAriaLabel")}
+          onClick={onClose}
+        >
+          <X size={14} />
+        </button>
+      </div>
 
         {requests.length > 0 && (
           <>
@@ -162,7 +168,14 @@ export default function MessagesPanel({ onClose }: Props) {
             </div>
           ))}
         </div>
-      </div>
+    </div>
+  );
+
+  if (isSheet) return panel;
+
+  return (
+    <Draggable nodeRef={nodeRef} handle={`.${styles.windowHeader}`} cancel="button" {...draggableProps}>
+      {panel}
     </Draggable>
   );
 }

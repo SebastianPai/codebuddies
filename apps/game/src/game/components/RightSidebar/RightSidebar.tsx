@@ -1,13 +1,15 @@
 "use client";
 
 import { memo, useEffect, useState } from "react";
-import { Settings } from "lucide-react";
+import { Settings, X } from "lucide-react";
 import { getSharedAuthToken } from "../../network/auth";
 import { showGameAlert } from "../../utils/dialog";
 import Modal from "../shared/Modal";
 import Button from "../shared/Button";
 import { useTranslation } from "../../../i18n/useTranslation";
+import { useViewportMode } from "../../hooks/useViewportMode";
 import { getApiUrl } from "../../../config/env";
+import chromeStyles from "../shared/windowChrome.module.css";
 import "./RightSidebar.css";
 
 const API_URL = getApiUrl();
@@ -60,6 +62,19 @@ function RightSidebar({
   const [showAllMissions, setShowAllMissions] = useState(false);
   const [loadingMissions, setLoadingMissions] = useState(true);
   const [missionError, setMissionError] = useState<string | null>(null);
+  const { layout } = useViewportMode();
+
+  // Antes este panel se ocultaba por completo (display:none) debajo de
+  // 1300px de viewport — abajo de eso no había forma de verlo. Ahora se
+  // colapsa a una píldora chica en vez de desaparecer: sigue siendo
+  // alcanzable con un toque. Un toggle manual del usuario pisa el default
+  // hasta que cambie el layout.
+  const [collapsed, setCollapsed] = useState(false);
+  const [userToggled, setUserToggled] = useState(false);
+  useEffect(() => {
+    if (userToggled) return;
+    setCollapsed(layout !== "desktop");
+  }, [layout, userToggled]);
 
   const loadMissions = async () => {
     const token = getSharedAuthToken();
@@ -127,9 +142,42 @@ function RightSidebar({
       ? [selectedMission]
       : [];
 
+  if (layout !== "desktop" && collapsed) {
+    return (
+      <button
+        type="button"
+        className={`right-sidebar-pill ${chromeStyles.closeHitArea}`}
+        onClick={() => {
+          setUserToggled(true);
+          setCollapsed(false);
+        }}
+        aria-label={t("hud.room.expand")}
+      >
+        <span className="right-sidebar-pill-name">{roomName || t("hud.room.lobbyName")}</span>
+        {missions.some((mission) => mission.progress.status === "COMPLETED") && (
+          <span className="right-sidebar-pill-dot" />
+        )}
+      </button>
+    );
+  }
+
   return (
     <>
       <div className="right-sidebar">
+        {layout !== "desktop" && (
+          <button
+            type="button"
+            className={`right-sidebar-collapse ${chromeStyles.closeHitArea}`}
+            onClick={() => {
+              setUserToggled(true);
+              setCollapsed(true);
+            }}
+            aria-label={t("hud.room.collapse")}
+          >
+            <X size={14} />
+          </button>
+        )}
+
         <div className="sidebar-block room-card">
           <div
             className="room-preview"

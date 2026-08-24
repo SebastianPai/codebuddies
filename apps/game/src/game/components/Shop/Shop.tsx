@@ -14,6 +14,7 @@ import ItemCard from "../shared/ItemCard";
 import CurrencyBadge from "../shared/CurrencyBadge";
 import RarityText from "../shared/RarityText";
 import { useTranslation } from "../../../i18n/useTranslation";
+import tabsOverflow from "../shared/tabsOverflow.module.css";
 
 interface Props {
   socket: Socket | null;
@@ -285,7 +286,7 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
       onClose={onClose ?? (() => {})}
       style={{ width: "min(960px, calc(100vw - 24px))", height: "min(760px, calc(100dvh - 24px))" }}
     >
-      <div className={styles.tabs}>
+      <div className={`${styles.tabs} ${tabsOverflow.scrollRow}`}>
         <button
           className={`${styles.tab} ${activeTab === "avatar" ? styles.active : ""}`}
           onClick={() => setActiveTab("avatar")}

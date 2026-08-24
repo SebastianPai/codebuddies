@@ -6,8 +6,10 @@ import Draggable from "react-draggable";
 import { X } from "lucide-react";
 
 import styles from "./Modal.module.css";
+import chromeStyles from "./windowChrome.module.css";
 import Button from "./Button";
 import { useDialogBehavior } from "./useDialogBehavior";
+import { useWindowChrome } from "./useWindowChrome";
 import { useTranslation } from "../../../i18n/useTranslation";
 
 type ZTier = "panel" | "modal" | "toast";
@@ -55,6 +57,11 @@ export default function Modal({
   const resolvedCloseLabel = closeLabel ?? t("common.close");
 
   useDialogBehavior(dialogRef, onClose);
+  const { isSheet, draggableProps } = useWindowChrome();
+  // Solo "floating" se vuelve hoja de pantalla completa: "overlay" (diálogos
+  // centrados con backdrop, confirmaciones, etc.) ya cabe bien en móvil tal
+  // cual, y volverlo hoja completa cambiaría su identidad visual sin razón.
+  const isFloatingSheet = isSheet && variant === "floating";
 
   let dialog = (
     <div
@@ -63,8 +70,17 @@ export default function Modal({
       aria-modal="true"
       aria-labelledby={titleId}
       tabIndex={-1}
-      className={`${styles.dialog} ${styles[variant]} ${className}`}
-      style={{ zIndex: `var(--cb-z-${zTier})`, ...style }}
+      className={`${styles.dialog} ${styles[variant]} ${isFloatingSheet ? styles.sheet : ""} ${className}`}
+      style={{
+        zIndex: `var(--cb-z-${zTier})`,
+        ...style,
+        // En modo hoja, el tamaño lo maneja el CSS de .sheet: si no
+        // pisáramos el width/height inline que pasan los llamadores (Shop,
+        // Inventory, Settings, Marketplace pasan "min(Npx, calc(100vw -
+        // 24px))"), esos estilos inline ganan por especificidad y la hoja
+        // queda con el ancho de escritorio en vez de ocupar la pantalla.
+        ...(isFloatingSheet ? { width: "100%", height: "100%" } : null),
+      }}
       onClick={(event) => event.stopPropagation()}
     >
       <div className={styles.header}>
@@ -73,7 +89,13 @@ export default function Modal({
         </span>
         <div className={styles.headerActions}>
           {headerActions}
-          <Button variant="ghost" size="sm" aria-label={resolvedCloseLabel} onClick={onClose} className={styles.closeBtn}>
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label={resolvedCloseLabel}
+            onClick={onClose}
+            className={`${styles.closeBtn} ${chromeStyles.closeHitArea}`}
+          >
             <X size={16} />
           </Button>
         </div>
@@ -85,9 +107,14 @@ export default function Modal({
     </div>
   );
 
-  if (draggable) {
+  if (draggable && !isSheet) {
     dialog = (
-      <Draggable nodeRef={dialogRef} handle={`.${styles.header}`}>
+      <Draggable
+        nodeRef={dialogRef}
+        handle={`.${styles.header}`}
+        cancel={`.${styles.headerActions}`}
+        {...draggableProps}
+      >
         {dialog}
       </Draggable>
     );

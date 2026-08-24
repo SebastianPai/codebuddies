@@ -33,12 +33,47 @@
 /* ====================== HEADER ====================== */
 .sidebar-header {
   padding: 20px 20px 10px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .brand-group {
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
+}
+
+/* Solo se renderiza fuera de desktop (ver LeftSidebar.tsx) — en desktop
+   nunca existe en el DOM, así que no hay nada que ocultar ahí. */
+.sidebar-collapse-toggle {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 212, 0, 0.18);
+  border-radius: 8px;
+  color: #ffd400;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.sidebar-collapse-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+
+.sidebar-collapse-toggle:hover {
+  background: rgba(255, 212, 0, 0.14);
+}
+
+.sidebar-collapse-toggle:active {
+  transform: scale(0.94);
 }
 
 .brand-logo {
@@ -385,15 +420,48 @@
 }
 
 /* Responsive */
-@media (max-width: 900px) {
-  .left-sidebar {
-    width: 100%;
-    max-width: 300px;
-  }
-}
-
 @media (max-height: 680px) {
   .left-sidebar {
     max-height: calc(100dvh - 60px);
   }
+}
+
+/* ====================== COLAPSADA (tablet/compact) ======================
+   Franja de solo-iconos: recupera espacio para el juego sin sacar ninguna
+   opción del menú (nada se elimina, solo se oculta el texto/las tarjetas
+   secundarias — ver LeftSidebar.tsx: el toggle nunca existe en desktop, así
+   que esta clase nunca se aplica ahí). */
+.left-sidebar.collapsed {
+  width: 64px;
+}
+
+.left-sidebar.collapsed .brand-info,
+.left-sidebar.collapsed .profile-card,
+.left-sidebar.collapsed .discord-card {
+  display: none;
+}
+
+.left-sidebar.collapsed .sidebar-header {
+  padding: 12px 10px;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.left-sidebar.collapsed .menu-card {
+  padding: 6px 10px;
+}
+
+.left-sidebar.collapsed .menu-btn {
+  justify-content: center;
+  padding: 0;
+  gap: 0;
+}
+
+.left-sidebar.collapsed .menu-btn span:not(.menu-badge) {
+  display: none;
+}
+
+.left-sidebar.collapsed .menu-btn:hover {
+  transform: none;
 }

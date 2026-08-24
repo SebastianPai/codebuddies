@@ -63,7 +63,7 @@ export default function UserProfilePanel({
             <span className="currency-icon">
               <Coins size={16} />
             </span>
-            <span className="currency-amount">{coins.toLocaleString()}</span>
+            <span className="currency-amount cb-fx-text-goldRank">{coins.toLocaleString()}</span>
           </div>
           <div className="currency-item">
             <span className="currency-icon">

@@ -23,7 +23,24 @@
 
   /* Por encima de LeftSidebar (200) / RightSidebar (120); por debajo de
      Marketplace (10000) y GameDialog (20000). */
-  z-index: 400;
+  z-index: var(--cb-z-panel);
+}
+
+.window.sheet {
+  top: 0;
+  right: 0;
+  width: 100vw;
+  height: 100dvh;
+  border-radius: 0;
+  border-width: 0;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+.window.sheet .windowHeader {
+  cursor: default;
 }
 
 .windowHeader {

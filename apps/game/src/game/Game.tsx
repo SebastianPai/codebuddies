@@ -884,26 +884,11 @@ export default function Game() {
           z-index: 20;
         }
 
-        /* ================= RESPONSIVE ================= */
-
-        @media (max-width: 1300px) {
-          .ui-right {
-            display: none;
-          }
-        }
-
-        @media (max-width: 900px) {
-          .ui-left {
-            transform: scale(0.9);
-            transform-origin: top left;
-          }
-        }
-
-        @media (max-width: 700px) {
-          .ui-left {
-            transform: scale(0.82);
-          }
-        }
+        /* Ya no hay reglas responsive acá: LeftSidebar y RightSidebar
+           resuelven su propio colapso en tablet/compact (ver
+           useViewportMode + LeftSidebar.css/.collapsed y
+           RightSidebar.tsx/.right-sidebar-pill) en vez de que este layer
+           las escale o las esconda por completo desde afuera. */
       `}</style>
     </div>
     </ChatProvider>

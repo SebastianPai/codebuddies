@@ -25,7 +25,9 @@
     "settings": "设置",
     "exit": "退出",
     "discordCta": "加入社区",
-    "discordLabel": "官方 Discord"
+    "discordLabel": "官方 Discord",
+    "collapse": "收起菜单",
+    "expand": "展开菜单"
   },
   "topBar": {
     "energyHint": "体力——完成学习练习时消耗",
@@ -53,7 +55,9 @@
     "liveStatus": "进行中",
     "playersOnline": "{count} 名玩家在线",
     "infoButton": "信息",
-    "inviteButton": "邀请"
+    "inviteButton": "邀请",
+    "expand": "显示房间面板",
+    "collapse": "隐藏房间面板"
   },
   "missions": {
     "label": "任务",

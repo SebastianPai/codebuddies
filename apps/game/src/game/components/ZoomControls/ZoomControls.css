@@ -48,8 +48,27 @@
   transform: translateY(-1px);
 }
 
+@media (pointer: coarse) {
+  .zoom-controls {
+    gap: 14px;
+  }
+
+  .zoom-btn {
+    position: relative;
+  }
+
+  .zoom-btn::before {
+    content: "";
+    position: absolute;
+    inset: 50% auto auto 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+  }
+}
+
 @media (max-width: 700px) {
   .zoom-controls {
-    bottom: 168px;
+    bottom: calc(168px + env(safe-area-inset-bottom));
   }
 }

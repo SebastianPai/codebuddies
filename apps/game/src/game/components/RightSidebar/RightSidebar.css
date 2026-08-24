@@ -14,6 +14,83 @@
   z-index: 120;
 }
 
+/* ====================== COLAPSADO (tablet/compact) ======================
+   Antes este panel se ocultaba entero (display:none) bajo cierto ancho;
+   ahora se reemplaza por esta píldora chica que sigue siendo tocable, en vez
+   de desaparecer sin forma de volver a abrirlo. */
+.right-sidebar-pill {
+  position: absolute;
+  top: calc(18px + env(safe-area-inset-top));
+  right: calc(18px + env(safe-area-inset-right));
+
+  height: 44px;
+  padding: 0 16px;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(18, 18, 18, 0.82);
+  backdrop-filter: blur(18px);
+  color: white;
+
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+
+  cursor: pointer;
+  z-index: 120;
+  max-width: min(220px, calc(100vw - 24px));
+}
+
+.right-sidebar-pill-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.right-sidebar-pill-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22ff88;
+  box-shadow: 0 0 8px #22ff88;
+}
+
+.right-sidebar-collapse {
+  align-self: flex-end;
+
+  width: 44px;
+  height: 44px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(18, 18, 18, 0.76);
+  color: #d3d7e0;
+
+  cursor: pointer;
+}
+
+.right-sidebar-collapse:hover {
+  color: white;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 480px) {
+  .right-sidebar {
+    top: calc(18px + env(safe-area-inset-top));
+    right: calc(18px + env(safe-area-inset-right));
+    width: min(340px, calc(100vw - 24px));
+  }
+}
+
 /* =========================
    GENERIC
 ========================= */

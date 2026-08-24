@@ -14,6 +14,7 @@ import UserBadges from "../shared/UserBadges";
 import styles from "./MarketplaceWindow.module.css";
 import { useTranslation } from "../../../i18n/useTranslation";
 import { getApiUrl, getWebUrl } from "../../../config/env";
+import tabsOverflow from "../shared/tabsOverflow.module.css";
 
 const API_URL = getApiUrl();
 const WEB_URL = getWebUrl();
@@ -237,7 +238,7 @@ export default function MarketplaceWindow({ socket, onClose }: Props) {
       onClose={onClose}
       style={{ width: "min(960px, calc(100vw - 24px))", height: "min(760px, calc(100dvh - 24px))" }}
     >
-      <div className={styles.tabs}>
+      <div className={`${styles.tabs} ${tabsOverflow.scrollRow}`}>
         <button className={tab === "marketplace" ? styles.active : ""} onClick={() => setTab("marketplace")}>
           {t("commerce.marketplaceTabBuy")}
         </button>
@@ -325,9 +326,13 @@ export default function MarketplaceWindow({ socket, onClose }: Props) {
                           disabled={buyingId === item.id}
                           onClick={() => void buy(item)}
                         >
-                          {buyingId === item.id
-                            ? t("commerce.shopBuying")
-                            : t("commerce.marketplacePriceCoins", { price: item.priceCoins })}
+                          {buyingId === item.id ? (
+                            t("commerce.shopBuying")
+                          ) : (
+                            <span className="cb-fx-text-goldRank">
+                              {t("commerce.marketplacePriceCoins", { price: item.priceCoins })}
+                            </span>
+                          )}
                         </Button>
                       </div>
                     </div>
@@ -449,7 +454,9 @@ function CreatorPanel({
               <div key={content.id} className={styles.row}>
                 <span>{content.title}</span>
                 <b>{content.status}</b>
-                <em>{t("commerce.marketplacePriceCoins", { price: content.priceCoins })}</em>
+                <em className="cb-fx-text-goldRank">
+                  {t("commerce.marketplacePriceCoins", { price: content.priceCoins })}
+                </em>
                 {["DRAFT", "CHANGES_REQUESTED"].includes(content.status) && (
                   <>
                     <button onClick={() => window.open(`${WEB_URL}/creator/marketplace/${content.id}/edit`, "_blank", "noopener,noreferrer")}>

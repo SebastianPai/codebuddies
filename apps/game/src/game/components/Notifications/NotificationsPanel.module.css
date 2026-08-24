@@ -24,6 +24,23 @@
   z-index: var(--cb-z-panel);
 }
 
+.window.sheet {
+  top: 0;
+  right: 0;
+  width: 100vw;
+  height: 100dvh;
+  border-radius: 0;
+  border-width: 0;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+.window.sheet .windowHeader {
+  cursor: default;
+}
+
 .windowHeader {
   display: flex;
   justify-content: space-between;
@@ -48,6 +65,16 @@
   display: flex;
   align-items: center;
   gap: 14px;
+}
+
+/* Con el área de toque de 44px del botón cerrar (ver windowChrome.module.css)
+   14px de separación dejarían muy poco margen respecto a "Marcar todo
+   leído" en touch — se agranda solo bajo pointer:coarse, sin efecto en
+   mouse/desktop. */
+@media (pointer: coarse) {
+  .headerActions {
+    gap: 22px;
+  }
 }
 
 .markAll {

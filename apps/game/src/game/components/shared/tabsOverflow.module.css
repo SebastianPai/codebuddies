@@ -1,0 +1,18 @@
+/* Se suma (no reemplaza) a la clase .tabs propia de cada pantalla: evita que
+   una fila de pestañas se corte o desborde horizontalmente en pantallas
+   chicas, sin tocar el markup/estado de cada implementación. */
+.scrollRow {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+}
+
+.scrollRow::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollRow > * {
+  flex: none;
+  scroll-snap-align: start;
+}

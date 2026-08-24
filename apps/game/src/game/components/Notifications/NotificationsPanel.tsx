@@ -13,8 +13,10 @@ import {
 } from "../../network/notifications";
 import { resolveNotificationIcon } from "../../utils/notificationIcons";
 import { useDialogBehavior } from "../shared/useDialogBehavior";
+import { useWindowChrome } from "../shared/useWindowChrome";
 import { useTranslation } from "../../../i18n/useTranslation";
 import { useSocket } from "../../hooks/useSocket";
+import chromeStyles from "../shared/windowChrome.module.css";
 
 type Props = {
   onClose: () => void;
@@ -24,6 +26,7 @@ export default function NotificationsPanel({ onClose }: Props) {
   const t = useTranslation();
   const nodeRef = useRef<HTMLDivElement>(null);
   useDialogBehavior(nodeRef, onClose);
+  const { isSheet, draggableProps } = useWindowChrome();
   const socket = useSocket();
 
   const [items, setItems] = useState<GameNotification[]>([]);
@@ -132,21 +135,24 @@ export default function NotificationsPanel({ onClose }: Props) {
     }
   };
 
-  return (
-    <Draggable nodeRef={nodeRef} handle={`.${styles.windowHeader}`}>
-      <div ref={nodeRef} className={styles.window}>
-        <div className={styles.windowHeader}>
-          <span className={styles.title}>{t("notifications.panelTitle")}</span>
-          <div className={styles.headerActions}>
-            {unreadCount > 0 && (
-              <button className={styles.markAll} onClick={() => void handleMarkAll()}>
-                {t("notifications.markAllRead")}
-              </button>
-            )}
-            <button className={styles.closeBtn} aria-label={t("notifications.closeAriaLabel")} onClick={onClose}>
-              <X size={14} />
+  const panel = (
+    <div ref={nodeRef} className={`${styles.window} ${isSheet ? styles.sheet : ""}`}>
+      <div className={styles.windowHeader}>
+        <span className={styles.title}>{t("notifications.panelTitle")}</span>
+        <div className={styles.headerActions}>
+          {unreadCount > 0 && (
+            <button className={`${styles.markAll} ${chromeStyles.closeHitArea}`} onClick={() => void handleMarkAll()}>
+              {t("notifications.markAllRead")}
             </button>
-          </div>
+          )}
+          <button
+            className={`${styles.closeBtn} ${chromeStyles.closeHitArea}`}
+            aria-label={t("notifications.closeAriaLabel")}
+            onClick={onClose}
+          >
+            <X size={14} />
+          </button>
+        </div>
         </div>
 
         <div className={styles.list}>
@@ -241,7 +247,19 @@ export default function NotificationsPanel({ onClose }: Props) {
               );
             })}
         </div>
-      </div>
+    </div>
+  );
+
+  if (isSheet) return panel;
+
+  return (
+    <Draggable
+      nodeRef={nodeRef}
+      handle={`.${styles.windowHeader}`}
+      cancel={`.${styles.headerActions}`}
+      {...draggableProps}
+    >
+      {panel}
     </Draggable>
   );
 }

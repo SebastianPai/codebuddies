@@ -1,0 +1,18 @@
+/* Área de toque ampliada para botones pequeños dentro de ventanas (cerrar,
+   controles del header). Puramente invisible: no cambia tamaño visual, radio
+   ni layout del botón, así que en mouse/desktop no se nota ningún cambio.
+   Solo se activa con `pointer: coarse` (touch/lápiz sin hover fino). */
+.closeHitArea {
+  position: relative;
+}
+
+@media (pointer: coarse) {
+  .closeHitArea::before {
+    content: "";
+    position: absolute;
+    inset: 50% auto auto 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+  }
+}

@@ -25,7 +25,9 @@
     "settings": "Settings",
     "exit": "Exit",
     "discordCta": "Join the community",
-    "discordLabel": "Official Discord"
+    "discordLabel": "Official Discord",
+    "collapse": "Collapse menu",
+    "expand": "Expand menu"
   },
   "topBar": {
     "energyHint": "Energy — spent when you complete learning exercises",
@@ -53,7 +55,9 @@
     "liveStatus": "Live",
     "playersOnline": "{count} players online",
     "infoButton": "Info",
-    "inviteButton": "Invite"
+    "inviteButton": "Invite",
+    "expand": "Show room panel",
+    "collapse": "Hide room panel"
   },
   "missions": {
     "label": "Missions",

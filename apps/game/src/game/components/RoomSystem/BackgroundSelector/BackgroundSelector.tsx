@@ -45,11 +45,15 @@ export default function BackgroundSelector({
             <span>{bg.name}</span>
             {bg.canUse === false && (
               <small>
-                {bg.lockedReason === "PREMIUM_REQUIRED"
-                  ? t("rooms.backgroundPremium")
-                  : bg.lockedReason === "PURCHASE_REQUIRED"
-                    ? t("rooms.backgroundCoinsPrice", { price: bg.coinsPrice ?? 0 })
-                : resolvedDisabledMessage}
+                {bg.lockedReason === "PREMIUM_REQUIRED" ? (
+                  t("rooms.backgroundPremium")
+                ) : bg.lockedReason === "PURCHASE_REQUIRED" ? (
+                  <span className="cb-fx-text-goldRank">
+                    {t("rooms.backgroundCoinsPrice", { price: bg.coinsPrice ?? 0 })}
+                  </span>
+                ) : (
+                  resolvedDisabledMessage
+                )}
               </small>
             )}
           </button>

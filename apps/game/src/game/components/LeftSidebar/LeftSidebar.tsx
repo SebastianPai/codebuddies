@@ -10,6 +10,7 @@ import UserBadges from "../shared/UserBadges";
 import RarityText from "../shared/RarityText";
 import { useAvatar } from "../../hooks/useAvatar";
 import { useSocket } from "../../hooks/useSocket";
+import { useViewportMode } from "../../hooks/useViewportMode";
 import { getNotifications } from "../../network/notifications";
 import { getInbox, getMessageRequests } from "../../network/messages";
 import { useThemeAsset } from "../../network/themeAssets";
@@ -88,6 +89,18 @@ function LeftSidebar({
   const socket = useSocket();
   const avatar = useAvatar(socket);
   const logoAsset = useThemeAsset("LOGO");
+  const { layout } = useViewportMode();
+
+  // Colapsada a una franja de iconos por defecto en compact (recupera
+  // espacio para el juego), expandida por defecto pero colapsable en
+  // tablet, siempre expandida en desktop (nunca se le muestra el toggle).
+  // Un toggle manual del usuario pisa el default hasta que cambie el layout.
+  const [collapsed, setCollapsed] = useState(false);
+  const [userToggled, setUserToggled] = useState(false);
+  useEffect(() => {
+    if (userToggled) return;
+    setCollapsed(layout === "compact");
+  }, [layout, userToggled]);
 
   const progress = (level % 10) * 10;
   const currentXp = progress * 10;
@@ -367,7 +380,7 @@ function LeftSidebar({
   ];
 
   return (
-    <div className="left-sidebar">
+    <div className={`left-sidebar ${collapsed ? "collapsed" : ""}`}>
       <div className="sidebar-shell top-shell">
         {/* HEADER */}
         <div className="sidebar-header">
@@ -387,6 +400,23 @@ function LeftSidebar({
               <div className="brand-sub">{t("hud.sidebar.tagline")}</div>
             </div>
           </div>
+
+          {layout !== "desktop" && (
+            <button
+              type="button"
+              className="sidebar-collapse-toggle"
+              aria-label={collapsed ? t("hud.sidebar.expand") : t("hud.sidebar.collapse")}
+              aria-expanded={!collapsed}
+              onClick={() => {
+                setUserToggled(true);
+                setCollapsed((current) => !current);
+              }}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round">
+                {collapsed ? <path d="M9 6l6 6-6 6" /> : <path d="M15 6l-6 6 6 6" />}
+              </svg>
+            </button>
+          )}
         </div>
 
         {/* PROFILE */}

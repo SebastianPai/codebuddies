@@ -25,7 +25,9 @@
     "settings": "Ajustes",
     "exit": "Salir",
     "discordCta": "Únete a la comunidad",
-    "discordLabel": "Discord Oficial"
+    "discordLabel": "Discord Oficial",
+    "collapse": "Colapsar menú",
+    "expand": "Expandir menú"
   },
   "topBar": {
     "energyHint": "Energía — se gasta al completar ejercicios de aprendizaje",
@@ -53,7 +55,9 @@
     "liveStatus": "Activa",
     "playersOnline": "{count} jugadores conectados",
     "infoButton": "Información",
-    "inviteButton": "Invitar"
+    "inviteButton": "Invitar",
+    "expand": "Mostrar panel de sala",
+    "collapse": "Ocultar panel de sala"
   },
   "missions": {
     "label": "Misiones",

@@ -7,6 +7,7 @@ import { apiPatch } from "../../network/http";
 import CodeStudio from "../CodeStudio/CodeStudio";
 import { useDialogBehavior } from "../shared/useDialogBehavior";
 import { useTranslation } from "../../../i18n/useTranslation";
+import tabsOverflow from "../shared/tabsOverflow.module.css";
 import "./PCWindows.css";
 
 interface PCWindowProps {
@@ -91,7 +92,7 @@ export default function PCWindow({ onClose }: PCWindowProps) {
 
               {pcTab === "codestudio" && (
                 <div className="pc-content-area">
-                  <div className="win11-tabs">
+                  <div className={`win11-tabs ${tabsOverflow.scrollRow}`}>
                     <button className="tab active">CodeStudio</button>
                   </div>
                   <CodeStudio />
@@ -113,10 +114,16 @@ export default function PCWindow({ onClose }: PCWindowProps) {
                   className="taskbar-control"
                   onClick={toggleTheme}
                   title={pcTheme === "dark" ? t("pc.lightModeTooltip") : t("pc.darkModeTooltip")}
+                  aria-label={pcTheme === "dark" ? t("pc.lightModeTooltip") : t("pc.darkModeTooltip")}
                 >
                   {pcTheme === "dark" ? <Sun size={13} /> : <Moon size={13} />}
                 </button>
-                <button className="taskbar-control" onClick={onClose} title={t("pc.desktopIconShutdown")}>
+                <button
+                  className="taskbar-control"
+                  onClick={onClose}
+                  title={t("pc.desktopIconShutdown")}
+                  aria-label={t("pc.desktopIconShutdown")}
+                >
                   <X size={13} />
                 </button>
               </div>

@@ -16,6 +16,46 @@
   transform: translateX(-50%);
 }
 
+/* En compact (teléfonos) esta ventana pasa a ocupar toda la pantalla: sin
+   arrastre (useWindowChrome la desactiva ahí) tiene más sentido aprovechar
+   el espacio completo que flotar centrada y chica. */
+.window.sheet {
+  top: 0;
+  left: 0;
+  transform: none;
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  max-height: none;
+  height: 100dvh;
+  border-radius: 0;
+  border-width: 0;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+.window.sheet .header {
+  cursor: default;
+  flex: none;
+}
+
+.window.sheet .body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.window.sheet .itemsPanel {
+  max-height: none;
+  height: 100%;
+}
+
+.window.sheet .previewPanel {
+  overflow-y: auto;
+}
+
 .header {
   display: flex;
   align-items: center;

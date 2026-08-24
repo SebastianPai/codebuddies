@@ -9,6 +9,7 @@ import Button from "../shared/Button";
 import ItemGrid from "../shared/ItemGrid";
 import ItemCard from "../shared/ItemCard";
 import { useTranslation } from "../../../i18n/useTranslation";
+import tabsOverflow from "../shared/tabsOverflow.module.css";
 
 interface Props {
   inventory: any[];
@@ -62,7 +63,7 @@ export default function Inventory({
       onClose={onClose ?? (() => {})}
       style={{ width: "min(500px, calc(100vw - 24px))", height: "min(450px, calc(100dvh - 24px))" }}
     >
-      <div className={styles.tabs}>
+      <div className={`${styles.tabs} ${tabsOverflow.scrollRow}`}>
         <button
           className={`${styles.tab} ${tab === "world" ? styles.active : ""}`}
           onClick={() => setTab("world")}

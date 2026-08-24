@@ -54,6 +54,25 @@
   animation: cbDialogFadeIn 160ms ease-out;
 }
 
+/* Modo "hoja": en compact (teléfonos) la ventana flotante ocupa toda la
+   pantalla en vez de flotar centrada — arrastrarla no aportaría nada ahí, y
+   una ventana chica centrada sobre el juego es incómoda de usar con el
+   pulgar. Modal.tsx fuerza width/height:100% inline para pisar los estilos
+   inline de ancho fijo que pasan Shop/Inventory/Settings/Marketplace. */
+.dialog.sheet {
+  max-height: none;
+  border-width: 0;
+  border-radius: 0;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+.dialog.sheet .header {
+  cursor: default;
+}
+
 @keyframes cbBackdropFadeIn {
   from {
     opacity: 0;

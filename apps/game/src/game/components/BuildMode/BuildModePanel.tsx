@@ -31,6 +31,7 @@ import type { Background } from "../../types/room";
 import { EffectivePermissions, NO_PERMISSIONS } from "../../types/permissions";
 import styles from "./BuildModePanel.module.css";
 import { useTranslation } from "../../../i18n/useTranslation";
+import tabsOverflow from "../shared/tabsOverflow.module.css";
 
 // Antes "Tienda" y "Marketplace" eran dos pestañas más en esta misma grilla:
 // clickearlas abría la ventana externa (Shop/MarketplaceWindow) Y ADEMÁS
@@ -339,7 +340,7 @@ export default function BuildModePanel({
         </div>
       )}
 
-      <nav className={styles.tabs} aria-label="Categorias de construccion">
+      <nav className={`${styles.tabs} ${tabsOverflow.scrollRow}`} aria-label="Categorias de construccion">
         {tabs.map((tab) => (
           <button
             key={tab.id}

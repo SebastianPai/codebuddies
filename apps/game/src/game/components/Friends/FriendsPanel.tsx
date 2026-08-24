@@ -25,7 +25,10 @@ import { requestGameConfirm, showGameAlert } from "../../utils/dialog";
 import { audioManager } from "../../audio/AudioManager";
 import { useChat } from "../Chat/ChatProvider";
 import { useDialogBehavior } from "../shared/useDialogBehavior";
+import { useWindowChrome } from "../shared/useWindowChrome";
 import { useTranslation } from "../../../i18n/useTranslation";
+import chromeStyles from "../shared/windowChrome.module.css";
+import tabsOverflow from "../shared/tabsOverflow.module.css";
 
 type TabType = "friends" | "requests" | "suggestions" | "search";
 
@@ -41,6 +44,7 @@ export default function FriendsPanel({ onClose }: Props) {
   // (a diferencia de Modal/PCWindows, que sí lo usan) — un usuario de
   // teclado podía tabular hacia el canvas del juego detrás del panel.
   useDialogBehavior(nodeRef, onClose);
+  const { isSheet, draggableProps } = useWindowChrome();
 
   const [activeTab, setActiveTab] = useState<TabType>("friends");
   const [friends, setFriends] = useState<Friend[]>([]);
@@ -390,17 +394,20 @@ export default function FriendsPanel({ onClose }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, loading, friends, received, sent, search, searching, searchResults, loadingSuggestions, suggestions]);
 
-  return (
-    <Draggable nodeRef={nodeRef} handle={`.${styles.windowHeader}`}>
-      <div ref={nodeRef} className={styles.window}>
-        <div className={styles.windowHeader}>
-          <span className={styles.title}>{t("friends.title")}</span>
-          <button className={styles.closeBtn} aria-label={t("friends.closeAriaLabel")} onClick={onClose}>
-            <X size={14} />
-          </button>
-        </div>
+  const panel = (
+    <div ref={nodeRef} className={`${styles.window} ${isSheet ? styles.sheet : ""}`}>
+      <div className={styles.windowHeader}>
+        <span className={styles.title}>{t("friends.title")}</span>
+        <button
+          className={`${styles.closeBtn} ${chromeStyles.closeHitArea}`}
+          aria-label={t("friends.closeAriaLabel")}
+          onClick={onClose}
+        >
+          <X size={14} />
+        </button>
+      </div>
 
-        <div className={styles.tabs}>
+        <div className={`${styles.tabs} ${tabsOverflow.scrollRow}`}>
           <button
             className={`${styles.tab} ${activeTab === "friends" ? styles.active : ""}`}
             onClick={() => setActiveTab("friends")}
@@ -439,8 +446,15 @@ export default function FriendsPanel({ onClose }: Props) {
           </div>
         )}
 
-        <div className={styles.list}>{content}</div>
-      </div>
+      <div className={styles.list}>{content}</div>
+    </div>
+  );
+
+  if (isSheet) return panel;
+
+  return (
+    <Draggable nodeRef={nodeRef} handle={`.${styles.windowHeader}`} cancel="button" {...draggableProps}>
+      {panel}
     </Draggable>
   );
 }

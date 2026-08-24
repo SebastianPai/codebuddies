@@ -16,6 +16,9 @@ import { showGameAlert } from "../../../utils/dialog";
 import { useThemeAsset } from "../../../network/themeAssets";
 import { ThemeImage } from "../../ThemeImage/ThemeImage";
 import { useTranslation } from "../../../../i18n/useTranslation";
+import { useWindowChrome } from "../../shared/useWindowChrome";
+import tabsOverflow from "../../shared/tabsOverflow.module.css";
+import chromeStyles from "../../shared/windowChrome.module.css";
 
 interface Props {
   onJoinRoom?: (roomId: string) => void;
@@ -43,6 +46,7 @@ export default function RoomList({
   const doorAsset = useThemeAsset("ROOM_DOOR");
 
   const nodeRef = useRef<HTMLDivElement>(null);
+  const { isSheet } = useWindowChrome();
 
   const socket =
     socketProp ||
@@ -133,11 +137,8 @@ export default function RoomList({
     return sorted;
   }, [activeTab, myRooms, publicRooms, search, sort]);
 
-  return (
-    <>
-      <div className={styles.overlay}>
-        <Draggable nodeRef={nodeRef} handle={`.${styles.hero}`} bounds="parent">
-          <div ref={nodeRef} className={styles.window}>
+  const windowEl = (
+    <div ref={nodeRef} className={`${styles.window} ${isSheet ? styles.sheet : ""}`}>
             <div className={styles.container}>
               <div className={styles.hero}>
                 <div className={styles.heroLeft}>
@@ -173,13 +174,13 @@ export default function RoomList({
 
                 <button
                   onClick={() => setShowCreate(true)}
-                  className={styles.createBtn}
+                  className={`${styles.createBtn} ${chromeStyles.closeHitArea}`}
                 >
                   {t("rooms.listCreateButton")}
                 </button>
               </div>
 
-              <div className={styles.tabs}>
+              <div className={`${styles.tabs} ${tabsOverflow.scrollRow}`}>
                 <button
                   onClick={() => setActiveTab("public")}
                   className={`${styles.tab} ${
@@ -253,8 +254,19 @@ export default function RoomList({
                 )}
               </div>
             </div>
-          </div>
-        </Draggable>
+    </div>
+  );
+
+  return (
+    <>
+      <div className={styles.overlay}>
+        {isSheet ? (
+          windowEl
+        ) : (
+          <Draggable nodeRef={nodeRef} handle={`.${styles.hero}`} bounds="parent" cancel="button">
+            {windowEl}
+          </Draggable>
+        )}
       </div>
 
       {showCreate && (

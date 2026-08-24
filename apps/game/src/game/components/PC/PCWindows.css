@@ -367,6 +367,56 @@
   color: #fb7185;
 }
 
+/* En touch, 26px de botón es chico y quedan a solo 8px uno del otro (gap de
+   .taskbar-right) — un área de toque de 44px invisible centrada en cada uno
+   se pisaría con la del vecino. Se agranda el hueco y se agrega el área de
+   toque solo bajo pointer:coarse; en mouse/desktop no cambia nada. */
+@media (pointer: coarse) {
+  .taskbar-right {
+    gap: 22px;
+  }
+
+  .taskbar-control {
+    position: relative;
+  }
+
+  .taskbar-control::before {
+    content: "";
+    position: absolute;
+    inset: 50% auto auto 50%;
+    width: 44px;
+    height: 44px;
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* Sin esto, el marco decorativo (marco2.png) con su padding en % le come
+   demasiado espacio a una pantalla de teléfono ya chica — a este tamaño el
+   contenido real importa más que el chrome estético del "monitor". */
+@media (max-width: 700px), (max-height: 700px) {
+  .computer-frame {
+    width: 100vw;
+    height: 100dvh;
+    max-width: none;
+    max-height: none;
+    background: none;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+      env(safe-area-inset-left);
+  }
+
+  .monitor-frame {
+    border-width: 0;
+    border-radius: 0;
+  }
+
+  .desktop-icons {
+    top: 16px;
+    left: 16px;
+    grid-template-columns: repeat(auto-fill, 76px);
+    gap: 24px 16px;
+  }
+}
+
 .win11-btn {
   display: inline-flex;
   align-items: center;
