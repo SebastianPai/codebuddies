@@ -874,6 +874,33 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     return scoredLayers[0]?.layer || layers[0];
   }
 
+  // Antes el jugador aparecía en un literal fijo (250, 250) en coordenadas
+  // de mundo — solo caía "en el medio del mapa" por coincidencia al tamaño
+  // de viewport con el que se probó originalmente (buildMap() posiciona el
+  // tilemap con un offset que depende de this.scale.width/height, distinto
+  // en tablet/desktop). Un primer intento de arreglo calculó el centro
+  // geométrico del rectángulo del mapa en píxeles, pero las salas acá son
+  // isométricas con forma de rombo (ver el comentario de setupPathfinding
+  // sobre corner-cutting) — el centro del rectángulo puede caer justo en una
+  // punta vacía del rombo, un tile que no existe. Esta versión usa el
+  // centro en coordenadas de TILE (no depende del tamaño de canvas en
+  // absoluto) y lo valida con isWalkable(), la misma función de la que ya
+  // depende el pathfinding — si no es caminable, no arriesga otra regla
+  // inventada: cae al punto fijo de siempre.
+  private resolveSpawnPosition(): [number, number] {
+    const fallback: [number, number] = [250, 250];
+    if (!this.map || !this.groundLayer) return fallback;
+
+    const tx = Math.floor(this.map.width / 2);
+    const ty = Math.floor(this.map.height / 2);
+    if (!this.isWalkable(tx, ty)) return fallback;
+
+    const worldPos = this.groundLayer.tileToWorldXY(tx, ty);
+    if (!worldPos) return fallback;
+
+    return [worldPos.x + this.map.tileWidth / 2, worldPos.y + this.map.tileHeight / 2];
+  }
+
   private setBuildMode(active: boolean) {
     const hudContainer = (this.hud as any)?.container;
     if (hudContainer?.setVisible) {
@@ -887,7 +914,8 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
 
     this.cameras.main.roundPixels = true;
 
-    this.player = new ModularPlayer(this, 250, 250, []);
+    const [spawnX, spawnY] = this.resolveSpawnPosition();
+    this.player = new ModularPlayer(this, spawnX, spawnY, []);
 
     // Elipse plana y semitransparente bajo los pies del jugador — ver
     // PLAYER_Y_OFFSET más abajo para por qué la Y no es this.player.y a secas.
