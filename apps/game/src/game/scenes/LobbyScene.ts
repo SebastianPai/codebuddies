@@ -86,13 +86,6 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
   };
 
   private mapLayers: Phaser.Tilemaps.TilemapLayer[] = [];
-  // Offset con el que buildMap() posiciona las capas del tilemap en el mundo
-  // (depende de this.scale.width/height, así que cambia según el tamaño del
-  // canvas — distinto en tablet/mobile que en desktop). createWorld() lo
-  // necesita para ubicar al jugador y la zona del PC relativas al mapa real,
-  // no en coordenadas de mundo fijas que solo coinciden con el mapa "por
-  // casualidad" al tamaño de viewport con el que se probó originalmente.
-  private mapOffset = { x: 0, y: 0 };
   private selectedFloorTileIndex: number | null = null;
   private selectedSurfaceTexture: {
     item: any;
@@ -802,8 +795,6 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
       this.map.heightInPixels / 2 +
       this.currentLayoutComposition.layoutOffset.y;
 
-    this.mapOffset = { x: offsetX, y: offsetY };
-
     const createdLayers: Phaser.Tilemaps.TilemapLayer[] = [];
 
     this.map.layers.forEach((layerData, index) => {
@@ -896,17 +887,7 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
 
     this.cameras.main.roundPixels = true;
 
-    // Antes esto era un literal fijo (250, 250) en coordenadas de mundo, que
-    // solo caía "en el medio del mapa" por coincidencia al tamaño de
-    // viewport con el que se probó originalmente — buildMap() posiciona las
-    // capas del tilemap con un offset que depende de this.scale.width/height
-    // (this.mapOffset), así que en cualquier otro tamaño de canvas (tablet,
-    // mobile) ese punto fijo ya no caía dentro del mapa real. Ahora se
-    // calcula el centro real del mapa actual: offset + mitad de sus
-    // dimensiones en píxeles.
-    const spawnX = this.mapOffset.x + this.map.widthInPixels / 2;
-    const spawnY = this.mapOffset.y + this.map.heightInPixels / 2;
-    this.player = new ModularPlayer(this, spawnX, spawnY, []);
+    this.player = new ModularPlayer(this, 250, 250, []);
 
     // Elipse plana y semitransparente bajo los pies del jugador — ver
     // PLAYER_Y_OFFSET más abajo para por qué la Y no es this.player.y a secas.
