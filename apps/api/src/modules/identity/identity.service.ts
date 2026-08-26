@@ -70,28 +70,40 @@ export class IdentityService {
   async register(dto: RegisterDto) {
     const hashed = await bcrypt.hash(dto.password, 10);
 
-    const user = await this.prisma.$transaction(async (tx) => {
-      const now = new Date();
-      const createdUser = await tx.user.create({
-        data: {
-          username: dto.username,
-          email: dto.email,
-          password: hashed,
-          streak: 1,
-          bestStreak: 1,
-          lastLoginAt: now,
-        },
-        select: this.authUserSelect(),
-      });
+    let user;
+    try {
+      user = await this.prisma.$transaction(async (tx) => {
+        const now = new Date();
+        const createdUser = await tx.user.create({
+          data: {
+            username: dto.username,
+            email: dto.email,
+            password: hashed,
+            streak: 1,
+            bestStreak: 1,
+            lastLoginAt: now,
+          },
+          select: this.authUserSelect(),
+        });
 
-      await attachReferralToRegistration(tx, {
-        userId: createdUser.id,
-        username: createdUser.username,
-        referralCode: dto.referralCode,
-      });
+        await attachReferralToRegistration(tx, {
+          userId: createdUser.id,
+          username: createdUser.username,
+          referralCode: dto.referralCode,
+        });
 
-      return createdUser;
-    });
+        return createdUser;
+      });
+    } catch (err: any) {
+      if (err?.code === 'P2002') {
+        const target = (err.meta?.target ?? []) as string[];
+        if (target.includes('email')) {
+          throw new ConflictException('Ya existe una cuenta con ese correo.');
+        }
+        throw new ConflictException('Ese nombre de usuario ya está en uso.');
+      }
+      throw err;
+    }
 
     await this.gamificationService.getMissionsForUser(user.id);
 
