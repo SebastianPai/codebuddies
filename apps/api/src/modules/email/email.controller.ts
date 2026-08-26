@@ -82,6 +82,6 @@ export class EmailController {
   @UseGuards(RolesGuard)
   @Roles('ADMIN')
   sendTestEmail(@Body() dto: SendTestEmailDto) {
-    return this.emailService.sendTestEmail(dto.to);
+    return this.emailService.sendTestEmail(dto.to, dto.type, dto.language, dto.variables);
   }
 }

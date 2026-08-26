@@ -10,6 +10,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { MailerService } from '../mailer/mailer.service';
 import { CreateEmailCampaignDto } from './dto/create-email-campaign.dto';
+import { wrapBrandedEmailHtml } from './email-brand';
 import { UpdateMarketingPreferencesDto } from './dto/update-marketing-preferences.dto';
 import { UpsertEmailTemplateDto } from './dto/upsert-email-template.dto';
 
@@ -105,10 +106,11 @@ export class EmailService {
     recipients: TransactionalRecipient[],
   ) {
     for (const recipient of recipients) {
+      const subject = this.renderTemplate(template.subject, recipient);
       const result = await this.mailer.send({
         to: recipient.email,
-        subject: this.renderTemplate(template.subject, recipient),
-        html: this.renderTemplate(template.body, recipient),
+        subject,
+        html: wrapBrandedEmailHtml(subject, this.renderTemplate(template.body, recipient)),
       });
 
       await this.prisma.emailLog.create({
@@ -132,11 +134,37 @@ export class EmailService {
     });
   }
 
-  async sendTestEmail(to: string) {
+  async sendTestEmail(
+    to: string,
+    type?: EmailTemplateType,
+    language = 'es',
+    variables: Record<string, string> = {},
+  ) {
+    if (!type) {
+      const subject = 'Correo de prueba — CodeBuddies';
+      return this.mailer.send({
+        to,
+        subject,
+        html: wrapBrandedEmailHtml(
+          subject,
+          '<p>Este es un correo de prueba enviado desde el panel de administración de CodeBuddies. Si lo estás viendo, el envío de correos está funcionando correctamente.</p>',
+        ),
+      });
+    }
+
+    const template = await this.prisma.emailTemplate.findFirst({
+      where: { type, language, active: true },
+    });
+    if (!template) {
+      return { success: false, error: `No hay template activo de tipo ${type} (${language})` };
+    }
+
+    const sampleUser: TransactionalRecipient = { id: 'preview', username: 'Usuario de prueba', email: to };
+    const subject = this.renderTemplate(template.subject, sampleUser, variables);
     return this.mailer.send({
       to,
-      subject: 'Correo de prueba — CodeBuddies',
-      html: '<p>Este es un correo de prueba enviado desde el panel de administración de CodeBuddies. Si lo estás viendo, el envío de correos está funcionando correctamente.</p>',
+      subject,
+      html: wrapBrandedEmailHtml(subject, this.renderTemplate(template.body, sampleUser, variables)),
     });
   }
 
@@ -221,10 +249,11 @@ export class EmailService {
         return;
       }
 
+      const subject = this.renderTemplate(template.subject, user, extraVariables);
       const result = await this.mailer.send({
         to: user.email,
-        subject: this.renderTemplate(template.subject, user, extraVariables),
-        html: this.renderTemplate(template.body, user, extraVariables),
+        subject,
+        html: wrapBrandedEmailHtml(subject, this.renderTemplate(template.body, user, extraVariables)),
       });
 
       await this.prisma.emailLog.create({
