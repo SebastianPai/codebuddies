@@ -13,6 +13,7 @@ import { RolesGuard } from '../identity/guards/roles.guard';
 import { CurrentUser } from '../identity/decorators/current-user.decorator';
 import type { AuthUser } from '../identity/decorators/current-user.decorator';
 import { CreateEmailCampaignDto } from './dto/create-email-campaign.dto';
+import { SendTestEmailDto } from './dto/send-test-email.dto';
 import { UpdateMarketingPreferencesDto } from './dto/update-marketing-preferences.dto';
 import { UpsertEmailTemplateDto } from './dto/upsert-email-template.dto';
 import { EmailService } from './email.service';
@@ -75,5 +76,12 @@ export class EmailController {
   @Roles('ADMIN')
   listLogs() {
     return this.emailService.listLogs();
+  }
+
+  @Post('admin/test-send')
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
+  sendTestEmail(@Body() dto: SendTestEmailDto) {
+    return this.emailService.sendTestEmail(dto.to);
   }
 }

@@ -132,6 +132,14 @@ export class EmailService {
     });
   }
 
+  async sendTestEmail(to: string) {
+    return this.mailer.send({
+      to,
+      subject: 'Correo de prueba — CodeBuddies',
+      html: '<p>Este es un correo de prueba enviado desde el panel de administración de CodeBuddies. Si lo estás viendo, el envío de correos está funcionando correctamente.</p>',
+    });
+  }
+
   async sendWelcomeEmail(user: TransactionalRecipient) {
     await this.sendTransactionalEmail(EmailTemplateType.WELCOME, user);
   }
