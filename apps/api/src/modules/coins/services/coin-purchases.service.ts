@@ -12,6 +12,7 @@ import type { PaymentProvider } from '../../payments/types/payment-provider.type
 import { PurchaseCoinsDto } from '../dto/purchase-coins.dto';
 import { findCoinPackage } from '../constants/coin-packages';
 import { getActivePaymentProviderType } from '../../payments/utils/active-payment-provider.util';
+import { EmailService } from '../../email/email.service';
 
 @Injectable()
 export class CoinPurchasesService {
@@ -22,6 +23,7 @@ export class CoinPurchasesService {
     private readonly repository: CoinPurchasesRepository,
     @Inject(PAYMENT_PROVIDER)
     private readonly paymentProvider: PaymentProvider,
+    private readonly emailService: EmailService,
   ) {}
 
   async getUserPurchase(id: string, userId: string) {
@@ -83,7 +85,9 @@ export class CoinPurchasesService {
     coinPurchaseId: string,
     providerTransactionId: string | null,
   ) {
-    return this.prisma.$transaction(async (tx) => {
+    let delivered = false;
+
+    const result = await this.prisma.$transaction(async (tx) => {
       const purchase = await tx.coinPurchase.findUnique({
         where: { id: coinPurchaseId },
       });
@@ -121,8 +125,29 @@ export class CoinPurchasesService {
         },
       });
 
+      delivered = true;
       return tx.coinPurchase.findUnique({ where: { id: coinPurchaseId } });
     });
+
+    // Fuera de la transacción a propósito: enviar el correo no debe poder
+    // hacer fallar (ni retrasar) la entrega de coins ya confirmada.
+    if (delivered && result) {
+      const user = await this.prisma.user.findUnique({
+        where: { id: result.userId },
+        select: { id: true, email: true, username: true },
+      });
+      if (user) {
+        this.emailService
+          .sendCoinPurchaseEmail(user, { coins: String(result.coins) })
+          .catch((err) =>
+            this.logger.error(
+              `No se pudo enviar el correo de compra de monedas a ${user.email}: ${err instanceof Error ? err.message : err}`,
+            ),
+          );
+      }
+    }
+
+    return result;
   }
 
   markFailed(coinPurchaseId: string) {

@@ -29,6 +29,7 @@ const templateTypes = [
   "WELCOME",
   "PREMIUM_ACTIVATED",
   "CERTIFICATE_ISSUED",
+  "COIN_PURCHASE",
   "BIRTHDAY",
   "CHRISTMAS",
   "NEW_YEAR",

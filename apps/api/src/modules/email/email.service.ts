@@ -179,6 +179,17 @@ export class EmailService {
     await this.sendTransactionalEmail(EmailTemplateType.BIRTHDAY, user, 'es', extraVariables);
   }
 
+  async sendPremiumActivatedEmail(user: TransactionalRecipient) {
+    await this.sendTransactionalEmail(EmailTemplateType.PREMIUM_ACTIVATED, user);
+  }
+
+  async sendCoinPurchaseEmail(
+    user: TransactionalRecipient,
+    extraVariables: Record<string, string> = {},
+  ) {
+    await this.sendTransactionalEmail(EmailTemplateType.COIN_PURCHASE, user, 'es', extraVariables);
+  }
+
   async sendHolidayCampaign(
     type: EmailTemplateType,
     name: string,

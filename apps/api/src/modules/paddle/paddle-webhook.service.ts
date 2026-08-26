@@ -18,6 +18,7 @@ import { CertificateOrdersRepository } from '../payments/repositories/certificat
 import { PremiumSubscriptionsRepository } from '../subscriptions/repositories/premium-subscriptions.repository';
 import { CertificatesService } from '../certificates/services/certificates.service';
 import { CoinPurchasesService } from '../coins/services/coin-purchases.service';
+import { EmailService } from '../email/email.service';
 
 type AnySubscriptionNotification =
   | SubscriptionCreatedNotification
@@ -33,6 +34,7 @@ export class PaddleWebhookService {
     private readonly premiumSubscriptionsRepository: PremiumSubscriptionsRepository,
     private readonly certificatesService: CertificatesService,
     private readonly coinPurchasesService: CoinPurchasesService,
+    private readonly emailService: EmailService,
   ) {}
 
   // event ya viene verificado y tipado (paddle.webhooks.unmarshal(), ver
@@ -250,6 +252,25 @@ export class PaddleWebhookService {
       origin: PremiumOrigin.PAYMENT,
       ...mirrorFields,
     });
+
+    // Solo en la creación (primera vez que este providerSubscriptionId
+    // aparece) -- una renovación reentra por la rama `existing` de arriba y
+    // no debe volver a avisar "ya sos premium".
+    if (status === PremiumSubscriptionStatus.ACTIVE) {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, email: true, username: true },
+      });
+      if (user) {
+        this.emailService
+          .sendPremiumActivatedEmail(user)
+          .catch((err) =>
+            this.logger.error(
+              `No se pudo enviar el correo de premium activado a ${user.email}: ${err instanceof Error ? err.message : err}`,
+            ),
+          );
+      }
+    }
   }
 
   private async handleSubscriptionCanceled(

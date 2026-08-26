@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { PaymentsModule } from '../payments/payments.module';
+import { EmailModule } from '../email/email.module';
 import { CoinPurchasesController } from './controllers/coin-purchases.controller';
 import { AdminCoinsController } from './controllers/admin-coins.controller';
 import { CoinPurchasesRepository } from './repositories/coin-purchases.repository';
@@ -12,7 +13,7 @@ import { CoinLedgerService } from './services/coin-ledger.service';
   // PADDLE_API_KEY) en vez de duplicar la fábrica de providers -- la compra
   // de coins es, para efectos de checkout, un producto más del mismo
   // proveedor de pagos que ya usan los certificados.
-  imports: [PrismaModule, PaymentsModule],
+  imports: [PrismaModule, PaymentsModule, EmailModule],
   controllers: [CoinPurchasesController, AdminCoinsController],
   providers: [CoinPurchasesRepository, CoinPurchasesService, CoinLedgerService],
   exports: [CoinPurchasesRepository, CoinPurchasesService, CoinLedgerService],
