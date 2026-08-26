@@ -21,6 +21,7 @@ const templateTypes = [
   "BIRTHDAY",
   "CHRISTMAS",
   "NEW_YEAR",
+  "HALLOWEEN",
   "PROMOTION",
   "NEW_COURSE_AVAILABLE",
 ];

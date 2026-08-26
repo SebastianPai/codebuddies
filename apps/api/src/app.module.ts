@@ -55,6 +55,7 @@ import { CourseReviewsModule } from './modules/course-reviews/course-reviews.mod
 import { CourseProjectsModule } from './modules/course-projects/course-projects.module';
 import { ContentDiscussionModule } from './modules/content-discussion/content-discussion.module';
 import { BattlePassModule } from './modules/battle-pass/battle-pass.module';
+import { PromoCodesModule } from './modules/promo-codes/promo-codes.module';
 import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
@@ -116,6 +117,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     ThemeAssetsModule,
     CodeStudioModule,
     BattlePassModule,
+    PromoCodesModule,
   ],
   // AppController/HealthController: AppController nunca había estado
   // registrado acá (solo lo instanciaba su propio spec vía TestingModule,

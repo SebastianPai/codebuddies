@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Coins, Filter, Gift, Zap } from "lucide-react";
+import { Coins, Filter, Gift, Ticket, Zap } from "lucide-react";
+import { toast } from "react-toastify";
 import { api } from "../../../utils/api";
 import {
   GamificationEmpty,
@@ -48,6 +49,8 @@ export default function RewardsPage() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [promoCode, setPromoCode] = useState("");
+  const [redeeming, setRedeeming] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -67,6 +70,28 @@ export default function RewardsPage() {
   useEffect(() => {
     void load();
   }, [sourceType, rewardType, page]);
+
+  const redeemCode = async () => {
+    if (!promoCode.trim()) return;
+    setRedeeming(true);
+    try {
+      const result = await api.post<{ promoCode: { rewardType: string; rewardAmount: number } }>(
+        "/promo-codes/redeem",
+        { code: promoCode.trim() },
+      );
+      if (result.promoCode.rewardType === "PREMIUM_DAYS") {
+        toast.success(t("site.promoRedeemedPremiumToast", { amount: result.promoCode.rewardAmount }));
+      } else {
+        toast.success(t("site.promoRedeemedCoinsToast", { amount: result.promoCode.rewardAmount }));
+      }
+      setPromoCode("");
+      await load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("site.promoRedeemError"));
+    } finally {
+      setRedeeming(false);
+    }
+  };
 
   if (loading && !data) return <GamificationSkeleton />;
   if (error && !data) return <GamificationError message={error} onRetry={() => void load()} />;
@@ -119,6 +144,31 @@ export default function RewardsPage() {
               {t("common.clearFilters")}
             </button>
           </div>
+        </div>
+      </section>
+
+      <section className="mt-6 rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <label className="block flex-1">
+            <span className="mb-2 flex items-center gap-2 text-sm font-black">
+              <Ticket size={16} className="text-[rgb(var(--primary))]" />
+              {t("site.promoRedeemLabel")}
+            </span>
+            <input
+              value={promoCode}
+              onChange={(event) => setPromoCode(event.target.value)}
+              placeholder={t("site.promoRedeemPlaceholder")}
+              className="w-full rounded-md border border-[rgb(var(--border))] bg-[rgb(var(--background))] px-4 py-3 text-[rgb(var(--text))] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgb(var(--primary))]"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={() => void redeemCode()}
+            disabled={redeeming || !promoCode.trim()}
+            className="rounded-md bg-[rgb(var(--primary))] px-6 py-3 font-black text-[rgb(var(--button-text))] disabled:opacity-60"
+          >
+            {redeeming ? t("site.promoRedeemingButton") : t("site.promoRedeemButton")}
+          </button>
         </div>
       </section>
 

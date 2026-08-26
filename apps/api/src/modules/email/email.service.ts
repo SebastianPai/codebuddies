@@ -144,8 +144,11 @@ export class EmailService {
     await this.sendTransactionalEmail(EmailTemplateType.WELCOME, user);
   }
 
-  async sendBirthdayEmail(user: TransactionalRecipient) {
-    await this.sendTransactionalEmail(EmailTemplateType.BIRTHDAY, user);
+  async sendBirthdayEmail(
+    user: TransactionalRecipient,
+    extraVariables: Record<string, string> = {},
+  ) {
+    await this.sendTransactionalEmail(EmailTemplateType.BIRTHDAY, user, 'es', extraVariables);
   }
 
   async sendHolidayCampaign(
@@ -184,10 +187,15 @@ export class EmailService {
     await this.sendCampaign(campaign.id);
   }
 
-  private renderTemplate(text: string, user: TransactionalRecipient) {
+  private renderTemplate(
+    text: string,
+    user: TransactionalRecipient,
+    extraVariables: Record<string, string> = {},
+  ) {
     const variables: Record<string, string> = {
       username: user.username,
       email: user.email,
+      ...extraVariables,
     };
     return Object.entries(variables).reduce(
       (acc, [key, value]) => acc.replaceAll(`{{${key}}}`, value),
@@ -199,6 +207,7 @@ export class EmailService {
     type: EmailTemplateType,
     user: TransactionalRecipient,
     language = 'es',
+    extraVariables: Record<string, string> = {},
   ) {
     try {
       const template = await this.prisma.emailTemplate.findFirst({
@@ -214,8 +223,8 @@ export class EmailService {
 
       const result = await this.mailer.send({
         to: user.email,
-        subject: this.renderTemplate(template.subject, user),
-        html: this.renderTemplate(template.body, user),
+        subject: this.renderTemplate(template.subject, user, extraVariables),
+        html: this.renderTemplate(template.body, user, extraVariables),
       });
 
       await this.prisma.emailLog.create({

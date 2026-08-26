@@ -238,11 +238,14 @@ enum WebhookEventStatus {
 }
 
 // Distingue un PremiumSubscription nacido de un pago real (webhook del
-// provider) de uno otorgado a mano desde el admin — nunca se deben mezclar
-// silenciosamente (ver AdminUsersService.grantPremium / PaddleWebhookService).
+// provider) de uno otorgado a mano desde el admin, o de un cupón
+// promocional canjeado/otorgado automáticamente — nunca se deben mezclar
+// silenciosamente (ver AdminUsersService.grantPremium / PaddleWebhookService
+// / PromoCodesService.applyReward).
 enum PremiumOrigin {
   PAYMENT
   ADMIN
+  PROMO
 }
 
 enum FriendshipStatus {
@@ -392,8 +395,14 @@ enum EmailTemplateType {
   BIRTHDAY
   CHRISTMAS
   NEW_YEAR
+  HALLOWEEN
   PROMOTION
   NEW_COURSE_AVAILABLE
+}
+
+enum PromoRewardType {
+  COINS
+  PREMIUM_DAYS
 }
 
 enum EmailCampaignStatus {
@@ -706,6 +715,7 @@ model User {
   notifications            Notification[]
   emailLogs                EmailLog[]
   emailAuditLogs           EmailAuditLog[]
+  promoCodeRedemptions     PromoCodeRedemption[]
   referralProfile          ReferralProfile?
   referralsSent            Referral[]                    @relation("ReferralReferrer")
   referralSource           Referral?                     @relation("ReferralReferred")
@@ -2884,6 +2894,46 @@ model EmailAuditLog {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+}
+
+// Cupón de regalo directo (monedas o días de premium gratis) — nunca un
+// descuento real en el checkout de Paddle, ver PromoCodesService.applyReward.
+// `code` siempre en mayúsculas. `redeemedCount` se incrementa de forma
+// atómica en PromoCodesService.redeem para no perder canjes bajo carrera.
+model PromoCode {
+  id             String          @id @default(uuid())
+  code           String          @unique
+  name           String
+  description    String?
+  rewardType     PromoRewardType
+  rewardAmount   Int
+  expiresAt      DateTime?
+  maxRedemptions Int?
+  redeemedCount  Int             @default(0)
+  active         Boolean         @default(true)
+  createdById    String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  redemptions PromoCodeRedemption[]
+
+  @@index([active, expiresAt])
+}
+
+// Un canje por usuario por código (ver @@unique) — es la guarda real de
+// idempotencia, mismo patrón que BattlePassClaim: el insert único rechaza
+// el doble canje bajo carrera en vez de depender de un chequeo previo.
+model PromoCodeRedemption {
+  id          String   @id @default(uuid())
+  promoCodeId String
+  userId      String
+  redeemedAt  DateTime @default(now())
+
+  promoCode PromoCode @relation(fields: [promoCodeId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([promoCodeId, userId])
+  @@index([userId])
 }
 
 model ReferralProfile {

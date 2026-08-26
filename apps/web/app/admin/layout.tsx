@@ -39,6 +39,7 @@ import {
   Search,
   ChevronRight,
   ShieldAlert,
+  Gift,
 } from "lucide-react";
 import { useTranslation } from "../../src/i18n/useTranslation";
 import { useDisclosure } from "../../src/shared/hooks/use-disclosure";
@@ -159,6 +160,11 @@ export default function AdminLayout({
             href: "/admin/reconciliation",
             label: t("admin.reconciliationNav"),
             icon: <GitCompare size={18} />,
+          },
+          {
+            href: "/admin/promo-codes",
+            label: t("admin.promoCodesTitle"),
+            icon: <Gift size={18} />,
           },
         ],
       },

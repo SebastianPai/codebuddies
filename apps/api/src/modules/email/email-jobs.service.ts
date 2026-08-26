@@ -1,8 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { EmailTemplateType } from '@prisma/client';
+import { EmailTemplateType, PromoRewardType, RewardSourceType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { PromoCodesService } from '../promo-codes/promo-codes.service';
 import { EmailService } from './email.service';
+
+// Regalo directo (no un código, no un descuento real de Paddle) que se
+// acredita automáticamente el día del cumpleaños de cada usuario. Sin UI de
+// admin a propósito -- si se necesita ajustar, se cambia acá.
+const BIRTHDAY_GIFT_COINS = 200;
+const BIRTHDAY_GIFT_PREMIUM_DAYS = 7;
 
 @Injectable()
 export class EmailJobsService {
@@ -11,6 +18,7 @@ export class EmailJobsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
+    private readonly promoCodesService: PromoCodesService,
   ) {}
 
   @Cron('0 9 * * *')
@@ -46,7 +54,32 @@ export class EmailJobsService {
     let sent = 0;
     for (const user of birthdayUsers) {
       if (alreadySentIds.has(user.id)) continue;
-      await this.emailService.sendBirthdayEmail(user);
+
+      await this.prisma.$transaction(async (tx) => {
+        await this.promoCodesService.grantDirect(
+          tx,
+          user.id,
+          PromoRewardType.COINS,
+          BIRTHDAY_GIFT_COINS,
+          RewardSourceType.EVENT,
+          'birthday',
+          'Regalo de cumpleaños',
+        );
+        await this.promoCodesService.grantDirect(
+          tx,
+          user.id,
+          PromoRewardType.PREMIUM_DAYS,
+          BIRTHDAY_GIFT_PREMIUM_DAYS,
+          RewardSourceType.EVENT,
+          'birthday',
+          'Regalo de cumpleaños',
+        );
+      });
+
+      await this.emailService.sendBirthdayEmail(user, {
+        coins: String(BIRTHDAY_GIFT_COINS),
+        premiumDays: String(BIRTHDAY_GIFT_PREMIUM_DAYS),
+      });
       sent += 1;
     }
 
@@ -68,6 +101,17 @@ export class EmailJobsService {
     await this.emailService.sendHolidayCampaign(
       EmailTemplateType.NEW_YEAR,
       `Año Nuevo ${new Date().getFullYear()}`,
+    );
+  }
+
+  // 6 días antes del 31/10 para que el cupón (creado a mano en
+  // /admin/promo-codes y pegado en el body del template HALLOWEEN) llegue
+  // con margen antes de vencer.
+  @Cron('0 9 25 10 *')
+  async sendHalloweenEmails() {
+    await this.emailService.sendHolidayCampaign(
+      EmailTemplateType.HALLOWEEN,
+      `Halloween ${new Date().getFullYear()}`,
     );
   }
 
