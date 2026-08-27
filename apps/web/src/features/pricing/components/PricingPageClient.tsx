@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "../../../i18n/useTranslation";
 import { api } from "../../../shared/api";
@@ -21,6 +21,12 @@ type BillingInterval = "monthly" | "yearly";
 interface PremiumCheckoutResponse {
   providerSubscriptionId: string;
   checkoutUrl: string;
+}
+
+interface ActivePremiumSubscription {
+  id: string;
+  status: string;
+  expiresAt: string;
 }
 
 interface CoinCheckoutResponse {
@@ -45,6 +51,22 @@ export function PricingPageClient({ countryCode }: { countryCode?: string }) {
   const [billingInterval, setBillingInterval] = useState<BillingInterval>("yearly");
   const [checkingOutKey, setCheckingOutKey] = useState<string | null>(null);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [activeSubscription, setActiveSubscription] = useState<ActivePremiumSubscription | null>(null);
+
+  // Chequeo real antes de mostrar el botón de suscripción -- sin esto nada
+  // le avisaba a un usuario ya Premium que iba a pagar de nuevo (ver
+  // SubscriptionsService.createPremiumCheckout, que ahora también lo
+  // rechaza server-side; esto es la UX para no llegar ni a intentarlo).
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setActiveSubscription(null);
+      return;
+    }
+    api
+      .get<ActivePremiumSubscription | null>("/subscriptions/premium/me")
+      .then(setActiveSubscription)
+      .catch(() => setActiveSubscription(null));
+  }, [isAuthenticated]);
 
   // Catálogo (price ids) -- se computa una sola vez, no depende de estado.
   const subscriptionPlan = useMemo(() => getSubscriptionPlan(), []);
@@ -86,6 +108,7 @@ export function PricingPageClient({ countryCode }: { countryCode?: string }) {
 
   async function handleProCheckout() {
     if (!requireAuthOrRedirect()) return;
+    if (activeSubscription) return; // ya premium -- el botón no debería ni estar habilitado
     setCheckoutError(null);
     setCheckingOutKey("pro");
     try {
@@ -152,6 +175,7 @@ export function PricingPageClient({ countryCode }: { countryCode?: string }) {
           priceStatus={priceStatus}
           onCheckout={handleProCheckout}
           checkingOut={checkingOutKey === "pro"}
+          activeUntil={activeSubscription?.expiresAt ?? null}
         />
 
         <CertificateCard

@@ -30,6 +30,7 @@
     "perMonth": "/mo",
     "perYear": "/yr",
     "cta": "Start Free Trial",
+    "alreadySubscribed": "You're already Premium until {date}",
     "featuresTitle": "Everything included",
     "features": [
       "Unlimited programming courses",

@@ -49,11 +49,24 @@ export class SubscriptionsService {
     );
   }
 
+  // Guarda real contra pagos duplicados: sin esto, nada impedía que un
+  // usuario con Premium ya activo iniciara y pagara un checkout nuevo --
+  // Paddle cobra igual aunque ya exista una suscripción activa en nuestra
+  // DB, porque para Paddle es una suscripción nueva y legítima. Ver el
+  // incidente real: dos filas PremiumSubscription (origin PAYMENT) para la
+  // misma cuenta, una semana de diferencia, ambas cobradas de verdad.
   async createPremiumCheckout(
     userId: string,
     billingInterval: BillingInterval,
     customerEmail?: string,
   ) {
+    const activeSubscription = await this.getActivePremiumSubscription(userId);
+    if (activeSubscription) {
+      throw new BadRequestException(
+        `Ya tenés una suscripción Premium activa hasta ${activeSubscription.expiresAt.toISOString().slice(0, 10)}. No hace falta pagar de nuevo -- usá el portal de facturación para cambiar o cancelar tu plan.`,
+      );
+    }
+
     return this.subscriptionProvider.createCheckout({
       userId,
       planCode:

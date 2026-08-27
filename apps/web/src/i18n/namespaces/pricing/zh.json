@@ -30,6 +30,7 @@
     "perMonth": "/月",
     "perYear": "/年",
     "cta": "开始免费试用",
+    "alreadySubscribed": "你已经是高级会员，到期日 {date}",
     "featuresTitle": "包含内容",
     "features": [
       "无限编程课程",

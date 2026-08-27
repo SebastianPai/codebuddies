@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Loader2, Sparkles } from "lucide-react";
+import { Check, CheckCircle2, Loader2, Sparkles } from "lucide-react";
 import type { PriceByPriceId } from "../lib/usePricePreview";
 import type { Translate } from "./translate.type";
 
@@ -16,6 +16,7 @@ interface ProPricingCardProps {
   priceStatus: "idle" | "loading" | "ready" | "error";
   onCheckout: () => void;
   checkingOut: boolean;
+  activeUntil: string | null;
 }
 
 export function ProPricingCard({
@@ -28,6 +29,7 @@ export function ProPricingCard({
   priceStatus,
   onCheckout,
   checkingOut,
+  activeUntil,
 }: ProPricingCardProps) {
   const activePriceId = billingInterval === "monthly" ? monthlyPriceId : yearlyPriceId;
   const lineItem = pricesByPriceId[activePriceId];
@@ -89,14 +91,21 @@ export function ProPricingCard({
         )}
       </div>
 
-      <button
-        onClick={onCheckout}
-        disabled={checkingOut || priceStatus !== "ready"}
-        className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-[rgb(var(--primary))] px-6 py-3 font-black text-[rgb(var(--button-text))] shadow-lg transition-all hover:scale-[1.02] disabled:opacity-60 disabled:hover:scale-100"
-      >
-        {checkingOut && <Loader2 className="animate-spin" size={18} />}
-        {t("pricing.pro.cta")}
-      </button>
+      {activeUntil ? (
+        <div className="mt-6 flex items-center justify-center gap-2 rounded-full border border-[rgb(var(--primary))]/40 bg-[rgb(var(--primary))]/10 px-6 py-3 text-sm font-bold text-[rgb(var(--primary))]">
+          <CheckCircle2 size={18} />
+          {t("pricing.pro.alreadySubscribed", { date: new Date(activeUntil).toLocaleDateString() })}
+        </div>
+      ) : (
+        <button
+          onClick={onCheckout}
+          disabled={checkingOut || priceStatus !== "ready"}
+          className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-[rgb(var(--primary))] px-6 py-3 font-black text-[rgb(var(--button-text))] shadow-lg transition-all hover:scale-[1.02] disabled:opacity-60 disabled:hover:scale-100"
+        >
+          {checkingOut && <Loader2 className="animate-spin" size={18} />}
+          {t("pricing.pro.cta")}
+        </button>
+      )}
 
       <div className="mt-8 border-t border-[rgb(var(--border))] pt-6">
         <p className="text-xs font-black uppercase tracking-wide text-[rgb(var(--secondary-text))]">
