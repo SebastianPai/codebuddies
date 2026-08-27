@@ -6,6 +6,7 @@ import type { LucideIcon } from "lucide-react";
 import { api } from "../../utils/api";
 import { useTranslation } from "../../src/i18n/useTranslation";
 import { Pagination } from "../../src/shared/ui";
+import AdminSimpleChart from "../../components/referrals/AdminSimpleChart";
 
 const userActionLabelKeys: Record<string, string> = {
   GRANT_ADMIN: "admin.actionGrantAdmin",
@@ -166,12 +167,12 @@ export default function AdminDashboard() {
 
       {dashboard && (
         <section className="grid gap-6 lg:grid-cols-3">
-          <Chart title={t("admin.newUsersChartTitle")} points={dashboard.charts.newUsersOverTime} />
-          <Chart
+          <AdminSimpleChart title={t("admin.newUsersChartTitle")} points={dashboard.charts.newUsersOverTime} />
+          <AdminSimpleChart
             title={t("admin.certificatesIssuedChartTitle")}
             points={dashboard.charts.certificatesIssuedOverTime}
           />
-          <Chart title={t("admin.xpEarnedChartTitle")} points={dashboard.charts.xpEarnedOverTime} />
+          <AdminSimpleChart title={t("admin.xpEarnedChartTitle")} points={dashboard.charts.xpEarnedOverTime} />
         </section>
       )}
 
@@ -344,22 +345,3 @@ export default function AdminDashboard() {
   );
 }
 
-function Chart({ title, points }: { title: string; points: ChartPoint[] }) {
-  const max = Math.max(...points.map((point) => point.value), 1);
-  return (
-    <div className="rounded-lg border border-zinc-800 bg-[#111] p-6">
-      <h2 className="mb-5 text-lg font-black">{title}</h2>
-      <div className="flex h-40 items-end gap-2">
-        {points.map((point) => (
-          <div key={point.label} className="flex flex-1 flex-col items-center gap-2">
-            <div
-              className="w-full rounded-t bg-yellow-400"
-              style={{ height: `${Math.max((point.value / max) * 100, 4)}%` }}
-            />
-            <span className="text-[10px] text-zinc-500">{point.label}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}

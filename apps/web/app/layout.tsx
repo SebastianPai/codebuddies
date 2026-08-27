@@ -8,6 +8,8 @@ import { LanguageProvider } from "../src/i18n/LanguageContext";
 import GlobalChatProvider from "../components/chat/GlobalChatProvider";
 import GlobalNotificationsProvider from "../components/notifications/GlobalNotificationsProvider";
 import AppToastContainer from "../components/ui/AppToastContainer";
+import { GoogleAnalytics } from "../components/analytics/GoogleAnalytics";
+import { AdSenseLoader } from "../components/ads/AdSenseLoader";
 
 const SITE_DESCRIPTION =
   "Aprendé a programar con cursos interactivos, ejercicios de código en vivo y certificados verificables.";
@@ -48,6 +50,8 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body>
+        <GoogleAnalytics />
+        <AdSenseLoader />
         <ThemeProvider attribute="data-theme" defaultTheme="dark">
           <RewardProvider>
             <LanguageProvider>
