@@ -29,7 +29,7 @@ import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useTranslation } from "../../../../../../src/i18n/useTranslation";
 import { exercisePath } from "@/shared/utils/exercise-path";
 import { useReward } from "../../../../../../contexts/RewardContext";
-import { useTrackToolUsed, trackToolAction } from "../../../../../../components/analytics/tool-tracking";
+import { useTrackToolUsed, trackToolAction, trackCodeStarted, trackCodeResult } from "../../../../../../components/analytics/tool-tracking";
 
 const panelClass = `
 relative
@@ -74,17 +74,23 @@ const EditorContent = memo(
     setJsCode,
     starterCode,
     isMobile,
+    onUserEdit,
   }: any) => {
     const t = useTranslation();
     const handleChange = useCallback(
       (value: string | undefined) => {
         const newValue = value ?? "";
 
+        // onChange de Monaco solo dispara por ediciones reales del usuario
+        // (nunca por el prop `value` cambiando desde afuera) -- es la señal
+        // correcta para "empezó a escribir", ver code_started en el padre.
+        onUserEdit?.();
+
         if (activeTab === "html") setHtmlCode(newValue);
         else if (activeTab === "css") setCssCode(newValue);
         else setJsCode(newValue);
       },
-      [activeTab],
+      [activeTab, onUserEdit],
     );
 
     const handleReset = useCallback(() => {
@@ -247,6 +253,7 @@ export default function FullWidthConfidentialWorkspace() {
   const [isMobile, setIsMobile] = useState(false);
 
   const startedAtRef = useRef<number>(Date.now());
+  const codeStartedRef = useRef(false);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -262,6 +269,9 @@ export default function FullWidthConfidentialWorkspace() {
     if (!id || authLoading) return;
 
     startedAtRef.current = Date.now();
+    // Nueva "sesión" de ejercicio (cambió el id, ej. botón Siguiente) --
+    // code_started debe poder volver a dispararse para este ejercicio nuevo.
+    codeStartedRef.current = false;
 
     const loadExercise = async () => {
       setLoading(true);
@@ -429,6 +439,12 @@ try {
     return () => window.removeEventListener("message", handleMessage);
   }, []);
 
+  const handleUserEdit = useCallback(() => {
+    if (codeStartedRef.current || !exercise?.id) return;
+    codeStartedRef.current = true;
+    trackCodeStarted(exercise.id);
+  }, [exercise?.id]);
+
   const submitCompletion = async () => {
     if (!exercise || completed || submitting || !user?.userId) return;
 
@@ -452,6 +468,9 @@ try {
       // (correcto o no) -- un intento incorrecto no es un fallo de la
       // acción "submit" en sí, solo del resultado del ejercicio.
       trackToolAction("code_exercise", "learning", "submit");
+      // result sale 1:1 de res.correct (el backend), nunca del chequeo
+      // client-side del iframe.
+      trackCodeResult(exercise.id, res.correct ? "success" : "failed");
 
       if (!res.correct) {
         setCheckResult("fail");
@@ -625,6 +644,7 @@ try {
                   setJsCode={setJsCode}
                   starterCode={exercise?.starterCode || ""}
                   isMobile={isMobile}
+                  onUserEdit={handleUserEdit}
                 />
               )}
 
@@ -650,6 +670,7 @@ try {
                   setJsCode={setJsCode}
                   starterCode={exercise?.starterCode || ""}
                   isMobile={isMobile}
+                  onUserEdit={handleUserEdit}
                 />
               </Panel>
 
