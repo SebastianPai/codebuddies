@@ -13,9 +13,11 @@ import {
 } from "../../../components/gamification/GamificationState";
 import type { MissionsPayload } from "../../../components/gamification/gamification-types";
 import { useTranslation } from "../../../src/i18n/useTranslation";
+import { useTrackToolUsed, trackToolAction } from "../../../components/analytics/tool-tracking";
 
 export default function MissionsPage() {
   const t = useTranslation();
+  useTrackToolUsed("missions", "gamification");
   const [data, setData] = useState<MissionsPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [claimingId, setClaimingId] = useState<string | null>(null);
@@ -41,6 +43,7 @@ export default function MissionsPage() {
     setClaimingId(id);
     try {
       await api.post(`/missions/${id}/claim`);
+      trackToolAction("missions", "gamification", "claim");
       toast.success(t("gamification.rewardClaimed"));
       await load();
     } catch (err) {

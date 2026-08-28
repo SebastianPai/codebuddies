@@ -25,6 +25,7 @@ import {
 import { useTranslation } from "../../../../../../src/i18n/useTranslation";
 import { ContentDiscussion } from "@/features/courses/components/content-discussion";
 import { exercisePath } from "@/shared/utils/exercise-path";
+import { useTrackToolUsed, trackToolAction } from "../../../../../../components/analytics/tool-tracking";
 
 interface ExtendedQuizExercise extends QuizExercise {
   prevExerciseId?: string | null;
@@ -36,6 +37,7 @@ export default function BrutalistQuizExercisePage() {
   const router = useRouter();
   const { showReward } = useReward();
   const t = useTranslation();
+  useTrackToolUsed("quiz_exercise", "learning");
   const [exercise, setExercise] = useState<ExtendedQuizExercise | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState<number[]>([]);
@@ -186,6 +188,10 @@ export default function BrutalistQuizExercisePage() {
           timeSpentSeconds,
         }),
       });
+
+      // Éxito = el backend proceso la respuesta y devolvió un resultado
+      // válido (correcta o no) -- igual criterio que code_exercise.
+      trackToolAction("quiz_exercise", "learning", "answer");
 
       setIsCorrect(res.correct);
       setRevealedCorrect(res.correctOptions || []);

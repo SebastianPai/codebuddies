@@ -7,6 +7,7 @@ import { Check, Swords, Trophy, X } from "lucide-react";
 import { api } from "../../../../utils/api";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
 import { Button, ErrorState, Modal, Skeleton } from "../../../../src/shared/ui";
+import { useTrackToolUsed, trackToolAction } from "../../../../components/analytics/tool-tracking";
 
 interface ChallengeUser {
   id: string;
@@ -45,6 +46,7 @@ interface CourseLite {
 
 export default function FriendChallengesPage() {
   const t = useTranslation();
+  useTrackToolUsed("friend_challenges", "social");
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -101,6 +103,7 @@ export default function FriendChallengesPage() {
         opponentUsername: selectedFriend,
         courseId: selectedCourse,
       });
+      trackToolAction("friend_challenges", "social", "create");
       toast.success(t("site.challengeSentToast"));
       setModalOpen(false);
       setSelectedFriend("");
@@ -117,6 +120,7 @@ export default function FriendChallengesPage() {
     setBusyId(id);
     try {
       await api.patch(`/friend-challenges/${id}/${accept ? "accept" : "decline"}`, {});
+      if (accept) trackToolAction("friend_challenges", "social", "accept");
       await load();
     } catch {
       toast.error(t("common.unexpectedError"));

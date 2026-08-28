@@ -12,9 +12,11 @@ import {
 } from "../../../components/gamification/GamificationState";
 import { BattlePassTicket } from "../../../components/battle-pass/BattlePassTicket";
 import type { BattlePassState, BattlePassTier } from "../../../components/battle-pass/battle-pass-types";
+import { useTrackToolUsed, trackToolAction } from "../../../components/analytics/tool-tracking";
 
 export default function BattlePassPage() {
   const t = useTranslation();
+  useTrackToolUsed("battle_pass", "gamification");
   const [data, setData] = useState<BattlePassState | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +42,7 @@ export default function BattlePassPage() {
     setClaimingId(tierId);
     try {
       await api.post(`/battle-pass/claim/${tierId}`);
+      trackToolAction("battle_pass", "gamification", "claim_tier");
       toast.success(t("battlePass.claimSuccess"));
       await load();
     } catch (err) {

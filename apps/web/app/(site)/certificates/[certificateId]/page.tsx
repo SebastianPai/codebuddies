@@ -6,6 +6,7 @@ import {
   CertificateDownloadButton,
   type PublicCertificate,
 } from "@/features/certificates/components/certificate-download-button";
+import { CertificateVerifiedTracker } from "@/features/certificates/components/certificate-verified-tracker";
 
 interface CertificatePageProps {
   params: Promise<{ certificateId: string }>;
@@ -88,6 +89,7 @@ export default async function PublicCertificatePage({ params }: CertificatePageP
 
   return (
     <div className="min-h-screen bg-[#f5f1e8] px-4 py-8 text-black print:bg-white print:p-0">
+      <CertificateVerifiedTracker />
       <main className="mx-auto max-w-5xl border-8 border-black bg-white p-8 shadow-2xl print:border-4 print:shadow-none">
         <div className="border-2 border-black p-8 md:p-12">
           <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">

@@ -7,6 +7,7 @@ import { Award, Loader2 } from "lucide-react";
 import { useTranslation } from "../../../../../src/i18n/useTranslation";
 import { api } from "../../../../../utils/api";
 import { useAuth } from "../../../../../hooks/useAuth";
+import { useTrackToolUsed, trackToolAction } from "../../../../../components/analytics/tool-tracking";
 
 interface CourseSummary {
   id: string;
@@ -24,6 +25,7 @@ export default function CertificatePurchasePage() {
   const t = useTranslation();
   const router = useRouter();
   const { isAuthenticated, loading: authLoading } = useAuth();
+  useTrackToolUsed("certificates", "certification");
 
   const [course, setCourse] = useState<CourseSummary | null>(null);
   const [checkingOut, setCheckingOut] = useState(false);
@@ -61,6 +63,10 @@ export default function CertificatePurchasePage() {
 
       const checkoutUrl = res.checkout?.checkoutUrl;
       if (!checkoutUrl) throw new Error("missing checkoutUrl");
+      // Éxito real: se creó una orden nueva y Paddle devolvió un checkout
+      // válido -- "alreadyPurchased" arriba corta antes de llegar acá, y
+      // cualquier error cae al catch, ninguno de los dos dispara esto.
+      trackToolAction("certificates", "certification", "purchase");
       window.location.href = checkoutUrl;
     } catch {
       setError(t("site.buyCertificateError"));

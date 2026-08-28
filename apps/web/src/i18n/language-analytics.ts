@@ -22,6 +22,17 @@ function toGa4LanguageCode(lang: string): string {
   return GA4_LANGUAGE_CODE[lang] ?? lang.split("-")[0];
 }
 
+// Fuente confiable del idioma actual para cualquier otro evento de
+// analytics que lo necesite (ver components/analytics/tool-tracking.ts) --
+// misma fuente que usa LanguageContext (localStorage) y misma normalización
+// que language_change, para no reportar "en-us" en un evento y "en" en
+// otro.
+export function getCurrentGa4Language(): string | undefined {
+  if (typeof window === "undefined") return undefined;
+  const raw = localStorage.getItem("lang");
+  return raw ? toGa4LanguageCode(raw) : undefined;
+}
+
 let lastTrackedLang: string | null = null;
 
 // Empuja "language_change" al dataLayer -- nunca crea ni configura ninguna

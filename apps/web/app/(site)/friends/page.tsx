@@ -7,6 +7,7 @@ import { Check, Search, ShieldBan, UserMinus, UserPlus, Users, X } from "lucide-
 import { api } from "../../../utils/api";
 import { useTranslation } from "../../../src/i18n/useTranslation";
 import { Button, ErrorState, Skeleton } from "../../../src/shared/ui";
+import { useTrackToolUsed, trackToolAction } from "../../../components/analytics/tool-tracking";
 
 type UserLite = {
   id: string;
@@ -34,6 +35,7 @@ type SearchUser = UserLite & {
 
 export default function FriendsPage() {
   const t = useTranslation();
+  useTrackToolUsed("friends", "social");
   const [tab, setTab] = useState<"friends" | "received" | "sent" | "search">("friends");
   const [friends, setFriends] = useState<Friendship[]>([]);
   const [received, setReceived] = useState<Friendship[]>([]);
@@ -102,6 +104,7 @@ export default function FriendsPage() {
     try {
       if (action === "remove") await api.delete(`/friendships/${id}`);
       else await api.patch(`/friendships/${id}/${action}`);
+      if (action === "accept") trackToolAction("friends", "social", "accept_request");
       await load();
     } finally {
       setBusyId(null);
@@ -112,6 +115,7 @@ export default function FriendsPage() {
     setBusyId(userId);
     try {
       await api.post("/friendships/requests", { userId });
+      trackToolAction("friends", "social", "send_request");
       await load();
       if (query) {
         setResults(await api.get<SearchUser[]>(`/friendships/search?q=${encodeURIComponent(query.trim())}`));

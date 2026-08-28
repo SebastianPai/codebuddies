@@ -7,6 +7,7 @@ import { api } from "../../../utils/api";
 import CachedImage from "../../../components/shared/CachedImage";
 import { useTranslation } from "../../../src/i18n/useTranslation";
 import { Button, EmptyState, ErrorState, Skeleton } from "../../../src/shared/ui";
+import { useTrackToolUsed, trackToolAction } from "../../../components/analytics/tool-tracking";
 
 type SortKey = "newest" | "favorites" | "sales" | "rating" | "popular";
 type TabKey = "all" | "favorites" | "mostFavorites" | SortKey;
@@ -38,6 +39,7 @@ const tabs: Array<{ key: TabKey; labelKey: string; sort?: SortKey }> = [
 
 export default function MarketplacePage() {
   const t = useTranslation();
+  useTrackToolUsed("marketplace", "marketplace");
   const [items, setItems] = useState<MarketplaceItem[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
@@ -112,6 +114,10 @@ export default function MarketplacePage() {
     );
     try {
       await api.post(`/marketplace/${item.id}/favorite`);
+      // La compra real (POST /marketplace/:id/buy) vive en apps/game, que
+      // no tiene GTM instalado -- acá en apps/web la única acción real
+      // confirmada por el backend es esta.
+      trackToolAction("marketplace", "marketplace", "favorite");
     } catch (err) {
       setError(err instanceof Error ? err.message : t("site.favoritesUpdateError"));
       void load();

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Download } from "lucide-react";
 import { useTranslation } from "../../../i18n/useTranslation";
+import { trackToolAction } from "../../../../components/analytics/tool-tracking";
 
 export interface PublicCertificate {
   certificateId: string;
@@ -74,6 +75,11 @@ async function downloadCertificatePdf(
   }
 
   doc.save(`certificado-${certificate.certificateNumber}.pdf`);
+
+  // Único punto de salida exitosa de esta función (si algo de lo de arriba
+  // tira, esta línea nunca se alcanza) -- cubre los dos call sites de abajo
+  // (botón manual y auto-descarga por ?print=1) sin duplicar el tracking.
+  trackToolAction("certificates", "certification", "download_pdf");
 }
 
 interface CertificateDownloadButtonProps {

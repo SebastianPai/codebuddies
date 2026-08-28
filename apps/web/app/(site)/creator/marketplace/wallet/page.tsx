@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../../../../../utils/api";
 import { useTranslation } from "../../../../../src/i18n/useTranslation";
+import { trackToolAction } from "../../../../../components/analytics/tool-tracking";
 
 type Movement = {
   id: string;
@@ -75,6 +76,7 @@ export default function CreatorWalletPage() {
     setError("");
     try {
       await api.post("/creator/marketplace/wallet/withdraw");
+      trackToolAction("creator_marketplace", "marketplace", "withdraw");
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : t("site.withdrawError"));

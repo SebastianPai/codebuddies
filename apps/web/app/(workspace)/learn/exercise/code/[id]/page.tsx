@@ -29,6 +29,7 @@ import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useTranslation } from "../../../../../../src/i18n/useTranslation";
 import { exercisePath } from "@/shared/utils/exercise-path";
 import { useReward } from "../../../../../../contexts/RewardContext";
+import { useTrackToolUsed, trackToolAction } from "../../../../../../components/analytics/tool-tracking";
 
 const panelClass = `
 relative
@@ -201,6 +202,7 @@ export default function FullWidthConfidentialWorkspace() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const { showReward } = useReward();
+  useTrackToolUsed("code_exercise", "learning");
 
   const { id } = useParams<{ id: string }>();
 
@@ -445,6 +447,11 @@ try {
         code: jsCode,
         timeSpentSeconds,
       })) as any;
+
+      // Éxito = el backend proceso el envío y devolvió un resultado válido
+      // (correcto o no) -- un intento incorrecto no es un fallo de la
+      // acción "submit" en sí, solo del resultado del ejercicio.
+      trackToolAction("code_exercise", "learning", "submit");
 
       if (!res.correct) {
         setCheckResult("fail");

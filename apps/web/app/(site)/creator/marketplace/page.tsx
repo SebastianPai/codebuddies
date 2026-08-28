@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api } from "../../../../utils/api";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
+import { useTrackToolUsed, trackToolAction } from "../../../../components/analytics/tool-tracking";
 
 type Eligibility = {
   canApply: boolean;
@@ -64,6 +65,7 @@ const studioLinks = [
 
 export default function CreatorMarketplacePage() {
   const t = useTranslation();
+  useTrackToolUsed("creator_marketplace", "marketplace");
   const [eligibility, setEligibility] = useState<Eligibility | null>(null);
   const [dashboard, setDashboard] = useState<CreatorDashboard | null>(null);
   const [message, setMessage] = useState("");
@@ -89,6 +91,8 @@ export default function CreatorMarketplacePage() {
 
   const submit = async (id: string) => {
     await api.post(`/creator/marketplace/contents/${id}/submit`);
+    // Si el POST de arriba tira, esta línea nunca se alcanza.
+    trackToolAction("creator_marketplace", "marketplace", "submit_content");
     await load();
   };
 

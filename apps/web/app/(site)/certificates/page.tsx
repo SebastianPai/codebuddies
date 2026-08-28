@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Award, Download, ExternalLink, ShieldCheck } from "lucide-react";
 import { fetcher } from "../../../utils/fetcher";
 import { useTranslation } from "../../../src/i18n/useTranslation";
+import { useTrackToolUsed } from "../../../components/analytics/tool-tracking";
 
 interface Certificate {
   id: string;
@@ -23,6 +24,7 @@ interface Certificate {
 
 export default function MyCertificatesPage() {
   const t = useTranslation();
+  useTrackToolUsed("certificates", "certification");
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
