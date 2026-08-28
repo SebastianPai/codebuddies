@@ -6,18 +6,23 @@ declare global {
   }
 }
 
-// GA4 quiere códigos limpios (es/en/de), pero el valor interno de inglés es
-// "en-us" (ver Lang en LanguageContext.tsx) -- se normaliza acá para no
-// filtrar el detalle interno hacia afuera ni tener que tocar el tipo `Lang`
-// existente (usado en todo el sitio para resolver el diccionario de
-// traducciones).
-const GA4_LANGUAGE_CODE: Record<Lang, "es" | "en" | "de"> = {
+// GA4 quiere códigos limpios (es/en/de/...), pero algún valor interno de
+// Lang trae región (ej. "en-us") u otro formato -- se normaliza acá sin
+// depender de un Record<Lang, ...> exhaustivo a propósito: esto tiene que
+// seguir compilando y funcionando aunque cambie el set de idiomas
+// soportados (ver Lang en LanguageContext.tsx), sin tocar este archivo.
+// Cualquier valor no listado cae al fallback: el prefijo antes del guion.
+const GA4_LANGUAGE_CODE: Record<string, string> = {
   es: "es",
   "en-us": "en",
   de: "de",
 };
 
-let lastTrackedLang: Lang | null = null;
+function toGa4LanguageCode(lang: string): string {
+  return GA4_LANGUAGE_CODE[lang] ?? lang.split("-")[0];
+}
+
+let lastTrackedLang: string | null = null;
 
 // Empuja "language_change" al dataLayer -- nunca crea ni configura ninguna
 // tag/trigger de GTM, eso se hace en tagmanager.google.com. No duplica: si
@@ -33,6 +38,6 @@ export function trackLanguage(lang: Lang) {
   window.dataLayer = window.dataLayer || [];
   window.dataLayer.push({
     event: "language_change",
-    language: GA4_LANGUAGE_CODE[lang],
+    language: toGa4LanguageCode(lang),
   });
 }
