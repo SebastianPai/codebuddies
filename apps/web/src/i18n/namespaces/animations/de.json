@@ -1,0 +1,21 @@
+{
+  "loading": "Wird geladen...",
+  "title": "Animationen",
+  "new": "Neu",
+  "newAnimation": "Neue Animation",
+  "editAnimation": "Animation bearbeiten",
+  "preview": "Vorschau",
+  "name": "Name",
+  "variant": "Variante",
+  "speed": "Geschwindigkeit",
+  "loop": "Schleife",
+  "save": "Speichern",
+  "uploadSprite": "Sprite hochladen",
+  "frame": "Frame",
+  "uploading": "Wird hochgeladen...",
+  "upload": "Hochladen",
+  "uploaded": "Hochgeladen",
+  "saved": "Animation gespeichert",
+  "saveError": "Animation konnte nicht gespeichert werden",
+  "deleteError": "Animation konnte nicht gelöscht werden"
+}

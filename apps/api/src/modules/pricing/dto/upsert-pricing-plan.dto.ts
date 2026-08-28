@@ -24,7 +24,7 @@ export class LocalizedTextDto {
 
   @IsString()
   @MaxLength(300)
-  zh!: string;
+  de!: string;
 }
 
 export class UpsertPricingPlanDto {

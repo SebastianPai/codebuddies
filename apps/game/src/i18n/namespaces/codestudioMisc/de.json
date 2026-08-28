@@ -1,0 +1,108 @@
+{
+  "ranking": {
+    "title": "NPC-Konkurrenten",
+    "usersLabel": "{count} Nutzer"
+  },
+  "research": {
+    "trendsTitle": "Markttrends",
+    "treeTitle": "Technologiebaum",
+    "treeHint": "Jeder Zweig ist eine Kette von Knoten: Schalte einen frei, um dir den nächsten leisten zu können. Der Effekt jedes Knotens ist dauerhaft.",
+    "unlockedLabel": "Aktiv",
+    "requiresLabel": "Erfordert: {name}",
+    "unlockButton": "Freischalten ${amount}"
+  },
+  "roadmap": {
+    "pending": "Ausstehend",
+    "development": "Entwicklung",
+    "qa": "QA",
+    "release": "Release",
+    "production": "Produktion",
+    "qaHint": "Bugs, Performance und UX werden validiert",
+    "readyToPublish": "Bereit zur Veröffentlichung"
+  },
+  "settingsView": {
+    "title": "Live-Ops-Einstellungen",
+    "description": "CodeStudio schreitet mit den Ticks des Spiels voran. Erweiterte Optionen werden in künftigen Phasen an die Engine angebunden.",
+    "eventNotifications": "Event-Benachrichtigungen",
+    "developmentAnimations": "Entwicklungsanimationen",
+    "syncOnOpen": "Beim Öffnen des PCs synchronisieren"
+  },
+  "deleteCompany": {
+    "dangerZoneTitle": "Gefahrenzone",
+    "dangerZoneHint": "Das Löschen deines Unternehmens entfernt seine Features, Mitarbeiter, Infrastruktur und den Fortschritt dauerhaft. Das kann nicht rückgängig gemacht werden.",
+    "openButton": "Unternehmen löschen",
+    "title": "{name} löschen",
+    "warning": "Diese Aktion kann nicht rückgängig gemacht werden. Du verlierst alle Features, Mitarbeiter, Infrastruktur und den Fortschritt dieses Unternehmens.",
+    "instruction": "Gib {name} ein, um zu bestätigen, dass du es löschen möchtest.",
+    "nameMismatch": "Das ist nicht der Name des Unternehmens, das du löschen möchtest.",
+    "confirmButton": "Löschen",
+    "countingDown": "Wird gelöscht...",
+    "deleting": "Wird gelöscht...",
+    "toastTitle": "Unternehmen gelöscht",
+    "toastDescription": "\"{name}\" existiert nicht mehr.",
+    "errorToastTitle": "Löschen nicht möglich",
+    "errorToastDescription": "Versuche es in ein paar Sekunden erneut."
+  },
+  "tutorial": {
+    "title": "CEO-Assistent",
+    "subtitle": "Startpfad, damit das Unternehmen durch Spielen abhebt, nicht als CRUD.",
+    "nextCycle": "Nächster Zyklus",
+    "now": "Jetzt",
+    "goToPanel": "Zum Panel",
+    "step0Label": "Wähle dein erstes Feature",
+    "step0Hint": "Geh ins Backlog und wähle, was zuerst gebaut wird – ohne das hebt das Unternehmen nicht ab.",
+    "stepHireLabel": "Stelle deinen ersten Mitarbeiter ein",
+    "stepHireHint": "Ein Mitarbeiter beschleunigt die Entwicklung und lässt dich schneller skalieren.",
+    "stepInfraLabel": "Installiere deinen ersten Server",
+    "stepInfraHint": "Ohne Infrastruktur kann das Unternehmen nur wenige Nutzer verkraften, bevor es überlastet.",
+    "step1Label": "Erste 3 Features",
+    "step1Hint": "Mit 3 installierten Features geht dein Unternehmen live.",
+    "progressSuffix": "{label} ({current}/{target})",
+    "step3Label": "Erste Nutzer",
+    "step3Hint": "Marketing, Bewertung und Infrastruktur treiben das Wachstum an.",
+    "step4Label": "Stabile Infra",
+    "step4Hint": "Vermeide Überlastung, bevor du skalierst.",
+    "step5Label": "Öffentliche Roadmap",
+    "step5Hint": "Schließe neue Features ab, bis du eine starke Version veröffentlichst."
+  },
+  "guides": {
+    "next": "Weiter",
+    "start": "Alles klar, los geht's",
+    "feature": {
+      "step1Title": "Was ist ein \"Feature\"",
+      "step1Description": "Ein Feature ist eine konkrete Funktionalität in deiner App: ein Warenkorb, ein Chat, eine Suchleiste. Dein Unternehmen startet leer und braucht daher mindestens ein Feature, um etwas anbieten zu können und Nutzer zu gewinnen.",
+      "step2Title": "Was ist das Backlog",
+      "step2Description": "Das Backlog ist die Liste aller Features, die dein Startup-Typ bauen kann und die noch nicht entwickelt sind. Du wählst eines, bezahlst seine Kosten, und dein Team baut es über die Zeit (Fortschrittsbalken). Es gibt keine einzig richtige Antwort – jedes Feature eignet sich für den Anfang.",
+      "step3Title": "Was Priorität bedeutet",
+      "step3Description": "Die Priorität (Dringend/Hoch/Mittel/Niedrig) dient nur dazu, die Liste nach Belieben zu sortieren. Sie ändert weder die Kosten noch die Entwicklungszeit des Features – sie hilft nur bei der Organisation. Wähle ein beliebiges Feature und tippe auf \"Entwickeln\", um zu starten."
+    },
+    "hire": {
+      "step1Title": "Was ein Mitarbeiter bewirkt",
+      "step1Description": "Jeder eingestellte Mitarbeiter erhöht die Arbeitskapazität deines Unternehmens: Er beschleunigt die Feature-Entwicklung und verbessert die Gesamtstabilität. Ohne Mitarbeiter geht alles langsamer.",
+      "step2Title": "Wie du einstellst",
+      "step2Description": "Wähle ein beliebiges Profil aus der Liste und tippe auf \"Einstellen\". Es wird ein einmaliger Signing-Bonus (ein Monatsgehalt) berechnet, und der Mitarbeiter tritt sofort deinem Team bei."
+    },
+    "infra": {
+      "step1Title": "Wozu Infrastruktur dient",
+      "step1Description": "Infrastruktur (Server, Datenbanken usw.) bestimmt, wie viele Nutzer deine App verkraftet, ohne zusammenzubrechen, und wie schnell sie reagiert. Ohne Infrastruktur überlastet dein Unternehmen schnell, sobald es wächst.",
+      "step2Title": "Wie du installierst oder aufrüstest",
+      "step2Description": "Wähle einen Typ, den du noch nicht hast, und tippe auf \"Installieren\", um ihn auf Stufe 1 hinzuzufügen, oder tippe bei einem vorhandenen auf \"Stufe erhöhen\", um seine Kapazität zu steigern. Jedes Upgrade kostet mehr als das vorherige."
+    }
+  },
+  "sidebarTour": {
+    "backlogTitle": "Backlog",
+    "backlogContent": "Hier wählst du, welches Feature gebaut wird. Jedes hat Kosten, eine Bauzeit und hängt möglicherweise von einem früheren aus derselben Kategorie ab.",
+    "employeesTitle": "Mitarbeiter",
+    "employeesContent": "Stelle Leute ein, damit dein Team schneller baut. Je größer das Team, desto schneller läuft alles parallel.",
+    "infrastructureTitle": "Infrastruktur",
+    "infrastructureContent": "Server, Cache, Load Balancer. Ohne das bricht deine App zusammen, sobald starker Traffic kommt.",
+    "researchTitle": "Forschung",
+    "researchContent": "Technologiebaum: Schalte dauerhafte Knoten frei, die deine App für immer verbessern.",
+    "marketingTitle": "Marketing",
+    "marketingContent": "Starte echte Kampagnen pro Kanal (TikTok, Facebook usw.) und vergleiche, welcher dir die meisten Nutzer bringt.",
+    "localeBack": "Zurück",
+    "localeSkip": "Überspringen",
+    "localeNext": "Weiter",
+    "localeLast": "Fertig"
+  }
+}

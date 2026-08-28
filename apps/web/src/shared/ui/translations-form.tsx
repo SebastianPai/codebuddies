@@ -14,7 +14,7 @@ interface TranslationsFormProps { translations: Translation[]; onChange: (transl
 // mal puesto, guardar una traducción en inglés fallaba en el backend con
 // un P2025 (no Language record found for nested connect) en cualquier
 // sección que use este componente (Módulos, Cursos, Lecciones, Ejercicios).
-const DEFAULT_LANGUAGES: LanguageOption[] = [{ code: "es", name: "Español" }, { code: "en", name: "English" }, { code: "zh-Hans", name: "中文 (简体)" }];
+const DEFAULT_LANGUAGES: LanguageOption[] = [{ code: "es", name: "Español" }, { code: "en", name: "English" }, { code: "de", name: "Deutsch" }];
 const textLinkClasses = classNames("rounded", FOCUS_RING);
 export function TranslationsForm({ translations, onChange, availableLanguages = DEFAULT_LANGUAGES, showContent = false }: TranslationsFormProps) {
   const t = useTranslation(); const [error, setError] = useState<string | null>(null);

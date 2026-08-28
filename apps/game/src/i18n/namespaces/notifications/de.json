@@ -1,0 +1,12 @@
+{
+  "panelTitle": "BENACHRICHTIGUNGEN",
+  "markAllRead": "Alle als gelesen markieren",
+  "closeAriaLabel": "Benachrichtigungen schließen",
+  "empty": "Du hast noch keine Benachrichtigungen.",
+  "markReadButton": "Als gelesen markieren",
+  "acceptInvite": "Annehmen",
+  "declineInvite": "Ablehnen",
+  "inviteAccepted": "Einladung angenommen",
+  "inviteDeclined": "Einladung abgelehnt",
+  "inviteJoining": "Raum wird betreten…"
+}

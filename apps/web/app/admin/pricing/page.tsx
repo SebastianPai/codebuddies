@@ -11,7 +11,7 @@ import { useConfirm } from "@/shared/ui";
 interface LocalizedText {
   es: string;
   en: string;
-  zh: string;
+  de: string;
 }
 
 interface PricingPlan {
@@ -40,9 +40,9 @@ const emptyPlan: PlanFormState = {
   sortOrder: 0,
   ctaHref: "/register",
   icon: "Sparkles",
-  name: { es: "", en: "", zh: "" },
-  ctaLabel: { es: "", en: "", zh: "" },
-  features: [{ es: "", en: "", zh: "" }],
+  name: { es: "", en: "", de: "" },
+  ctaLabel: { es: "", en: "", de: "" },
+  features: [{ es: "", en: "", de: "" }],
 };
 
 function toFormState(plan: PricingPlan): PlanFormState {
@@ -79,7 +79,7 @@ function PlanForm({
         icon: form.icon,
         name: form.name,
         ctaLabel: form.ctaLabel,
-        features: form.features.filter((feature) => feature.es || feature.en || feature.zh),
+        features: form.features.filter((feature) => feature.es || feature.en || feature.de),
       };
       if (initial) {
         await api.patch(`/admin/pricing/plans/${initial.id}`, payload);
@@ -153,13 +153,13 @@ function PlanForm({
       <div className="grid gap-4 md:grid-cols-3">
         <Field label={t("admin.pricingPlanNameEs")} value={form.name.es} onChange={(value) => update({ name: { ...form.name, es: value } })} />
         <Field label={t("admin.pricingPlanNameEn")} value={form.name.en} onChange={(value) => update({ name: { ...form.name, en: value } })} />
-        <Field label={t("admin.pricingPlanNameZh")} value={form.name.zh} onChange={(value) => update({ name: { ...form.name, zh: value } })} />
+        <Field label={t("admin.pricingPlanNameDe")} value={form.name.de} onChange={(value) => update({ name: { ...form.name, de: value } })} />
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
         <Field label={t("admin.pricingPlanCtaEs")} value={form.ctaLabel.es} onChange={(value) => update({ ctaLabel: { ...form.ctaLabel, es: value } })} />
         <Field label={t("admin.pricingPlanCtaEn")} value={form.ctaLabel.en} onChange={(value) => update({ ctaLabel: { ...form.ctaLabel, en: value } })} />
-        <Field label={t("admin.pricingPlanCtaZh")} value={form.ctaLabel.zh} onChange={(value) => update({ ctaLabel: { ...form.ctaLabel, zh: value } })} />
+        <Field label={t("admin.pricingPlanCtaDe")} value={form.ctaLabel.de} onChange={(value) => update({ ctaLabel: { ...form.ctaLabel, de: value } })} />
       </div>
 
       <div>
@@ -182,10 +182,10 @@ function PlanForm({
                 }
               />
               <Field
-                label={t("admin.pricingPlanFeatureZh")}
-                value={feature.zh}
+                label={t("admin.pricingPlanFeatureDe")}
+                value={feature.de}
                 onChange={(value) =>
-                  update({ features: form.features.map((f, i) => (i === index ? { ...f, zh: value } : f)) })
+                  update({ features: form.features.map((f, i) => (i === index ? { ...f, de: value } : f)) })
                 }
               />
               <button
@@ -201,7 +201,7 @@ function PlanForm({
         </div>
         <button
           type="button"
-          onClick={() => update({ features: [...form.features, { es: "", en: "", zh: "" }] })}
+          onClick={() => update({ features: [...form.features, { es: "", en: "", de: "" }] })}
           className="mt-3 inline-flex items-center gap-2 rounded-md border border-zinc-800 px-3 py-2 text-sm text-zinc-300"
         >
           <Plus size={14} />

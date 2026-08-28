@@ -12,7 +12,7 @@ import {
 
 export class CreateLayoutTranslationDto {
   @IsString()
-  languageCode: string; // 'es', 'en-us', 'zh-Hans', etc.
+  languageCode: string; // 'es', 'en-us', 'de', etc.
 
   @IsString()
   name: string;

@@ -618,7 +618,7 @@ model User {
 
   preferredLanguageId String?
 
-  // Idioma de la interfaz (es/en-us/zh-Hans) — separado a propósito de
+  // Idioma de la interfaz (es/en-us/de) — separado a propósito de
   // preferredLanguage/Language (ese modelo es para el idioma del CONTENIDO
   // de cursos/items, con sus propios códigos "en" sin "-us" y soporte RTL;
   // mezclarlo con el idioma de la UI de apps/web y apps/game hubiera

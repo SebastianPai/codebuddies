@@ -1,0 +1,10 @@
+{
+  "nextLogoAlt": "Next.js-Logo",
+  "starterTitle": "Bearbeite zum Einstieg die Datei page.tsx.",
+  "starterDescription": "Suchst du einen Startpunkt oder mehr Anleitungen? Besuche die Vorlagen oder das Lernzentrum.",
+  "templates": "Vorlagen",
+  "learning": "Lernen",
+  "deploy": "Jetzt deployen",
+  "documentation": "Dokumentation",
+  "vercelAlt": "Vercel-Logo"
+}

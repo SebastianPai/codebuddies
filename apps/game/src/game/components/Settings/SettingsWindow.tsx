@@ -39,7 +39,7 @@ interface Props {
 const LANGUAGE_OPTIONS: { value: Lang; labelKey: string }[] = [
   { value: "es", labelKey: "settings.languageEs" },
   { value: "en-us", labelKey: "settings.languageEnUs" },
-  { value: "zh-Hans", labelKey: "settings.languageZhHans" },
+  { value: "de", labelKey: "settings.languageDe" },
 ];
 
 export default function SettingsWindow({ username, onClose, onUsernameChanged }: Props) {
