@@ -8,7 +8,8 @@ import { LanguageProvider } from "../src/i18n/LanguageContext";
 import GlobalChatProvider from "../components/chat/GlobalChatProvider";
 import GlobalNotificationsProvider from "../components/notifications/GlobalNotificationsProvider";
 import AppToastContainer from "../components/ui/AppToastContainer";
-import { GoogleAnalytics } from "../components/analytics/GoogleAnalytics";
+import { GoogleTagManagerBody, GoogleTagManagerHead } from "../components/analytics/GoogleTagManager";
+import { GtmRouteTracker } from "../components/analytics/GtmRouteTracker";
 import { AdSenseLoader } from "../components/ads/AdSenseLoader";
 
 const SITE_DESCRIPTION =
@@ -49,8 +50,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" suppressHydrationWarning>
+      <GoogleTagManagerHead />
       <body>
-        <GoogleAnalytics />
+        <GoogleTagManagerBody />
+        <GtmRouteTracker />
         <AdSenseLoader />
         <ThemeProvider attribute="data-theme" defaultTheme="dark">
           <RewardProvider>
