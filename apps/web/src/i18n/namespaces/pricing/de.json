@@ -1,0 +1,72 @@
+{
+  "title": "Preise",
+  "subtitle": "Wähle den Tarif, der zu dir passt",
+  "loadError": "Preise konnten nicht geladen werden. Bitte versuche es später erneut.",
+  "loginRequired": "Melde dich an, um mit deinem Kauf fortzufahren",
+
+  "welcome": {
+    "title": "Willkommen bei CodeBuddies Pro",
+    "body": "Dein Abo ist jetzt aktiv. Genieße jeden Premium-Vorteil.",
+    "cta": "Zum Dashboard"
+  },
+  "shop": {
+    "title": "Kauf abgeschlossen",
+    "body": "Deine Coins wurden deinem Konto gutgeschrieben. Geh zurück zum Spiel-Shop, um sie auszugeben.",
+    "cta": "Zurück zum Spiel"
+  },
+  "billing": {
+    "redirecting": "Du wirst zum Abrechnungsportal weitergeleitet...",
+    "error": "Das Abrechnungsportal konnte nicht geöffnet werden",
+    "backToPricing": "Zurück zu den Preisen"
+  },
+
+  "pro": {
+    "name": "CodeBuddies Pro",
+    "description": "Unbegrenzter Zugriff auf Kurse, Übungen und Premium-Vorteile.",
+    "monthly": "Monatlich",
+    "yearly": "Jährlich",
+    "yearlyBadge": "Empfohlen",
+    "trialBadge": "7 Tage kostenlos testen",
+    "perMonth": "/Mon.",
+    "perYear": "/Jahr",
+    "cta": "Kostenlose Testphase starten",
+    "alreadySubscribed": "Du bist bereits bis {date} Premium",
+    "featuresTitle": "Alles inklusive",
+    "features": [
+      "Unbegrenzte Programmierkurse",
+      "Unbegrenzte Programmierübungen",
+      "Interaktive Challenges",
+      "XP & Erfolge",
+      "Premium-Abzeichen",
+      "Unbegrenzte Zertifikate",
+      "Frühzugang zu neuen Funktionen",
+      "Priorisierter Support"
+    ]
+  },
+
+  "certificate": {
+    "name": "Offizielles CodeBuddies-Zertifikat",
+    "oneTime": "Einmaliger Kauf",
+    "cta": "Zertifikat kaufen",
+    "features": [
+      "Digitale Verifizierung",
+      "Öffentliche Verifizierungsseite",
+      "PDF-Zertifikat",
+      "Lebenslanger Zugriff"
+    ]
+  },
+
+  "coins": {
+    "title": "Coin-Pakete",
+    "subtitle": "Kaufe Coins zum Ausgeben im Spiel-Shop",
+    "cta": "Coins kaufen",
+    "mostPopular": "Am beliebtesten",
+    "bonus": "inkl. {bonus} Bonus",
+    "packs": {
+      "coins_500": "Klein",
+      "coins_1100": "Beliebt",
+      "coins_3400": "Groß",
+      "coins_6000": "Ultimativ"
+    }
+  }
+}

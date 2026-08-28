@@ -5,7 +5,16 @@ import { dictionary } from "./dictionary";
 import { api } from "../shared/api/client";
 import { trackLanguage } from "./language-analytics";
 
-export type Lang = "es" | "en-us" | "zh-Hans";
+export type Lang = "es" | "en-us" | "de";
+
+// El locale chino (zh-Hans) fue reemplazado por alemán (de). Cualquier valor
+// viejo guardado en localStorage o devuelto por la API se migra en caliente
+// a "de" para no romper la preferencia de usuarios existentes.
+function migrateLegacyLang(value: string | null | undefined): Lang | null {
+  if (!value) return null;
+  if (value === "zh-Hans" || value === "zh" || value.startsWith("zh")) return "de";
+  return value as Lang;
+}
 
 type TranslationParams = Record<string, string | number>;
 type TranslationDictionary = Record<string, any>;
@@ -34,23 +43,25 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [lang, setLang] = useState<Lang>("es");
 
   useEffect(() => {
-    const saved = localStorage.getItem("lang") as Lang;
+    const saved = migrateLegacyLang(localStorage.getItem("lang"));
     let resolved: Lang = "es";
     if (saved) {
       resolved = saved;
       setLang(saved);
+      localStorage.setItem("lang", saved);
     }
 
     // La cuenta manda sobre el cache local: si el usuario ya eligió un
     // idioma desde apps/game (o desde otro dispositivo), se aplica acá
     // apenas responde /identity/me. Falla en silencio si no hay sesión.
     api
-      .get<{ uiLanguage?: Lang }>("/identity/me")
+      .get<{ uiLanguage?: string }>("/identity/me")
       .then((profile) => {
-        if (profile.uiLanguage && profile.uiLanguage !== saved) {
-          resolved = profile.uiLanguage;
-          setLang(profile.uiLanguage);
-          localStorage.setItem("lang", profile.uiLanguage);
+        const remote = migrateLegacyLang(profile.uiLanguage);
+        if (remote && remote !== saved) {
+          resolved = remote;
+          setLang(remote);
+          localStorage.setItem("lang", remote);
         }
       })
       .catch(() => {})

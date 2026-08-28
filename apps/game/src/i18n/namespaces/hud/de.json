@@ -1,0 +1,112 @@
+{
+  "sidebar": {
+    "tagline": "VERBINDEN · LERNEN · WACHSEN",
+    "online": "ONLINE",
+    "level": "LEVEL {level}",
+    "coins": "COINS",
+    "diamonds": "DIAMANTEN",
+    "tierDiamond": "DIAMANT",
+    "tierGold": "GOLD",
+    "tierSilver": "SILBER",
+    "tierBronze": "BRONZE",
+    "home": "Start",
+    "openPc": "PC öffnen",
+    "wardrobe": "Kleiderschrank",
+    "friends": "Freunde",
+    "messages": "Nachrichten",
+    "notifications": "Benachrichtigungen",
+    "github": "GitHub",
+    "tournaments": "Turniere",
+    "tournamentsComingSoonTitle": "Demnächst",
+    "tournamentsComingSoonMessage": "Turniere sind noch in Arbeit – sobald sie bereit sind, kannst du dich anmelden.",
+    "shop": "Shop",
+    "build": "Bauen",
+    "marketplace": "Marketplace",
+    "settings": "Einstellungen",
+    "exit": "Verlassen",
+    "discordCta": "Der Community beitreten",
+    "discordLabel": "Offizieller Discord",
+    "collapse": "Menü einklappen",
+    "expand": "Menü ausklappen"
+  },
+  "topBar": {
+    "energyHint": "Energie – wird verbraucht, wenn du Lernübungen abschließt",
+    "in": "in"
+  },
+  "zoom": {
+    "in": "Vergrößern",
+    "out": "Verkleinern",
+    "fullscreen": "Vollbild",
+    "exitFullscreen": "Vollbild verlassen"
+  },
+  "bottomBar": {
+    "reactionWave": "Winken",
+    "reactionLaugh": "Lachen",
+    "reactionFire": "Feuer",
+    "reactionBye": "Tschüss",
+    "chatPlaceholder": "Nachricht senden...",
+    "send": "SENDEN",
+    "chatThemeTitle": "Chatfarbe",
+    "onlineCount": "{count} online"
+  },
+  "room": {
+    "currentLabel": "Aktueller Raum",
+    "lobbyName": "Haupt-Lobby",
+    "liveStatus": "Live",
+    "playersOnline": "{count} Spieler online",
+    "infoButton": "Info",
+    "inviteButton": "Einladen",
+    "expand": "Raum-Panel anzeigen",
+    "collapse": "Raum-Panel ausblenden"
+  },
+  "missions": {
+    "label": "Missionen",
+    "sectionTitle": "Aktive Challenges",
+    "viewAll": "Alle ansehen",
+    "loadError": "Deine Challenges konnten nicht geladen werden.",
+    "empty": "Aktuell keine aktiven Challenges.",
+    "claimFailedTitle": "Einlösen nicht möglich",
+    "claimFailedMessage": "Die Belohnung ist noch nicht bereit oder wurde bereits eingelöst.",
+    "claimSuccessTitle": "Belohnung eingelöst",
+    "claimSuccessMessage": "Die Missionsbelohnungen wurden deinem Konto gutgeschrieben.",
+    "claimSuccessConfirm": "Super",
+    "activeTag": "Aktive Mission",
+    "progressLabel": "Fortschritt",
+    "rewardLabel": "Belohnung",
+    "noReward": "Keine Belohnung",
+    "claimed": "Eingelöst",
+    "claim": "Einlösen"
+  },
+  "events": {
+    "label": "Events",
+    "sectionTitle": "Demnächst",
+    "join": "Beitreten",
+    "today": "Heute",
+    "tomorrow": "Morgen"
+  },
+  "currency": {
+    "coins": "Coins",
+    "gems": "Gems",
+    "premium": "Premium",
+    "free": "Kostenlos"
+  },
+  "colorPicker": {
+    "groupLabel": "Farbe wählen",
+    "colorLabel": "Farbe {hex}"
+  },
+  "imagePreview": {
+    "zoomOut": "Verkleinern",
+    "zoomIn": "Vergrößern"
+  },
+  "itemCard": {
+    "viewLarger": "{label} größer ansehen",
+    "toggleFavorite": "{label} als Favorit markieren"
+  },
+  "itemPreview": {
+    "fallbackLabel": "Item"
+  },
+  "badges": {
+    "verified": "Verifiziert",
+    "creator": "Creator"
+  }
+}

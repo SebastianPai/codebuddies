@@ -1,0 +1,16 @@
+{
+  "inventoryEmptyCategory": "Du hast keine Items in dieser Kategorie.",
+  "itemCardUnnamed": "Ohne Namen",
+  "itemCardEquipped": "Angelegt",
+  "itemCardRemove": "Ablegen",
+  "itemCardEquip": "Anlegen",
+  "studioWindowAriaLabel": "Avatar-Umkleide",
+  "studioTitle": "Umkleide",
+  "studioCloseAriaLabel": "Umkleide schließen",
+  "studioDescription": "Kleidung, Haare, Accessoires und Farben, getrennt vom Möbelinventar.",
+  "studioSearchLabel": "Item suchen",
+  "studioSearchPlaceholder": "Haare, Shirt, Accessoire...",
+  "studioEmptyTitle": "Keine Avatar-Items",
+  "studioEmptyHint": "Kaufe Kleidung oder Accessoires im Shop, um sie hier anzulegen.",
+  "studioDefaultUsername": "Spieler"
+}

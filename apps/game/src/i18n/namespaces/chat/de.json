@@ -1,0 +1,16 @@
+{
+  "requestSentTitle": "Nachrichtenanfrage gesendet",
+  "requestSentMessage": "{username} muss deine Anfrage annehmen, bevor ihr chatten könnt.",
+  "openFailedTitle": "Chat konnte nicht geöffnet werden",
+  "closeChatAriaLabel": "Chat schließen",
+  "noMessagesYet": "Noch keine Nachrichten. Sag Hallo!",
+  "partnerTyping": "{username} schreibt...",
+  "messagePlaceholder": "Nachricht eingeben...",
+  "sendMessageAriaLabel": "Nachricht senden",
+  "panelTitle": "NACHRICHTEN",
+  "closeMessagesAriaLabel": "Nachrichten schließen",
+  "messageRequestsLabel": "NACHRICHTENANFRAGEN",
+  "reject": "Ablehnen",
+  "conversationsLabel": "UNTERHALTUNGEN",
+  "noConversations": "Du hast noch keine Unterhaltungen. Schreibe einem Freund über das Freunde-Panel."
+}

@@ -58,7 +58,7 @@ El dashboard admin ya tenía un `activeUsers` de 30 días real, pero no desglose
 - **Método hecho público**: `CertificateEligibilityService.isCourseCompleted()` (antes privado) — ahora reutilizado por `LearningPathsService`.
 - **Contrato extendido** (no breaking): `GET /learning-paths/:slugOrId` ahora acepta JWT opcional y devuelve `progress`, y cada curso trae `completed`/`locked`/`xpReward`/`coinsReward`/`requires`. `GET /admin/dashboard` ahora incluye `engagement`.
 - **Feature nueva en frontend**: `apps/web/src/features/world-pulse/`.
-- **Namespaces i18n extendidos** (en/es/zh, con traducciones reales al español, no copias del inglés): `admin` (engagement/retención) y `site` (world-pulse, mapa de rutas).
+- **Namespaces i18n extendidos** (en/es/de, con traducciones reales al español, no copias del inglés): `admin` (engagement/retención) y `site` (world-pulse, mapa de rutas).
 - **Documentación nueva**: `docs/ARCHITECTURE.md`, `docs/PRODUCT_MAP.md`, `docs/GAMIFICATION.md`, `docs/COURSE_SYSTEM.md`, este documento.
 
 ## 4. Verificación realizada

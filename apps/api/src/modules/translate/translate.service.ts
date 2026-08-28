@@ -27,7 +27,7 @@ export class TranslateService {
   // base es 'en' sin región (ver prisma/seed.ts), que es el valor que en la
   // práctica siempre llega acá desde el admin. Mapeo puntual en vez de forzar
   // una convención de código distinta a la de la base para todos los demás
-  // idiomas (zh-Hans sí funciona igual, DeepL acepta case-insensitive).
+  // idiomas (de sí funciona igual, DeepL acepta case-insensitive).
   private toDeeplTargetLang(targetLang: string): TargetLanguageCode {
     const normalized = targetLang.toUpperCase();
     if (normalized === 'EN') return 'en-US';

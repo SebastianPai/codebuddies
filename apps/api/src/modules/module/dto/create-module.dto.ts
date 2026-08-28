@@ -10,7 +10,7 @@ import {
 export class CreateModuleTranslationDto {
   @IsString()
   @MaxLength(10)
-  languageCode: string; // 'es', 'en', 'zh-Hans', etc.
+  languageCode: string; // 'es', 'en', 'de', etc.
 
   @IsString()
   @MaxLength(200)

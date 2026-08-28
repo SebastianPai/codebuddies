@@ -1,7 +1,7 @@
 import { IsDateString, IsIn, IsOptional, IsString } from 'class-validator';
 import { SUPPORTED_NAME_EFFECTS } from '../../../common/economy/effect-access';
 
-const SUPPORTED_UI_LANGUAGES = ['es', 'en-us', 'zh-Hans'] as const;
+const SUPPORTED_UI_LANGUAGES = ['es', 'en-us', 'de'] as const;
 const SUPPORTED_PC_THEMES = ['dark', 'light'] as const;
 
 // Espejo de CHAT_BUBBLE_THEMES en apps/game/.../hud/nameplateStyles.ts — el

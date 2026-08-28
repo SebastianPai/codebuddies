@@ -32,13 +32,13 @@ async function main() {
     },
   });
 
-  // Opcional: agrega más idiomas si quieres (ej: chino simplificado)
+  // Opcional: agrega más idiomas si quieres (ej: alemán)
   await prisma.language.upsert({
-    where: { code: 'zh-Hans' },
-    update: {},
+    where: { code: 'de' },
+    update: { name: 'Deutsch' },
     create: {
-      code: 'zh-Hans',
-      name: '中文 (简体)',
+      code: 'de',
+      name: 'Deutsch',
       direction: 'ltr',
     },
   });

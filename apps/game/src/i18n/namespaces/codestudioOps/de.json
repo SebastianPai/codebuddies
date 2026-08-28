@@ -1,0 +1,90 @@
+{
+  "dashboard": {
+    "title": "Kommandozentrale",
+    "subtitle": "Live-Überblick über dein Unternehmen, dein Produkt und deine Community.",
+    "activeUsersLabel": "Aktive Nutzer",
+    "objectivesTitle": "Ziele",
+    "trendsTitle": "Trends"
+  },
+  "development": {
+    "title": "Aktiver Sprint",
+    "emptyState": "Keine aktiven Aufgaben. Öffne Roadmap oder Backlog, um ein Feature zu starten.",
+    "timeRemaining": "Verbleibende Zeit: {time}",
+    "workingLabel": "Gesamtes Team",
+    "teamSpeedNote": "Dein gesamtes Team arbeitet parallel an diesen Aufgaben (nicht eine Person pro Feature). Aktuelle Geschwindigkeit: {value}x mit {count} Mitarbeitern.",
+    "benefit": "Nutzen: +{value} Wachstum",
+    "bugsTitle": "Aktive Bugs",
+    "statusQueued": "In Warteschlange",
+    "statusInProgress": "In Entwicklung",
+    "statusCompleted": "Veröffentlicht",
+    "shipped": "Veröffentlicht: Jeder Nutzer kann es bereits sehen",
+    "nothingActiveLabel": "Nichts mehr in Entwicklung",
+    "bugsHint": "Solange ein Bug offen ist, mindert er langsam deine Bewertung und Stabilität. Bezahle, um ihn sofort zu beheben, oder weise einen Mitarbeiter zu (keine zusätzlichen Kosten).",
+    "noBugs": "Aktuell keine offenen Bugs.",
+    "severityLow": "Niedrig",
+    "severityMedium": "Mittel",
+    "severityHigh": "Hoch",
+    "severityCritical": "Kritisch",
+    "bugFixPay": "${amount} bezahlen",
+    "bugFixAssign": "Zuweisen",
+    "bugNoCapableEmployee": "Keiner deiner Mitarbeiter kann das beheben (du brauchst Backend, FullStack, DevOps, QA oder Data Scientist). Vorerst kannst du nur bezahlen."
+  },
+  "employees": {
+    "level": "Level {level}",
+    "currentTaskLabel": "Aktuelle Aufgabe",
+    "motivationLabel": "Motivation",
+    "salaryHint": "{amount} Gehalt",
+    "stressLabel": "Stress",
+    "performanceHint": "Leistung",
+    "speedContribution": "Fügt der Teamgeschwindigkeit +{value}x hinzu",
+    "hireTitle": "Einstellen",
+    "hireHint": "Beim Einstellen wird ein Signing-Bonus von einem Monat berechnet. Das laufende Gehalt wird jeden Zyklus automatisch abgezogen.",
+    "hireCost": "Bonus: ${amount}",
+    "hireButton": "Einstellen",
+    "noneYet": "Du hast noch keine Mitarbeiter. Stelle deinen ersten ein, um die Entwicklung zu beschleunigen.",
+    "teamSpeedLabel": "Teamgeschwindigkeit",
+    "teamSpeedValue": "{value}x",
+    "teamSpeedHint": "Je höher diese Zahl, desto schneller wird jedes Feature gebaut. Mehr Tempo? Stelle einen weiteren Mitarbeiter ein."
+  },
+  "finance": {
+    "title": "Finanzen",
+    "burnRateTitle": "Burn Rate",
+    "incomeLabel": "Einnahmen",
+    "expensesLabel": "Ausgaben",
+    "profitable": "Profitabel",
+    "burningCash": "Cash wird verbrannt"
+  },
+  "infrastructure": {
+    "title": "Infrastruktur-Center",
+    "subtitle": "Live-Indikatoren abgeleitet aus Nutzern, Latenz, Stabilität und Kapazität.",
+    "nodesTitle": "Installierte Knoten",
+    "level": "Level {level}",
+    "usageLabel": "Auslastung",
+    "capacityHint": "{value} Kap.",
+    "statusLabel": "Status",
+    "installTitle": "Installieren",
+    "installHint": "Installiere deinen ersten Server, deine erste Datenbank oder deinen ersten Cache, damit das Unternehmen mehr Nutzer verkraftet.",
+    "installCost": "Kosten: ${amount}",
+    "installButton": "Installieren",
+    "noneYet": "Du hast noch keine Infrastruktur installiert.",
+    "upgradeButton": "Auf Level {level} aufrüsten (${cost})"
+  },
+  "marketing": {
+    "baseCost": "Basiskosten {amount}",
+    "launchTitle": "Kampagne starten",
+    "launchHint": "Jede Kampagne berechnet ihre Basiskosten und bringt echte Nutzer, die dem jeweiligen Kanal zugeordnet werden.",
+    "launchButton": "Starten",
+    "rankingTitle": "Kanalvergleich",
+    "rankingHint": "Sortiert nach gewonnenen Nutzern, damit du siehst, welcher Kanal sich am meisten lohnt.",
+    "noRunsYet": "Du hast noch keine Kampagne gestartet.",
+    "rankingGained": "+{count} Nutzer",
+    "rankingSpent": "${amount} ausgegeben",
+    "rankingRuns": "{count} Kampagnen"
+  },
+  "moduleLibrary": {
+    "title": "Feature-Bibliothek",
+    "subtitle": "120+ Module nach Kategorie gruppiert. Suche, klappe auf und entscheide, was gebaut wird.",
+    "searchPlaceholder": "Modul suchen...",
+    "featureCount": "{count} Features"
+  }
+}

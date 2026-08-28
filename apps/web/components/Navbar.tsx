@@ -55,7 +55,7 @@ const PRESENCE_SESSION_KEY = "codebuddies:presence-session-id";
 const LANGUAGES = [
   { code: "es", short: "ES", flag: "🇪🇸", label: "Español" },
   { code: "en-us", short: "EN", flag: "🇺🇸", label: "English" },
-  { code: "zh-Hans", short: "中文", flag: "🇨🇳", label: "中文" },
+  { code: "de", short: "DE", flag: "🇩🇪", label: "Deutsch" },
 ];
 
 const mobilePanelVariants = {

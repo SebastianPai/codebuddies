@@ -1,0 +1,10 @@
+{
+  "viewProfile": "Profil ansehen",
+  "message": "Nachricht",
+  "level": "LEVEL {level}",
+  "friendActionAccepted": "Freund entfernen",
+  "friendActionPendingIncoming": "Anfrage annehmen",
+  "friendActionPendingOutgoing": "Anfrage gesendet",
+  "friendActionBlocked": "Blockiert",
+  "friendActionDefault": "Freund hinzufügen"
+}

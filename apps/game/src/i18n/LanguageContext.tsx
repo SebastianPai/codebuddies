@@ -16,7 +16,16 @@ import { dictionary } from "./dictionary";
 import { getCurrentUser } from "../game/network/auth";
 import { apiPatch } from "../game/network/http";
 
-export type Lang = "es" | "en-us" | "zh-Hans";
+export type Lang = "es" | "en-us" | "de";
+
+// El locale chino (zh-Hans) fue reemplazado por alemán (de). Cualquier valor
+// viejo persistido (localStorage o User.uiLanguage) se migra en caliente a
+// "de" para no romper la preferencia de usuarios existentes.
+function migrateLegacyLang(value: string | null | undefined): Lang | null {
+  if (!value) return null;
+  if (value === "zh-Hans" || value === "zh" || value.startsWith("zh")) return "de";
+  return value as Lang;
+}
 
 type TranslationParams = Record<string, string | number>;
 type TranslationDictionary = Record<string, unknown>;
@@ -48,13 +57,16 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [lang, setLang] = useState<Lang>("es");
 
   useEffect(() => {
-    const cached = localStorage.getItem(LANG_STORAGE_KEY) as Lang | null;
-    if (cached) setLang(cached);
+    const cached = migrateLegacyLang(localStorage.getItem(LANG_STORAGE_KEY));
+    if (cached) {
+      setLang(cached);
+      localStorage.setItem(LANG_STORAGE_KEY, cached);
+    }
 
     // La cuenta manda: si el usuario ya eligió un idioma desde cualquiera de
     // las dos apps, pisa el cache local apenas responde /identity/me.
     void getCurrentUser().then((user) => {
-      const remote = (user as { uiLanguage?: string } | null)?.uiLanguage as Lang | undefined;
+      const remote = migrateLegacyLang((user as { uiLanguage?: string } | null)?.uiLanguage);
       if (remote && remote !== cached) {
         setLang(remote);
         localStorage.setItem(LANG_STORAGE_KEY, remote);
@@ -90,7 +102,7 @@ export function useLanguage(): LanguageContextValue {
 // depender del contexto.
 export function translate(key: string, params?: TranslationParams): string {
   const cached = typeof window !== "undefined" ? localStorage.getItem(LANG_STORAGE_KEY) : null;
-  const lang = (cached as Lang | null) ?? "es";
+  const lang = migrateLegacyLang(cached) ?? "es";
   const translations = (dictionary[lang] ?? dictionary.es) as TranslationDictionary;
   return interpolate(resolveTranslation(translations, key) ?? key, params);
 }

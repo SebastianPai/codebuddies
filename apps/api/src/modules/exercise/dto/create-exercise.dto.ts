@@ -18,7 +18,7 @@ const MAX_CODE_LENGTH = 50_000; // ~50k caracteres por bloque de código
 export class CreateExerciseTranslationDto {
   @IsString()
   @MaxLength(10)
-  languageCode: string; // 'es', 'en', 'zh-Hans', etc.
+  languageCode: string; // 'es', 'en', 'de', etc.
 
   @IsString()
   @MaxLength(200)
