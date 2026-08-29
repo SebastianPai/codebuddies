@@ -62,7 +62,16 @@ export function useAuth() {
     void initAuth();
 
     const handleStorage = (event: StorageEvent) => {
-      if (event.key === "token" || event.key === "userId" || event.key === "user") {
+      // Solo "token" señala una transición real de sesión (login/logout en
+      // otra pestaña). getCurrentUser() reescribe "userId"/"user" en
+      // localStorage cada vez que /identity/me responde con éxito -- si
+      // también reaccionábamos a esas claves acá, dos pestañas abiertas a
+      // la vez entraban en ping-pong infinito: la pestaña A refresca ->
+      // escribe localStorage -> dispara "storage" en B -> B refresca ->
+      // vuelve a escribir -> dispara "storage" en A ->... sin fin, limitado
+      // solo por la latencia de red (así se vio en prod: /identity/me
+      // acumulando pedidos cada ~100-200ms hasta gatillar el rate limiter).
+      if (event.key === "token") {
         void initAuth();
       }
     };
