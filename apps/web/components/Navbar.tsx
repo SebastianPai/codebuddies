@@ -311,7 +311,7 @@ export default function Navbar() {
             </span>
           </Link>
 
-          <div className="hidden md:flex items-center gap-1">
+          <div className="hidden lg:flex items-center gap-1">
             {primaryLinks.map((link) => (
               <NavLink key={link.href} href={link.href} active={pathname === link.href}>
                 {link.label}
@@ -451,7 +451,7 @@ export default function Navbar() {
             onClick={() => setIsMobileOpen((open) => !open)}
             aria-label={isMobileOpen ? t("navbar.closeMenu") : t("navbar.openMenu")}
             aria-expanded={isMobileOpen}
-            className="md:hidden p-2 text-[rgb(var(--text))]"
+            className="lg:hidden p-2 text-[rgb(var(--text))]"
           >
             {isMobileOpen ? <X size={28} /> : <Menu size={28} />}
           </button>
@@ -465,7 +465,7 @@ export default function Navbar() {
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-              className="md:hidden overflow-hidden"
+              className="lg:hidden overflow-hidden"
             >
               <motion.div
                 variants={mobilePanelVariants}
@@ -644,7 +644,7 @@ function StatsPill({
   return (
     <div
       className={`
-        hidden lg:flex items-center gap-2 px-3 py-1.5
+        hidden xl:flex items-center gap-2 px-3 py-1.5
         bg-[rgba(var(--background),0.6)] backdrop-blur-md rounded-full
         text-xs font-black transition-all duration-300
         ${fullWidth ? "!flex w-full justify-center" : ""}
