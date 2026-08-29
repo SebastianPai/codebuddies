@@ -270,7 +270,11 @@ export default function FootprintEditor({
                   {imageUrl && (
                     <div
                       aria-hidden="true"
-                      className="pointer-events-none absolute z-10 opacity-40"
+                      // z-30 + opacity alta: el sprite va POR ENCIMA de la
+                      // grilla de tiles (z-20) para poder juzgar a ojo cómo
+                      // se asienta sobre el origen. El punto de ancla (z-40)
+                      // sigue quedando por arriba como referencia fija.
+                      className="pointer-events-none absolute z-30 opacity-80"
                       style={{
                         // spriteOffsetX/Y solo desplazan esta imagen; el
                         // ancla y las tiles de abajo quedan fijas.
@@ -296,7 +300,7 @@ export default function FootprintEditor({
                   {imageUrl && (
                     <div
                       aria-hidden="true"
-                      className="pointer-events-none absolute z-30 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-yellow-400 ring-2 ring-slate-950"
+                      className="pointer-events-none absolute z-40 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-yellow-400 ring-2 ring-slate-950"
                       title={t("editor.anchorMarkerTitle")}
                       style={{
                         // Ancla FIJA (pie del sprite sobre la tile de origen).
