@@ -1,10 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "react-toastify";
 import { AUTH_CHANGED_EVENT, getCurrentUser, logout } from "../utils/auth";
 import type { User } from "../utils/auth";
+import { useTranslation } from "../src/i18n/useTranslation";
+
+// A nivel de módulo (no de componente) a propósito: useAuth() se usa desde
+// varios componentes a la vez (Navbar, páginas, etc.), cada uno con su
+// propio efecto -- este flag es el único guard real contra mostrar el
+// aviso de racha más de una vez por pestaña, sin importar cuántas
+// instancias del hook resuelvan "streakJustIncreased: true" casi al mismo
+// tiempo en la carga inicial.
+let streakToastShown = false;
 
 export function useAuth() {
+  const t = useTranslation();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -38,6 +49,11 @@ export function useAuth() {
       if (freshUser?.userId) {
         setUser(freshUser);
         setIsAuthenticated(true);
+
+        if (freshUser.streakJustIncreased && !streakToastShown) {
+          streakToastShown = true;
+          toast(t("site.streakIncreasedToast", { count: freshUser.streak ?? 0 }));
+        }
       }
 
       setLoading(false);
@@ -57,6 +73,11 @@ export function useAuth() {
       window.removeEventListener("storage", handleStorage);
       window.removeEventListener(AUTH_CHANGED_EVENT, initAuth);
     };
+    // t deliberadamente afuera: no querémos re-disparar todo initAuth() (y
+    // volver a pegarle a /identity/me) solo porque cambió el idioma -- el
+    // toast de racha es un evento único por sesión, usar el t del montaje
+    // alcanza.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return {

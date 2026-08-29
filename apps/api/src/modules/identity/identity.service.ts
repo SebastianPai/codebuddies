@@ -52,6 +52,7 @@ type AuthUser = {
   pcTheme?: string;
   chatBubbleThemeId?: string | null;
   nameEffectId?: string | null;
+  streakJustIncreased?: boolean;
 };
 
 @Injectable()
@@ -148,7 +149,8 @@ export class IdentityService {
       );
     }
 
-    const loginUser = await this.applyDailyLoginStreak(user.id);
+    const { user: loginUser, streakJustIncreased } =
+      await this.applyDailyLoginStreak(user.id);
 
     await this.gamificationService.getMissionsForUser(loginUser.id);
 
@@ -168,6 +170,7 @@ export class IdentityService {
       pcTheme: loginUser.pcTheme,
       chatBubbleThemeId: loginUser.chatBubbleThemeId,
       nameEffectId: loginUser.nameEffectId,
+      streakJustIncreased,
     };
     return this.generateAuthResponse(userSafe);
   }
@@ -301,7 +304,7 @@ export class IdentityService {
   }
 
   async getProfile(userId: string) {
-    await this.applyDailyLoginStreak(userId);
+    const { streakJustIncreased } = await this.applyDailyLoginStreak(userId);
     await this.gamificationService.getMissionsForUser(userId);
 
     const user = await this.prisma.user.findUnique({
@@ -351,6 +354,7 @@ export class IdentityService {
       completions: user._count.completions,
       certificates: user._count.certificates,
       enrollments: user._count.enrollments,
+      streakJustIncreased,
     };
   }
 
@@ -399,14 +403,15 @@ export class IdentityService {
     if (!update) {
       // Ya se contó actividad hoy — igual actualizamos lastLoginAt (es
       // informativo, no maneja la racha) sin tocar streak/bestStreak.
-      return this.prisma.user.update({
+      const unchanged = await this.prisma.user.update({
         where: { id: userId },
         data: { lastLoginAt: now },
         select: this.authUserSelect(),
       });
+      return { user: unchanged, streakJustIncreased: false };
     }
 
-    return this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id: userId },
       data: {
         streak: update.streak,
@@ -416,6 +421,10 @@ export class IdentityService {
       },
       select: this.authUserSelect(),
     });
+    // Solo avisamos cuando la racha realmente se extiende (continued) --
+    // nunca en un reinicio a 1 tras perder un día, eso no es algo para
+    // celebrar. Ver StreakUpdate.continued.
+    return { user: updated, streakJustIncreased: update.continued };
   }
 
   private generateAuthResponse(user: AuthUser) {
@@ -441,6 +450,7 @@ export class IdentityService {
         bestStreak: user.bestStreak ?? 0,
         lastLoginAt: user.lastLoginAt ?? null,
         marketingEmailsEnabled: user.marketingEmailsEnabled ?? true,
+        streakJustIncreased: user.streakJustIncreased ?? false,
       },
     };
   }

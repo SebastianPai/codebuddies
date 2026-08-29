@@ -485,5 +485,6 @@
   "promoRedeemingButton": "Wird eingelöst...",
   "promoRedeemedCoinsToast": "Eingelöst! Du hast {amount} Coins erhalten.",
   "promoRedeemedPremiumToast": "Eingelöst! Du hast {amount} Premium-Tage erhalten.",
-  "promoRedeemError": "Dieser Code konnte nicht eingelöst werden."
+  "promoRedeemError": "Dieser Code konnte nicht eingelöst werden.",
+  "streakIncreasedToast": "🔥 {count}-Tage-Serie!"
 }

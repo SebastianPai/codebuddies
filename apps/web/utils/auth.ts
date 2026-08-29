@@ -17,6 +17,9 @@ export interface User {
   nameEffectId?: string | null;
   unlockedEffectIds?: string[];
   isPremium?: boolean;
+  // true solo en la respuesta donde el backend acaba de extender la racha
+  // (ver IdentityService.applyDailyLoginStreak) -- nunca en un reinicio a 1.
+  streakJustIncreased?: boolean;
 }
 
 interface AuthResponse {

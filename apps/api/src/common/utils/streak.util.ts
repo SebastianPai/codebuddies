@@ -23,6 +23,10 @@ export interface StreakUpdate {
   streak: number;
   bestStreak: number;
   lastActivityAt: Date;
+  // true si la racha se extendió respecto de ayer (streak + 1); false si se
+  // reinició en 1 porque se perdió un día. Ver IdentityService — solo se
+  // celebra en el frontend cuando esto es true, nunca en un reinicio.
+  continued: boolean;
 }
 
 // Devuelve la nueva racha a persistir, o null si la actividad de hoy ya
@@ -49,5 +53,6 @@ export function computeStreakUpdate(
     streak: nextStreak,
     bestStreak: Math.max(state.bestStreak, nextStreak),
     lastActivityAt: now,
+    continued,
   };
 }
