@@ -2,7 +2,6 @@
 import { useTranslation } from "@/i18n/useTranslation";
 import { Button, ErrorState, Loader } from "@/shared/ui";
 import { WorldPulseBar } from "@/features/world-pulse/world-pulse-bar";
-import { AdSlot } from "../../../../components/ads/AdSlot";
 import { DashboardHeader } from "./dashboard-header";
 import { DashboardSidebar } from "./dashboard-sidebar";
 import { LearningSection } from "./learning-section";
@@ -83,11 +82,6 @@ export function DashboardPage() {
           />
         </section>
         <RecommendedCourses />
-        {/* Reemplazar "dashboard-bottom" por el ID real del ad unit creado en
-            AdSense para esta ubicación -- no renderiza nada hasta que
-            NEXT_PUBLIC_ADSENSE_CLIENT_ID esté configurado, y nunca se
-            muestra a usuarios con Premium activo. */}
-        <AdSlot slot="dashboard-bottom" className="mt-8" />
       </div>
     </div>
   );
