@@ -28,6 +28,13 @@ export const metadata: Metadata = {
     template: "%s · CodeBuddies",
   },
   description: SITE_DESCRIPTION,
+  // Verificación de sitio de Google AdSense (método alternativo al script,
+  // que Google no pudo detectar) -- vía la Metadata API de Next.js para que
+  // quede en el HTML server-rendered que recibe Googlebot, no inyectado
+  // después en el cliente.
+  other: {
+    "google-adsense-account": "ca-pub-5652535704352954",
+  },
   openGraph: {
     title: "CodeBuddies",
     description: SITE_DESCRIPTION,
