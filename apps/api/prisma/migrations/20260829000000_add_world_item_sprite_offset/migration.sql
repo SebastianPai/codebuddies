@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "WorldItemData" ADD COLUMN     "spriteOffsetX" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "spriteOffsetY" INTEGER NOT NULL DEFAULT 0;

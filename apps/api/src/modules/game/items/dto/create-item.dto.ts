@@ -6,6 +6,8 @@ import {
   IsBoolean,
   IsObject,
   IsArray,
+  Max,
+  Min,
 } from 'class-validator';
 import {
   AvatarSlotType,
@@ -152,6 +154,20 @@ export class CreateItemDto {
   @IsOptional()
   @IsInt()
   directions?: number;
+
+  // Calibración visual del artwork (píxeles). Solo mueve el sprite, no el
+  // footprint/anclaje. Ver clampSpriteOffset / WorldItemData.spriteOffsetX.
+  @IsOptional()
+  @IsInt()
+  @Min(-1000)
+  @Max(1000)
+  spriteOffsetX?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(-1000)
+  @Max(1000)
+  spriteOffsetY?: number;
 
   @IsOptional()
   @IsBoolean()

@@ -3,7 +3,7 @@ import RoomItemsManager from "./RoomItemsManager";
 import { LobbySceneType } from "../types/LobbySceneType";
 import { loadTextureOnce } from "../utils/phaserAssetCache";
 import { audioManager } from "../audio/AudioManager";
-import { getFurnitureAnchorY } from "../utils/tileAnchor";
+import { getFurnitureAnchorY, getSpriteOffset } from "../utils/tileAnchor";
 
 export default class FurnitureSocketSystem {
   private scene: LobbySceneType;
@@ -143,10 +143,14 @@ export default class FurnitureSocketSystem {
     // ocupación/bloqueo (ver RoomItemsManager) o quedaría desactualizado
     // hasta que algo más lo invalidara por otro lado.
     this.roomItems.invalidateOccupancy();
+    // Reposición manual (no pasa por RoomItemsManager.addItem), así que la
+    // calibración visual del artwork hay que volver a sumarla acá.
+    const offset = getSpriteOffset(worldObject.item?.worldData);
     worldObject.sprite.setPosition(
-      worldPos.x + this.scene.map.tileWidth / 2,
+      worldPos.x + this.scene.map.tileWidth / 2 + offset.x,
       getFurnitureAnchorY(worldPos.y, this.scene.map.tileHeight) -
-        worldObject.elevation * 16,
+        worldObject.elevation * 16 +
+        offset.y,
     );
     // updateItemDepth (no una fórmula ad-hoc acá): esta línea antes ignoraba
     // el footprint del objeto (usaba directo item.y*1000+item.x), dando una

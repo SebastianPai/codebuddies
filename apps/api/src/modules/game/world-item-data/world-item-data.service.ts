@@ -4,6 +4,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 
 import { UpdateWorldItemDto } from './dto/update-world-item.dto';
 import { buildWorldEngineData } from '../items/engine-data.util';
+import { clampSpriteOffset } from '../items/sprite-offset.util';
 
 @Injectable()
 export class WorldItemDataService {
@@ -71,6 +72,15 @@ export class WorldItemDataService {
     }
 
     const data: Record<string, any> = { ...dto };
+
+    // Nunca confiar en el valor crudo: el rango [-1000, 1000] y el "entero"
+    // los garantiza el backend, no el form.
+    if (dto.spriteOffsetX !== undefined) {
+      data.spriteOffsetX = clampSpriteOffset(dto.spriteOffsetX);
+    }
+    if (dto.spriteOffsetY !== undefined) {
+      data.spriteOffsetY = clampSpriteOffset(dto.spriteOffsetY);
+    }
 
     // El juego nunca lee `frameWidth` crudo -- siempre lee
     // `worldData.engineData.frameWidth` (con fallback a width/4), así que

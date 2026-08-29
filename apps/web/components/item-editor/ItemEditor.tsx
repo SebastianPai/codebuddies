@@ -40,6 +40,124 @@ function LabeledField({ text, hint, children }: { text: string; hint?: string; c
   );
 }
 
+const SPRITE_OFFSET_LIMIT = 1000;
+
+/** Recorta a entero dentro de [-1000, 1000] — mismo rango que el backend. */
+function clampSpriteOffset(value: number) {
+  const n = Math.trunc(Number(value));
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(-SPRITE_OFFSET_LIMIT, Math.min(SPRITE_OFFSET_LIMIT, n));
+}
+
+/**
+ * Calibración fina de la posición del sprite del world item, en píxeles.
+ * NO cambia el footprint / tiles / colisión: solo desplaza la imagen para
+ * compensar cómo fue exportado el arte. El mismo par de valores se aplica
+ * después en el juego (ver getSpriteOffset en apps/game/.../tileAnchor.ts).
+ */
+function SpriteOffsetControls({
+  x,
+  y,
+  onChange,
+  t,
+}: {
+  x: number;
+  y: number;
+  onChange: (next: { x: number; y: number }) => void;
+  t: (key: string, params?: Record<string, string | number>) => string;
+}) {
+  const nudge = (axis: "x" | "y", delta: number) => {
+    const base = axis === "x" ? x : y;
+    onChange({ x, y, [axis]: clampSpriteOffset(base + delta) });
+  };
+
+  const setAxis = (axis: "x" | "y", raw: string) => {
+    onChange({ x, y, [axis]: clampSpriteOffset(Number(raw)) });
+  };
+
+  // Flechas = 1px, Shift+flecha = 10px. Se ignora si el foco está en el
+  // input numérico (ahí las flechas ya incrementan el número solas) o en
+  // cualquier otro control de la página.
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if ((event.target as HTMLElement).tagName === "INPUT") return;
+    const step = event.shiftKey ? 10 : 1;
+    const moves: Record<string, () => void> = {
+      ArrowLeft: () => nudge("x", -step),
+      ArrowRight: () => nudge("x", step),
+      ArrowUp: () => nudge("y", -step),
+      ArrowDown: () => nudge("y", step),
+    };
+    const move = moves[event.key];
+    if (!move) return;
+    event.preventDefault();
+    move();
+  };
+
+  const isZero = x === 0 && y === 0;
+  const reset = () => {
+    if (!isZero && !window.confirm(t("items.spriteOffsetResetConfirm"))) return;
+    onChange({ x: 0, y: 0 });
+  };
+
+  const stepButton =
+    "min-w-[3rem] rounded-lg border border-zinc-800 bg-black/60 px-2 py-2 text-xs font-black text-zinc-200 transition hover:border-yellow-400 hover:text-yellow-300";
+
+  const axisRow = (axis: "x" | "y", value: number, label: string) => (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="w-16 text-sm font-black text-zinc-400">{label}</span>
+      <button type="button" className={stepButton} onClick={() => nudge(axis, -10)}>
+        −10
+      </button>
+      <button type="button" className={stepButton} onClick={() => nudge(axis, -1)}>
+        −1
+      </button>
+      <input
+        type="number"
+        value={value}
+        min={-SPRITE_OFFSET_LIMIT}
+        max={SPRITE_OFFSET_LIMIT}
+        onChange={(event) => setAxis(axis, event.target.value)}
+        className="w-20 rounded-lg border border-zinc-800 bg-black/70 px-2 py-2 text-center text-white outline-none transition focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20"
+      />
+      <button type="button" className={stepButton} onClick={() => nudge(axis, 1)}>
+        +1
+      </button>
+      <button type="button" className={stepButton} onClick={() => nudge(axis, 10)}>
+        +10
+      </button>
+      <span className="text-xs text-zinc-600">px</span>
+    </div>
+  );
+
+  return (
+    <div
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
+      className="rounded-2xl border border-zinc-800 bg-black/40 p-4 outline-none transition focus:border-yellow-400/60"
+    >
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <div>
+          <h4 className="text-sm font-black text-white">{t("items.spriteOffsetTitle")}</h4>
+          <p className="mt-1 text-xs text-zinc-500">{t("items.spriteOffsetHint")}</p>
+        </div>
+        <button
+          type="button"
+          onClick={reset}
+          disabled={isZero}
+          className="shrink-0 rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-black text-zinc-300 transition hover:border-yellow-400 hover:text-yellow-300 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {t("items.spriteOffsetReset")}
+        </button>
+      </div>
+      <div className="space-y-2">
+        {axisRow("x", x, t("items.spriteOffsetX"))}
+        {axisRow("y", y, t("items.spriteOffsetY"))}
+      </div>
+      <p className="mt-3 text-xs text-zinc-600">{t("items.spriteOffsetKeyboardHint")}</p>
+    </div>
+  );
+}
+
 const AVATAR_SLOTS = [
   "BODY",
   "HEAD",
@@ -192,6 +310,14 @@ export default function ItemEditor({
   const [canBeStacked, setCanBeStacked] = useState(initial?.canBeStacked ?? false);
   const [stackHeight, setStackHeight] = useState(initial?.stackHeight || 10);
   const [maxStackHeight, setMaxStackHeight] = useState(initial?.maxStackHeight || 10);
+  // Calibración visual del sprite (píxeles). No toca footprint/tiles: solo
+  // desplaza la imagen en el juego y en el preview. Ver SpriteOffsetControls.
+  const [spriteOffsetX, setSpriteOffsetX] = useState(() =>
+    clampSpriteOffset(initial?.spriteOffsetX ?? 0),
+  );
+  const [spriteOffsetY, setSpriteOffsetY] = useState(() =>
+    clampSpriteOffset(initial?.spriteOffsetY ?? 0),
+  );
 
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(
@@ -349,6 +475,8 @@ export default function ItemEditor({
       syncDirections,
       footprints,
       surfaces,
+      spriteOffsetX: clampSpriteOffset(spriteOffsetX),
+      spriteOffsetY: clampSpriteOffset(spriteOffsetY),
     };
   };
 
@@ -407,6 +535,8 @@ export default function ItemEditor({
           syncDirections,
           footprints: category === "texture" ? createDefaultFootprint() : footprints,
           surfaces: category === "texture" ? createEmptySurface() : surfaces,
+          spriteOffsetX: clampSpriteOffset(spriteOffsetX),
+          spriteOffsetY: clampSpriteOffset(spriteOffsetY),
           isCollidable: category === "texture" ? false : isCollidable,
           walkable: category === "texture" ? true : walkable,
           isInteractable: category === "texture" ? false : isInteractable,
@@ -827,6 +957,16 @@ export default function ItemEditor({
             </label>
           </div>
 
+          <SpriteOffsetControls
+            x={spriteOffsetX}
+            y={spriteOffsetY}
+            onChange={({ x, y }) => {
+              setSpriteOffsetX(x);
+              setSpriteOffsetY(y);
+            }}
+            t={t}
+          />
+
           <FootprintEditor
             imageUrl={preview}
             imageWidth={Number(width)}
@@ -838,6 +978,8 @@ export default function ItemEditor({
             onSurfacesChange={setSurfaces}
             onSyncDirectionsChange={setSyncDirections}
             faceCount={singleFace ? 1 : 4}
+            spriteOffsetX={spriteOffsetX}
+            spriteOffsetY={spriteOffsetY}
           />
         </section>
       )}

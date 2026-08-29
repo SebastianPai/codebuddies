@@ -927,6 +927,14 @@ model WorldItemData {
   frameWidth  Int?
   frameHeight Int?
 
+  // Calibración visual del artwork: corre SOLO el sprite en pantalla (en
+  // píxeles) respecto del ancla de la tile. NO afecta footprint, colisión,
+  // profundidad, interacción ni pathfinding — ver getSpriteOffset /
+  // applySpriteOffset en apps/game/src/game/utils/tileAnchor.ts y
+  // clampSpriteOffset en el backend. Rango válido: [-1000, 1000].
+  spriteOffsetX Int @default(0)
+  spriteOffsetY Int @default(0)
+
   footprintWidth  Int @default(1)
   footprintHeight Int @default(1)
 

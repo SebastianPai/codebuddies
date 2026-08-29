@@ -31,5 +31,6 @@
   "modeSurface": "Superficie",
   "modeOrigin": "Origen",
   "tilesInfoLabel": "Tiles {count} · Bounds {width}x{height} · Origin {x},{y}",
-  "bodyBaseFallback": "Cuerpo base"
+  "bodyBaseFallback": "Cuerpo base",
+  "anchorMarkerTitle": "Ancla fija de la tile (no se mueve con el offset)"
 }

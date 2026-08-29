@@ -12,6 +12,13 @@ export default function WorldItemDetailsPage() {
 
   const itemId = params.id as string;
 
+  // Mismo rango [-1000, 1000] que valida el backend (clampSpriteOffset).
+  const clampOffset = (value: unknown) => {
+    const n = Math.trunc(Number(value));
+    if (!Number.isFinite(n)) return 0;
+    return Math.max(-1000, Math.min(1000, n));
+  };
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -92,6 +99,9 @@ export default function WorldItemDetailsPage() {
           worldItem.frameHeight === "" ? null : Number(worldItem.frameHeight),
 
         directions: Number(worldItem.directions),
+
+        spriteOffsetX: clampOffset(worldItem.spriteOffsetX),
+        spriteOffsetY: clampOffset(worldItem.spriteOffsetY),
       };
 
       await api.patch(`/world-item-data/${itemId}`, payload);
@@ -290,6 +300,49 @@ export default function WorldItemDetailsPage() {
               className="bg-black border border-zinc-700 rounded p-2"
               placeholder={t("items.height")}
             />
+          </div>
+        </div>
+
+        {/* SPRITE OFFSET */}
+
+        <div className="bg-[#111] border border-zinc-800 rounded-xl p-6">
+          <h2 className="font-bold text-lg mb-1">{t("items.spriteOffsetTitle")}</h2>
+          <p className="text-xs text-zinc-500 mb-4">{t("items.spriteOffsetHint")}</p>
+
+          <div className="grid grid-cols-2 gap-4">
+            <label className="flex flex-col gap-1 text-sm text-zinc-400">
+              {t("items.spriteOffsetX")}
+              <input
+                type="number"
+                min={-1000}
+                max={1000}
+                value={worldItem.spriteOffsetX ?? 0}
+                onChange={(e) =>
+                  setWorldItem({
+                    ...worldItem,
+                    spriteOffsetX: e.target.value,
+                  })
+                }
+                className="bg-black border border-zinc-700 rounded p-2"
+              />
+            </label>
+
+            <label className="flex flex-col gap-1 text-sm text-zinc-400">
+              {t("items.spriteOffsetY")}
+              <input
+                type="number"
+                min={-1000}
+                max={1000}
+                value={worldItem.spriteOffsetY ?? 0}
+                onChange={(e) =>
+                  setWorldItem({
+                    ...worldItem,
+                    spriteOffsetY: e.target.value,
+                  })
+                }
+                className="bg-black border border-zinc-700 rounded p-2"
+              />
+            </label>
           </div>
         </div>
 

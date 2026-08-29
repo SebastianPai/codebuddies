@@ -130,6 +130,12 @@ interface Props {
   // siempre 4 acá adentro sin importar el toggle "una sola cara" del
   // formulario, así que el preview salía recortado igual.
   faceCount?: number;
+  // Calibración visual del artwork (WorldItemData.spriteOffsetX/Y): corre
+  // SOLO la imagen del preview en píxeles. El ancla (rombo amarillo) y las
+  // tiles del footprint no se mueven — así el editor muestra lo mismo que
+  // luego se ve en el juego (ver getSpriteOffset en apps/game).
+  spriteOffsetX?: number;
+  spriteOffsetY?: number;
 }
 
 export default function FootprintEditor({
@@ -143,6 +149,8 @@ export default function FootprintEditor({
   onSurfacesChange,
   onSyncDirectionsChange,
   faceCount = 4,
+  spriteOffsetX = 0,
+  spriteOffsetY = 0,
 }: Props) {
   const t = useTranslation();
   const [mode, setMode] = useState<Mode>("footprint");
@@ -264,8 +272,10 @@ export default function FootprintEditor({
                       aria-hidden="true"
                       className="pointer-events-none absolute z-10 opacity-40"
                       style={{
-                        left: metrics.sprite.left,
-                        top: metrics.sprite.top,
+                        // spriteOffsetX/Y solo desplazan esta imagen; el
+                        // ancla y las tiles de abajo quedan fijas.
+                        left: metrics.sprite.left + spriteOffsetX,
+                        top: metrics.sprite.top + spriteOffsetY,
                         width: metrics.sprite.width,
                         height: metrics.sprite.height,
                         backgroundImage: `url(${imageUrl})`,
@@ -279,6 +289,21 @@ export default function FootprintEditor({
                         backgroundPosition:
                           faceCount <= 1 ? "0 0" : `-${frameWidth * direction.frame}px 0`,
                         imageRendering: "pixelated",
+                      }}
+                    />
+                  )}
+
+                  {imageUrl && (
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none absolute z-30 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-yellow-400 ring-2 ring-slate-950"
+                      title={t("editor.anchorMarkerTitle")}
+                      style={{
+                        // Ancla FIJA (pie del sprite sobre la tile de origen).
+                        // No usa spriteOffsetX/Y: es la referencia contra la
+                        // que se calibra la imagen.
+                        left: metrics.sprite.left + metrics.sprite.width / 2,
+                        top: metrics.sprite.top + metrics.sprite.height,
                       }}
                     />
                   )}

@@ -5,7 +5,7 @@ import {
   getDirectionalSurface,
   toWorldTiles,
 } from "./IsoFootprint";
-import { getFurnitureAnchorY } from "../utils/tileAnchor";
+import { applySpriteOffset, getFurnitureAnchorY } from "../utils/tileAnchor";
 import { pointerToScreenPosition } from "../utils/pointerToScreenPosition";
 
 export default class RoomItemsManager {
@@ -98,6 +98,15 @@ export default class RoomItemsManager {
     }
 
     sprite.setOrigin(0.5, 1);
+
+    // Calibración visual por-item (WorldItemData.spriteOffsetX/Y): corre solo
+    // el sprite respecto de su ancla, no el footprint/profundidad/colisión.
+    // Mismo helper que usa el ghost de construcción y el editor web, así que
+    // lo que se calibra en el editor es lo que se ve acá. Las superficies
+    // (FLOOR/WALL) se pegan a la tile y no se calibran.
+    if (!isSurface) {
+      applySpriteOffset(sprite, worldData);
+    }
 
     const depthTile = this.getBaseDepthTile(
       tileX,

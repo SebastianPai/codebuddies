@@ -2,7 +2,11 @@ import Phaser from "phaser";
 import { LobbySceneType } from "../types/LobbySceneType";
 import { IsoTile } from "./IsoFootprint";
 import { loadTextureOnce } from "../utils/phaserAssetCache";
-import { getFurnitureAnchorY, getFootprintTopY } from "../utils/tileAnchor";
+import {
+  getFurnitureAnchorY,
+  getFootprintTopY,
+  getSpriteOffset,
+} from "../utils/tileAnchor";
 import { WORLD_OVERLAY_DEPTH } from "../utils/depth";
 
 export default class BuildSystem {
@@ -133,10 +137,16 @@ export default class BuildSystem {
       elevation = highest.elevation + stackHeight;
     }
 
+    // Misma calibración visual que aplica RoomItemsManager al objeto ya
+    // colocado (WorldItemData.spriteOffsetX/Y) — sin esto el ghost quedaría
+    // en una posición y el mueble real "saltaría" a otra al soltarlo.
+    const offset = getSpriteOffset(this.selectedItem?.worldData);
+
     this.preview.setPosition(
-      worldPos.x + this.scene.map.tileWidth / 2,
+      worldPos.x + this.scene.map.tileWidth / 2 + offset.x,
       getFurnitureAnchorY(worldPos.y, this.scene.map.tileHeight) -
-        elevation * 16,
+        elevation * 16 +
+        offset.y,
     );
   }
 

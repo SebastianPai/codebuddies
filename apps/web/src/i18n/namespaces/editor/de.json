@@ -31,5 +31,6 @@
   "modeSurface": "Oberfläche",
   "modeOrigin": "Ursprung",
   "tilesInfoLabel": "Kacheln {count} · Grenzen {width}x{height} · Ursprung {x},{y}",
-  "bodyBaseFallback": "Körperbasis"
+  "bodyBaseFallback": "Körperbasis",
+  "anchorMarkerTitle": "Fester Kachelanker (bewegt sich nicht mit dem Offset)"
 }

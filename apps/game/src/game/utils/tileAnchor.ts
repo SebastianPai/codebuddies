@@ -44,6 +44,55 @@ export function getFootprintTopY(worldPosY: number, tileHeight: number) {
 }
 
 /**
+ * Calibración visual del artwork de un world item (WorldItemData.
+ * spriteOffsetX/Y en la DB). Corre SOLO el sprite en pantalla; el ancla de
+ * la tile, el footprint, la profundidad, la colisión y la interacción se
+ * calculan como siempre y NO lo usan. La fórmula es siempre:
+ *
+ *   finalScreenX = baseScreenX + spriteOffsetX
+ *   finalScreenY = baseScreenY + spriteOffsetY
+ *
+ * Se aplica en UN solo lugar por cada forma de render, para que el editor
+ * web, el ghost de construcción y el objeto ya colocado muestren el mueble
+ * exactamente en la misma posición:
+ *   - RoomItemsManager.addItem  → objeto colocado + carga inicial de la sala
+ *   - BuildSystem.update        → ghost de "mueble en mano"
+ *   - FurnitureSocketSystem.handleItemMoved → al reposicionar tras moverlo
+ */
+type SpriteOffsetSource =
+  | { spriteOffsetX?: number | null; spriteOffsetY?: number | null }
+  | null
+  | undefined;
+
+export function getSpriteOffset(worldData: SpriteOffsetSource): {
+  x: number;
+  y: number;
+} {
+  return {
+    x: normalizeSpriteOffset(worldData?.spriteOffsetX),
+    y: normalizeSpriteOffset(worldData?.spriteOffsetY),
+  };
+}
+
+function normalizeSpriteOffset(value: unknown): number {
+  const n = Math.trunc(Number(value));
+  return Number.isFinite(n) ? n : 0;
+}
+
+/**
+ * Suma getSpriteOffset() in-place sobre cualquier objeto con x/y (un
+ * Phaser.GameObjects.Sprite ya posicionado en su ancla base).
+ */
+export function applySpriteOffset(
+  target: { x: number; y: number },
+  worldData: SpriteOffsetSource,
+): void {
+  const offset = getSpriteOffset(worldData);
+  target.x += offset.x;
+  target.y += offset.y;
+}
+
+/**
  * Offset del jugador (LobbyScene: cálculo de targetY al caminar hacia una
  * tile). ModularPlayer es un Phaser.GameObjects.Container, no un Sprite con
  * origin(0.5,1) como los muebles — su punto (0,0) depende de los
