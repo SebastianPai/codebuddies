@@ -4,7 +4,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 
 import { UpdateWorldItemDto } from './dto/update-world-item.dto';
 import { buildWorldEngineData } from '../items/engine-data.util';
-import { clampSpriteOffset } from '../items/sprite-offset.util';
+import { buildSpriteOffsetData } from '../items/sprite-offset.util';
 
 @Injectable()
 export class WorldItemDataService {
@@ -73,13 +73,24 @@ export class WorldItemDataService {
 
     const data: Record<string, any> = { ...dto };
 
-    // Nunca confiar en el valor crudo: el rango [-1000, 1000] y el "entero"
-    // los garantiza el backend, no el form.
-    if (dto.spriteOffsetX !== undefined) {
-      data.spriteOffsetX = clampSpriteOffset(dto.spriteOffsetX);
-    }
-    if (dto.spriteOffsetY !== undefined) {
-      data.spriteOffsetY = clampSpriteOffset(dto.spriteOffsetY);
+    // Nunca confiar en el valor crudo: rango, "entero", sync y escalares
+    // legacy los reimpone el backend. `exists` cubre el update parcial.
+    if (
+      dto.spriteOffsetX !== undefined ||
+      dto.spriteOffsetY !== undefined ||
+      dto.spriteOffsets !== undefined ||
+      dto.spriteOffsetSync !== undefined
+    ) {
+      Object.assign(
+        data,
+        buildSpriteOffsetData({
+          spriteOffsets: dto.spriteOffsets,
+          spriteOffsetSync: dto.spriteOffsetSync,
+          spriteOffsetX: dto.spriteOffsetX,
+          spriteOffsetY: dto.spriteOffsetY,
+          existing: exists,
+        }),
+      );
     }
 
     // El juego nunca lee `frameWidth` crudo -- siempre lee

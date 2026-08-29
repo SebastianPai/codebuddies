@@ -3,11 +3,17 @@
 import { useState } from "react";
 import { useTranslation } from "../../src/i18n/useTranslation";
 
-type Direction = "NORTH" | "EAST" | "SOUTH" | "WEST";
+export type Direction = "NORTH" | "EAST" | "SOUTH" | "WEST";
 type Mode = "footprint" | "surface" | "origin";
 type Tile = { x: number; y: number };
 type DirectionData = { occupied: Tile[]; origin: Tile };
 export type FootprintMap = Record<Direction, DirectionData>;
+
+export type SpriteOffset = { x: number; y: number };
+export type SpriteOffsetMap = Record<Direction, SpriteOffset>;
+// "all" = 1 valor para las 4 · "mirror" = NORTE=SUR y ESTE=OESTE ·
+// "none" = 4 valores independientes.
+export type SpriteOffsetSync = "all" | "mirror" | "none";
 
 const DIRECTIONS: Array<{ key: Direction; labelKey: string; frame: number }> = [
   { key: "NORTH", labelKey: "editor.northLabel", frame: 0 },
@@ -16,12 +22,21 @@ const DIRECTIONS: Array<{ key: Direction; labelKey: string; frame: number }> = [
   { key: "WEST", labelKey: "editor.westLabel", frame: 3 },
 ];
 
-const MIRROR: Record<Direction, Direction> = {
+export const MIRROR: Record<Direction, Direction> = {
   NORTH: "SOUTH",
   SOUTH: "NORTH",
   EAST: "WEST",
   WEST: "EAST",
 };
+
+export function createSpriteOffsetMap(x = 0, y = 0): SpriteOffsetMap {
+  return {
+    NORTH: { x, y },
+    EAST: { x, y },
+    SOUTH: { x, y },
+    WEST: { x, y },
+  };
+}
 
 export function createDefaultFootprint(size = 4): FootprintMap {
   return DIRECTIONS.reduce((acc, direction) => {
@@ -130,12 +145,11 @@ interface Props {
   // siempre 4 acá adentro sin importar el toggle "una sola cara" del
   // formulario, así que el preview salía recortado igual.
   faceCount?: number;
-  // Calibración visual del artwork (WorldItemData.spriteOffsetX/Y): corre
-  // SOLO la imagen del preview en píxeles. El ancla (rombo amarillo) y las
-  // tiles del footprint no se mueven — así el editor muestra lo mismo que
-  // luego se ve en el juego (ver getSpriteOffset en apps/game).
-  spriteOffsetX?: number;
-  spriteOffsetY?: number;
+  // Calibración visual del artwork por dirección (WorldItemData.spriteOffsets):
+  // corre SOLO la imagen del preview en píxeles. El ancla (punto amarillo) y
+  // las tiles del footprint no se mueven — así el editor muestra lo mismo
+  // que luego se ve en el juego (ver getSpriteOffset en apps/game).
+  spriteOffsets?: SpriteOffsetMap;
 }
 
 export default function FootprintEditor({
@@ -149,9 +163,9 @@ export default function FootprintEditor({
   onSurfacesChange,
   onSyncDirectionsChange,
   faceCount = 4,
-  spriteOffsetX = 0,
-  spriteOffsetY = 0,
+  spriteOffsets,
 }: Props) {
+  const offsets = spriteOffsets ?? createSpriteOffsetMap();
   const t = useTranslation();
   const [mode, setMode] = useState<Mode>("footprint");
   const frameWidth = Math.max(1, Math.floor((imageWidth || faceCount) / faceCount));
@@ -244,6 +258,7 @@ export default function FootprintEditor({
         {DIRECTIONS.map((direction) => {
           const footprint = footprints[direction.key];
           const surface = surfaces[direction.key];
+          const offset = offsets[direction.key];
           const bounds = getBounds(footprint.occupied);
           const metrics = getEditorMetrics(frameWidth, frameHeight, footprint, surface);
           const grid = Array.from({ length: metrics.rows }, (_, y) =>
@@ -276,10 +291,10 @@ export default function FootprintEditor({
                       // sigue quedando por arriba como referencia fija.
                       className="pointer-events-none absolute z-30 opacity-80"
                       style={{
-                        // spriteOffsetX/Y solo desplazan esta imagen; el
-                        // ancla y las tiles de abajo quedan fijas.
-                        left: metrics.sprite.left + spriteOffsetX,
-                        top: metrics.sprite.top + spriteOffsetY,
+                        // El offset de esta dirección solo desplaza la
+                        // imagen; el ancla y las tiles de abajo quedan fijas.
+                        left: metrics.sprite.left + offset.x,
+                        top: metrics.sprite.top + offset.y,
                         width: metrics.sprite.width,
                         height: metrics.sprite.height,
                         backgroundImage: `url(${imageUrl})`,

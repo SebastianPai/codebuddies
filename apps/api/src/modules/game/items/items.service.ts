@@ -15,7 +15,7 @@ import {
 import { CreateItemDto } from './dto/create-item.dto';
 import { UpdateItemDto } from './dto/update-item.dto';
 import { buildWorldEngineData } from './engine-data.util';
-import { clampSpriteOffset } from './sprite-offset.util';
+import { buildSpriteOffsetData } from './sprite-offset.util';
 import { PremiumAccessService } from '../../premium-access/premium-access.service';
 import {
   RARITY_DEFINITIONS,
@@ -84,6 +84,8 @@ export class ItemsService {
       effectKey,
       spriteOffsetX = 0,
       spriteOffsetY = 0,
+      spriteOffsets,
+      spriteOffsetSync,
     } = dto;
 
     if (slot && kind) {
@@ -239,8 +241,12 @@ export class ItemsService {
           frameWidth,
           frameHeight,
           directions,
-          spriteOffsetX: clampSpriteOffset(spriteOffsetX),
-          spriteOffsetY: clampSpriteOffset(spriteOffsetY),
+          ...buildSpriteOffsetData({
+            spriteOffsets,
+            spriteOffsetSync,
+            spriteOffsetX,
+            spriteOffsetY,
+          }),
         },
       });
     }
@@ -371,6 +377,8 @@ export class ItemsService {
       itemSprite,
       spriteOffsetX,
       spriteOffsetY,
+      spriteOffsets,
+      spriteOffsetSync,
       name,
       description,
       languageCode,
@@ -430,10 +438,35 @@ export class ItemsService {
     if (syncDirections !== undefined) worldData.syncDirections = syncDirections;
     if (footprints !== undefined) worldData.footprints = footprints;
     if (surfaces !== undefined) worldData.surfaces = surfaces;
-    if (spriteOffsetX !== undefined)
-      worldData.spriteOffsetX = clampSpriteOffset(spriteOffsetX);
-    if (spriteOffsetY !== undefined)
-      worldData.spriteOffsetY = clampSpriteOffset(spriteOffsetY);
+    if (
+      spriteOffsetX !== undefined ||
+      spriteOffsetY !== undefined ||
+      spriteOffsets !== undefined ||
+      spriteOffsetSync !== undefined
+    ) {
+      // `existing` para el update parcial: si el form solo cambia el sync
+      // (sin re-mandar el mapa) hay que partir del mapa ya guardado.
+      const existing = await this.prisma.worldItemData.findUnique({
+        where: { itemId: id },
+        select: {
+          spriteOffsets: true,
+          spriteOffsetSync: true,
+          spriteOffsetX: true,
+          spriteOffsetY: true,
+        },
+      });
+
+      Object.assign(
+        worldData,
+        buildSpriteOffsetData({
+          spriteOffsets,
+          spriteOffsetSync,
+          spriteOffsetX,
+          spriteOffsetY,
+          existing,
+        }),
+      );
+    }
 
     if (
       width !== undefined ||

@@ -100,8 +100,20 @@ export default function WorldItemDetailsPage() {
 
         directions: Number(worldItem.directions),
 
-        spriteOffsetX: clampOffset(worldItem.spriteOffsetX),
-        spriteOffsetY: clampOffset(worldItem.spriteOffsetY),
+        // Editor rápido: aplica el mismo offset a las 4 direcciones
+        // (spriteOffsetSync = "all"). El ajuste fino por dirección está en
+        // el editor de items (/admin/items/<id>).
+        spriteOffsetSync: "all",
+        spriteOffsets: (() => {
+          const x = clampOffset(worldItem.spriteOffsetX);
+          const y = clampOffset(worldItem.spriteOffsetY);
+          return {
+            NORTH: { x, y },
+            EAST: { x, y },
+            SOUTH: { x, y },
+            WEST: { x, y },
+          };
+        })(),
       };
 
       await api.patch(`/world-item-data/${itemId}`, payload);
@@ -307,7 +319,8 @@ export default function WorldItemDetailsPage() {
 
         <div className="bg-[#111] border border-zinc-800 rounded-xl p-6">
           <h2 className="font-bold text-lg mb-1">{t("items.spriteOffsetTitle")}</h2>
-          <p className="text-xs text-zinc-500 mb-4">{t("items.spriteOffsetHint")}</p>
+          <p className="text-xs text-zinc-500 mb-1">{t("items.spriteOffsetHint")}</p>
+          <p className="text-xs text-amber-500/80 mb-4">{t("items.spriteOffsetQuickNote")}</p>
 
           <div className="grid grid-cols-2 gap-4">
             <label className="flex flex-col gap-1 text-sm text-zinc-400">

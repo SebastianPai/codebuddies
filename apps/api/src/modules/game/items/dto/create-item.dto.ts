@@ -169,6 +169,17 @@ export class CreateItemDto {
   @Max(1000)
   spriteOffsetY?: number;
 
+  // Offset por dirección { NORTH:{x,y}, EAST, SOUTH, WEST }. El rango y el
+  // "entero" los reimpone el backend (normalizeSpriteOffsetMap).
+  @IsOptional()
+  @IsObject()
+  spriteOffsets?: Record<string, { x?: number; y?: number }>;
+
+  // "all" | "mirror" | "none"
+  @IsOptional()
+  @IsString()
+  spriteOffsetSync?: string;
+
   @IsOptional()
   @IsBoolean()
   syncDirections?: boolean;

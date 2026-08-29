@@ -8,7 +8,12 @@ import { api } from "../../utils/api";
 import FootprintEditor, {
   createDefaultFootprint,
   createEmptySurface,
+  createSpriteOffsetMap,
+  MIRROR,
   FootprintMap,
+  type Direction,
+  type SpriteOffsetMap,
+  type SpriteOffsetSync,
 } from "./FootprintEditor";
 import AvatarItemPreview from "./AvatarItemPreview";
 import CachedImage from "../shared/CachedImage";
@@ -42,6 +47,8 @@ function LabeledField({ text, hint, children }: { text: string; hint?: string; c
 
 const SPRITE_OFFSET_LIMIT = 1000;
 
+type TFn = (key: string, params?: Record<string, string | number>) => string;
+
 /** Recorta a entero dentro de [-1000, 1000] — mismo rango que el backend. */
 function clampSpriteOffset(value: number) {
   const n = Math.trunc(Number(value));
@@ -49,93 +56,185 @@ function clampSpriteOffset(value: number) {
   return Math.max(-SPRITE_OFFSET_LIMIT, Math.min(SPRITE_OFFSET_LIMIT, n));
 }
 
+const SPRITE_OFFSET_SYNC_MODES: SpriteOffsetSync[] = ["all", "mirror", "none"];
+
+// Fila(s) a mostrar según el modo: qué dirección "representa" cada fila.
+function spriteOffsetRows(
+  sync: SpriteOffsetSync,
+  t: TFn,
+): Array<{ key: Direction; label: string }> {
+  if (sync === "all") {
+    return [{ key: "SOUTH", label: t("items.spriteOffsetAllDirections") }];
+  }
+  if (sync === "mirror") {
+    return [
+      { key: "NORTH", label: `${t("editor.northLabel")} / ${t("editor.southLabel")}` },
+      { key: "EAST", label: `${t("editor.eastLabel")} / ${t("editor.westLabel")}` },
+    ];
+  }
+  return [
+    { key: "NORTH", label: t("editor.northLabel") },
+    { key: "EAST", label: t("editor.eastLabel") },
+    { key: "SOUTH", label: t("editor.southLabel") },
+    { key: "WEST", label: t("editor.westLabel") },
+  ];
+}
+
+// Reescribe una dirección respetando el sync: "all" copia a las 4, "mirror"
+// copia al espejo (N<->S, E<->O), "none" toca solo esa.
+function writeSpriteOffset(
+  map: SpriteOffsetMap,
+  sync: SpriteOffsetSync,
+  dir: Direction,
+  next: { x: number; y: number },
+): SpriteOffsetMap {
+  if (sync === "all") return createSpriteOffsetMap(next.x, next.y);
+  const updated: SpriteOffsetMap = { ...map, [dir]: next };
+  if (sync === "mirror") updated[MIRROR[dir]] = { ...next };
+  return updated;
+}
+
+// Al cambiar de modo, deja el mapa coherente con el nuevo sync.
+function reconcileSpriteOffsets(
+  map: SpriteOffsetMap,
+  sync: SpriteOffsetSync,
+): SpriteOffsetMap {
+  if (sync === "all") return createSpriteOffsetMap(map.SOUTH.x, map.SOUTH.y);
+  if (sync === "mirror") {
+    return {
+      NORTH: { ...map.NORTH },
+      SOUTH: { ...map.NORTH },
+      EAST: { ...map.EAST },
+      WEST: { ...map.EAST },
+    };
+  }
+  return { ...map };
+}
+
 /**
- * Calibración fina de la posición del sprite del world item, en píxeles.
- * NO cambia el footprint / tiles / colisión: solo desplaza la imagen para
- * compensar cómo fue exportado el arte. El mismo par de valores se aplica
- * después en el juego (ver getSpriteOffset en apps/game/.../tileAnchor.ts).
+ * Calibración fina de la posición del sprite del world item, en píxeles y
+ * POR DIRECCIÓN. NO cambia footprint / tiles / colisión: solo desplaza la
+ * imagen para compensar cómo fue exportado el arte. Los mismos valores se
+ * aplican en el juego según la rotación (ver getSpriteOffset en apps/game).
  */
 function SpriteOffsetControls({
-  x,
-  y,
+  value,
+  sync,
   onChange,
+  onSyncChange,
   t,
 }: {
-  x: number;
-  y: number;
-  onChange: (next: { x: number; y: number }) => void;
-  t: (key: string, params?: Record<string, string | number>) => string;
+  value: SpriteOffsetMap;
+  sync: SpriteOffsetSync;
+  onChange: (map: SpriteOffsetMap) => void;
+  onSyncChange: (sync: SpriteOffsetSync) => void;
+  t: TFn;
 }) {
-  const nudge = (axis: "x" | "y", delta: number) => {
-    const base = axis === "x" ? x : y;
-    onChange({ x, y, [axis]: clampSpriteOffset(base + delta) });
+  const setAxis = (dir: Direction, axis: "x" | "y", raw: number) => {
+    const next = { ...value[dir], [axis]: clampSpriteOffset(raw) };
+    onChange(writeSpriteOffset(value, sync, dir, next));
   };
 
-  const setAxis = (axis: "x" | "y", raw: string) => {
-    onChange({ x, y, [axis]: clampSpriteOffset(Number(raw)) });
+  const nudge = (dir: Direction, axis: "x" | "y", delta: number) => {
+    setAxis(dir, axis, value[dir][axis] + delta);
   };
 
-  // Flechas = 1px, Shift+flecha = 10px. Se ignora si el foco está en el
-  // input numérico (ahí las flechas ya incrementan el número solas) o en
-  // cualquier otro control de la página.
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    if ((event.target as HTMLElement).tagName === "INPUT") return;
-    const step = event.shiftKey ? 10 : 1;
-    const moves: Record<string, () => void> = {
-      ArrowLeft: () => nudge("x", -step),
-      ArrowRight: () => nudge("x", step),
-      ArrowUp: () => nudge("y", -step),
-      ArrowDown: () => nudge("y", step),
-    };
-    const move = moves[event.key];
-    if (!move) return;
-    event.preventDefault();
-    move();
+  const changeMode = (mode: SpriteOffsetSync) => {
+    onSyncChange(mode);
+    onChange(reconcileSpriteOffsets(value, mode));
   };
 
-  const isZero = x === 0 && y === 0;
+  const isZero = SPRITE_OFFSET_DIRECTIONS_KEYS.every(
+    (d) => value[d].x === 0 && value[d].y === 0,
+  );
   const reset = () => {
     if (!isZero && !window.confirm(t("items.spriteOffsetResetConfirm"))) return;
-    onChange({ x: 0, y: 0 });
+    onChange(createSpriteOffsetMap());
   };
 
   const stepButton =
-    "min-w-[3rem] rounded-lg border border-zinc-800 bg-black/60 px-2 py-2 text-xs font-black text-zinc-200 transition hover:border-yellow-400 hover:text-yellow-300";
+    "min-w-[2.75rem] rounded-lg border border-zinc-800 bg-black/60 px-2 py-2 text-xs font-black text-zinc-200 transition hover:border-yellow-400 hover:text-yellow-300";
 
-  const axisRow = (axis: "x" | "y", value: number, label: string) => (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="w-16 text-sm font-black text-zinc-400">{label}</span>
-      <button type="button" className={stepButton} onClick={() => nudge(axis, -10)}>
+  const axisControls = (dir: Direction, axis: "x" | "y", axisLabel: string) => (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="w-5 text-xs font-black text-zinc-500">{axisLabel}</span>
+      <button type="button" className={stepButton} onClick={() => nudge(dir, axis, -10)}>
         −10
       </button>
-      <button type="button" className={stepButton} onClick={() => nudge(axis, -1)}>
+      <button type="button" className={stepButton} onClick={() => nudge(dir, axis, -1)}>
         −1
       </button>
       <input
         type="number"
-        value={value}
+        value={value[dir][axis]}
         min={-SPRITE_OFFSET_LIMIT}
         max={SPRITE_OFFSET_LIMIT}
-        onChange={(event) => setAxis(axis, event.target.value)}
+        onChange={(event) => setAxis(dir, axis, Number(event.target.value))}
         className="w-20 rounded-lg border border-zinc-800 bg-black/70 px-2 py-2 text-center text-white outline-none transition focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20"
       />
-      <button type="button" className={stepButton} onClick={() => nudge(axis, 1)}>
+      <button type="button" className={stepButton} onClick={() => nudge(dir, axis, 1)}>
         +1
       </button>
-      <button type="button" className={stepButton} onClick={() => nudge(axis, 10)}>
+      <button type="button" className={stepButton} onClick={() => nudge(dir, axis, 10)}>
         +10
       </button>
       <span className="text-xs text-zinc-600">px</span>
     </div>
   );
 
-  return (
-    <div
-      tabIndex={0}
-      onKeyDown={handleKeyDown}
-      className="rounded-2xl border border-zinc-800 bg-black/40 p-4 outline-none transition focus:border-yellow-400/60"
+  const directionRow = ({ key, label }: { key: Direction; label: string }) => {
+    // Flechas = 1px, Shift+flecha = 10px, sobre la dirección de esta fila.
+    // Se ignora si el foco está en el input numérico (ahí las flechas ya
+    // mueven el número) o en otro control.
+    const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if ((event.target as HTMLElement).tagName === "INPUT") return;
+      const step = event.shiftKey ? 10 : 1;
+      const moves: Record<string, () => void> = {
+        ArrowLeft: () => nudge(key, "x", -step),
+        ArrowRight: () => nudge(key, "x", step),
+        ArrowUp: () => nudge(key, "y", -step),
+        ArrowDown: () => nudge(key, "y", step),
+      };
+      const move = moves[event.key];
+      if (!move) return;
+      event.preventDefault();
+      move();
+    };
+
+    return (
+      <div
+        key={key}
+        tabIndex={0}
+        onKeyDown={handleKeyDown}
+        className="rounded-xl border border-zinc-800/80 bg-black/30 p-3 outline-none transition focus:border-yellow-400/60"
+      >
+        <p className="mb-2 text-xs font-black uppercase tracking-wide text-zinc-400">{label}</p>
+        <div className="space-y-1.5">
+          {axisControls(key, "x", "X")}
+          {axisControls(key, "y", "Y")}
+        </div>
+      </div>
+    );
+  };
+
+  const modeButton = (mode: SpriteOffsetSync) => (
+    <button
+      key={mode}
+      type="button"
+      onClick={() => changeMode(mode)}
+      className={`rounded-lg px-3 py-1.5 text-xs font-black transition ${
+        sync === mode
+          ? "bg-yellow-400 text-black"
+          : "border border-zinc-800 bg-black/60 text-zinc-300 hover:border-yellow-400"
+      }`}
     >
-      <div className="mb-3 flex items-start justify-between gap-3">
+      {t(`items.spriteOffsetSync_${mode}`)}
+    </button>
+  );
+
+  return (
+    <div className="rounded-2xl border border-zinc-800 bg-black/40 p-4">
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h4 className="text-sm font-black text-white">{t("items.spriteOffsetTitle")}</h4>
           <p className="mt-1 text-xs text-zinc-500">{t("items.spriteOffsetHint")}</p>
@@ -149,13 +248,45 @@ function SpriteOffsetControls({
           {t("items.spriteOffsetReset")}
         </button>
       </div>
-      <div className="space-y-2">
-        {axisRow("x", x, t("items.spriteOffsetX"))}
-        {axisRow("y", y, t("items.spriteOffsetY"))}
+
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <span className="text-xs font-black text-zinc-500">{t("items.spriteOffsetSyncLabel")}</span>
+        {SPRITE_OFFSET_SYNC_MODES.map(modeButton)}
       </div>
+
+      <div className="grid gap-2 sm:grid-cols-2">
+        {spriteOffsetRows(sync, t).map(directionRow)}
+      </div>
+
       <p className="mt-3 text-xs text-zinc-600">{t("items.spriteOffsetKeyboardHint")}</p>
     </div>
   );
+}
+
+const SPRITE_OFFSET_DIRECTIONS_KEYS: Direction[] = ["NORTH", "EAST", "SOUTH", "WEST"];
+
+// Mapa de offsets a partir de lo que trae `initial` (mapa nuevo, o los
+// escalares legacy spriteOffsetX/Y para items guardados antes).
+function initialSpriteOffsets(initial: any): SpriteOffsetMap {
+  const raw = initial?.spriteOffsets;
+  if (raw && typeof raw === "object") {
+    return SPRITE_OFFSET_DIRECTIONS_KEYS.reduce((acc, dir) => {
+      acc[dir] = {
+        x: clampSpriteOffset(Number(raw?.[dir]?.x ?? 0)),
+        y: clampSpriteOffset(Number(raw?.[dir]?.y ?? 0)),
+      };
+      return acc;
+    }, {} as SpriteOffsetMap);
+  }
+  return createSpriteOffsetMap(
+    clampSpriteOffset(Number(initial?.spriteOffsetX ?? 0)),
+    clampSpriteOffset(Number(initial?.spriteOffsetY ?? 0)),
+  );
+}
+
+function initialSpriteOffsetSync(initial: any): SpriteOffsetSync {
+  const raw = initial?.spriteOffsetSync;
+  return raw === "all" || raw === "none" ? raw : "mirror";
 }
 
 const AVATAR_SLOTS = [
@@ -310,13 +441,14 @@ export default function ItemEditor({
   const [canBeStacked, setCanBeStacked] = useState(initial?.canBeStacked ?? false);
   const [stackHeight, setStackHeight] = useState(initial?.stackHeight || 10);
   const [maxStackHeight, setMaxStackHeight] = useState(initial?.maxStackHeight || 10);
-  // Calibración visual del sprite (píxeles). No toca footprint/tiles: solo
-  // desplaza la imagen en el juego y en el preview. Ver SpriteOffsetControls.
-  const [spriteOffsetX, setSpriteOffsetX] = useState(() =>
-    clampSpriteOffset(initial?.spriteOffsetX ?? 0),
+  // Calibración visual del sprite (píxeles) por dirección. No toca
+  // footprint/tiles: solo desplaza la imagen en el juego y en el preview.
+  // Ver SpriteOffsetControls.
+  const [spriteOffsets, setSpriteOffsets] = useState<SpriteOffsetMap>(() =>
+    initialSpriteOffsets(initial),
   );
-  const [spriteOffsetY, setSpriteOffsetY] = useState(() =>
-    clampSpriteOffset(initial?.spriteOffsetY ?? 0),
+  const [spriteOffsetSync, setSpriteOffsetSync] = useState<SpriteOffsetSync>(
+    () => initialSpriteOffsetSync(initial),
   );
 
   const [file, setFile] = useState<File | null>(null);
@@ -475,8 +607,8 @@ export default function ItemEditor({
       syncDirections,
       footprints,
       surfaces,
-      spriteOffsetX: clampSpriteOffset(spriteOffsetX),
-      spriteOffsetY: clampSpriteOffset(spriteOffsetY),
+      spriteOffsets,
+      spriteOffsetSync,
     };
   };
 
@@ -535,8 +667,8 @@ export default function ItemEditor({
           syncDirections,
           footprints: category === "texture" ? createDefaultFootprint() : footprints,
           surfaces: category === "texture" ? createEmptySurface() : surfaces,
-          spriteOffsetX: clampSpriteOffset(spriteOffsetX),
-          spriteOffsetY: clampSpriteOffset(spriteOffsetY),
+          spriteOffsets,
+          spriteOffsetSync,
           isCollidable: category === "texture" ? false : isCollidable,
           walkable: category === "texture" ? true : walkable,
           isInteractable: category === "texture" ? false : isInteractable,
@@ -958,12 +1090,10 @@ export default function ItemEditor({
           </div>
 
           <SpriteOffsetControls
-            x={spriteOffsetX}
-            y={spriteOffsetY}
-            onChange={({ x, y }) => {
-              setSpriteOffsetX(x);
-              setSpriteOffsetY(y);
-            }}
+            value={spriteOffsets}
+            sync={spriteOffsetSync}
+            onChange={setSpriteOffsets}
+            onSyncChange={setSpriteOffsetSync}
             t={t}
           />
 
@@ -978,8 +1108,7 @@ export default function ItemEditor({
             onSurfacesChange={setSurfaces}
             onSyncDirectionsChange={setSyncDirections}
             faceCount={singleFace ? 1 : 4}
-            spriteOffsetX={spriteOffsetX}
-            spriteOffsetY={spriteOffsetY}
+            spriteOffsets={spriteOffsets}
           />
         </section>
       )}

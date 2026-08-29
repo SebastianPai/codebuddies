@@ -61,9 +61,13 @@ export class UpdateWorldItemDto {
   directions?: number;
 
   // Calibración visual del artwork (píxeles). Solo mueve el sprite en
-  // pantalla, no el footprint/anclaje. WorldItemDataService.update lo pasa
-  // por clampSpriteOffset antes de persistir.
+  // pantalla, no el footprint/anclaje. WorldItemDataService.update lo
+  // normaliza (rango + sync + escalares legacy) antes de persistir.
   spriteOffsetX?: number;
 
   spriteOffsetY?: number;
+
+  spriteOffsets?: Record<string, { x?: number; y?: number }>;
+
+  spriteOffsetSync?: string;
 }

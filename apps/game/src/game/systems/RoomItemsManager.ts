@@ -105,7 +105,7 @@ export default class RoomItemsManager {
     // lo que se calibra en el editor es lo que se ve acá. Las superficies
     // (FLOOR/WALL) se pegan a la tile y no se calibran.
     if (!isSurface) {
-      applySpriteOffset(sprite, worldData);
+      applySpriteOffset(sprite, worldData, rotation);
     }
 
     const depthTile = this.getBaseDepthTile(

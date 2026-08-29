@@ -215,10 +215,16 @@
   "effectItemTitle": "Namenseffekt-Item",
   "effectItemDescription": "Ein kosmetisches Item, das einen Premium-Visualeffekt freischaltet, den der Käufer als seinen Namenseffekt verwenden kann. Kaufbar, verschenkbar und als Battle-Pass-Belohnung vergebbar.",
   "spriteOffsetTitle": "Sprite-Position",
-  "spriteOffsetHint": "Feine Pixelanpassung, wie das Bild auf der Kachel sitzt. Ändert weder Grundfläche noch Kollision oder Anker – verschiebt nur das Sprite, um den Export der Grafik auszugleichen.",
+  "spriteOffsetHint": "Feine Pixelanpassung pro Richtung, wie das Bild auf der Kachel sitzt. Ändert weder Grundfläche noch Kollision oder Anker – verschiebt nur das Sprite, um den Export der Grafik auszugleichen.",
   "spriteOffsetX": "Offset X",
   "spriteOffsetY": "Offset Y",
   "spriteOffsetReset": "Offset zurücksetzen",
-  "spriteOffsetResetConfirm": "Sprite-Offset auf 0, 0 zurücksetzen?",
-  "spriteOffsetKeyboardHint": "Bei fokussiertem Panel: Pfeile = 1 px · Umschalt + Pfeile = 10 px."
+  "spriteOffsetResetConfirm": "Sprite-Offset für alle Richtungen auf 0, 0 zurücksetzen?",
+  "spriteOffsetKeyboardHint": "Bei fokussierter Zeile: Pfeile = 1 px · Umschalt + Pfeile = 10 px.",
+  "spriteOffsetSyncLabel": "Synchronisieren",
+  "spriteOffsetSync_all": "1 · Alle",
+  "spriteOffsetSync_mirror": "2 · Spiegel",
+  "spriteOffsetSync_none": "4 · Frei",
+  "spriteOffsetAllDirections": "Alle Richtungen",
+  "spriteOffsetQuickNote": "Schnell-Editor: wendet denselben Offset auf alle 4 Richtungen an. Für jede Rotation einzeln den Item-Editor verwenden."
 }

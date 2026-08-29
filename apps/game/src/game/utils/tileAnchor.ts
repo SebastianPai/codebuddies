@@ -57,17 +57,44 @@ export function getFootprintTopY(worldPosY: number, tileHeight: number) {
  * exactamente en la misma posición:
  *   - RoomItemsManager.addItem  → objeto colocado + carga inicial de la sala
  *   - BuildSystem.update        → ghost de "mueble en mano"
- *   - FurnitureSocketSystem.handleItemMoved → al reposicionar tras moverlo
+ *   - FurnitureSocketSystem.handleItemMoved / handleItemRotated → al
+ *     reposicionar tras mover o rotar (rotar cambia la dirección y por lo
+ *     tanto el offset)
+ *
+ * El offset es POR DIRECCIÓN: `worldData.spriteOffsets` es un mapa
+ * { NORTH:{x,y}, EAST, SOUTH, WEST } (cada frame del spritesheet puede traer
+ * padding distinto). Si el mapa no está (item viejo), se cae a las columnas
+ * escalares `spriteOffsetX/Y`. La rotación 0-3 mapea a NORTH/EAST/SOUTH/WEST
+ * igual que directionFromRotation() en IsoFootprint.
  */
+type SpriteOffsetPair = { x?: number | null; y?: number | null };
+
 type SpriteOffsetSource =
-  | { spriteOffsetX?: number | null; spriteOffsetY?: number | null }
+  | {
+      spriteOffsetX?: number | null;
+      spriteOffsetY?: number | null;
+      spriteOffsets?: Partial<Record<string, SpriteOffsetPair>> | null;
+    }
   | null
   | undefined;
 
-export function getSpriteOffset(worldData: SpriteOffsetSource): {
-  x: number;
-  y: number;
-} {
+const SPRITE_OFFSET_DIRECTIONS = ["NORTH", "EAST", "SOUTH", "WEST"] as const;
+
+export function getSpriteOffset(
+  worldData: SpriteOffsetSource,
+  rotation = 0,
+): { x: number; y: number } {
+  const direction =
+    SPRITE_OFFSET_DIRECTIONS[((Math.trunc(rotation) % 4) + 4) % 4];
+  const perDirection = worldData?.spriteOffsets?.[direction];
+
+  if (perDirection) {
+    return {
+      x: normalizeSpriteOffset(perDirection.x),
+      y: normalizeSpriteOffset(perDirection.y),
+    };
+  }
+
   return {
     x: normalizeSpriteOffset(worldData?.spriteOffsetX),
     y: normalizeSpriteOffset(worldData?.spriteOffsetY),
@@ -86,8 +113,9 @@ function normalizeSpriteOffset(value: unknown): number {
 export function applySpriteOffset(
   target: { x: number; y: number },
   worldData: SpriteOffsetSource,
+  rotation = 0,
 ): void {
-  const offset = getSpriteOffset(worldData);
+  const offset = getSpriteOffset(worldData, rotation);
   target.x += offset.x;
   target.y += offset.y;
 }

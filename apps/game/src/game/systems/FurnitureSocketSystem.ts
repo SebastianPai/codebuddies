@@ -145,7 +145,10 @@ export default class FurnitureSocketSystem {
     this.roomItems.invalidateOccupancy();
     // Reposición manual (no pasa por RoomItemsManager.addItem), así que la
     // calibración visual del artwork hay que volver a sumarla acá.
-    const offset = getSpriteOffset(worldObject.item?.worldData);
+    const offset = getSpriteOffset(
+      worldObject.item?.worldData,
+      worldObject.rotation,
+    );
     worldObject.sprite.setPosition(
       worldPos.x + this.scene.map.tileWidth / 2 + offset.x,
       getFurnitureAnchorY(worldPos.y, this.scene.map.tileHeight) -
@@ -199,6 +202,24 @@ export default class FurnitureSocketSystem {
     }
 
     worldObject.sprite.setFrame(frameName);
+
+    // El spriteOffset es por dirección, así que rotar puede cambiarlo.
+    // setFrame solo cambia el recorte del spritesheet, no la posición —
+    // reposicionar con el offset de la nueva dirección.
+    const worldPos = this.scene.groundLayer.tileToWorldXY(
+      worldObject.tileX,
+      worldObject.tileY,
+    );
+    if (worldPos) {
+      const offset = getSpriteOffset(worldObject.item?.worldData, item.rotation);
+      worldObject.sprite.setPosition(
+        worldPos.x + this.scene.map.tileWidth / 2 + offset.x,
+        getFurnitureAnchorY(worldPos.y, this.scene.map.tileHeight) -
+          worldObject.elevation * 16 +
+          offset.y,
+      );
+    }
+
     this.scene.refreshPathfinding?.();
   };
 

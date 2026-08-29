@@ -140,7 +140,7 @@ export default class BuildSystem {
     // Misma calibración visual que aplica RoomItemsManager al objeto ya
     // colocado (WorldItemData.spriteOffsetX/Y) — sin esto el ghost quedaría
     // en una posición y el mueble real "saltaría" a otra al soltarlo.
-    const offset = getSpriteOffset(this.selectedItem?.worldData);
+    const offset = getSpriteOffset(this.selectedItem?.worldData, this.rotation);
 
     this.preview.setPosition(
       worldPos.x + this.scene.map.tileWidth / 2 + offset.x,

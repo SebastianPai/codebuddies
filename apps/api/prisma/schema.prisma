@@ -931,9 +931,19 @@ model WorldItemData {
   // píxeles) respecto del ancla de la tile. NO afecta footprint, colisión,
   // profundidad, interacción ni pathfinding — ver getSpriteOffset /
   // applySpriteOffset en apps/game/src/game/utils/tileAnchor.ts y
-  // clampSpriteOffset en el backend. Rango válido: [-1000, 1000].
+  // sprite-offset.util.ts en el backend. Rango válido por eje: [-1000, 1000].
+  //
+  // spriteOffsetX/Y: valor legacy/fallback (= dirección SOUTH). Lo usan los
+  // items guardados antes de spriteOffsets y cualquier lector que no mire el
+  // mapa por dirección.
   spriteOffsetX Int @default(0)
   spriteOffsetY Int @default(0)
+  // Offset por dirección: { NORTH:{x,y}, EAST:{x,y}, SOUTH:{x,y}, WEST:{x,y} }
+  // Cada frame del spritesheet puede traer padding distinto, así que un
+  // mismo par no alinea las 4 rotaciones.
+  spriteOffsets Json?
+  // "all" (1 valor) | "mirror" (NORTH=SOUTH, EAST=WEST) | "none" (4 libres)
+  spriteOffsetSync String @default("mirror")
 
   footprintWidth  Int @default(1)
   footprintHeight Int @default(1)
