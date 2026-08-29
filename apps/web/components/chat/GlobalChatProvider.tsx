@@ -10,6 +10,7 @@ import {
 import { useAuth } from "../../hooks/useAuth";
 import GlobalChatWindows from "./GlobalChatWindows";
 import { useTranslation } from "../../src/i18n/useTranslation";
+import { getRealtimeUrl } from "../../src/config/env";
 
 type ChatContextType = {
   unread: number;
@@ -47,7 +48,15 @@ export default function GlobalChatProvider({
     let es: EventSource | null = null;
 
     if (token) {
-      es = new EventSource(`/api/realtime/events?token=${token}`);
+      // Antes usaba una ruta relativa ("/api/realtime/events"), que
+      // apuntaba al origen del FRONTEND (codebuddies.tech) en vez del
+      // backend real -- esa ruta no existe ahí, así que el navegador
+      // reintentaba la conexión SSE cada pocos segundos para siempre,
+      // cada vez con un 404. Mismo host que ya usa Navbar.tsx para su
+      // propia conexión a /realtime/events.
+      es = new EventSource(
+        `${getRealtimeUrl()}/realtime/events?token=${encodeURIComponent(token)}`,
+      );
 
       const handleNewMessage = (event: MessageEvent) => {
         try {

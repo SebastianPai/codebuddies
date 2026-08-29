@@ -718,7 +718,7 @@ function AccountMenuContent({
       <DropdownSection title={t("navbar.actions")} />
       <DropdownItem href="/friends" icon={<Users size={16} />} label={t("navbar.friends")} />
       <DropdownItem href="/messages" icon={<MessageSquare size={16} />} label={t("navbar.messages")} />
-      <DropdownItem href="/mis-cursos" icon={<BookOpen size={16} />} label={t("navbar.myCourses")} />
+      <DropdownItem href="/courses" icon={<BookOpen size={16} />} label={t("navbar.myCourses")} />
 
       <button
         onClick={handleLogout}
