@@ -184,6 +184,7 @@ export default function AdminButlerPage() {
               frameWidth={draft.frameWidth ?? 32}
               frameHeight={draft.frameHeight ?? 48}
               directions={draft.directions ?? 4}
+              folder="npcs"
               t={t}
             />
           </Field>

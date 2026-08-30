@@ -178,6 +178,7 @@ export default function AdminPetsPage() {
               frameWidth={draft.frameWidth ?? 68}
               frameHeight={draft.frameHeight ?? 68}
               directions={draft.directions ?? 8}
+              folder="pets"
               t={t}
             />
           </Field>

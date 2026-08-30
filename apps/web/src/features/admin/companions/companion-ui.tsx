@@ -239,6 +239,11 @@ export type AnimClip = {
   framesCount: number;
   fps: number;
   loop: boolean;
+  // Opcional: imagen propia de esta animación. Si no se setea, usa el
+  // spritesheet principal de la especie/NPC.
+  spriteSheetUrl?: string | null;
+  frameWidth?: number | null;
+  frameHeight?: number | null;
 };
 
 export const CLIP_TRIGGERS = [
@@ -291,6 +296,7 @@ export function AnimClipList({
   frameWidth,
   frameHeight,
   directions,
+  folder,
   t,
 }: {
   value: AnimClip[];
@@ -299,6 +305,7 @@ export function AnimClipList({
   frameWidth: number;
   frameHeight: number;
   directions: number;
+  folder: string;
   t: (k: string, p?: Record<string, string | number>) => string;
 }) {
   const patch = (i: number, p: Partial<AnimClip>) =>
@@ -348,9 +355,9 @@ export function AnimClipList({
         >
           <div className="flex flex-wrap items-start gap-4">
             <ClipCellPreview
-              sheetUrl={sheetUrl}
-              frameWidth={frameWidth}
-              frameHeight={frameHeight}
+              sheetUrl={clip.spriteSheetUrl || sheetUrl}
+              frameWidth={clip.frameWidth || frameWidth}
+              frameHeight={clip.frameHeight || frameHeight}
               row={clip.row}
               startCol={clip.startCol ?? 0}
               framesCount={clip.framesCount}
@@ -450,10 +457,127 @@ export function AnimClipList({
                   {t("common.delete")}
                 </button>
               </div>
+
+              <ClipOwnImage
+                folder={folder}
+                url={clip.spriteSheetUrl ?? null}
+                frameWidth={clip.frameWidth ?? null}
+                frameHeight={clip.frameHeight ?? null}
+                onChange={(p) => patch(i, p)}
+                t={t}
+              />
             </div>
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+/** Imagen propia opcional de un clip. Colapsada por defecto. */
+function ClipOwnImage({
+  folder,
+  url,
+  frameWidth,
+  frameHeight,
+  onChange,
+  t,
+}: {
+  folder: string;
+  url: string | null;
+  frameWidth: number | null;
+  frameHeight: number | null;
+  onChange: (patch: Partial<AnimClip>) => void;
+  t: (k: string, p?: Record<string, string | number>) => string;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function handleFile(file?: File | null) {
+    if (!file || !file.type.startsWith("image/")) return;
+    setBusy(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      form.append("folder", folder);
+      const res = await api.post<{ url: string }>("/uploads", form);
+      onChange({ spriteSheetUrl: res.url });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const fieldSm =
+    "w-24 rounded border border-zinc-700 bg-black px-2 py-1 text-xs text-white outline-none focus:border-yellow-400";
+
+  if (!url) {
+    return (
+      <div>
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          className="text-xs font-bold text-zinc-500 hover:text-yellow-300"
+        >
+          {busy ? t("items.uploadingEllipsis") : `+ ${t("admin.clipOwnImage")}`}
+        </button>
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => void handleFile(e.target.files?.[0])}
+        />
+        <p className="mt-0.5 text-[11px] text-zinc-700">
+          {t("admin.clipOwnImageHint")}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-zinc-800 bg-black/50 p-2">
+      <img
+        src={url}
+        alt=""
+        className="max-h-12 [image-rendering:pixelated]"
+      />
+      <label className="text-[11px] text-zinc-500">
+        {t("admin.companionFrameW")}
+        <input
+          type="number"
+          className={`${fieldSm} ml-1`}
+          value={frameWidth ?? ""}
+          placeholder="auto"
+          onChange={(e) =>
+            onChange({
+              frameWidth: e.target.value ? Number(e.target.value) : null,
+            })
+          }
+        />
+      </label>
+      <label className="text-[11px] text-zinc-500">
+        {t("admin.companionFrameH")}
+        <input
+          type="number"
+          className={`${fieldSm} ml-1`}
+          value={frameHeight ?? ""}
+          placeholder="auto"
+          onChange={(e) =>
+            onChange({
+              frameHeight: e.target.value ? Number(e.target.value) : null,
+            })
+          }
+        />
+      </label>
+      <button
+        type="button"
+        onClick={() =>
+          onChange({ spriteSheetUrl: null, frameWidth: null, frameHeight: null })
+        }
+        className="text-xs text-red-400 hover:text-red-300"
+      >
+        {t("items.removeButton")}
+      </button>
     </div>
   );
 }
