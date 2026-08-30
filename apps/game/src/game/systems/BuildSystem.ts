@@ -7,6 +7,12 @@ import {
   getFootprintTopY,
   getSpriteOffset,
 } from "../utils/tileAnchor";
+import {
+  getSpriteFrameHeight,
+  getSpriteFrameIndex,
+  getSpriteFrameWidth,
+  isSpriteRotatable,
+} from "../utils/spriteFrames";
 import { WORLD_OVERLAY_DEPTH } from "../utils/depth";
 
 export default class BuildSystem {
@@ -44,8 +50,8 @@ export default class BuildSystem {
 
     const imageUrl = item.imageUrl;
 
-    this.frameWidth = item.worldData.engineData?.frameWidth ?? item.worldData.width / 4;
-    this.frameHeight = item.worldData.engineData?.frameHeight ?? item.worldData.height;
+    this.frameWidth = getSpriteFrameWidth(item.worldData);
+    this.frameHeight = getSpriteFrameHeight(item.worldData);
 
     void loadTextureOnce(this.scene, imageUrl)
       .then((textureKey) => this.createPreview(textureKey))
@@ -62,13 +68,18 @@ export default class BuildSystem {
 
     const texture = this.scene.textures.get(textureKey);
 
-    const frameName = `${textureKey}-build-frame-${this.rotation}`;
+    // Frame envuelto al número de caras (1/2/4), no la rotación cruda.
+    const frameIndex = getSpriteFrameIndex(
+      this.rotation,
+      this.selectedItem?.worldData,
+    );
+    const frameName = `${textureKey}-build-frame-${frameIndex}`;
 
     if (!texture.has(frameName)) {
       texture.add(
         frameName,
         0,
-        this.frameWidth * this.rotation,
+        this.frameWidth * frameIndex,
         0,
         this.frameWidth,
         this.frameHeight,
@@ -153,29 +164,24 @@ export default class BuildSystem {
   rotate() {
     if (!this.preview) return;
 
-    // Un item de una sola cara no tiene frames 1-3 en el spritesheet (su
-    // frameWidth es el ancho completo de la imagen) -- rotarlo leería fuera
-    // de los límites de la textura y mostraría un frame roto/vacío.
+    // Un item de una sola cara no tiene con qué rotar (su frameWidth es el
+    // ancho completo de la imagen). Con 2 o 4 caras sí rota; el footprint
+    // gira por las 4 direcciones y el FRAME se envuelve al número de caras.
     const worldData = this.selectedItem?.worldData;
-    const isSingleFace =
-      (worldData?.directions ?? 4) <= 1 || worldData?.rotatable === false;
-    if (isSingleFace) return;
+    if (!isSpriteRotatable(worldData)) return;
 
-    this.rotation++;
-
-    if (this.rotation > 3) {
-      this.rotation = 0;
-    }
+    this.rotation = (this.rotation + 1) % 4;
 
     const texture = this.scene.textures.get(this.textureKey!);
 
-    const frameName = `${this.textureKey}-build-frame-${this.rotation}`;
+    const frameIndex = getSpriteFrameIndex(this.rotation, worldData);
+    const frameName = `${this.textureKey}-build-frame-${frameIndex}`;
 
     if (!texture.has(frameName)) {
       texture.add(
         frameName,
         0,
-        this.frameWidth * this.rotation, // X
+        this.frameWidth * frameIndex, // X
         0, // Y
         this.frameWidth,
         this.frameHeight,
@@ -184,7 +190,7 @@ export default class BuildSystem {
 
     this.preview.setFrame(frameName);
 
-    console.log("🔄 Frame:", this.rotation);
+    console.log("🔄 Rotación:", this.rotation, "frame:", frameIndex);
   }
 
   stop() {

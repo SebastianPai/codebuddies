@@ -29,6 +29,10 @@ import {
   PLAYER_Y_OFFSET,
   TILE_VISUAL_Y_OFFSET,
 } from "../utils/tileAnchor";
+import {
+  getSpriteFrameHeight,
+  getSpriteFrameWidth,
+} from "../utils/spriteFrames";
 import { WORLD_OVERLAY_DEPTH } from "../utils/depth";
 import { pointerToScreenPosition } from "../utils/pointerToScreenPosition";
 import { burstConfetti, burstSparkle } from "../systems/ParticleFx";
@@ -977,8 +981,8 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
 
         item.rotation,
 
-        item.item.worldData.engineData?.frameWidth ?? item.item.worldData.width / 4,
-        item.item.worldData.engineData?.frameHeight ?? item.item.worldData.height,
+        getSpriteFrameWidth(item.item.worldData),
+        getSpriteFrameHeight(item.item.worldData),
 
         item.roomId,
         item.userId,

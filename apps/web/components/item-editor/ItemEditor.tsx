@@ -420,13 +420,14 @@ export default function ItemEditor({
   const [footprintWidth, setFootprintWidth] = useState(initial?.footprintWidth || 1);
   const [footprintHeight, setFootprintHeight] = useState(initial?.footprintHeight || 1);
   const [syncDirections, setSyncDirections] = useState(initial?.syncDirections ?? true);
-  // Antes el editor siempre asumia un spritesheet de 4 caras (rotacion) y
-  // dividia el ancho de la imagen entre 4 sin preguntar, asi que subir una
-  // sola imagen la cortaba en 4 pedazos. Este toggle usa la imagen completa
-  // como un unico frame -- ver items.service.ts#buildEngineData (backend) y
-  // RoomItemsManager/BuildSystem (juego), que ya leen `directions` para
-  // decidir cuantas caras tiene el sprite.
-  const [singleFace, setSingleFace] = useState((initial?.directions ?? 4) === 1);
+  // Cuántas "caras" tiene el spritesheet horizontal: 1 = imagen estática ·
+  // 2 = frente + costado (N/S reusan la 1ª, E/O la 2ª) · 4 = una por
+  // rotación. El ancho de la imagen se divide entre este número. Lo leen
+  // buildWorldEngineData (backend) y spriteFrames.ts (juego).
+  const [directions, setDirections] = useState<number>(() => {
+    const d = Number(initial?.directions);
+    return d === 1 || d === 2 ? d : 4;
+  });
   const [footprints, setFootprints] = useState<FootprintMap>(
     initial?.footprints || createDefaultFootprint(),
   );
@@ -595,8 +596,8 @@ export default function ItemEditor({
       isCollidable,
       walkable,
       isInteractable,
-      rotatable: !singleFace,
-      directions: singleFace ? 1 : 4,
+      rotatable: directions > 1,
+      directions,
       placementType,
       allowsStacking,
       canBeStacked,
@@ -657,11 +658,11 @@ export default function ItemEditor({
           previewImageUrl: imageUrl,
           frameWidth:
             category === "world"
-              ? Math.max(1, Math.floor(Number(width) / (singleFace ? 1 : 4)))
+              ? Math.max(1, Math.floor(Number(width) / directions))
               : null,
           frameHeight: Number(height),
-          directions: category === "world" ? (singleFace ? 1 : 4) : undefined,
-          rotatable: category === "world" ? !singleFace : undefined,
+          directions: category === "world" ? directions : undefined,
+          rotatable: category === "world" ? directions > 1 : undefined,
           footprintWidth: category === "texture" ? Number(width) : Number(footprintWidth),
           footprintHeight: category === "texture" ? Number(height) : Number(footprintHeight),
           syncDirections,
@@ -1080,13 +1081,30 @@ export default function ItemEditor({
                 </label>
               ))}
             </div>
-            <label className="mt-3 flex items-center gap-2 rounded-2xl border border-dashed border-zinc-700 bg-black/50 p-3 text-sm text-zinc-300">
-              <input type="checkbox" checked={singleFace} onChange={(event) => setSingleFace(event.target.checked)} />
-              {t("items.singleFaceLabel")}
-              <Tooltip content={t("items.singleFaceHint")}>
-                <HelpCircle size={14} className="text-zinc-500" />
-              </Tooltip>
-            </label>
+            <div className="mt-3 rounded-2xl border border-dashed border-zinc-700 bg-black/50 p-3">
+              <span className="mb-2 flex items-center gap-1.5 text-sm text-zinc-300">
+                {t("items.facesLabel")}
+                <Tooltip content={t("items.facesHint")}>
+                  <HelpCircle size={14} className="text-zinc-500" />
+                </Tooltip>
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {[1, 2, 4].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setDirections(n)}
+                    className={`rounded-lg px-3 py-1.5 text-xs font-black transition ${
+                      directions === n
+                        ? "bg-yellow-400 text-black"
+                        : "border border-zinc-800 bg-black/60 text-zinc-300 hover:border-yellow-400"
+                    }`}
+                  >
+                    {t(`items.faces_${n}`)}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           <SpriteOffsetControls
@@ -1107,7 +1125,7 @@ export default function ItemEditor({
             onFootprintsChange={setFootprints}
             onSurfacesChange={setSurfaces}
             onSyncDirectionsChange={setSyncDirections}
-            faceCount={singleFace ? 1 : 4}
+            faceCount={directions}
             spriteOffsets={spriteOffsets}
           />
         </section>

@@ -4,6 +4,11 @@ import { LobbySceneType } from "../types/LobbySceneType";
 import { loadTextureOnce } from "../utils/phaserAssetCache";
 import { audioManager } from "../audio/AudioManager";
 import { getFurnitureAnchorY, getSpriteOffset } from "../utils/tileAnchor";
+import {
+  getSpriteFrameHeight,
+  getSpriteFrameIndex,
+  getSpriteFrameWidth,
+} from "../utils/spriteFrames";
 
 export default class FurnitureSocketSystem {
   private scene: LobbySceneType;
@@ -44,8 +49,8 @@ export default class FurnitureSocketSystem {
 
         item.rotation,
 
-        item.item.worldData.engineData?.frameWidth ?? item.item.worldData.width / 4,
-        item.item.worldData.engineData?.frameHeight ?? item.item.worldData.height,
+        getSpriteFrameWidth(item.item.worldData),
+        getSpriteFrameHeight(item.item.worldData),
 
         item.roomId,
         item.userId,
@@ -93,8 +98,8 @@ export default class FurnitureSocketSystem {
 
         item.rotation,
 
-        item.item.worldData.engineData?.frameWidth ?? item.item.worldData.width / 4,
-        item.item.worldData.engineData?.frameHeight ?? item.item.worldData.height,
+        getSpriteFrameWidth(item.item.worldData),
+        getSpriteFrameHeight(item.item.worldData),
 
         item.roomId,
         item.userId,
@@ -186,15 +191,17 @@ export default class FurnitureSocketSystem {
 
     const textureKey = worldObject.sprite.texture.key;
     const texture = this.scene.textures.get(textureKey);
-    const frameWidth = item.item.worldData.engineData?.frameWidth ?? item.item.worldData.width / 4;
-    const frameHeight = item.item.worldData.engineData?.frameHeight ?? item.item.worldData.height;
-    const frameName = `${textureKey}-room-${item.rotation}`;
+    const frameWidth = getSpriteFrameWidth(item.item.worldData);
+    const frameHeight = getSpriteFrameHeight(item.item.worldData);
+    // Frame envuelto al número de caras (1/2/4), no la rotación cruda.
+    const frameIndex = getSpriteFrameIndex(item.rotation, item.item.worldData);
+    const frameName = `${textureKey}-room-${frameIndex}`;
 
     if (!texture.has(frameName)) {
       texture.add(
         frameName,
         0,
-        frameWidth * item.rotation,
+        frameWidth * frameIndex,
         0,
         frameWidth,
         frameHeight,

@@ -306,7 +306,9 @@ export default function FootprintEditor({
                         // total -- si no, direction.frame > 0 apuntaría
                         // fuera de los límites de la imagen.
                         backgroundPosition:
-                          faceCount <= 1 ? "0 0" : `-${frameWidth * direction.frame}px 0`,
+                          faceCount <= 1
+                            ? "0 0"
+                            : `-${frameWidth * (direction.frame % faceCount)}px 0`,
                         imageRendering: "pixelated",
                       }}
                     />

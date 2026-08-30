@@ -15,6 +15,8 @@ interface Props {
   title?: string;
   /** Ícono chico antes del título (ej. distinguir "Pared" de "Suelo" en texturas). */
   titleIcon?: LucideIcon;
+  /** Descripción corta bajo el título (tienda). Se recorta a 2 líneas. */
+  description?: string | null;
   /** Insignia de cantidad, ej. "x3". */
   stackCount?: number;
   selected?: boolean;
@@ -53,6 +55,7 @@ export default function ItemCard({
   item,
   title,
   titleIcon: TitleIcon,
+  description,
   stackCount,
   selected,
   locked,
@@ -114,6 +117,11 @@ export default function ItemCard({
             <span className={styles.titleText}>{label}</span>
           )}
         </span>
+        {description && (
+          <span className={styles.description} title={description}>
+            {description}
+          </span>
+        )}
         {actionHint && <span className={styles.actionHint}>{actionHint}</span>}
       </button>
 

@@ -259,25 +259,32 @@ export default function WorldItemDetailsPage() {
               </div>
             </label>
 
-            <label className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                checked={Number(worldItem.directions) === 1}
-                onChange={(e) =>
-                  setWorldItem({
-                    ...worldItem,
-                    directions: e.target.checked ? 1 : 4,
-                    rotatable: e.target.checked ? false : worldItem.rotatable,
-                  })
-                }
-              />
-              <div>
-                <p>{t("items.singleFaceLabel")}</p>
-                <p className="text-xs text-zinc-500">
-                  {t("items.singleFaceHint")}
-                </p>
+            <div>
+              <p className="mb-1">{t("items.facesLabel")}</p>
+              <p className="text-xs text-zinc-500 mb-2">{t("items.facesHint")}</p>
+              <div className="flex flex-wrap gap-2">
+                {[1, 2, 4].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() =>
+                      setWorldItem({
+                        ...worldItem,
+                        directions: n,
+                        rotatable: n > 1,
+                      })
+                    }
+                    className={`rounded px-3 py-1.5 text-xs font-bold ${
+                      Number(worldItem.directions) === n
+                        ? "bg-yellow-400 text-black"
+                        : "border border-zinc-700 text-zinc-300"
+                    }`}
+                  >
+                    {t(`items.faces_${n}`)}
+                  </button>
+                ))}
               </div>
-            </label>
+            </div>
           </div>
         </div>
 

@@ -6,6 +6,7 @@ import {
   toWorldTiles,
 } from "./IsoFootprint";
 import { applySpriteOffset, getFurnitureAnchorY } from "../utils/tileAnchor";
+import { getSpriteFrameIndex } from "../utils/spriteFrames";
 import { pointerToScreenPosition } from "../utils/pointerToScreenPosition";
 
 export default class RoomItemsManager {
@@ -61,7 +62,8 @@ export default class RoomItemsManager {
 
     let frameName = "__BASE";
 
-    // spritesheet horizontal de 4 caras
+    // Spritesheet horizontal de 1/2/4 caras: el frame se envuelve al número
+    // de caras (worldData.directions), no a la rotación cruda 0-3.
     if (
       !isSurface &&
       frameWidth &&
@@ -69,13 +71,14 @@ export default class RoomItemsManager {
       rotation >= 0 &&
       rotation <= 3
     ) {
-      frameName = `${texture}-room-${rotation}`;
+      const frameIndex = getSpriteFrameIndex(rotation, worldData);
+      frameName = `${texture}-room-${frameIndex}`;
 
       if (!tex.has(frameName)) {
         tex.add(
           frameName,
           0,
-          frameWidth * rotation,
+          frameWidth * frameIndex,
           0,
           frameWidth,
           frameHeight,

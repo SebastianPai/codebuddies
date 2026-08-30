@@ -360,6 +360,9 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
           const owned = inventoryMap.has(item.id) || item.owned;
           const isBuying = buyingItemId === item.id;
           const alreadyHasBackground = item.type === "BACKGROUND" && item.canUse;
+          // Nombre real del item; si no tiene traducción, cae a la etiqueta
+          // de categoría (slot/kind) como antes.
+          const displayName = item.name || getLabel(item);
 
           return (
             <ItemCard
@@ -367,7 +370,8 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
               item={item}
               rarity={item.rarity}
               effectPreview={item.type === "EFFECT" ? item.effectKey : undefined}
-              title={owned && item.type === "BACKGROUND" ? `${getLabel(item)} ✓` : getLabel(item)}
+              title={owned && item.type === "BACKGROUND" ? `${displayName} ✓` : displayName}
+              description={item.description}
               stackCount={item.type !== "BACKGROUND" ? inventoryMap.get(item.id) : undefined}
               footer={
                 <div className={styles.cardFooter}>
