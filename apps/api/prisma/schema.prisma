@@ -694,6 +694,7 @@ model User {
   items  UserItem[]
   rooms  Room[]
   apps   App[]
+  pets   Pet[]
 
   itemGiftsSent     ItemGift[] @relation("ItemGiftsSent")
   itemGiftsReceived ItemGift[] @relation("ItemGiftsReceived")
@@ -901,6 +902,48 @@ model Item {
   roomItems      RoomItem[]
   buildFavorites RoomBuildFavorite[]
   gifts          ItemGift[]
+  pets           Pet[]
+}
+
+// Mascota del jugador. Los stats (0-100) decaen con el tiempo real; el
+// decaimiento se calcula de forma perezosa en cada lectura (PetService.
+// applyDecay) usando lastTickAt — no hay job de fondo. Cuidarla
+// (alimentar/hidratar/jugar) sube stats con cooldown. Si hunger/thirst
+// quedan muy bajos, health baja y `sick` se activa.
+model Pet {
+  id     String @id @default(uuid())
+  userId String
+
+  // De qué compra salió (para el look). El sprite se resuelve por
+  // `species`; itemId es informativo y opcional.
+  itemId String?
+
+  species String @default("cat")
+  name    String @default("")
+
+  hunger    Int @default(80)
+  thirst    Int @default(80)
+  happiness Int @default(80)
+  energy    Int @default(80)
+  health    Int @default(100)
+  sick      Boolean @default(false)
+
+  lastTickAt    DateTime @default(now())
+  lastFedAt     DateTime @default(now())
+  lastWateredAt DateTime @default(now())
+  lastPlayedAt  DateTime @default(now())
+
+  // Sala donde está "sacada"; null = guardada.
+  activeRoomId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item Item? @relation(fields: [itemId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([activeRoomId])
 }
 
 model AvatarItemData {

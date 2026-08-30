@@ -1,0 +1,35 @@
+-- CreateTable
+CREATE TABLE "Pet" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "itemId" TEXT,
+    "species" TEXT NOT NULL DEFAULT 'cat',
+    "name" TEXT NOT NULL DEFAULT '',
+    "hunger" INTEGER NOT NULL DEFAULT 80,
+    "thirst" INTEGER NOT NULL DEFAULT 80,
+    "happiness" INTEGER NOT NULL DEFAULT 80,
+    "energy" INTEGER NOT NULL DEFAULT 80,
+    "health" INTEGER NOT NULL DEFAULT 100,
+    "sick" BOOLEAN NOT NULL DEFAULT false,
+    "lastTickAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "lastFedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "lastWateredAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "lastPlayedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "activeRoomId" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Pet_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE INDEX "Pet_userId_idx" ON "Pet"("userId");
+
+-- CreateIndex
+CREATE INDEX "Pet_activeRoomId_idx" ON "Pet"("activeRoomId");
+
+-- AddForeignKey
+ALTER TABLE "Pet" ADD CONSTRAINT "Pet_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Pet" ADD CONSTRAINT "Pet_itemId_fkey" FOREIGN KEY ("itemId") REFERENCES "Item"("id") ON DELETE SET NULL ON UPDATE CASCADE;
