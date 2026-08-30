@@ -31,10 +31,10 @@ const EMPTY: Partial<Species> = {
   key: "",
   name: "",
   spriteSheetUrl: null,
-  frameWidth: 32,
-  frameHeight: 32,
+  frameWidth: 68,
+  frameHeight: 68,
   framesCount: 1,
-  directions: 4,
+  directions: 8,
   animations: [],
   enabled: true,
   sortOrder: 0,
@@ -137,7 +137,7 @@ export default function AdminPetsPage() {
               hint={t("admin.companionFrameWHint")}
             >
               <NumberInput
-                value={draft.frameWidth ?? 32}
+                value={draft.frameWidth ?? 68}
                 onChange={(e) => set({ frameWidth: Number(e.target.value) })}
               />
             </Field>
@@ -146,7 +146,7 @@ export default function AdminPetsPage() {
               hint={t("admin.companionFrameHHint")}
             >
               <NumberInput
-                value={draft.frameHeight ?? 32}
+                value={draft.frameHeight ?? 68}
                 onChange={(e) => set({ frameHeight: Number(e.target.value) })}
               />
             </Field>
@@ -155,7 +155,7 @@ export default function AdminPetsPage() {
               hint={t("admin.companionDirectionsHint")}
             >
               <select
-                value={draft.directions ?? 4}
+                value={draft.directions ?? 8}
                 onChange={(e) => set({ directions: Number(e.target.value) })}
                 className="w-full rounded-lg border border-zinc-700 bg-black px-3 py-2 text-white"
               >
@@ -175,9 +175,9 @@ export default function AdminPetsPage() {
               value={draft.animations ?? []}
               onChange={(v) => set({ animations: v })}
               sheetUrl={draft.spriteSheetUrl ?? null}
-              frameWidth={draft.frameWidth ?? 32}
-              frameHeight={draft.frameHeight ?? 32}
-              directions={draft.directions ?? 4}
+              frameWidth={draft.frameWidth ?? 68}
+              frameHeight={draft.frameHeight ?? 68}
+              directions={draft.directions ?? 8}
               t={t}
             />
           </Field>
@@ -226,13 +226,13 @@ export default function AdminPetsPage() {
           <h2 className="text-lg font-bold">{t("admin.companionPreview")}</h2>
           <SpriteSheetPreview
             url={draft.spriteSheetUrl ?? null}
-            frameWidth={draft.frameWidth ?? 32}
-            frameHeight={draft.frameHeight ?? 32}
+            frameWidth={draft.frameWidth ?? 68}
+            frameHeight={draft.frameHeight ?? 68}
             framesCount={Math.max(
               1,
               ...(draft.animations ?? []).map((c) => c.framesCount),
             )}
-            directions={draft.directions ?? 4}
+            directions={draft.directions ?? 8}
             emptyLabel={t("admin.companionPreviewEmpty")}
           />
           <div className="rounded-lg border border-zinc-800 bg-black/40 p-4 text-xs leading-relaxed text-zinc-400">

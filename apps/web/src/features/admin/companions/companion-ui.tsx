@@ -235,6 +235,7 @@ export type AnimClip = {
   key: string;
   trigger: string;
   row: number;
+  startCol: number;
   framesCount: number;
   fps: number;
   loop: boolean;
@@ -249,13 +250,34 @@ export const CLIP_TRIGGERS = [
   "RANDOM",
 ] as const;
 
-// Presets de "Agregar rápido".
-const CLIP_PRESETS: Array<{ key: string; trigger: string; framesCount: number }> = [
-  { key: "walk", trigger: "MOVING", framesCount: 4 },
-  { key: "idle", trigger: "IDLE", framesCount: 2 },
-  { key: "sit", trigger: "SIT", framesCount: 2 },
-  { key: "sleep", trigger: "SLEEP", framesCount: 2 },
-  { key: "eat", trigger: "EAT", framesCount: 4 },
+// Direcciones estándar por fila (fila 0 = South, ...). Debe coincidir con
+// COMPANION_DIRECTION_ORDER del backend.
+export const COMPANION_DIRECTION_ORDER = [
+  "S",
+  "N",
+  "SE",
+  "NW",
+  "E",
+  "W",
+  "NE",
+  "SW",
+];
+
+// Presets de "Agregar rápido". Pensados para el layout típico: fila continua
+// [idle, walk1..walkN], idle en la columna 0 y la caminata a partir de la 1.
+const CLIP_PRESETS: Array<{
+  key: string;
+  trigger: string;
+  startCol: number;
+  framesCount: number;
+  fps: number;
+  loop: boolean;
+}> = [
+  { key: "walk", trigger: "MOVING", startCol: 1, framesCount: 8, fps: 10, loop: true },
+  { key: "idle", trigger: "IDLE", startCol: 0, framesCount: 1, fps: 1, loop: false },
+  { key: "sit", trigger: "SIT", startCol: 0, framesCount: 1, fps: 2, loop: false },
+  { key: "sleep", trigger: "SLEEP", startCol: 0, framesCount: 2, fps: 2, loop: true },
+  { key: "eat", trigger: "EAT", startCol: 0, framesCount: 4, fps: 8, loop: false },
 ];
 
 /**
@@ -283,19 +305,17 @@ export function AnimClipList({
     onChange(value.map((c, idx) => (idx === i ? { ...c, ...p } : c)));
   const removeAt = (i: number) => onChange(value.filter((_, idx) => idx !== i));
 
-  const nextRow = () =>
-    value.reduce((max, c) => Math.max(max, c.row + directions), 0);
-
   const addPreset = (preset: (typeof CLIP_PRESETS)[number]) =>
     onChange([
       ...value,
       {
         key: preset.key,
         trigger: preset.trigger,
-        row: nextRow(),
+        row: 0,
+        startCol: preset.startCol,
         framesCount: preset.framesCount,
-        fps: 6,
-        loop: preset.trigger !== "EAT",
+        fps: preset.fps,
+        loop: preset.loop,
       },
     ]);
 
@@ -332,6 +352,7 @@ export function AnimClipList({
               frameWidth={frameWidth}
               frameHeight={frameHeight}
               row={clip.row}
+              startCol={clip.startCol ?? 0}
               framesCount={clip.framesCount}
               fps={clip.fps}
             />
@@ -363,15 +384,24 @@ export function AnimClipList({
                 </label>
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-4 gap-2">
                 <label className="flex flex-col gap-0.5 text-xs text-zinc-500">
                   {t("admin.clipRow")}
                   <input
                     type="number"
                     className={fieldSm}
                     value={clip.row}
+                    onChange={(e) => patch(i, { row: Number(e.target.value) })}
+                  />
+                </label>
+                <label className="flex flex-col gap-0.5 text-xs text-zinc-500">
+                  {t("admin.clipStartCol")}
+                  <input
+                    type="number"
+                    className={fieldSm}
+                    value={clip.startCol ?? 0}
                     onChange={(e) =>
-                      patch(i, { row: Number(e.target.value) })
+                      patch(i, { startCol: Number(e.target.value) })
                     }
                   />
                 </label>
@@ -392,9 +422,7 @@ export function AnimClipList({
                     type="number"
                     className={fieldSm}
                     value={clip.fps}
-                    onChange={(e) =>
-                      patch(i, { fps: Number(e.target.value) })
-                    }
+                    onChange={(e) => patch(i, { fps: Number(e.target.value) })}
                   />
                 </label>
               </div>
@@ -435,6 +463,7 @@ function ClipCellPreview({
   frameWidth,
   frameHeight,
   row,
+  startCol,
   framesCount,
   fps,
 }: {
@@ -442,6 +471,7 @@ function ClipCellPreview({
   frameWidth: number;
   frameHeight: number;
   row: number;
+  startCol: number;
   framesCount: number;
   fps: number;
 }) {
@@ -481,7 +511,7 @@ function ClipCellPreview({
           backgroundImage: `url(${sheetUrl})`,
           backgroundRepeat: "no-repeat",
           backgroundSize: "auto",
-          backgroundPosition: `-${frame * fw}px -${row * fh}px`,
+          backgroundPosition: `-${(startCol + frame) * fw}px -${row * fh}px`,
           imageRendering: "pixelated",
         }}
       />

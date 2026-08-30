@@ -6,6 +6,21 @@
 export const COMPANION_DIRECTIONS = [1, 2, 4, 8] as const;
 export type CompanionDirections = (typeof COMPANION_DIRECTIONS)[number];
 
+// Orden ESTÁNDAR de las filas del spritesheet -> dirección isométrica.
+// Todas las mascotas/NPC siguen este orden (fila 0 = South, fila 1 = North,
+// ...). El juego mapea el ángulo de movimiento contra esta lista.
+// Con `directions` < 8 se usan solo las primeras N entradas.
+export const COMPANION_DIRECTION_ORDER = [
+  'S', // 0
+  'N', // 1
+  'SE', // 2
+  'NW', // 3
+  'E', // 4
+  'W', // 5
+  'NE', // 6
+  'SW', // 7
+] as const;
+
 export function normalizeDirections(value: unknown): CompanionDirections {
   const n = Math.trunc(Number(value));
   return (COMPANION_DIRECTIONS as readonly number[]).includes(n)
@@ -27,7 +42,8 @@ export type ClipTrigger = (typeof CLIP_TRIGGERS)[number];
 export interface AnimClip {
   key: string;
   trigger: ClipTrigger;
-  row: number;
+  row: number; // primera fila del bloque (ocupa `directions` filas)
+  startCol: number; // primera columna de esta animación dentro de la fila
   framesCount: number;
   fps: number;
   loop: boolean;
@@ -64,6 +80,7 @@ function normalizeClip(raw: unknown): AnimClip | null {
     key,
     trigger,
     row: nonNegInt(r.row, 0),
+    startCol: nonNegInt(r.startCol, 0),
     framesCount: posInt(r.framesCount, 1, 128),
     fps: posInt(r.fps, 6, 60),
     loop: r.loop === undefined ? trigger !== 'EAT' : Boolean(r.loop),
