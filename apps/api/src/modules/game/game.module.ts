@@ -15,6 +15,7 @@ import { LayoutsModule } from './layouts/layouts.module';
 import { PlayerModule } from './player/player.module';
 import { RoomItemsModule } from './room-items/room-items.module';
 import { PetModule } from './pets/pet.module';
+import { NpcModule } from './npcs/npc.module';
 import { RoomItemsHandler } from './ws/handlers/room-items.handler';
 import { RoomHandler } from './ws/handlers/room.handler';
 import { ShopHandler } from './ws/handlers/shop.handler';
@@ -40,6 +41,7 @@ import { RealtimeModule } from '../realtime/realtime.module';
     RoomItemsModule,
     BackgroundsModule,
     PetModule,
+    NpcModule,
     // GameModule declara su propia copia de ItemsService/ItemsController
     // (independiente de ItemsModule, que las vuelve a declarar por su
     // cuenta -- duplicación preexistente, no introducida acá). Como

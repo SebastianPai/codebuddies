@@ -946,6 +946,58 @@ model Pet {
   @@index([activeRoomId])
 }
 
+// Config editable desde /admin/pets: qué spritesheet usa cada especie de
+// mascota y cómo cortarlo (mismo criterio de "caras" 1/2/4 que los world
+// items). El juego resuelve Pet.species -> este registro.
+model PetSpeciesConfig {
+  id  String @id @default(uuid())
+  key String @unique // "cat", "dog", ... (coincide con Pet.species)
+
+  name       String
+  spriteSheetUrl String?
+  previewUrl String?
+
+  frameWidth  Int @default(64)
+  frameHeight Int @default(64)
+  framesCount Int @default(1)
+  directions  Int @default(1) // 1 | 2 | 4
+
+  enabled   Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Config editable desde /admin/butler (y futuros NPC). El mayordomo puede
+// renderizarse como avatar modular (avatarConfig) o como spritesheet
+// simple (spriteSheetUrl); greetingLines son las frases que dice.
+model NpcConfig {
+  id  String @id @default(uuid())
+  key String @unique
+
+  kind String @default("BUTLER") // BUTLER | GUIDE | SHOPKEEPER ...
+  name String
+
+  spriteSheetUrl String?
+  previewUrl     String?
+  avatarConfig   Json? // look de avatar modular, si no usa spritesheet
+
+  frameWidth  Int @default(64)
+  frameHeight Int @default(96)
+  framesCount Int @default(1)
+  directions  Int @default(4)
+
+  greetingLines String[] @default([])
+  idleLines     String[] @default([])
+
+  enabled   Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model AvatarItemData {
   id     String @id @default(uuid())
   itemId String @unique

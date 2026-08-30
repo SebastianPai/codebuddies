@@ -208,6 +208,14 @@ export default function AdminLayout({
         ],
       },
       {
+        id: "companions",
+        title: t("admin.navCompanions"),
+        items: [
+          { href: "/admin/pets", label: t("admin.petsTitle"), icon: <Gift size={18} /> },
+          { href: "/admin/butler", label: t("admin.butlerTitle"), icon: <Users size={18} /> },
+        ],
+      },
+      {
         id: "education",
         title: t("admin.navEducation"),
         items: [
