@@ -107,6 +107,50 @@ export class PetService {
     return this.serialize(pet);
   }
 
+  // Compra desde la tienda del juego: cobra coins y crea la mascota.
+  async buyFromShop(userId: string, speciesKey: string) {
+    const species = await this.prisma.petSpeciesConfig.findUnique({
+      where: { key: String(speciesKey) },
+    });
+    if (!species || !species.enabled || !species.shopVisible) {
+      throw new NotFoundException('Mascota no disponible');
+    }
+    const price = species.coinsPrice ?? 0;
+    if (price <= 0) {
+      throw new BadRequestException('Esta mascota no está a la venta');
+    }
+
+    const existing = await this.prisma.pet.findFirst({ where: { userId } });
+    if (existing) {
+      throw new BadRequestException('Ya tenés una mascota');
+    }
+
+    const pet = await this.prisma.$transaction(async (tx) => {
+      // Débito condicional (compare-and-swap): dos compras concurrentes no
+      // pueden dejar el saldo negativo — mismo patrón que ItemsService.
+      const debited = await tx.user.updateMany({
+        where: { id: userId, coins: { gte: price } },
+        data: { coins: { decrement: price } },
+      });
+      if (debited.count === 0) {
+        throw new BadRequestException('No tenés monedas suficientes');
+      }
+
+      await tx.coinTransaction.create({
+        data: { userId, amount: -price, reason: `pet:${species.key}` },
+      });
+
+      // La unique implícita no existe (permitimos varias en el modelo),
+      // pero ya validamos "1 por usuario" arriba; una carrera acá crearía 2
+      // — aceptable para el MVP, se puede endurecer con un @@unique después.
+      return tx.pet.create({
+        data: { userId, species: species.key, name: '' },
+      });
+    });
+
+    return this.serialize(pet);
+  }
+
   async rename(userId: string, name: string) {
     const pet = await this.loadOwnedPet(userId);
     const updated = await this.prisma.pet.update({

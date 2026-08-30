@@ -3,6 +3,8 @@ import { Socket } from 'socket.io';
 
 import { ItemsService } from '../../items/items.service';
 import { BackgroundsService } from '../../backgrounds/backgrounds.service';
+import { PetService } from '../../pets/pet.service';
+import { PetSpeciesService } from '../../pets/pet-species.service';
 import {
   BuyBackgroundDto,
   BuyItemDto,
@@ -29,6 +31,8 @@ export class ShopHandler {
   constructor(
     private readonly itemsService: ItemsService,
     private readonly backgroundsService: BackgroundsService,
+    private readonly petService: PetService,
+    private readonly petSpeciesService: PetSpeciesService,
   ) {}
 
   // ====================== OBTENER ITEMS DE LA TIENDA ======================
@@ -98,7 +102,38 @@ export class ShopHandler {
         createdAt: background.createdAt,
       }));
 
-      socket.emit('shop:items', [...formatted, ...formattedBackgrounds]);
+      const species = await this.petSpeciesService.listEnabled();
+      const formattedPets = species
+        .filter((s: any) => s.shopVisible && (s.coinsPrice ?? 0) > 0)
+        .map((s: any) => ({
+          id: `pet:${s.key}`,
+          speciesKey: s.key,
+          type: 'PET',
+          name: s.name,
+          description: null,
+          // Config de sprite para que el cliente muestre solo el frame 0
+          // (o la caminata), nunca la hoja entera.
+          petSprite: {
+            spriteSheetUrl: s.spriteSheetUrl,
+            frameWidth: s.frameWidth,
+            frameHeight: s.frameHeight,
+            directions: s.directions,
+            animations: s.animations ?? [],
+          },
+          coinsPrice: s.coinsPrice ?? 0,
+          gemsPrice: s.gemsPrice ?? 0,
+          rarity: 0,
+          rarityKey: 'common',
+          shopVisible: true,
+          category: 'pets',
+          createdAt: s.createdAt,
+        }));
+
+      socket.emit('shop:items', [
+        ...formatted,
+        ...formattedBackgrounds,
+        ...formattedPets,
+      ]);
       this.logger.debug(`Enviados ${formatted.length} items al shop`);
     } catch (err: any) {
       this.logger.error('Error al obtener items del shop', err);
@@ -137,6 +172,34 @@ export class ShopHandler {
       this.logger.error(`Error al comprar item ${data.itemId}`, err);
       socket.emit('shop:item:error', {
         message: err.message || 'No se pudo completar la compra',
+      });
+    }
+  }
+
+  // ====================== COMPRAR MASCOTA ======================
+  async handleBuyPet(socket: Socket, data: { speciesKey?: string }) {
+    const userId = socket.data.user?.userId;
+    if (!userId) {
+      return socket.emit('shop:item:error', { message: 'No autenticado' });
+    }
+    if (!data?.speciesKey) {
+      return socket.emit('shop:item:error', {
+        message: 'speciesKey es requerido',
+      });
+    }
+
+    try {
+      const pet = await this.petService.buyFromShop(userId, data.speciesKey);
+      socket.emit('pet:data', pet);
+      socket.emit('shop:item:bought', {
+        itemId: `pet:${data.speciesKey}`,
+        message: 'Mascota adoptada',
+      });
+      this.logger.log(`Usuario ${userId} adoptó mascota ${data.speciesKey}`);
+    } catch (err: any) {
+      this.logger.warn(`Compra de mascota rechazada: ${err.message}`);
+      socket.emit('shop:item:error', {
+        message: err.message || 'No se pudo adoptar la mascota',
       });
     }
   }

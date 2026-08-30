@@ -23,6 +23,8 @@ type Species = {
   framesCount: number;
   directions: number;
   animations: AnimClip[];
+  coinsPrice: number | null;
+  shopVisible: boolean;
   enabled: boolean;
   sortOrder: number;
 };
@@ -36,6 +38,8 @@ const EMPTY: Partial<Species> = {
   framesCount: 1,
   directions: 8,
   animations: [],
+  coinsPrice: 500,
+  shopVisible: true,
   enabled: true,
   sortOrder: 0,
 };
@@ -183,7 +187,13 @@ export default function AdminPetsPage() {
             />
           </Field>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-3">
+            <Field label={t("admin.petsPrice")} hint={t("admin.petsPriceHint")}>
+              <NumberInput
+                value={draft.coinsPrice ?? 0}
+                onChange={(e) => set({ coinsPrice: Number(e.target.value) })}
+              />
+            </Field>
             <Field
               label={t("admin.petsSortOrder")}
               hint={t("admin.petsSortOrderHint")}
@@ -193,14 +203,24 @@ export default function AdminPetsPage() {
                 onChange={(e) => set({ sortOrder: Number(e.target.value) })}
               />
             </Field>
-            <label className="flex items-center gap-2 self-end pb-2 text-sm text-zinc-300">
-              <input
-                type="checkbox"
-                checked={draft.enabled ?? true}
-                onChange={(e) => set({ enabled: e.target.checked })}
-              />
-              {t("admin.petsEnabled")}
-            </label>
+            <div className="flex flex-col gap-2 self-end pb-2 text-sm text-zinc-300">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={draft.shopVisible ?? true}
+                  onChange={(e) => set({ shopVisible: e.target.checked })}
+                />
+                {t("admin.petsShopVisible")}
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={draft.enabled ?? true}
+                  onChange={(e) => set({ enabled: e.target.checked })}
+                />
+                {t("admin.petsEnabled")}
+              </label>
+            </div>
           </div>
 
           <div className="flex gap-3">
@@ -272,7 +292,13 @@ export default function AdminPetsPage() {
                 />
               )}
               <p className="text-xs text-zinc-500">
-                {s.framesCount}×{s.directions} · {s.frameWidth}×{s.frameHeight}px
+                {s.directions} dir · {s.frameWidth}×{s.frameHeight}px ·{" "}
+                {(s.animations ?? []).length} anim
+              </p>
+              <p className="text-xs text-yellow-500/80">
+                {s.shopVisible && s.coinsPrice
+                  ? `${s.coinsPrice} coins`
+                  : t("admin.petsNotForSale")}
               </p>
               <div className="flex gap-4 pt-1 text-sm">
                 <button

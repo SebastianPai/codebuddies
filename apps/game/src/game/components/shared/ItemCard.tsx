@@ -17,6 +17,8 @@ interface Props {
   titleIcon?: LucideIcon;
   /** Descripción corta bajo el título (tienda). Se recorta a 2 líneas. */
   description?: string | null;
+  /** Reemplaza la imagen del preview (ej: celda animada de una mascota). */
+  preview?: ReactNode;
   /** Insignia de cantidad, ej. "x3". */
   stackCount?: number;
   selected?: boolean;
@@ -56,6 +58,7 @@ export default function ItemCard({
   title,
   titleIcon: TitleIcon,
   description,
+  preview,
   stackCount,
   selected,
   locked,
@@ -99,7 +102,13 @@ export default function ItemCard({
         aria-pressed={onClick ? !!selected : undefined}
       >
         <div className={styles.previewFrame}>
-          <ItemPreview item={item} alt={label} className={styles.preview} />
+          {preview ? (
+            <div className={styles.preview} style={{ display: "grid", placeItems: "center" }}>
+              {preview}
+            </div>
+          ) : (
+            <ItemPreview item={item} alt={label} className={styles.preview} />
+          )}
           {!!stackCount && stackCount > 1 && <span className={styles.stack}>x{stackCount}</span>}
           {locked && (
             <span className={styles.lockIcon} aria-hidden="true">

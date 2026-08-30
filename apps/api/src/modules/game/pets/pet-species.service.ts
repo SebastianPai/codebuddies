@@ -15,8 +15,17 @@ type SpeciesInput = {
   framesCount?: number;
   directions?: number;
   animations?: unknown;
+  coinsPrice?: number | null;
+  gemsPrice?: number | null;
+  shopVisible?: boolean;
   enabled?: boolean;
   sortOrder?: number;
+};
+
+const nullableInt = (v: unknown): number | null => {
+  if (v == null || v === '') return null;
+  const n = Math.trunc(Number(v));
+  return Number.isFinite(n) && n >= 0 ? n : null;
 };
 
 const posInt = (n: unknown, fallback: number) => {
@@ -67,6 +76,15 @@ export class PetSpeciesService {
       ...(data.animations !== undefined && {
         animations: normalizeAnimations(data.animations) as any,
       }),
+      ...(data.coinsPrice !== undefined && {
+        coinsPrice: nullableInt(data.coinsPrice),
+      }),
+      ...(data.gemsPrice !== undefined && {
+        gemsPrice: nullableInt(data.gemsPrice),
+      }),
+      ...(data.shopVisible !== undefined && {
+        shopVisible: Boolean(data.shopVisible),
+      }),
       ...(data.enabled !== undefined && { enabled: Boolean(data.enabled) }),
       ...(data.sortOrder !== undefined && {
         sortOrder: Math.trunc(Number(data.sortOrder)) || 0,
@@ -87,6 +105,9 @@ export class PetSpeciesService {
         framesCount: payload.framesCount ?? 1,
         directions: payload.directions ?? 4,
         animations: payload.animations ?? [],
+        coinsPrice: payload.coinsPrice ?? null,
+        gemsPrice: payload.gemsPrice ?? null,
+        shopVisible: payload.shopVisible ?? true,
         enabled: payload.enabled ?? true,
         sortOrder: payload.sortOrder ?? 0,
       },

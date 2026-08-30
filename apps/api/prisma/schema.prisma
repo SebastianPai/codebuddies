@@ -963,10 +963,15 @@ model PetSpeciesConfig {
   framesCount Int @default(1) // legacy / sin clips
   directions  Int @default(4) // 1 | 2 | 4 | 8
 
-  // Clips de animación: [{ key, trigger, row, framesCount, fps, loop,
-  // spriteSheetUrl?, frameWidth?, frameHeight? }]. Cada clip ocupa
+  // Clips de animación: [{ key, trigger, row, startCol, framesCount, fps,
+  // loop, spriteSheetUrl?, frameWidth?, frameHeight? }]. Cada clip ocupa
   // `directions` filas consecutivas a partir de `row` (una por dirección).
   animations Json?
+
+  // Economía: se compra en la tienda del juego.
+  coinsPrice  Int?
+  gemsPrice   Int?
+  shopVisible Boolean @default(true)
 
   enabled   Boolean @default(true)
   sortOrder Int     @default(0)
@@ -999,6 +1004,12 @@ model NpcConfig {
 
   greetingLines String[] @default([])
   idleLines     String[] @default([])
+
+  // Un mayordomo no se compra hoy, pero dejamos el groundwork por si se
+  // vende como perk premium.
+  coinsPrice  Int?
+  gemsPrice   Int?
+  shopVisible Boolean @default(false)
 
   enabled   Boolean @default(true)
   sortOrder Int     @default(0)

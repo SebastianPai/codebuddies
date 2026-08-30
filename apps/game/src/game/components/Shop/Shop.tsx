@@ -11,6 +11,7 @@ import Modal from "../shared/Modal";
 import Button from "../shared/Button";
 import ItemGrid from "../shared/ItemGrid";
 import ItemCard from "../shared/ItemCard";
+import PetSpriteCell from "../shared/PetSpriteCell";
 import CurrencyBadge from "../shared/CurrencyBadge";
 import RarityText from "../shared/RarityText";
 import { useTranslation } from "../../../i18n/useTranslation";
@@ -23,7 +24,13 @@ interface Props {
 }
 
 type SortType = "new" | "old" | "cheap" | "expensive" | "popular";
-type TabType = "avatar" | "world" | "textures" | "backgrounds" | "effects";
+type TabType =
+  | "avatar"
+  | "world"
+  | "textures"
+  | "backgrounds"
+  | "effects"
+  | "pets";
 
 const ITEMS_PER_PAGE = 12;
 
@@ -149,10 +156,14 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
     if (!confirmed) return;
 
     setBuyingItemId(itemId);
-    socket?.emit(
-      item?.type === "BACKGROUND" ? "shop:background:buy" : "shop:item:buy",
-      item?.type === "BACKGROUND" ? { backgroundId: itemId } : { itemId },
-    );
+    if (item?.type === "PET") {
+      socket?.emit("shop:pet:buy", { speciesKey: item.speciesKey });
+    } else {
+      socket?.emit(
+        item?.type === "BACKGROUND" ? "shop:background:buy" : "shop:item:buy",
+        item?.type === "BACKGROUND" ? { backgroundId: itemId } : { itemId },
+      );
+    }
     // Red de seguridad por si el servidor nunca responde "shop:item:bought"
     // (p. ej. error silencioso); en el camino normal, handleBought cancela
     // este timeout antes de que dispare para evitar reactivar el botón
@@ -256,6 +267,7 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
       if (activeTab === "textures" && !isTexture) return false;
       if (activeTab === "backgrounds" && item.type !== "BACKGROUND") return false;
       if (activeTab === "effects" && !isEffect) return false;
+      if (activeTab === "pets" && item.type !== "PET") return false;
 
       return (
         item.id?.toLowerCase().includes(term) ||
@@ -318,6 +330,12 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
         >
           <Sparkles size={14} /> {t("commerce.shopTabEffects")}
         </button>
+        <button
+          className={`${styles.tab} ${activeTab === "pets" ? styles.active : ""}`}
+          onClick={() => setActiveTab("pets")}
+        >
+          🐾 {t("commerce.shopTabPets")}
+        </button>
       </div>
 
       <div className={styles.shopBanner}>
@@ -330,7 +348,9 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
                 ? t("commerce.shopBannerBackgrounds")
                 : activeTab === "effects"
                   ? t("commerce.shopBannerEffects")
-                  : t("commerce.shopBannerWorld")}
+                  : activeTab === "pets"
+                    ? t("commerce.shopBannerPets")
+                    : t("commerce.shopBannerWorld")}
         </h2>
 
         <p>{t("commerce.shopItemsAvailable", { count: items.length })}</p>
@@ -370,6 +390,11 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
               item={item}
               rarity={item.rarity}
               effectPreview={item.type === "EFFECT" ? item.effectKey : undefined}
+              preview={
+                item.type === "PET" ? (
+                  <PetSpriteCell petSprite={item.petSprite} />
+                ) : undefined
+              }
               title={owned && item.type === "BACKGROUND" ? `${displayName} ✓` : displayName}
               description={item.description}
               stackCount={item.type !== "BACKGROUND" ? inventoryMap.get(item.id) : undefined}
