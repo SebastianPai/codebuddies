@@ -58,6 +58,7 @@ type Props = {
   onOpenPc: () => void;
   onCustomize: () => void;
   onOpenFriends: () => void;
+  onOpenPet: () => void;
   onOpenMessages: () => void;
   onOpenNotifications: () => void;
   onOpenShop: () => void;
@@ -77,6 +78,7 @@ function LeftSidebar({
   onOpenPc,
   onCustomize,
   onOpenFriends,
+  onOpenPet,
   onOpenMessages,
   onOpenNotifications,
   onOpenShop,
@@ -303,6 +305,23 @@ function LeftSidebar({
         >
           <path d="M6 2L3 7v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7l-3-5z" />
           <path d="M3 7h18" />
+        </svg>
+      ),
+    },
+    {
+      name: t("hud.sidebar.pet"),
+      onClick: onOpenPet,
+      icon: (
+        <svg
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          stroke="none"
+        >
+          <circle cx="5" cy="10" r="2.1" />
+          <circle cx="9.5" cy="6.5" r="2.1" />
+          <circle cx="14.5" cy="6.5" r="2.1" />
+          <circle cx="19" cy="10" r="2.1" />
+          <path d="M12 11c-3 0-5.5 2.2-5.5 4.7 0 1.9 1.7 3.1 3.7 3.1 1 0 1.4-.4 1.8-.4s.8.4 1.8.4c2 0 3.7-1.2 3.7-3.1C17.5 13.2 15 11 12 11z" />
         </svg>
       ),
     },

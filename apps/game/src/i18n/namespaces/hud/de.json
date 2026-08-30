@@ -27,7 +27,8 @@
     "discordCta": "Der Community beitreten",
     "discordLabel": "Offizieller Discord",
     "collapse": "Menü einklappen",
-    "expand": "Menü ausklappen"
+    "expand": "Menü ausklappen",
+    "pet": "Haustier"
   },
   "topBar": {
     "energyHint": "Energie – wird verbraucht, wenn du Lernübungen abschließt",
@@ -108,5 +109,27 @@
   "badges": {
     "verified": "Verifiziert",
     "creator": "Creator"
+  },
+  "pet": {
+    "title": "Mein Haustier",
+    "none": "Du hast noch kein Haustier. Kauf eines im Shop (Tab Haustiere).",
+    "unnamed": "Namenlos",
+    "rename": "Zum Umbenennen tippen",
+    "hunger": "Hunger",
+    "thirst": "Durst",
+    "happiness": "Freude",
+    "energy": "Energie",
+    "feed": "Füttern",
+    "water": "Wasser",
+    "play": "Spielen",
+    "cure": "Heilen",
+    "bringOut": "In den Raum holen",
+    "putAway": "Wegräumen",
+    "enterRoomFirst": "Betritt einen Raum, um es herauszuholen.",
+    "mood_HAPPY": "Glücklich 😺",
+    "mood_CONTENT": "Zufrieden 🙂",
+    "mood_SAD": "Traurig 😿",
+    "mood_SICK": "Krank 🤒",
+    "mood_SLEEPING": "Schläft 💤"
   }
 }

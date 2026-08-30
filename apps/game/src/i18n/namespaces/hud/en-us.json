@@ -27,7 +27,8 @@
     "discordCta": "Join the community",
     "discordLabel": "Official Discord",
     "collapse": "Collapse menu",
-    "expand": "Expand menu"
+    "expand": "Expand menu",
+    "pet": "Pet"
   },
   "topBar": {
     "energyHint": "Energy — spent when you complete learning exercises",
@@ -108,5 +109,27 @@
   "badges": {
     "verified": "Verified",
     "creator": "Creator"
+  },
+  "pet": {
+    "title": "My pet",
+    "none": "You don't have a pet yet. Buy one in the shop (Pets tab).",
+    "unnamed": "Unnamed",
+    "rename": "Tap to rename",
+    "hunger": "Hunger",
+    "thirst": "Thirst",
+    "happiness": "Happiness",
+    "energy": "Energy",
+    "feed": "Feed",
+    "water": "Water",
+    "play": "Play",
+    "cure": "Cure",
+    "bringOut": "Bring to room",
+    "putAway": "Put away",
+    "enterRoomFirst": "Enter a room to bring it out.",
+    "mood_HAPPY": "Happy 😺",
+    "mood_CONTENT": "Content 🙂",
+    "mood_SAD": "Sad 😿",
+    "mood_SICK": "Sick 🤒",
+    "mood_SLEEPING": "Sleeping 💤"
   }
 }

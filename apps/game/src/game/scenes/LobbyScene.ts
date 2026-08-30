@@ -7,6 +7,7 @@ import { AvatarSlot } from "../types/avatar";
 import EasyStar from "easystarjs";
 
 import BuildSystem from "../systems/BuildSystem";
+import PetSystem from "../systems/PetSystem";
 import BuildCommandStack from "../systems/BuildCommandStack";
 import AmbientLightOverlay from "../systems/AmbientLightOverlay";
 import RoomItemsManager from "../systems/RoomItemsManager";
@@ -56,6 +57,8 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
   groundLayer!: Phaser.Tilemaps.TilemapLayer;
 
   private roomItems!: RoomItemsManager;
+  private petSystem?: PetSystem;
+  private onPetChanged = () => this.petSystem?.sync();
   private placementValidator!: PlacementValidator;
   private ambientLight!: AmbientLightOverlay;
 
@@ -950,6 +953,18 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
 
     this.roomItems = new RoomItemsManager(this);
 
+    // Mascota del jugador: se muestra siguiéndolo si la "sacó" a esta sala
+    // (Pet.activeRoomId). Se resincroniza cuando el panel de mascota emite
+    // "pet:changed" y al cerrar la escena se limpia.
+    this.petSystem = new PetSystem(this);
+    void this.petSystem.sync();
+    window.addEventListener("pet:changed", this.onPetChanged);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      window.removeEventListener("pet:changed", this.onPetChanged);
+      this.petSystem?.destroy();
+      this.petSystem = undefined;
+    });
+
     this.furnitureSockets = new FurnitureSocketSystem(
       this,
       this.roomItems,
@@ -1414,6 +1429,7 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
   update() {
     this.buildSystem?.update(this.input.activePointer);
     this.updateBuildPreviewTint(this.input.activePointer);
+    this.petSystem?.update(this.game.loop.delta);
     if (!this.player || !this.groundLayer) return;
 
     const socket = (this.game as any).socket;

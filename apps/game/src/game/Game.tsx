@@ -34,6 +34,7 @@ import PlayerQuickMenu from "./components/PlayerQuickMenu/PlayerQuickMenu";
 import BuildModePanel from "./components/BuildMode/BuildModePanel";
 import GameDialog from "./components/GameDialog/GameDialog";
 import FriendsPanel from "./components/Friends/FriendsPanel";
+import PetPanel from "./components/Pet/PetPanel";
 import ChatProvider from "./components/Chat/ChatProvider";
 import MessagesPanel from "./components/Chat/MessagesPanel";
 import NotificationsPanel from "./components/Notifications/NotificationsPanel";
@@ -81,6 +82,7 @@ export default function Game() {
   const [showMarketplace, setShowMarketplace] = useState(false);
   const [showInventory, setShowInventory] = useState(false);
   const [showFriends, setShowFriends] = useState(false);
+  const [showPet, setShowPet] = useState(false);
   const [showMessages, setShowMessages] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -217,6 +219,11 @@ export default function Game() {
 
             (window as any).openInventory = () => {
               openMajorPanel("inventory");
+            };
+
+            (window as any).openPet = () => {
+              audioManager.play("panelOpen");
+              setShowPet(true);
             };
 
             // =========================
@@ -441,6 +448,7 @@ export default function Game() {
     setShowInventory(false);
     setShowAvatarStudio(false);
     setShowFriends(false);
+    setShowPet(false);
     setShowMessages(false);
     setShowNotifications(false);
     setShowSettings(false);
@@ -450,6 +458,10 @@ export default function Game() {
   const handleOpenPc = useCallback(() => {
     audioManager.play("panelOpen");
     setShowPC(true);
+  }, []);
+  const handleOpenPet = useCallback(() => {
+    audioManager.play("panelOpen");
+    setShowPet(true);
   }, []);
   const handleCustomize = useCallback(() => openMajorPanel("avatarStudio"), [openMajorPanel]);
   const handleOpenFriends = useCallback(() => {
@@ -520,6 +532,7 @@ export default function Game() {
               onOpenPc={handleOpenPc}
               onCustomize={handleCustomize}
               onOpenFriends={handleOpenFriends}
+              onOpenPet={handleOpenPet}
               onOpenMessages={handleOpenMessages}
               onOpenNotifications={handleOpenNotifications}
               onOpenShop={handleOpenShop}
@@ -658,6 +671,8 @@ export default function Game() {
       {/* ================= AMIGOS ================= */}
 
       {showFriends && <FriendsPanel onClose={() => setShowFriends(false)} />}
+
+      {showPet && <PetPanel onClose={() => setShowPet(false)} />}
 
       {/* ================= MENSAJES ================= */}
 

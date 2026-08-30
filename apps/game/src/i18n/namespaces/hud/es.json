@@ -27,7 +27,8 @@
     "discordCta": "Únete a la comunidad",
     "discordLabel": "Discord Oficial",
     "collapse": "Colapsar menú",
-    "expand": "Expandir menú"
+    "expand": "Expandir menú",
+    "pet": "Mascota"
   },
   "topBar": {
     "energyHint": "Energía — se gasta al completar ejercicios de aprendizaje",
@@ -108,5 +109,27 @@
   "badges": {
     "verified": "Verificado",
     "creator": "Creador"
+  },
+  "pet": {
+    "title": "Mi mascota",
+    "none": "Todavía no tenés mascota. Comprá una en la tienda (pestaña Mascotas).",
+    "unnamed": "Sin nombre",
+    "rename": "Tocá para renombrar",
+    "hunger": "Hambre",
+    "thirst": "Sed",
+    "happiness": "Felicidad",
+    "energy": "Energía",
+    "feed": "Comer",
+    "water": "Agua",
+    "play": "Jugar",
+    "cure": "Curar",
+    "bringOut": "Sacar a la sala",
+    "putAway": "Guardar",
+    "enterRoomFirst": "Entrá a una sala para sacarla.",
+    "mood_HAPPY": "Feliz 😺",
+    "mood_CONTENT": "Tranquila 🙂",
+    "mood_SAD": "Triste 😿",
+    "mood_SICK": "Enferma 🤒",
+    "mood_SLEEPING": "Durmiendo 💤"
   }
 }
