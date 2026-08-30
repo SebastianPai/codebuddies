@@ -742,12 +742,13 @@
   "trigger_EAT": "Beim Füttern",
   "trigger_RANDOM": "Zufallsgeste",
   "guideTitle": "So baust du das Spritesheet",
-  "guideBody": "• Ein PNG. Jede ZEILE ist eine Richtung, jede SPALTE ein Frame.\n• Zeilenreihenfolge (für alle fest): 0=Süd, 1=Nord, 2=SO, 3=NW, 4=Ost, 5=West, 6=NO, 7=SW.\n• Jede Animation nutzt dieselben 8 Zeilen; Unterschied ist die STARTSPALTE. z.B. wenn jede Zeile [idle, w1..w8] ist: idle → Spalte 0, 1 Frame; Laufen → Spalte 1, 8 Frames.\n• \"Zellenbreite/-höhe\" = die Größe EINES Frames (68×68 bei deinen Katzen).\n• Bei weniger als 8 Richtungen werden nur die ersten Zeilen dieser Liste verwendet.",
+  "guideBody": "• Ein PNG. Jede ZEILE ist eine Richtung, jede SPALTE ein Frame.\n• Zeilenreihenfolge (für alle fest): 0=Süd, 1=Nord, 2=SO, 3=NW, 4=Ost, 5=West, 6=NO, 7=SW.\n• Jede Animation nutzt dieselben 8 Zeilen; Unterschied ist die STARTSPALTE. z.B. wenn jede Zeile [idle, w1..w8] ist: idle → Spalte 0, 1 Frame; Laufen → Spalte 1, 8 Frames.\n• \"Zellenbreite/-höhe\" = die Größe EINES Frames (68×68 bei deinen Katzen).\n• Bei weniger als 8 Richtungen werden nur die ersten Zeilen dieser Liste verwendet.\nDer erste Frame von Sitzen/Schlafen ist die Stehpose, der letzte die Ruhepose – bei diesen Clips „Schleife“ deaktivieren: sie spielen den Übergang einmal und frieren im letzten Frame ein.",
   "clipStartCol": "Startspalte",
   "clipOwnImage": "Eigenes Bild",
   "clipOwnImageHint": "Optional. Wenn diese Animation in einem eigenen PNG liegt (z.B. Schlafen separat), hier hochladen. Sonst wird das Hauptbild verwendet.",
   "petsPrice": "Preis (Coins)",
   "petsPriceHint": "Kosten zum Adoptieren im Spiel-Shop. 0 = nicht käuflich.",
   "petsShopVisible": "Im Shop sichtbar",
-  "petsNotForSale": "Nicht käuflich"
+  "petsNotForSale": "Nicht käuflich",
+  "clipLoopHint": "Keine Schleife = spielt einmal und hält den letzten Frame (Sitzen, Schlafen, Essen)."
 }

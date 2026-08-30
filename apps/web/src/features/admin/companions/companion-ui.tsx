@@ -279,9 +279,9 @@ const CLIP_PRESETS: Array<{
   loop: boolean;
 }> = [
   { key: "walk", trigger: "MOVING", startCol: 1, framesCount: 8, fps: 10, loop: true },
-  { key: "idle", trigger: "IDLE", startCol: 0, framesCount: 1, fps: 1, loop: false },
-  { key: "sit", trigger: "SIT", startCol: 0, framesCount: 1, fps: 2, loop: false },
-  { key: "sleep", trigger: "SLEEP", startCol: 0, framesCount: 2, fps: 2, loop: true },
+  { key: "idle", trigger: "IDLE", startCol: 0, framesCount: 1, fps: 1, loop: true },
+  { key: "sit", trigger: "SIT", startCol: 0, framesCount: 3, fps: 6, loop: false },
+  { key: "sleep", trigger: "SLEEP", startCol: 0, framesCount: 4, fps: 5, loop: false },
   { key: "eat", trigger: "EAT", startCol: 0, framesCount: 4, fps: 8, loop: false },
 ];
 
@@ -362,6 +362,7 @@ export function AnimClipList({
               startCol={clip.startCol ?? 0}
               framesCount={clip.framesCount}
               fps={clip.fps}
+              loop={clip.loop}
             />
 
             <div className="min-w-[220px] flex-1 space-y-2">
@@ -435,7 +436,10 @@ export function AnimClipList({
               </div>
 
               <div className="flex items-center justify-between">
-                <label className="flex items-center gap-1.5 text-xs text-zinc-400">
+                <label
+                  className="flex items-center gap-1.5 text-xs text-zinc-400"
+                  title={t("admin.clipLoopHint")}
+                >
                   <input
                     type="checkbox"
                     checked={clip.loop}
@@ -590,6 +594,7 @@ function ClipCellPreview({
   startCol,
   framesCount,
   fps,
+  loop = true,
 }: {
   sheetUrl: string | null;
   frameWidth: number;
@@ -598,6 +603,7 @@ function ClipCellPreview({
   startCol: number;
   framesCount: number;
   fps: number;
+  loop?: boolean;
 }) {
   const fw = Math.max(1, Math.floor(frameWidth) || 1);
   const fh = Math.max(1, Math.floor(frameHeight) || 1);
@@ -608,9 +614,19 @@ function ClipCellPreview({
   useEffect(() => {
     if (!sheetUrl || cols <= 1) return;
     const ms = 1000 / Math.max(1, Math.min(60, fps || 6));
-    const id = setInterval(() => setFrame((f) => (f + 1) % cols), ms);
+    setFrame(0);
+    const id = setInterval(() => {
+      setFrame((f) => {
+        // loop: 0..N-1 en bucle. sin loop: 0..N-1 y se queda en N-1,
+        // con una pausa larga antes de repetir (para verlo en el editor).
+        if (loop) return (f + 1) % cols;
+        return f < cols - 1 ? f + 1 : -Math.round(2000 / ms); // f negativo = pausa
+      });
+    }, ms);
     return () => clearInterval(id);
-  }, [sheetUrl, cols, fps]);
+  }, [sheetUrl, cols, fps, loop]);
+
+  const shownFrame = frame < 0 ? cols - 1 : frame;
 
   if (!sheetUrl) {
     return (
@@ -635,7 +651,7 @@ function ClipCellPreview({
           backgroundImage: `url(${sheetUrl})`,
           backgroundRepeat: "no-repeat",
           backgroundSize: "auto",
-          backgroundPosition: `-${(startCol + frame) * fw}px -${row * fh}px`,
+          backgroundPosition: `-${(startCol + shownFrame) * fw}px -${row * fh}px`,
           imageRendering: "pixelated",
         }}
       />
