@@ -231,6 +231,264 @@ export function SpriteSheetPreview({
   );
 }
 
+export type AnimClip = {
+  key: string;
+  trigger: string;
+  row: number;
+  framesCount: number;
+  fps: number;
+  loop: boolean;
+};
+
+export const CLIP_TRIGGERS = [
+  "MOVING",
+  "IDLE",
+  "SIT",
+  "SLEEP",
+  "EAT",
+  "RANDOM",
+] as const;
+
+// Presets de "Agregar rápido".
+const CLIP_PRESETS: Array<{ key: string; trigger: string; framesCount: number }> = [
+  { key: "walk", trigger: "MOVING", framesCount: 4 },
+  { key: "idle", trigger: "IDLE", framesCount: 2 },
+  { key: "sit", trigger: "SIT", framesCount: 2 },
+  { key: "sleep", trigger: "SLEEP", framesCount: 2 },
+  { key: "eat", trigger: "EAT", framesCount: 4 },
+];
+
+/**
+ * Editor de clips de animación + preview animado por clip. Cada clip ocupa
+ * `directions` filas del sheet a partir de `row`.
+ */
+export function AnimClipList({
+  value,
+  onChange,
+  sheetUrl,
+  frameWidth,
+  frameHeight,
+  directions,
+  t,
+}: {
+  value: AnimClip[];
+  onChange: (next: AnimClip[]) => void;
+  sheetUrl: string | null;
+  frameWidth: number;
+  frameHeight: number;
+  directions: number;
+  t: (k: string, p?: Record<string, string | number>) => string;
+}) {
+  const patch = (i: number, p: Partial<AnimClip>) =>
+    onChange(value.map((c, idx) => (idx === i ? { ...c, ...p } : c)));
+  const removeAt = (i: number) => onChange(value.filter((_, idx) => idx !== i));
+
+  const nextRow = () =>
+    value.reduce((max, c) => Math.max(max, c.row + directions), 0);
+
+  const addPreset = (preset: (typeof CLIP_PRESETS)[number]) =>
+    onChange([
+      ...value,
+      {
+        key: preset.key,
+        trigger: preset.trigger,
+        row: nextRow(),
+        framesCount: preset.framesCount,
+        fps: 6,
+        loop: preset.trigger !== "EAT",
+      },
+    ]);
+
+  const fieldSm =
+    "w-full rounded border border-zinc-700 bg-black px-2 py-1.5 text-sm text-white outline-none focus:border-yellow-400";
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-2">
+        {CLIP_PRESETS.map((p) => (
+          <button
+            key={p.key}
+            type="button"
+            onClick={() => addPreset(p)}
+            className="rounded border border-zinc-700 px-3 py-1 text-xs font-bold text-zinc-300 hover:border-yellow-400 hover:text-yellow-300"
+          >
+            + {t(`admin.clip_${p.key}`)}
+          </button>
+        ))}
+      </div>
+
+      {value.length === 0 && (
+        <p className="text-xs text-zinc-600">{t("admin.clipsEmpty")}</p>
+      )}
+
+      {value.map((clip, i) => (
+        <div
+          key={i}
+          className="rounded-xl border border-zinc-800 bg-black/40 p-3"
+        >
+          <div className="flex flex-wrap items-start gap-4">
+            <ClipCellPreview
+              sheetUrl={sheetUrl}
+              frameWidth={frameWidth}
+              frameHeight={frameHeight}
+              row={clip.row}
+              framesCount={clip.framesCount}
+              fps={clip.fps}
+            />
+
+            <div className="min-w-[220px] flex-1 space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <label className="flex flex-col gap-0.5 text-xs text-zinc-500">
+                  {t("admin.clipName")}
+                  <input
+                    className={fieldSm}
+                    value={clip.key}
+                    onChange={(e) => patch(i, { key: e.target.value })}
+                    placeholder="walk"
+                  />
+                </label>
+                <label className="flex flex-col gap-0.5 text-xs text-zinc-500">
+                  {t("admin.clipTrigger")}
+                  <select
+                    className={fieldSm}
+                    value={clip.trigger}
+                    onChange={(e) => patch(i, { trigger: e.target.value })}
+                  >
+                    {CLIP_TRIGGERS.map((tr) => (
+                      <option key={tr} value={tr}>
+                        {t(`admin.trigger_${tr}`)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <label className="flex flex-col gap-0.5 text-xs text-zinc-500">
+                  {t("admin.clipRow")}
+                  <input
+                    type="number"
+                    className={fieldSm}
+                    value={clip.row}
+                    onChange={(e) =>
+                      patch(i, { row: Number(e.target.value) })
+                    }
+                  />
+                </label>
+                <label className="flex flex-col gap-0.5 text-xs text-zinc-500">
+                  {t("admin.clipFrames")}
+                  <input
+                    type="number"
+                    className={fieldSm}
+                    value={clip.framesCount}
+                    onChange={(e) =>
+                      patch(i, { framesCount: Number(e.target.value) })
+                    }
+                  />
+                </label>
+                <label className="flex flex-col gap-0.5 text-xs text-zinc-500">
+                  {t("admin.clipFps")}
+                  <input
+                    type="number"
+                    className={fieldSm}
+                    value={clip.fps}
+                    onChange={(e) =>
+                      patch(i, { fps: Number(e.target.value) })
+                    }
+                  />
+                </label>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-1.5 text-xs text-zinc-400">
+                  <input
+                    type="checkbox"
+                    checked={clip.loop}
+                    onChange={(e) => patch(i, { loop: e.target.checked })}
+                  />
+                  {t("admin.clipLoop")}
+                </label>
+                <span className="text-xs text-zinc-600">
+                  {t("admin.clipRowsUsed", {
+                    from: clip.row,
+                    to: clip.row + directions - 1,
+                  })}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => removeAt(i)}
+                  className="text-xs text-red-400 hover:text-red-300"
+                >
+                  {t("common.delete")}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ClipCellPreview({
+  sheetUrl,
+  frameWidth,
+  frameHeight,
+  row,
+  framesCount,
+  fps,
+}: {
+  sheetUrl: string | null;
+  frameWidth: number;
+  frameHeight: number;
+  row: number;
+  framesCount: number;
+  fps: number;
+}) {
+  const fw = Math.max(1, Math.floor(frameWidth) || 1);
+  const fh = Math.max(1, Math.floor(frameHeight) || 1);
+  const cols = Math.max(1, Math.floor(framesCount) || 1);
+  const scale = Math.max(1, Math.min(3, Math.floor(96 / Math.max(fw, fh))));
+  const [frame, setFrame] = useState(0);
+
+  useEffect(() => {
+    if (!sheetUrl || cols <= 1) return;
+    const ms = 1000 / Math.max(1, Math.min(60, fps || 6));
+    const id = setInterval(() => setFrame((f) => (f + 1) % cols), ms);
+    return () => clearInterval(id);
+  }, [sheetUrl, cols, fps]);
+
+  if (!sheetUrl) {
+    return (
+      <div className="grid h-16 w-16 shrink-0 place-items-center rounded border border-dashed border-zinc-800 text-[10px] text-zinc-700">
+        —
+      </div>
+    );
+  }
+
+  return (
+    <div
+      aria-hidden
+      className="shrink-0 overflow-hidden rounded border border-zinc-700 bg-black/60"
+      style={{ width: fw * scale, height: fh * scale }}
+    >
+      <div
+        style={{
+          width: fw,
+          height: fh,
+          transform: `scale(${scale})`,
+          transformOrigin: "top left",
+          backgroundImage: `url(${sheetUrl})`,
+          backgroundRepeat: "no-repeat",
+          backgroundSize: "auto",
+          backgroundPosition: `-${frame * fw}px -${row * fh}px`,
+          imageRendering: "pixelated",
+        }}
+      />
+    </div>
+  );
+}
+
 /** Editor de lista de frases: input + botón agregar, cada frase con ✕. */
 export function PhraseList({
   value,

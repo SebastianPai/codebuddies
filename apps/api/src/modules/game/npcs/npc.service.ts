@@ -1,5 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
+import {
+  normalizeAnimations,
+  normalizeDirections,
+} from '../pets/companion-animations';
 
 type NpcInput = {
   key?: string;
@@ -12,16 +16,13 @@ type NpcInput = {
   frameHeight?: number;
   framesCount?: number;
   directions?: number;
+  animations?: unknown;
   greetingLines?: unknown;
   idleLines?: unknown;
   enabled?: boolean;
   sortOrder?: number;
 };
 
-const clampFaces = (n: unknown) => {
-  const v = Math.trunc(Number(n));
-  return v === 1 || v === 2 ? v : 4;
-};
 const posInt = (n: unknown, fallback: number) => {
   const v = Math.trunc(Number(n));
   return Number.isFinite(v) && v > 0 ? v : fallback;
@@ -75,7 +76,10 @@ export class NpcService {
         framesCount: posInt(data.framesCount, 1),
       }),
       ...(data.directions !== undefined && {
-        directions: clampFaces(data.directions),
+        directions: normalizeDirections(data.directions),
+      }),
+      ...(data.animations !== undefined && {
+        animations: normalizeAnimations(data.animations) as any,
       }),
       ...(data.greetingLines !== undefined && {
         greetingLines: toLines(data.greetingLines),
@@ -98,10 +102,11 @@ export class NpcService {
         spriteSheetUrl: p.spriteSheetUrl ?? null,
         previewUrl: p.previewUrl ?? null,
         avatarConfig: p.avatarConfig ?? null,
-        frameWidth: p.frameWidth ?? 64,
-        frameHeight: p.frameHeight ?? 96,
+        frameWidth: p.frameWidth ?? 32,
+        frameHeight: p.frameHeight ?? 48,
         framesCount: p.framesCount ?? 1,
         directions: p.directions ?? 4,
+        animations: p.animations ?? [],
         greetingLines: p.greetingLines ?? [],
         idleLines: p.idleLines ?? [],
         enabled: p.enabled ?? true,

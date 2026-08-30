@@ -957,10 +957,16 @@ model PetSpeciesConfig {
   spriteSheetUrl String?
   previewUrl String?
 
-  frameWidth  Int @default(64)
-  frameHeight Int @default(64)
-  framesCount Int @default(1)
-  directions  Int @default(1) // 1 | 2 | 4
+  // Tamaño de celda por defecto (cada clip puede pisarlo).
+  frameWidth  Int @default(32)
+  frameHeight Int @default(32)
+  framesCount Int @default(1) // legacy / sin clips
+  directions  Int @default(4) // 1 | 2 | 4 | 8
+
+  // Clips de animación: [{ key, trigger, row, framesCount, fps, loop,
+  // spriteSheetUrl?, frameWidth?, frameHeight? }]. Cada clip ocupa
+  // `directions` filas consecutivas a partir de `row` (una por dirección).
+  animations Json?
 
   enabled   Boolean @default(true)
   sortOrder Int     @default(0)
@@ -983,10 +989,13 @@ model NpcConfig {
   previewUrl     String?
   avatarConfig   Json? // look de avatar modular, si no usa spritesheet
 
-  frameWidth  Int @default(64)
-  frameHeight Int @default(96)
+  frameWidth  Int @default(32)
+  frameHeight Int @default(48)
   framesCount Int @default(1)
-  directions  Int @default(4)
+  directions  Int @default(4) // 1 | 2 | 4 | 8
+
+  // Mismo formato que PetSpeciesConfig.animations.
+  animations Json?
 
   greetingLines String[] @default([])
   idleLines     String[] @default([])

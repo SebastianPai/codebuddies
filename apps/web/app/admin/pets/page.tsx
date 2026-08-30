@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { api } from "@/shared/api/client";
 import {
+  AnimClip,
+  AnimClipList,
   Field,
   NumberInput,
   SpriteSheetPreview,
@@ -20,6 +22,7 @@ type Species = {
   frameHeight: number;
   framesCount: number;
   directions: number;
+  animations: AnimClip[];
   enabled: boolean;
   sortOrder: number;
 };
@@ -30,8 +33,9 @@ const EMPTY: Partial<Species> = {
   spriteSheetUrl: null,
   frameWidth: 32,
   frameHeight: 32,
-  framesCount: 4,
+  framesCount: 1,
   directions: 4,
+  animations: [],
   enabled: true,
   sortOrder: 0,
 };
@@ -127,7 +131,7 @@ export default function AdminPetsPage() {
             />
           </Field>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-3">
             <Field
               label={t("admin.companionFrameW")}
               hint={t("admin.companionFrameWHint")}
@@ -147,15 +151,6 @@ export default function AdminPetsPage() {
               />
             </Field>
             <Field
-              label={t("admin.companionFramesCount")}
-              hint={t("admin.companionFramesCountHint")}
-            >
-              <NumberInput
-                value={draft.framesCount ?? 4}
-                onChange={(e) => set({ framesCount: Number(e.target.value) })}
-              />
-            </Field>
-            <Field
               label={t("admin.companionDirections")}
               hint={t("admin.companionDirectionsHint")}
             >
@@ -167,9 +162,25 @@ export default function AdminPetsPage() {
                 <option value={1}>{t("admin.companionDir1")}</option>
                 <option value={2}>{t("admin.companionDir2")}</option>
                 <option value={4}>{t("admin.companionDir4")}</option>
+                <option value={8}>{t("admin.companionDir8")}</option>
               </select>
             </Field>
           </div>
+
+          <Field
+            label={t("admin.clipsLabel")}
+            hint={t("admin.clipsHint")}
+          >
+            <AnimClipList
+              value={draft.animations ?? []}
+              onChange={(v) => set({ animations: v })}
+              sheetUrl={draft.spriteSheetUrl ?? null}
+              frameWidth={draft.frameWidth ?? 32}
+              frameHeight={draft.frameHeight ?? 32}
+              directions={draft.directions ?? 4}
+              t={t}
+            />
+          </Field>
 
           <div className="grid gap-4 md:grid-cols-2">
             <Field
@@ -210,20 +221,24 @@ export default function AdminPetsPage() {
           </div>
         </div>
 
-        {/* PREVIEW */}
-        <div className="space-y-3 rounded-xl border border-zinc-800 bg-[#111] p-6">
+        {/* PREVIEW + GUÍA */}
+        <div className="space-y-4 rounded-xl border border-zinc-800 bg-[#111] p-6">
           <h2 className="text-lg font-bold">{t("admin.companionPreview")}</h2>
           <SpriteSheetPreview
             url={draft.spriteSheetUrl ?? null}
             frameWidth={draft.frameWidth ?? 32}
             frameHeight={draft.frameHeight ?? 32}
-            framesCount={draft.framesCount ?? 4}
+            framesCount={Math.max(
+              1,
+              ...(draft.animations ?? []).map((c) => c.framesCount),
+            )}
             directions={draft.directions ?? 4}
             emptyLabel={t("admin.companionPreviewEmpty")}
           />
-          <p className="text-xs text-zinc-600">
-            {t("admin.companionPreviewHint")}
-          </p>
+          <div className="rounded-lg border border-zinc-800 bg-black/40 p-4 text-xs leading-relaxed text-zinc-400">
+            <p className="mb-2 font-bold text-zinc-300">{t("admin.guideTitle")}</p>
+            <p className="whitespace-pre-line">{t("admin.guideBody")}</p>
+          </div>
         </div>
       </div>
 

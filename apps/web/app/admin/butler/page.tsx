@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { api } from "@/shared/api/client";
 import {
+  AnimClip,
+  AnimClipList,
   Field,
   NumberInput,
   PhraseList,
@@ -22,6 +24,7 @@ type Npc = {
   frameHeight: number;
   framesCount: number;
   directions: number;
+  animations: AnimClip[];
   greetingLines: string[];
   idleLines: string[];
   enabled: boolean;
@@ -35,8 +38,9 @@ const EMPTY: Partial<Npc> = {
   spriteSheetUrl: null,
   frameWidth: 32,
   frameHeight: 48,
-  framesCount: 4,
+  framesCount: 1,
   directions: 4,
+  animations: [],
   greetingLines: [],
   idleLines: [],
   enabled: true,
@@ -136,7 +140,7 @@ export default function AdminButlerPage() {
             />
           </Field>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-3">
             <Field
               label={t("admin.companionFrameW")}
               hint={t("admin.companionFrameWHint")}
@@ -156,15 +160,6 @@ export default function AdminButlerPage() {
               />
             </Field>
             <Field
-              label={t("admin.companionFramesCount")}
-              hint={t("admin.companionFramesCountHint")}
-            >
-              <NumberInput
-                value={draft.framesCount ?? 4}
-                onChange={(e) => set({ framesCount: Number(e.target.value) })}
-              />
-            </Field>
-            <Field
               label={t("admin.companionDirections")}
               hint={t("admin.companionDirectionsHint")}
             >
@@ -176,9 +171,22 @@ export default function AdminButlerPage() {
                 <option value={1}>{t("admin.companionDir1")}</option>
                 <option value={2}>{t("admin.companionDir2")}</option>
                 <option value={4}>{t("admin.companionDir4")}</option>
+                <option value={8}>{t("admin.companionDir8")}</option>
               </select>
             </Field>
           </div>
+
+          <Field label={t("admin.clipsLabel")} hint={t("admin.clipsHint")}>
+            <AnimClipList
+              value={draft.animations ?? []}
+              onChange={(v) => set({ animations: v })}
+              sheetUrl={draft.spriteSheetUrl ?? null}
+              frameWidth={draft.frameWidth ?? 32}
+              frameHeight={draft.frameHeight ?? 48}
+              directions={draft.directions ?? 4}
+              t={t}
+            />
+          </Field>
 
           <Field
             label={t("admin.butlerGreetings")}
@@ -245,19 +253,23 @@ export default function AdminButlerPage() {
           </div>
         </div>
 
-        <div className="space-y-3 rounded-xl border border-zinc-800 bg-[#111] p-6">
+        <div className="space-y-4 rounded-xl border border-zinc-800 bg-[#111] p-6">
           <h2 className="text-lg font-bold">{t("admin.companionPreview")}</h2>
           <SpriteSheetPreview
             url={draft.spriteSheetUrl ?? null}
             frameWidth={draft.frameWidth ?? 32}
             frameHeight={draft.frameHeight ?? 48}
-            framesCount={draft.framesCount ?? 4}
+            framesCount={Math.max(
+              1,
+              ...(draft.animations ?? []).map((c) => c.framesCount),
+            )}
             directions={draft.directions ?? 4}
             emptyLabel={t("admin.companionPreviewEmpty")}
           />
-          <p className="text-xs text-zinc-600">
-            {t("admin.companionPreviewHint")}
-          </p>
+          <div className="rounded-lg border border-zinc-800 bg-black/40 p-4 text-xs leading-relaxed text-zinc-400">
+            <p className="mb-2 font-bold text-zinc-300">{t("admin.guideTitle")}</p>
+            <p className="whitespace-pre-line">{t("admin.guideBody")}</p>
+          </div>
         </div>
       </div>
 

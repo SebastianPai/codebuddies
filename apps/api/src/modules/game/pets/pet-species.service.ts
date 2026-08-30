@@ -1,5 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
+import {
+  normalizeAnimations,
+  normalizeDirections,
+} from './companion-animations';
 
 type SpeciesInput = {
   key?: string;
@@ -10,14 +14,11 @@ type SpeciesInput = {
   frameHeight?: number;
   framesCount?: number;
   directions?: number;
+  animations?: unknown;
   enabled?: boolean;
   sortOrder?: number;
 };
 
-const clampFaces = (n: unknown) => {
-  const v = Math.trunc(Number(n));
-  return v === 2 || v === 4 ? v : 1;
-};
 const posInt = (n: unknown, fallback: number) => {
   const v = Math.trunc(Number(n));
   return Number.isFinite(v) && v > 0 ? v : fallback;
@@ -61,7 +62,10 @@ export class PetSpeciesService {
         framesCount: posInt(data.framesCount, 1),
       }),
       ...(data.directions !== undefined && {
-        directions: clampFaces(data.directions),
+        directions: normalizeDirections(data.directions),
+      }),
+      ...(data.animations !== undefined && {
+        animations: normalizeAnimations(data.animations) as any,
       }),
       ...(data.enabled !== undefined && { enabled: Boolean(data.enabled) }),
       ...(data.sortOrder !== undefined && {
@@ -78,10 +82,11 @@ export class PetSpeciesService {
         name: payload.name ?? 'Sin nombre',
         spriteSheetUrl: payload.spriteSheetUrl ?? null,
         previewUrl: payload.previewUrl ?? null,
-        frameWidth: payload.frameWidth ?? 64,
-        frameHeight: payload.frameHeight ?? 64,
+        frameWidth: payload.frameWidth ?? 32,
+        frameHeight: payload.frameHeight ?? 32,
         framesCount: payload.framesCount ?? 1,
-        directions: payload.directions ?? 1,
+        directions: payload.directions ?? 4,
+        animations: payload.animations ?? [],
         enabled: payload.enabled ?? true,
         sortOrder: payload.sortOrder ?? 0,
       },
