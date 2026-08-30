@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { seedCodeStudio } from './seed-codestudio';
-import { seedJsCourse } from './seed-js-course';
+// El seed de cursos (seed-js-course.ts) quedó fuera del flujo: el producto
+// no lleva cursos. El archivo sigue en el repo por si se quiere reactivar.
 import { seedLearningGamification } from './seed-learning-gamification';
 import { seedPricingPlans } from './seed-pricing-plans';
 import { seedBattlePass } from './seed-battle-pass';
@@ -132,7 +133,6 @@ async function main() {
   });
 
   await seedCodeStudio(prisma);
-  await seedJsCourse(prisma);
   await seedLearningGamification(prisma);
   await seedPricingPlans(prisma);
   await seedBattlePass(prisma);
