@@ -7,7 +7,7 @@ import {
   Max,
   Min,
 } from 'class-validator';
-import { WallSide } from '@prisma/client';
+import { InteractionType, WallSide } from '@prisma/client';
 
 export class PlaceItemDto {
   @IsString()
@@ -62,6 +62,14 @@ export class RotateItemDto {
 export class RemoveItemDto {
   @IsString()
   roomItemId!: string;
+}
+
+export class InteractItemDto {
+  @IsString()
+  roomItemId!: string;
+
+  @IsEnum(InteractionType)
+  interaction!: InteractionType;
 }
 
 export class PaintSurfaceDto {

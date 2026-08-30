@@ -66,5 +66,9 @@
   "editorToolbarLabel": "Herramientas de edicion",
   "undoAction": "Deshacer",
   "redoAction": "Rehacer",
-  "undoRedoHint": "Ctrl+Z / Ctrl+Y"
+  "undoRedoHint": "Ctrl+Z / Ctrl+Y",
+  "interactTurnOn": "Encender",
+  "interactTurnOff": "Apagar",
+  "interactOpen": "Abrir",
+  "interactClose": "Cerrar"
 }

@@ -125,6 +125,22 @@ export default class FurnitureSocketSystem {
     this.scene.refreshPathfinding?.();
   };
 
+  // Interacción de objeto (encender la TV, abrir una puerta): el servidor
+  // manda el nuevo `state`, acá solo lo reflejamos visualmente. No cambia
+  // posición ni footprint.
+  private handleItemState = (data: any) => {
+    const worldObject = this.roomItems.getItem(data.roomItemId);
+    if (!worldObject) return;
+
+    worldObject.state = { ...(worldObject.state ?? {}), ...(data.state ?? {}) };
+    if (worldObject.item) {
+      worldObject.item = { ...worldObject.item, roomItemState: worldObject.state };
+    }
+
+    this.roomItems.applyItemState(data.roomItemId);
+    audioManager.play("click");
+  };
+
   private handleItemsCleared = () => {
     this.roomItems.clear();
     this.scene.refreshPathfinding?.();
@@ -165,6 +181,7 @@ export default class FurnitureSocketSystem {
     // profundidad distinta a la que recibe el mismo objeto recién colocado
     // para muebles de más de 1 tile.
     this.roomItems.updateItemDepth(item.id);
+    this.roomItems.applyItemState(item.id);
     this.scene.refreshPathfinding?.();
   };
 
@@ -227,6 +244,7 @@ export default class FurnitureSocketSystem {
       );
     }
 
+    this.roomItems.applyItemState(item.id);
     this.scene.refreshPathfinding?.();
   };
 
@@ -250,6 +268,7 @@ export default class FurnitureSocketSystem {
     this.socket.on("room:items:cleared", this.handleItemsCleared);
     this.socket.on("room:item:moved", this.handleItemMoved);
     this.socket.on("room:item:rotated", this.handleItemRotated);
+    this.socket.on("room:item:state", this.handleItemState);
   }
 
   destroy() {
@@ -261,5 +280,6 @@ export default class FurnitureSocketSystem {
     this.socket.off("room:items:cleared", this.handleItemsCleared);
     this.socket.off("room:item:moved", this.handleItemMoved);
     this.socket.off("room:item:rotated", this.handleItemRotated);
+    this.socket.off("room:item:state", this.handleItemState);
   }
 }

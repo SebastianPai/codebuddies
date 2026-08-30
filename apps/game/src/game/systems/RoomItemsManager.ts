@@ -150,6 +150,9 @@ export default class RoomItemsManager {
     this.items.set(id, worldObject);
     this.invalidateOccupancy();
 
+    // Estado inicial (ej: la TV ya estaba encendida al entrar a la sala).
+    if (!isSurface) this.applyItemState(id);
+
     if (!isSurface) {
       sprite.on(
         "pointerdown",
@@ -276,6 +279,39 @@ export default class RoomItemsManager {
     return sprites;
   }
 
+  // Refleja worldObject.state visualmente. Hoy: state.on -> luz cálida de
+  // "encendido" (PointLight, sin asset). El resto de las interacciones
+  // (abrir, sentarse) todavía no tienen visual acá.
+  applyItemState(id: string) {
+    const worldObject = this.items.get(id);
+    if (!worldObject) return;
+
+    const on = !!worldObject.state?.on;
+    const sprite = worldObject.sprite;
+    const glowX = sprite.x;
+    const glowY = sprite.y - sprite.displayHeight * 0.5;
+
+    if (on) {
+      const radius = Math.max(48, sprite.displayWidth * 0.9);
+      if (!worldObject.glowLight) {
+        worldObject.glowLight = this.scene.add.pointlight(
+          glowX,
+          glowY,
+          0xffe6b0,
+          radius,
+          0.9,
+          0.05,
+        );
+      } else {
+        worldObject.glowLight.setPosition(glowX, glowY);
+      }
+      worldObject.glowLight.setDepth(sprite.depth - 1);
+    } else if (worldObject.glowLight) {
+      worldObject.glowLight.destroy();
+      worldObject.glowLight = null;
+    }
+  }
+
   removeItem(id: string) {
     const worldObject = this.items.get(id);
 
@@ -283,6 +319,7 @@ export default class RoomItemsManager {
       return;
     }
 
+    worldObject.glowLight?.destroy();
     worldObject.surfaceSprites?.forEach((sprite) => sprite.destroy());
 
     if (!worldObject.surfaceSprites?.includes(worldObject.sprite)) {
@@ -492,6 +529,7 @@ export default class RoomItemsManager {
 
   clear() {
     this.items.forEach((item) => {
+      item.glowLight?.destroy();
       item.sprite.destroy();
     });
 

@@ -66,5 +66,9 @@
   "editorToolbarLabel": "Bearbeitungswerkzeuge",
   "undoAction": "Rückgängig",
   "redoAction": "Wiederholen",
-  "undoRedoHint": "Strg+Z / Strg+Y"
+  "undoRedoHint": "Strg+Z / Strg+Y",
+  "interactTurnOn": "Einschalten",
+  "interactTurnOff": "Ausschalten",
+  "interactOpen": "Öffnen",
+  "interactClose": "Schließen"
 }

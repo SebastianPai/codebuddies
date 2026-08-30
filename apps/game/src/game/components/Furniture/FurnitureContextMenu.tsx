@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { RotateCw, Trash2, Move, Copy, CopyPlus } from "lucide-react";
+import { RotateCw, Trash2, Move, Copy, CopyPlus, Power, DoorOpen } from "lucide-react";
 import styles from "./FurnitureContextMenu.module.css";
 import Button from "../shared/Button";
 import { useTranslation } from "../../../i18n/useTranslation";
@@ -51,6 +51,25 @@ export default function FurnitureContextMenu({
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [onClose]);
+
+  // Interacciones (encender/abrir): NO dependen de permisos de edición —
+  // cualquiera en la sala puede usarlas. El estado vive en furniture.state
+  // y lo sincroniza el servidor con "room:item:state".
+  const worldData = furniture?.item?.worldData;
+  const interactionTypes: string[] = worldData?.isInteractable
+    ? worldData?.interactionTypes ?? []
+    : [];
+  const state = furniture?.state ?? {};
+
+  const interact = (interaction: string) => {
+    const socket = (window as any).phaserSocket;
+    if (!socket || !furniture?.roomItemId) return;
+    socket.emit("room:item:interact", {
+      roomItemId: furniture.roomItemId,
+      interaction,
+    });
+    onClose();
+  };
 
   const rotate = () => {
     const socket = (window as any).phaserSocket;
@@ -119,6 +138,18 @@ export default function FurnitureContextMenu({
       </div>
 
       <div className={styles.actions}>
+        {interactionTypes.includes("TOGGLE") && (
+          <Button variant="primary" size="sm" fullWidth onClick={() => interact("TOGGLE")}>
+            <Power size={13} />{" "}
+            {state.on ? t("buildmode.interactTurnOff") : t("buildmode.interactTurnOn")}
+          </Button>
+        )}
+        {interactionTypes.includes("OPEN") && (
+          <Button variant="primary" size="sm" fullWidth onClick={() => interact("OPEN")}>
+            <DoorOpen size={13} />{" "}
+            {state.open ? t("buildmode.interactClose") : t("buildmode.interactOpen")}
+          </Button>
+        )}
         {permissions.canMoveObjects && (
           <Button variant="secondary" size="sm" fullWidth onClick={move}>
             <Move size={13} /> {t("buildmode.moveButton")}

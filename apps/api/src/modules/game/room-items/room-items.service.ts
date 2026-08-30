@@ -4,7 +4,7 @@ import {
   NotFoundException,
   BadRequestException,
 } from '@nestjs/common';
-import { PlacementType, WallSide } from '@prisma/client';
+import { InteractionType, PlacementType, WallSide } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import {
   EffectivePermissions,
@@ -670,6 +670,61 @@ export class RoomItemsService {
         },
       });
     });
+  }
+
+  // ====================== INTERACTUAR CON UN OBJETO ======================
+  // Distinto de mover/rotar/retirar: interactuar (sentarse, encender la TV,
+  // abrir una puerta) NO requiere permisos de edición — cualquiera que esté
+  // en la sala puede hacerlo. Solo cambia `state` (Json dinámico del
+  // RoomItem), nunca la posición ni el inventario.
+  async interactItem(
+    _userId: string,
+    roomItemId: string,
+    interaction: InteractionType,
+  ) {
+    const roomItem = await this.prisma.roomItem.findUnique({
+      where: { id: roomItemId },
+      include: { item: { include: { worldData: true } } },
+    });
+
+    if (!roomItem) {
+      throw new NotFoundException('Objeto no encontrado');
+    }
+
+    const worldData = roomItem.item.worldData;
+    if (!worldData?.isInteractable) {
+      throw new BadRequestException('Este objeto no es interactivo');
+    }
+    if (!worldData.interactionTypes.includes(interaction)) {
+      throw new BadRequestException(
+        `Este objeto no admite la interacción ${interaction}`,
+      );
+    }
+
+    const currentState =
+      roomItem.state && typeof roomItem.state === 'object'
+        ? (roomItem.state as Record<string, unknown>)
+        : {};
+
+    let nextState: Record<string, unknown> = currentState;
+
+    if (interaction === InteractionType.TOGGLE) {
+      nextState = { ...currentState, on: !currentState.on };
+    } else if (interaction === InteractionType.OPEN) {
+      nextState = { ...currentState, open: !currentState.open };
+    } else {
+      // SIT / LIE / DRINK: el efecto sobre el avatar lo maneja el cliente
+      // (pose + posición); acá no hay estado de objeto que persistir.
+      return { roomItem, state: currentState, interaction };
+    }
+
+    const updated = await this.prisma.roomItem.update({
+      where: { id: roomItemId },
+      data: { state: nextState as any },
+      include: { item: { include: { worldData: true } } },
+    });
+
+    return { roomItem: updated, state: nextState, interaction };
   }
 
   async removeItem(userId: string, roomItemId: string) {

@@ -4,6 +4,7 @@ import { Server, Socket } from 'socket.io';
 import { RoomItemsService } from '../../room-items/room-items.service';
 import {
   ClearRoomDto,
+  InteractItemDto,
   MoveItemDto,
   PaintAllSurfaceDto,
   PaintSurfaceDto,
@@ -129,6 +130,35 @@ export class RoomItemsHandler {
       this.logger.error(`Error eliminando item ${data.roomItemId}`, err);
       socket.emit('room:item:error', {
         message: err.message || 'No se pudo eliminar el item',
+      });
+    }
+  }
+
+  // ====================== INTERACTUAR CON UN OBJETO ======================
+  async interactItem(
+    server: Server,
+    socket: Socket,
+    userId: string,
+    data: InteractItemDto,
+  ) {
+    try {
+      const result = await this.roomItemsService.interactItem(
+        userId,
+        data.roomItemId,
+        data.interaction,
+      );
+
+      server.to(result.roomItem.roomId).emit('room:item:state', {
+        roomItemId: data.roomItemId,
+        interaction: result.interaction,
+        state: result.state,
+      });
+    } catch (err: any) {
+      this.logger.warn(
+        `Interacción ${data.interaction} rechazada en ${data.roomItemId}: ${err.message}`,
+      );
+      socket.emit('room:item:error', {
+        message: err.message || 'No se pudo interactuar con el objeto',
       });
     }
   }

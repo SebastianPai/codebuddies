@@ -66,6 +66,7 @@ import {
 } from './ws/dto/room.dto';
 import {
   ClearRoomDto,
+  InteractItemDto,
   MoveItemDto,
   PaintAllSurfaceDto,
   PaintSurfaceDto,
@@ -563,6 +564,19 @@ export class GameGateway
     @ConnectedSocket() socket: Socket,
   ) {
     this.roomItemsHandler.removeItem(
+      this.server,
+      socket,
+      socket.data.user?.userId,
+      data,
+    );
+  }
+
+  @SubscribeMessage('room:item:interact')
+  handleInteractRoomItem(
+    @MessageBody() data: InteractItemDto,
+    @ConnectedSocket() socket: Socket,
+  ) {
+    this.roomItemsHandler.interactItem(
       this.server,
       socket,
       socket.data.user?.userId,

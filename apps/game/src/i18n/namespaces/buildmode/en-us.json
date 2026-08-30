@@ -66,5 +66,9 @@
   "editorToolbarLabel": "Editing tools",
   "undoAction": "Undo",
   "redoAction": "Redo",
-  "undoRedoHint": "Ctrl+Z / Ctrl+Y"
+  "undoRedoHint": "Ctrl+Z / Ctrl+Y",
+  "interactTurnOn": "Turn on",
+  "interactTurnOff": "Turn off",
+  "interactOpen": "Open",
+  "interactClose": "Close"
 }

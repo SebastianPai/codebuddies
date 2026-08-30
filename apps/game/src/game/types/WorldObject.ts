@@ -28,5 +28,9 @@ export interface WorldObject {
 
   surfaceSprites?: Phaser.GameObjects.Sprite[];
 
+  // Luz de "encendido" (interacción TOGGLE): existe solo mientras state.on
+  // es true. La maneja RoomItemsManager.applyItemState.
+  glowLight?: Phaser.GameObjects.PointLight | null;
+
   item: any;
 }

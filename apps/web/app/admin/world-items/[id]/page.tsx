@@ -407,15 +407,21 @@ export default function WorldItemDetailsPage() {
         <div className="bg-[#111] border border-zinc-800 rounded-xl p-6">
           <h2 className="font-bold text-lg mb-4">{t("items.interactions")}</h2>
 
+          <p className="text-xs text-zinc-500 mb-3">
+            {t("items.interactionsHint")}
+          </p>
           <div className="grid grid-cols-2 gap-3">
-            {["SIT", "LAY", "OPEN", "TELEPORT", "NPC", "SHOP"].map((type) => (
+            {/* Valores reales del enum InteractionType (schema.prisma). Antes
+                esta lista tenía LAY/NPC/SHOP, que no existen, y le faltaban
+                LIE/DRINK/TOGGLE. */}
+            {["SIT", "LIE", "DRINK", "OPEN", "TOGGLE", "TELEPORT"].map((type) => (
               <label key={type} className="flex items-center gap-2">
                 <input
                   type="checkbox"
                   checked={worldItem.interactionTypes?.includes(type) || false}
                   onChange={() => toggleInteraction(type)}
                 />
-                {type}
+                {t(`items.interaction_${type}`)}
               </label>
             ))}
           </div>
