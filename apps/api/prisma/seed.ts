@@ -1,7 +1,8 @@
 import { PrismaClient } from '@prisma/client';
 import { seedCodeStudio } from './seed-codestudio';
-// El seed de cursos (seed-js-course.ts) quedó fuera del flujo: el producto
-// no lleva cursos. El archivo sigue en el repo por si se quiere reactivar.
+// El producto no lleva cursos: seed-js-course.ts fue eliminado del repo.
+// Para borrar contenido de cursos ya cargado en una base, usar
+// prisma/purge-courses.ts.
 import { seedLearningGamification } from './seed-learning-gamification';
 import { seedPricingPlans } from './seed-pricing-plans';
 import { seedBattlePass } from './seed-battle-pass';
