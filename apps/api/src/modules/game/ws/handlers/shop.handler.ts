@@ -103,6 +103,8 @@ export class ShopHandler {
       }));
 
       const species = await this.petSpeciesService.listEnabled();
+      const myPet = userId ? await this.petService.getMyPet(userId) : null;
+      const ownedSpecies = myPet?.species ?? null;
       const formattedPets = species
         .filter((s: any) => s.shopVisible && (s.coinsPrice ?? 0) > 0)
         .map((s: any) => ({
@@ -111,6 +113,8 @@ export class ShopHandler {
           type: 'PET',
           name: s.name,
           description: null,
+          owned: !!myPet, // 1 mascota por usuario: si ya tenés una, no comprás otra
+          ownedThis: ownedSpecies === s.key,
           // Config de sprite para que el cliente muestre solo el frame 0
           // (o la caminata), nunca la hoja entera.
           petSprite: {
@@ -177,7 +181,10 @@ export class ShopHandler {
   }
 
   // ====================== COMPRAR MASCOTA ======================
-  async handleBuyPet(socket: Socket, data: { speciesKey?: string }) {
+  async handleBuyPet(
+    socket: Socket,
+    data: { speciesKey?: string; name?: string },
+  ) {
     const userId = socket.data.user?.userId;
     if (!userId) {
       return socket.emit('shop:item:error', { message: 'No autenticado' });
@@ -189,7 +196,11 @@ export class ShopHandler {
     }
 
     try {
-      const pet = await this.petService.buyFromShop(userId, data.speciesKey);
+      const pet = await this.petService.buyFromShop(
+        userId,
+        data.speciesKey,
+        data.name,
+      );
       socket.emit('pet:data', pet);
       socket.emit('shop:item:bought', {
         itemId: `pet:${data.speciesKey}`,

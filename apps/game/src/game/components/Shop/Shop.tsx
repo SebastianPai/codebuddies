@@ -61,6 +61,9 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
   const buyingSafetyTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [giftTargetId, setGiftTargetId] = useState<string | null>(null);
   const [giftUsername, setGiftUsername] = useState("");
+  // Adopción de mascota: pide el nombre en el propio card antes de comprar.
+  const [petAdoptKey, setPetAdoptKey] = useState<string | null>(null);
+  const [petName, setPetName] = useState("");
   const [sendingGift, setSendingGift] = useState(false);
   const [giftError, setGiftError] = useState("");
 
@@ -89,6 +92,8 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
       }
       requestItems();
       setBuyingItemId(null);
+      setPetAdoptKey(null);
+      setPetName("");
       audioManager.play("coin");
       window.dispatchEvent(new CustomEvent("fx:sparkle"));
     };
@@ -168,6 +173,20 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
     // (p. ej. error silencioso); en el camino normal, handleBought cancela
     // este timeout antes de que dispare para evitar reactivar el botón
     // mientras la compra original sigue en vuelo (doble compra).
+    if (buyingSafetyTimeout.current) clearTimeout(buyingSafetyTimeout.current);
+    buyingSafetyTimeout.current = setTimeout(() => {
+      setBuyingItemId(null);
+      buyingSafetyTimeout.current = null;
+    }, 8000);
+  };
+
+  const adoptPet = (item: any) => {
+    if (buyingItemId) return;
+    setBuyingItemId(item.id);
+    socket?.emit("shop:pet:buy", {
+      speciesKey: item.speciesKey,
+      name: petName.trim(),
+    });
     if (buyingSafetyTimeout.current) clearTimeout(buyingSafetyTimeout.current);
     buyingSafetyTimeout.current = setTimeout(() => {
       setBuyingItemId(null);
@@ -395,7 +414,11 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
                   <PetSpriteCell petSprite={item.petSprite} />
                 ) : undefined
               }
-              title={owned && item.type === "BACKGROUND" ? `${displayName} ✓` : displayName}
+              title={
+                owned && (item.type === "BACKGROUND" || item.type === "PET")
+                  ? `${displayName} ✓`
+                  : displayName
+              }
               description={item.description}
               stackCount={item.type !== "BACKGROUND" ? inventoryMap.get(item.id) : undefined}
               footer={
@@ -414,7 +437,63 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
                       </RarityText>
                     )}
                   </div>
-                  {giftTargetId === item.id ? (
+                  {item.type === "PET" ? (
+                    owned ? (
+                      <div className={styles.footerActions}>
+                        <Button variant="primary" size="sm" fullWidth disabled>
+                          {t("commerce.petOwned")}
+                        </Button>
+                      </div>
+                    ) : petAdoptKey === item.speciesKey ? (
+                      <div className={styles.giftForm}>
+                        <input
+                          className={styles.giftInput}
+                          placeholder={t("commerce.petNamePlaceholder")}
+                          value={petName}
+                          maxLength={24}
+                          onChange={(e) => setPetName(e.target.value)}
+                          disabled={isBuying}
+                        />
+                        <div className={styles.giftActions}>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => {
+                              setPetAdoptKey(null);
+                              setPetName("");
+                            }}
+                            disabled={isBuying}
+                          >
+                            {t("common.cancel")}
+                          </Button>
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={() => adoptPet(item)}
+                            disabled={isBuying || !petName.trim()}
+                          >
+                            {isBuying
+                              ? t("commerce.shopBuying")
+                              : t("commerce.petAdopt")}
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className={styles.footerActions}>
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          fullWidth
+                          onClick={() => {
+                            setPetAdoptKey(item.speciesKey);
+                            setPetName("");
+                          }}
+                        >
+                          {t("commerce.petAdopt")}
+                        </Button>
+                      </div>
+                    )
+                  ) : giftTargetId === item.id ? (
                     <div className={styles.giftForm}>
                       <input
                         className={styles.giftInput}

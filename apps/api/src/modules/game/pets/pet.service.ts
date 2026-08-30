@@ -108,7 +108,7 @@ export class PetService {
   }
 
   // Compra desde la tienda del juego: cobra coins y crea la mascota.
-  async buyFromShop(userId: string, speciesKey: string) {
+  async buyFromShop(userId: string, speciesKey: string, name?: string) {
     const species = await this.prisma.petSpeciesConfig.findUnique({
       where: { key: String(speciesKey) },
     });
@@ -144,7 +144,11 @@ export class PetService {
       // pero ya validamos "1 por usuario" arriba; una carrera acá crearía 2
       // — aceptable para el MVP, se puede endurecer con un @@unique después.
       return tx.pet.create({
-        data: { userId, species: species.key, name: '' },
+        data: {
+          userId,
+          species: species.key,
+          name: (name ?? '').trim().slice(0, 24),
+        },
       });
     });
 
