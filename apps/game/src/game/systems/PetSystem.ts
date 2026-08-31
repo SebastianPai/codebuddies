@@ -11,7 +11,9 @@ const NAME_BY_BUCKET = ["E", "SE", "S", "SW", "W", "NW", "N", "NE"];
 
 const FOLLOW_SPEED = 90; // px/seg
 const STOP_DISTANCE = 40; // se detiene a esta distancia del jugador
-const IDLE_TO_SLEEP_MS = 12000;
+// A los ~10s quieta (con jitter) elige al azar sentarse o dormir.
+const REST_MIN_MS = 8000;
+const REST_MAX_MS = 13000;
 
 export default class PetSystem {
   private scene: Phaser.Scene;
@@ -24,6 +26,8 @@ export default class PetSystem {
   private animKey = ""; // clip actual
   private animTime = 0;
   private idleTime = 0;
+  private restThreshold = REST_MIN_MS;
+  private restChoice: "SIT" | "SLEEP" | null = null;
   private lastX = 0;
   private lastY = 0;
   private syncing = false;
@@ -104,19 +108,46 @@ export default class PetSystem {
     };
   }
 
+  private byTrigger(trigger: string): PetAnimClip | null {
+    return (this.species?.animations ?? []).find((c) => c.trigger === trigger) ?? null;
+  }
+
+  // Pose quieta sintética: cuadro 0 de la fila (columna 0 = idle en el
+  // layout estándar). Se usa si no hay un clip IDLE de verdad.
+  private staticIdleClip(): PetAnimClip | null {
+    const base =
+      this.byTrigger("MOVING") ?? (this.species?.animations ?? [])[0] ?? null;
+    if (!base) return null;
+    return {
+      key: "idle-static",
+      trigger: "IDLE",
+      row: base.row,
+      startCol: 0,
+      framesCount: 1,
+      fps: 1,
+      loop: false,
+      spriteSheetUrl: base.spriteSheetUrl,
+      frameWidth: base.frameWidth,
+      frameHeight: base.frameHeight,
+    };
+  }
+
   private pickClip(moving: boolean): PetAnimClip | null {
     const clips = this.species?.animations ?? [];
     if (!clips.length) return null;
-    const want = moving
-      ? "MOVING"
-      : this.idleTime > IDLE_TO_SLEEP_MS
-        ? "SLEEP"
-        : "IDLE";
-    return (
-      clips.find((c) => c.trigger === want) ??
-      clips.find((c) => c.trigger === (moving ? "MOVING" : "IDLE")) ??
-      clips[0]
-    );
+
+    if (moving) return this.byTrigger("MOVING") ?? clips[0];
+
+    // Quieta: si ya pasó el umbral, sentarse o dormir (elegido una vez).
+    if (this.idleTime >= this.restThreshold && this.restChoice) {
+      return (
+        this.byTrigger(this.restChoice) ??
+        this.byTrigger(this.restChoice === "SIT" ? "SLEEP" : "SIT") ??
+        this.byTrigger("IDLE") ??
+        this.staticIdleClip()
+      );
+    }
+    return this.byTrigger("IDLE") ?? this.staticIdleClip();
   }
 
   private setClipFrame(clip: PetAnimClip | null, frame: number): void {
@@ -161,12 +192,20 @@ export default class PetSystem {
       this.sprite.x += dx * k;
       this.sprite.y += dy * k;
       this.idleTime = 0;
+      this.restChoice = null;
+      this.restThreshold =
+        REST_MIN_MS + Math.random() * (REST_MAX_MS - REST_MIN_MS);
       this.dirIndex = this.dirFromVector(
         this.sprite.x - this.lastX,
         this.sprite.y - this.lastY,
       );
     } else {
+      const before = this.idleTime;
       this.idleTime += delta;
+      // Al cruzar el umbral por primera vez, decide sentarse o dormir.
+      if (before < this.restThreshold && this.idleTime >= this.restThreshold) {
+        this.restChoice = Math.random() < 0.5 ? "SIT" : "SLEEP";
+      }
     }
     this.lastX = this.sprite.x;
     this.lastY = this.sprite.y;
