@@ -223,9 +223,17 @@ export default class PetSystem {
 
     const fps = Math.max(1, Math.min(60, clip.fps || 6));
     const raw = Math.floor(this.animTime / (1000 / fps));
-    const frame = clip.loop
-      ? raw % clip.framesCount
-      : Math.min(raw, clip.framesCount - 1);
+    // Sentarse / dormir / comer SIEMPRE terminan quietos en el último
+    // cuadro (aunque el clip esté marcado como loop). Solo caminar e idle
+    // se repiten en bucle.
+    const holdsLast =
+      clip.trigger === "SIT" ||
+      clip.trigger === "SLEEP" ||
+      clip.trigger === "EAT" ||
+      !clip.loop;
+    const frame = holdsLast
+      ? Math.min(raw, clip.framesCount - 1)
+      : raw % clip.framesCount;
     this.setClipFrame(clip, frame);
   }
 }
