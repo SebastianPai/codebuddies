@@ -20,7 +20,10 @@ export default class PetSystem {
   private sprite?: Phaser.GameObjects.Sprite;
   private species: PetSpecies | null = null;
   private pet: Pet | null = null;
-  private textureKey?: string;
+  private textureKey?: string; // sheet principal
+  // url del spritesheet -> texture key cargada. Cada clip puede tener su
+  // propia imagen (ej: dormir en otro PNG).
+  private sheetKeys = new Map<string, string>();
 
   private dirIndex = 0; // fila actual
   private animKey = ""; // clip actual
@@ -73,11 +76,22 @@ export default class PetSystem {
     const px = player?.x ?? 0;
     const py = player?.y ?? 0;
 
-    try {
-      this.textureKey = await loadTextureOnce(this.scene, species.spriteSheetUrl!);
-    } catch {
-      return;
+    // Cargar el sheet principal + el propio de cada clip que tenga uno.
+    const urls = new Set<string>([species.spriteSheetUrl!]);
+    for (const c of species.animations ?? []) {
+      if (c.spriteSheetUrl) urls.add(c.spriteSheetUrl);
     }
+    await Promise.all(
+      [...urls].map(async (url) => {
+        try {
+          this.sheetKeys.set(url, await loadTextureOnce(this.scene, url));
+        } catch {
+          /* si un sheet falla, ese clip simplemente no se dibuja */
+        }
+      }),
+    );
+    this.textureKey = this.sheetKeys.get(species.spriteSheetUrl!);
+    if (!this.textureKey) return;
 
     this.sprite = this.scene.add
       .sprite(px - 24, py, this.textureKey)
@@ -94,6 +108,7 @@ export default class PetSystem {
     this.sprite = undefined;
     this.species = null;
     this.textureKey = undefined;
+    this.sheetKeys.clear();
   }
 
   destroy(): void {
@@ -151,16 +166,33 @@ export default class PetSystem {
   }
 
   private setClipFrame(clip: PetAnimClip | null, frame: number): void {
-    if (!clip || !this.sprite || !this.textureKey) return;
-    const tex = this.scene.textures.get(this.textureKey);
+    if (!clip || !this.sprite) return;
+
+    // Textura de este clip: la propia si tiene, si no la principal.
+    const url = clip.spriteSheetUrl || this.species?.spriteSheetUrl || "";
+    const texKey = this.sheetKeys.get(url) ?? this.textureKey;
+    if (!texKey) return;
+    const tex = this.scene.textures.get(texKey);
+
     const { fw, fh } = this.clipDims(clip);
     const col = clip.startCol + frame;
-    const row = clip.row + this.dirIndex;
-    const name = `pet-${this.species?.key}-${row}-${col}-${fw}x${fh}`;
+    // Solo caminar/idle rotan por dirección (8 filas). Sentarse/dormir/comer,
+    // o cualquier clip con imagen propia, usan su fila tal cual (la pose de
+    // descanso suele ser una sola, no 8).
+    const perDirection =
+      !clip.spriteSheetUrl &&
+      (clip.trigger === "MOVING" || clip.trigger === "IDLE");
+    const row = clip.row + (perDirection ? this.dirIndex : 0);
+    const name = `pet-${texKey}-${row}-${col}-${fw}x${fh}`;
     if (!tex.has(name)) {
       tex.add(name, 0, col * fw, row * fh, fw, fh);
     }
-    this.sprite.setFrame(name);
+    // setTexture (no solo setFrame): el clip puede vivir en OTRA imagen.
+    if (this.sprite.texture.key !== texKey) {
+      this.sprite.setTexture(texKey, name);
+    } else {
+      this.sprite.setFrame(name);
+    }
   }
 
   private dirFromVector(dx: number, dy: number): number {
