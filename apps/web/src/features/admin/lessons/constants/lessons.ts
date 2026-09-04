@@ -1,3 +1,4 @@
+import { emptyLessonContent } from "@/features/academy";
 import type { LessonFormValues } from "../types/lesson";
 
 export const LESSONS_ROUTE = "/admin/lessons";
@@ -11,7 +12,12 @@ export const INITIAL_CREATE_LESSON_VALUES: LessonFormValues = {
   experience: 50,
   coins: 10,
   translations: [
-    { languageCode: "es", title: "", description: "", content: "" },
+    {
+      languageCode: "es",
+      title: "",
+      description: "",
+      content: emptyLessonContent(),
+    },
   ],
 };
 

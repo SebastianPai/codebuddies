@@ -1,3 +1,7 @@
+import {
+  normalizeLessonContent,
+  serializeLessonContent,
+} from "@/features/academy";
 import type {
   LessonDetails,
   LessonFormValues,
@@ -31,7 +35,9 @@ export function toLessonTableRows(lessons: LessonListItem[], untitledLabel: stri
 
 export function toLessonFormValues(lesson: LessonDetails): LessonFormValues {
   return {
-    courseId: "",
+    // En edición no se envía courseId en el payload (toLessonPayload lo omite),
+    // pero lo guardamos para armar el link de "Ver como estudiante".
+    courseId: lesson.courseId ?? "",
     order: lesson.order,
     type: lesson.type,
     status: lesson.status ?? "PUBLISHED",
@@ -41,7 +47,7 @@ export function toLessonFormValues(lesson: LessonDetails): LessonFormValues {
       languageCode: translation.language.code,
       title: translation.title,
       description: translation.description ?? "",
-      content: translation.content?.markdown ?? "",
+      content: normalizeLessonContent(translation.content),
     })),
   };
 }
@@ -60,7 +66,7 @@ export function toLessonPayload(
       languageCode: translation.languageCode,
       title: translation.title,
       description: translation.description,
-      content: translation.content ? { markdown: translation.content } : null,
+      content: serializeLessonContent(translation.content),
     })),
   };
 
