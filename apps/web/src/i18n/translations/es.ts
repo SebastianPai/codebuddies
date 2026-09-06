@@ -124,6 +124,8 @@ export const es = {
   courseDetail: {
     loading: "Cargando curso...",
 
+    startLesson: "Empezar lección",
+
     lessonFallback: "Lección",
 
     lessonNoDescription: "> No hay descripción adicional para esta lección.",

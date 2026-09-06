@@ -5,7 +5,11 @@ export interface LessonTranslation {
   languageCode: string;
   title: string;
   description: string;
-  content?: string;
+  // Documento de bloques de teoría (LessonContentDoc). Se guarda como JSON y
+  // el backend lo persiste tal cual en LessonTranslation.content (Json?).
+  // `unknown` acá para casar con el <TranslationsForm> compartido; los
+  // mappers normalizan/serializan en los bordes.
+  content?: unknown;
 }
 
 interface LocalizedTitle {
@@ -31,6 +35,7 @@ export interface LessonListItem {
 
 export interface LessonDetails {
   id: string;
+  courseId?: string;
   order: number;
   type: LessonType;
   status?: ContentStatus;
@@ -40,7 +45,8 @@ export interface LessonDetails {
     title: string;
     description?: string | null;
     language: { code: string };
-    content?: { markdown?: string | null } | null;
+    // JSON crudo: doc de bloques nuevo, `{ markdown }` viejo, o null.
+    content?: unknown;
   }>;
 }
 

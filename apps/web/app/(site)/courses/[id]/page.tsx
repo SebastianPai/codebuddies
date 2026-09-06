@@ -330,6 +330,15 @@ export default function CourseDetailPage() {
                             </p>
                           )}
 
+                          <Link
+                            href={`/courses/${id}/lessons/${lesson.id}`}
+                            className="inline-flex items-center gap-2 rounded-lg bg-[rgb(var(--button))] px-5 py-2.5 text-sm font-black uppercase tracking-wide text-[rgb(var(--button-text))] transition hover:brightness-110"
+                          >
+                            <BookOpen size={16} />
+                            {t("courseDetail.startLesson")}
+                            <ArrowRight size={16} />
+                          </Link>
+
                           <div className="space-y-3">
                             {lesson.exercises?.map((ex: Exercise) => {
                               const completed = completedExercises.includes(
