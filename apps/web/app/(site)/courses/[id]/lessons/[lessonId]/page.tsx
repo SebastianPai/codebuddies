@@ -9,8 +9,10 @@ import {
   BookOpen,
   CheckCircle2,
   Circle,
+  FlaskConical,
   Gift,
   Lock,
+  RotateCcw,
   Sparkles,
   Trophy,
   Zap,
@@ -160,6 +162,33 @@ export default function LessonTheoryPage() {
   const nextHref = firstExercise
     ? `/learn/exercise/${firstExercise.type.toLowerCase()}/${firstExercise.id}`
     : `/courses/${courseId}`;
+
+  const isAdmin = user?.role === "ADMIN";
+  const [adminBusy, setAdminBusy] = useState<string | null>(null);
+
+  const runAdminAction = useCallback(
+    async (
+      key: string,
+      request: () => Promise<{ xpAdded?: number; coinsAdded?: number }>,
+    ) => {
+      setAdminBusy(key);
+      try {
+        const result = await request();
+        if (result?.xpAdded || result?.coinsAdded) {
+          showReward({
+            xp: result.xpAdded ?? 0,
+            coins: result.coinsAdded ?? 0,
+          });
+        }
+        await load();
+      } catch {
+        // herramienta de test: si falla, no romper la página
+      } finally {
+        setAdminBusy(null);
+      }
+    },
+    [load, showReward],
+  );
 
   const handleContinue = useCallback(async () => {
     if (
@@ -328,6 +357,66 @@ export default function LessonTheoryPage() {
 
       {/* Contenido de la lección */}
       <article className="min-w-0">
+        {isAdmin && (
+          <div className="mb-5 rounded-xl border border-dashed border-[rgb(var(--primary)/0.5)] bg-[rgb(var(--primary)/0.05)] p-3">
+            <p className="mb-2 flex items-center gap-1.5 text-[0.7rem] font-bold uppercase tracking-wide text-[rgb(var(--primary))]">
+              <FlaskConical size={13} />
+              {t("site.academyLesson.adminTools")}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <AdminButton
+                busy={adminBusy === "complete-lesson"}
+                onClick={() =>
+                  runAdminAction("complete-lesson", () =>
+                    api.post("/progress", { lessonId }),
+                  )
+                }
+              >
+                <CheckCircle2 size={13} />
+                {t("site.academyLesson.adminCompleteLesson")}
+              </AdminButton>
+              <AdminButton
+                busy={adminBusy === "reset-lesson"}
+                onClick={() =>
+                  runAdminAction("reset-lesson", () =>
+                    api.post("/progress/admin/reset", {
+                      scope: "lesson",
+                      lessonId,
+                    }),
+                  )
+                }
+              >
+                <RotateCcw size={13} />
+                {t("site.academyLesson.adminResetLesson")}
+              </AdminButton>
+              <AdminButton
+                busy={adminBusy === "complete-course"}
+                onClick={() =>
+                  runAdminAction("complete-course", () =>
+                    api.post("/progress/admin/complete-course", { courseId }),
+                  )
+                }
+              >
+                <CheckCircle2 size={13} />
+                {t("site.academyLesson.adminCompleteCourse")}
+              </AdminButton>
+              <AdminButton
+                busy={adminBusy === "reset-course"}
+                onClick={() =>
+                  runAdminAction("reset-course", () =>
+                    api.post("/progress/admin/reset", {
+                      scope: "course",
+                      courseId,
+                    }),
+                  )
+                }
+              >
+                <RotateCcw size={13} />
+                {t("site.academyLesson.adminResetCourse")}
+              </AdminButton>
+            </div>
+          </div>
+        )}
         <p className="text-xs font-bold uppercase tracking-wide text-[rgb(var(--primary))]">
           {t("site.academyLesson.lessonXofY", {
             index: currentIndex >= 0 ? currentIndex + 1 : lesson.order,
@@ -464,6 +553,27 @@ export default function LessonTheoryPage() {
         </div>
       </aside>
     </div>
+  );
+}
+
+function AdminButton({
+  children,
+  onClick,
+  busy,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  busy?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={busy}
+      className="inline-flex items-center gap-1.5 rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2.5 py-1.5 text-xs font-semibold text-[rgb(var(--text))] transition hover:border-[rgb(var(--primary)/0.6)] disabled:opacity-50"
+    >
+      {busy ? <Loader label="" size={12} /> : children}
+    </button>
   );
 }
 

@@ -235,6 +235,151 @@ export class ProgressService {
     };
   }
 
+  // ---------------------------------------------------------------------------
+  // Herramientas de test SOLO para admins (probar animaciones de recompensa /
+  // estados de "completado" sin tener que resolver los ejercicios a mano).
+  // Operan siempre sobre el progreso del PROPIO admin — el controller nunca
+  // expone un userId de terceros.
+  // ---------------------------------------------------------------------------
+
+  private async removeCompletions(
+    userId: string,
+    where: Prisma.CompletionWhereInput,
+  ) {
+    const completions = await this.prisma.completion.findMany({
+      where: { userId, ...where },
+      include: {
+        lesson: { select: { experience: true, coins: true } },
+        exercise: { select: { experience: true, coins: true } },
+      },
+    });
+
+    if (completions.length === 0) {
+      return { removed: 0, xpRemoved: 0, coinsRemoved: 0 };
+    }
+
+    let xpGranted = 0;
+    let coinsGranted = 0;
+    for (const completion of completions) {
+      xpGranted +=
+        completion.lesson?.experience ?? completion.exercise?.experience ?? 0;
+      coinsGranted +=
+        completion.lesson?.coins ?? completion.exercise?.coins ?? 0;
+    }
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      await tx.completion.deleteMany({
+        where: { id: { in: completions.map((completion) => completion.id) } },
+      });
+
+      const user = await tx.user.findUnique({
+        where: { id: userId },
+        select: { experience: true, coins: true },
+      });
+
+      const nextExperience = Math.max(0, (user?.experience ?? 0) - xpGranted);
+      const nextCoins = Math.max(0, (user?.coins ?? 0) - coinsGranted);
+      const xpRemoved = (user?.experience ?? 0) - nextExperience;
+      const coinsRemoved = (user?.coins ?? 0) - nextCoins;
+
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          experience: nextExperience,
+          coins: nextCoins,
+          level: this.rewardService.calculateLevel(nextExperience),
+        },
+      });
+
+      if (xpRemoved > 0) {
+        await tx.xPTransaction.create({
+          data: { userId, amount: -xpRemoved, reason: 'admin-test:reset' },
+        });
+      }
+      if (coinsRemoved > 0) {
+        await tx.coinTransaction.create({
+          data: { userId, amount: -coinsRemoved, reason: 'admin-test:reset' },
+        });
+      }
+
+      return { xpRemoved, coinsRemoved };
+    });
+
+    return { removed: completions.length, ...result };
+  }
+
+  async adminResetLesson(userId: string, lessonId: string) {
+    return this.removeCompletions(userId, { lessonId });
+  }
+
+  async adminResetCourse(userId: string, courseId: string) {
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+      select: {
+        lessons: { select: { id: true, exercises: { select: { id: true } } } },
+      },
+    });
+    if (!course) throw new NotFoundException('Curso no encontrado');
+
+    const lessonIds = course.lessons.map((lesson) => lesson.id);
+    const exerciseIds = course.lessons.flatMap((lesson) =>
+      lesson.exercises.map((exercise) => exercise.id),
+    );
+
+    return this.removeCompletions(userId, {
+      OR: [
+        { courseId },
+        { lessonId: { in: lessonIds } },
+        { exerciseId: { in: exerciseIds } },
+      ],
+    });
+  }
+
+  async adminCompleteCourse(userId: string, courseId: string, role?: Role) {
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+      select: {
+        lessons: {
+          orderBy: { order: 'asc' },
+          select: {
+            id: true,
+            exercises: { orderBy: { order: 'asc' }, select: { id: true } },
+          },
+        },
+      },
+    });
+    if (!course) throw new NotFoundException('Curso no encontrado');
+
+    let xpAdded = 0;
+    let coinsAdded = 0;
+
+    // Reusa createProgress para cada lección/ejercicio: ya es idempotente
+    // (devuelve alreadyCompleted sin volver a sumar) y mantiene todos los
+    // efectos (XPTransaction, streak, actividad) consistentes con el flujo
+    // real del estudiante.
+    for (const lesson of course.lessons) {
+      const lessonResult = await this.createProgress(
+        userId,
+        { lessonId: lesson.id },
+        role,
+      );
+      xpAdded += lessonResult.xpAdded ?? 0;
+      coinsAdded += lessonResult.coinsAdded ?? 0;
+
+      for (const exercise of lesson.exercises) {
+        const exerciseResult = await this.createProgress(
+          userId,
+          { exerciseId: exercise.id, courseId },
+          role,
+        );
+        xpAdded += exerciseResult.xpAdded ?? 0;
+        coinsAdded += exerciseResult.coinsAdded ?? 0;
+      }
+    }
+
+    return { xpAdded, coinsAdded };
+  }
+
   async getUserProgress(userId: string) {
     this.logger.debug(`Consultando progreso de: ${userId}`);
     return this.prisma.completion.findMany({
