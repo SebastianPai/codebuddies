@@ -13,6 +13,7 @@ export {
   normalizeLessonContent,
   serializeLessonContent,
 } from "./content/normalize";
+export { translateLessonContent } from "./content/translate";
 export {
   LESSON_CONTENT_VERSION,
   type CalloutVariant,
