@@ -455,7 +455,10 @@ export default function AdminExerciseNew({
         </button>
       </div>
 
-      <form className="space-y-8">
+      {/* preventDefault: sin onSubmit, cualquier <button> sin type="button"
+          dispara un submit nativo del form => recarga de página. Ej. "Nueva
+          pregunta" en el editor de quiz. */}
+      <form className="space-y-8" onSubmit={(e) => e.preventDefault()}>
         {/* Campos comunes */}
         <div className="bg-[#111] border border-zinc-800 rounded-lg p-6">
           <CommonFields

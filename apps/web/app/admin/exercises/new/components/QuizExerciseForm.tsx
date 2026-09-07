@@ -100,6 +100,7 @@ export default function QuizExerciseForm({
           <div className="flex justify-between mb-3">
             <span className="text-sm text-gray-400">{t("admin.questionNumberLabel", { index: qIdx + 1 })}</span>
             <button
+              type="button"
               onClick={() => removeQuestion(qIdx)}
               className="text-red-400 hover:text-red-300"
             >
@@ -145,6 +146,7 @@ export default function QuizExerciseForm({
                   className="flex-1 p-2 bg-gray-900 border border-gray-700 rounded text-white"
                 />
                 <button
+                  type="button"
                   onClick={() => removeOption(qIdx, optIdx)}
                   className="text-red-400 hover:text-red-300"
                 >
@@ -155,6 +157,7 @@ export default function QuizExerciseForm({
           </div>
 
           <button
+            type="button"
             onClick={() => addOption(qIdx)}
             className="mt-2 text-xs bg-blue-600 px-3 py-1 rounded hover:bg-blue-700"
           >
@@ -174,6 +177,7 @@ export default function QuizExerciseForm({
       ))}
 
       <button
+        type="button"
         onClick={addQuestion}
         className="flex items-center gap-2 bg-blue-600 px-4 py-2 rounded hover:bg-blue-700"
       >
