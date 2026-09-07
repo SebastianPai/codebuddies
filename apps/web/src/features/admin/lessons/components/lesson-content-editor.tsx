@@ -7,6 +7,7 @@ import {
   Copy,
   Eye,
   GripVertical,
+  Languages,
   Pencil,
   Plus,
   Trash2,
@@ -29,16 +30,28 @@ import {
   CALLOUT_VARIANTS,
   CODE_LANGUAGES,
   getBlockDefinition,
+  isEmptyDoc,
   LessonContentRenderer,
   newBlock,
+  normalizeLessonContent,
+  translateLessonContent,
   type LessonBlock,
   type LessonBlockType,
   type LessonContentDoc,
 } from "@/features/academy";
 
+interface ContentSource {
+  languageCode: string;
+  value: unknown;
+}
+
 interface LessonContentEditorProps {
   value: LessonContentDoc;
   onChange: (doc: LessonContentDoc) => void;
+  /** Idioma de esta pestaña (destino de la traducción). */
+  targetLang?: string;
+  /** Contenido de los demás idiomas, para "traducir todo desde X". */
+  translateSources?: ContentSource[];
 }
 
 type Mode = "edit" | "preview";
@@ -46,6 +59,8 @@ type Mode = "edit" | "preview";
 export function LessonContentEditor({
   value,
   onChange,
+  targetLang,
+  translateSources = [],
 }: LessonContentEditorProps) {
   const t = useTranslation();
   const [mode, setMode] = useState<Mode>("edit");
@@ -53,6 +68,41 @@ export function LessonContentEditor({
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const dragIndex = useRef<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
+  const [translating, setTranslating] = useState(false);
+
+  const availableSources = translateSources.filter(
+    (source) => !isEmptyDoc(normalizeLessonContent(source.value)),
+  );
+  const [sourceLang, setSourceLang] = useState<string>("");
+  const activeSourceLang =
+    sourceLang && availableSources.some((s) => s.languageCode === sourceLang)
+      ? sourceLang
+      : availableSources[0]?.languageCode ?? "";
+
+  const runTranslate = async () => {
+    if (!targetLang || !activeSourceLang) return;
+    const source = availableSources.find(
+      (s) => s.languageCode === activeSourceLang,
+    );
+    if (!source) return;
+    if (
+      !isEmptyDoc(value) &&
+      !window.confirm(
+        t("admin.lessonContent.translateOverwrite", {
+          count: value.blocks.length,
+          lang: targetLang.toUpperCase(),
+        }),
+      )
+    ) {
+      return;
+    }
+    setTranslating(true);
+    try {
+      onChange(await translateLessonContent(source.value, targetLang));
+    } finally {
+      setTranslating(false);
+    }
+  };
 
   const blocks = value.blocks;
 
@@ -128,23 +178,54 @@ export function LessonContentEditor({
             {t("admin.lessonContent.blockCount", { count: blocks.length })}
           </span>
         </div>
-        <div className="flex items-center gap-1 rounded-xl border border-[rgb(var(--border))] p-1">
-          <button
-            type="button"
-            className={tabClass(mode === "edit")}
-            onClick={() => setMode("edit")}
-          >
-            <Pencil size={14} />
-            {t("admin.lessonContent.edit")}
-          </button>
-          <button
-            type="button"
-            className={tabClass(mode === "preview")}
-            onClick={() => setMode("preview")}
-          >
-            <Eye size={14} />
-            {t("admin.lessonContent.preview")}
-          </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {targetLang && availableSources.length > 0 && (
+            <div className="flex items-center gap-1.5 rounded-xl border border-[rgb(var(--border))] px-2 py-1">
+              <Languages size={14} className="text-[rgb(var(--secondary-text))]" />
+              <Select
+                value={activeSourceLang}
+                onChange={(event) => setSourceLang(event.target.value)}
+                className="py-1 text-xs"
+              >
+                {availableSources.map((source) => (
+                  <option key={source.languageCode} value={source.languageCode}>
+                    {source.languageCode.toUpperCase()}
+                  </option>
+                ))}
+              </Select>
+              <button
+                type="button"
+                disabled={translating}
+                onClick={() => void runTranslate()}
+                className={classNames(
+                  "rounded-lg px-2 py-1 text-xs font-semibold text-[rgb(var(--primary))] transition hover:opacity-80 disabled:opacity-50",
+                  FOCUS_RING,
+                )}
+              >
+                {translating
+                  ? t("common.loading")
+                  : t("admin.lessonContent.translateContent")}
+              </button>
+            </div>
+          )}
+          <div className="flex items-center gap-1 rounded-xl border border-[rgb(var(--border))] p-1">
+            <button
+              type="button"
+              className={tabClass(mode === "edit")}
+              onClick={() => setMode("edit")}
+            >
+              <Pencil size={14} />
+              {t("admin.lessonContent.edit")}
+            </button>
+            <button
+              type="button"
+              className={tabClass(mode === "preview")}
+              onClick={() => setMode("preview")}
+            >
+              <Eye size={14} />
+              {t("admin.lessonContent.preview")}
+            </button>
+          </div>
         </div>
       </div>
 

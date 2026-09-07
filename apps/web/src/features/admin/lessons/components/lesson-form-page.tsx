@@ -125,10 +125,12 @@ export function LessonFormPage({ mode }: Props) {
               translations={values.translations}
               onChange={(translations) => updateValues({ translations })}
               showContent
-              renderContentField={({ value, onChange }) => (
+              renderContentField={({ value, onChange, languageCode, siblings }) => (
                 <LessonContentEditor
                   value={normalizeLessonContent(value)}
                   onChange={onChange}
+                  targetLang={languageCode}
+                  translateSources={siblings}
                 />
               )}
             />
