@@ -44,6 +44,16 @@ export class ExerciseController {
     return this.exerciseService.getAdminExercises(lang);
   }
 
+  // Ejercicio crudo para el editor de admin: todas las traducciones con su
+  // `content` sin procesar (para QUIZ incluye la respuesta correcta, que
+  // GET /exercises/:id borra a propósito) y el array `codes` completo.
+  @Get('admin/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  async getAdminById(@Param('id') id: string) {
+    return this.exerciseService.getAdminExerciseById(id);
+  }
+
   @Get('lesson/:lessonId')
   @UseGuards(OptionalJwtAuthGuard)
   async getByLesson(
