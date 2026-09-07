@@ -22,6 +22,7 @@ import { api } from "@/shared/api";
 import { CurrencyIcon, ErrorState, Loader } from "@/shared/ui";
 import { classNames } from "@/shared/utils/class-names";
 import { useTranslation } from "@/i18n/useTranslation";
+import { useLanguage } from "@/i18n/LanguageContext";
 import {
   CalloutBlock,
   LessonContentRenderer,
@@ -69,9 +70,11 @@ interface ProgressItem {
   exercise?: { id: string } | null;
 }
 
-function getLang(): string {
-  if (typeof window === "undefined") return "es";
-  return localStorage.getItem("lang") || "es";
+// Language.code en la base es "en" (no "en-us", que es lo que usa el switcher
+// del navbar) — se normaliza antes de pedirle contenido a la API.
+function toApiLang(lang: string | undefined): string {
+  if (!lang) return "es";
+  return lang === "en-us" ? "en" : lang;
 }
 
 export default function LessonTheoryPage() {
@@ -83,6 +86,7 @@ export default function LessonTheoryPage() {
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
   const { showReward } = useReward();
+  const apiLang = toApiLang(useLanguage()?.lang);
 
   const [lesson, setLesson] = useState<LessonResponse | null>(null);
   const [course, setCourse] = useState<CourseResponse | null>(null);
@@ -94,12 +98,11 @@ export default function LessonTheoryPage() {
 
   const load = useCallback(async () => {
     setLoadError(false);
-    const lang = getLang();
     try {
       const [lessonData, courseData] = await Promise.all([
-        api.get<LessonResponse>(`/lessons/${lessonId}?lang=${lang}`),
+        api.get<LessonResponse>(`/lessons/${lessonId}?lang=${apiLang}`),
         api
-          .get<CourseResponse>(`/courses/${courseId}?lang=${lang}`)
+          .get<CourseResponse>(`/courses/${courseId}?lang=${apiLang}`)
           .catch(() => null),
       ]);
       setLesson(lessonData);
@@ -125,7 +128,7 @@ export default function LessonTheoryPage() {
         // el progreso es secundario, no bloquea la lección
       }
     }
-  }, [courseId, lessonId, isAuthenticated, user?.userId]);
+  }, [courseId, lessonId, apiLang, isAuthenticated, user?.userId]);
 
   useEffect(() => {
     void load();
@@ -337,10 +340,10 @@ export default function LessonTheoryPage() {
   );
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[248px_minmax(0,1fr)_296px] xl:gap-8">
+    <div className="grid gap-6 pt-4 lg:grid-cols-[248px_minmax(0,1fr)_296px] xl:gap-8">
       {/* Sidebar de navegación del curso */}
       <aside className="hidden lg:block">
-        <div className="sticky top-24">{sidebar}</div>
+        <div className="sticky top-28">{sidebar}</div>
       </aside>
 
       {/* Navegación colapsable en mobile */}
@@ -516,7 +519,7 @@ export default function LessonTheoryPage() {
 
       {/* Riel derecho */}
       <aside className="hidden lg:block">
-        <div className="sticky top-24 space-y-4">
+        <div className="sticky top-28 space-y-4">
           <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4">
             <p className="text-sm font-bold text-[rgb(var(--text))]">
               {t("site.academyLesson.yourProgress")}
