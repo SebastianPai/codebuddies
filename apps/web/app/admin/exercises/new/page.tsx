@@ -29,6 +29,7 @@ import {
   AdminExerciseResponse,
 } from "./types";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
+import { translateInstructions, translateQuiz } from "./lib/translate-content";
 
 export default function AdminExerciseNew({
   exerciseId,
@@ -80,6 +81,112 @@ export default function AdminExerciseNew({
   });
 
   const [loading, setLoading] = useState(false);
+  const [contentSourceLang, setContentSourceLang] = useState<
+    Record<string, string>
+  >({});
+  const [translatingContent, setTranslatingContent] = useState<string | null>(
+    null,
+  );
+
+  const translateContentFor = async (targetLang: string) => {
+    const others = translations
+      .map((tr) => tr.languageCode)
+      .filter((code) => code !== targetLang);
+    const chosen = contentSourceLang[targetLang];
+    const src = chosen && others.includes(chosen) ? chosen : others[0];
+    if (!src) return;
+
+    if (type === "QUIZ") {
+      const hasContent = (quizByLang[targetLang] ?? []).some(
+        (q) => q.question.trim() || q.options.some((o) => o.trim()),
+      );
+      if (
+        hasContent &&
+        !window.confirm(
+          t("admin.translateContentOverwrite", {
+            lang: targetLang.toUpperCase(),
+          }),
+        )
+      ) {
+        return;
+      }
+      setTranslatingContent(targetLang);
+      try {
+        const translated = await translateQuiz(
+          quizByLang[src] ?? [],
+          targetLang,
+        );
+        setQuizByLang((prev) => ({ ...prev, [targetLang]: translated }));
+      } finally {
+        setTranslatingContent(null);
+      }
+      return;
+    }
+
+    const hasContent = (instructionsByLang[targetLang] ?? []).some((el) =>
+      el.value.trim(),
+    );
+    if (
+      hasContent &&
+      !window.confirm(
+        t("admin.translateContentOverwrite", { lang: targetLang.toUpperCase() }),
+      )
+    ) {
+      return;
+    }
+    setTranslatingContent(targetLang);
+    try {
+      const translated = await translateInstructions(
+        instructionsByLang[src] ?? [],
+        targetLang,
+      );
+      setInstructionsByLang((prev) => ({ ...prev, [targetLang]: translated }));
+    } finally {
+      setTranslatingContent(null);
+    }
+  };
+
+  const renderTranslateBar = (targetLang: string) => {
+    const others = translations
+      .map((tr) => tr.languageCode)
+      .filter((code) => code !== targetLang);
+    if (others.length === 0) return null;
+    const chosen = contentSourceLang[targetLang];
+    const src = chosen && others.includes(chosen) ? chosen : others[0];
+    return (
+      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--background))] px-3 py-2">
+        <span className="text-xs text-[rgb(var(--secondary-text))]">
+          {t("admin.translateContentFrom")}
+        </span>
+        <select
+          value={src}
+          onChange={(e) =>
+            setContentSourceLang((prev) => ({
+              ...prev,
+              [targetLang]: e.target.value,
+            }))
+          }
+          className="rounded-md border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1 text-xs text-[rgb(var(--text))]"
+        >
+          {others.map((code) => (
+            <option key={code} value={code}>
+              {code.toUpperCase()}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          disabled={translatingContent === targetLang}
+          onClick={() => void translateContentFor(targetLang)}
+          className="text-xs font-semibold text-[rgb(var(--primary))] transition hover:opacity-80 disabled:opacity-50"
+        >
+          {translatingContent === targetLang
+            ? t("common.loading")
+            : t("common.translate")}
+        </button>
+      </div>
+    );
+  };
 
   // Clonar contenido base entre idiomas cuando cambian las traducciones
   useEffect(() => {
@@ -382,6 +489,7 @@ export default function AdminExerciseNew({
                 <h3 className="text-lg font-semibold text-yellow-400 mb-4">
                   {t("admin.instructionsForLang", { lang: translation.languageCode.toUpperCase() })}
                 </h3>
+                {renderTranslateBar(translation.languageCode)}
                 <CodeExerciseForm
                   codes={codes}
                   instructionElements={instructionsByLang[translation.languageCode] || []}
@@ -412,6 +520,7 @@ export default function AdminExerciseNew({
                 <h3 className="text-lg font-semibold text-yellow-400 mb-4">
                   {t("admin.quizQuestionsForLang", { lang: translation.languageCode.toUpperCase() })}
                 </h3>
+                {renderTranslateBar(translation.languageCode)}
                 <QuizExerciseForm
                   questions={quizByLang[translation.languageCode] || []}
                   setQuestions={(updater) => {
