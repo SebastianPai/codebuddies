@@ -826,4 +826,23 @@ export class ExerciseService {
       };
     });
   }
+
+  // Fila cruda del ejercicio para el editor de admin: NO aplana a un solo
+  // idioma ni procesa el `content` como GET /exercises/:id (que además borra
+  // la respuesta correcta del quiz). Devuelve todas las traducciones con su
+  // JSON tal cual y el array `codes` completo.
+  async getAdminExerciseById(id: string) {
+    const exercise = await this.prisma.exercise.findUnique({
+      where: { id },
+      include: {
+        translations: { include: { language: true } },
+      },
+    });
+
+    if (!exercise) {
+      throw new NotFoundException('Ejercicio no encontrado');
+    }
+
+    return exercise;
+  }
 }

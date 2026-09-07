@@ -259,14 +259,30 @@ export class LessonService {
 
     if (translations) {
       for (const t of translations) {
-        await this.prisma.lessonTranslation.updateMany({
+        // upsert (no updateMany): un idioma agregado desde el editor todavía
+        // no tiene fila en LessonTranslation, así que un updateMany matchea 0
+        // filas y la traducción nueva se perdía en silencio al guardar.
+        const language = await this.prisma.language.findUnique({
+          where: { code: t.languageCode },
+          select: { id: true },
+        });
+        if (!language) {
+          throw new NotFoundException(
+            `Idioma "${t.languageCode}" no encontrado`,
+          );
+        }
+        await this.prisma.lessonTranslation.upsert({
           where: {
-            lessonId: id,
-            language: {
-              code: t.languageCode,
-            },
+            lessonId_languageId: { lessonId: id, languageId: language.id },
           },
-          data: {
+          update: {
+            title: t.title,
+            description: t.description ?? null,
+            content: (t.content as Prisma.InputJsonValue) ?? undefined,
+          },
+          create: {
+            lessonId: id,
+            languageId: language.id,
             title: t.title,
             description: t.description ?? null,
             content: (t.content as Prisma.InputJsonValue) ?? undefined,

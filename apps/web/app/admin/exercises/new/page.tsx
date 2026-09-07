@@ -163,8 +163,11 @@ export default function AdminExerciseNew({
 
     const fetchExercise = async () => {
       try {
+        // Endpoint de admin: trae la fila cruda con TODAS las traducciones y
+        // su content sin procesar (GET /exercises/:id aplana a un idioma y
+        // borra las respuestas del quiz).
         const ex = await api.get<AdminExerciseResponse>(
-          `/exercises/${exerciseId}?lang=es`,
+          `/exercises/admin/${exerciseId}`,
         );
 
         setLessonId(ex.lessonId);
@@ -174,7 +177,7 @@ export default function AdminExerciseNew({
         setCoins(ex.coins);
         setOrder(ex.order);
 
-        if (ex.translations) {
+        if (ex.translations && ex.translations.length > 0) {
           setTranslations(
             ex.translations.map((t) => ({
               languageCode: t.language.code,
@@ -184,15 +187,18 @@ export default function AdminExerciseNew({
           );
 
           const instructions: Record<string, InstructionElement[]> = {};
+          const quiz: Record<string, QuizQuestion[]> = {};
           ex.translations.forEach((t) => {
             instructions[t.language.code] = t.content?.instructionElements ?? [
               { type: "text", value: "" },
             ];
+            quiz[t.language.code] = t.content?.questions ?? [];
           });
           setInstructionsByLang(instructions);
+          setQuizByLang(quiz);
         }
 
-        if (ex.codes) {
+        if (ex.codes && ex.codes.length > 0) {
           setCodes(
             ex.codes.map((c) => ({
               language: c.language,
