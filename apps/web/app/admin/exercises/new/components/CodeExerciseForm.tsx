@@ -28,6 +28,9 @@ interface CodeExerciseFormProps {
   setInstructionElements: React.Dispatch<
     React.SetStateAction<InstructionElement[]>
   >;
+  // "instructions" = solo instrucciones (por idioma); "codes" = solo códigos
+  // (compartidos entre idiomas); sin valor = ambas (comportamiento previo).
+  section?: "instructions" | "codes";
 }
 
 const CODE_LANGS = ["javascript", "python", "html", "css"] as const;
@@ -85,8 +88,11 @@ export default function CodeExerciseForm({
   instructionElements,
   setCodes,
   setInstructionElements,
+  section,
 }: CodeExerciseFormProps) {
   const t = useTranslation();
+  const showInstructions = section !== "codes";
+  const showCodes = section !== "instructions";
   const [addOpen, setAddOpen] = useState(false);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
@@ -166,6 +172,7 @@ export default function CodeExerciseForm({
   return (
     <div className="space-y-10">
       {/* Instrucciones dinámicas */}
+      {showInstructions && (
       <section>
         <h2 className="mb-4 text-lg font-semibold text-[rgb(var(--text))]">
           {t("admin.instructionsTitle")}
@@ -370,8 +377,10 @@ export default function CodeExerciseForm({
           )}
         </div>
       </section>
+      )}
 
       {/* Códigos múltiples */}
+      {showCodes && (
       <section>
         <h2 className="mb-4 text-lg font-semibold text-[rgb(var(--text))]">
           {t("admin.codesTitle")}
@@ -465,6 +474,7 @@ export default function CodeExerciseForm({
           <Plus size={16} /> {t("admin.addCodeBlockButton")}
         </Button>
       </section>
+      )}
     </div>
   );
 }

@@ -45,6 +45,8 @@ interface TranslationsFormProps {
   availableLanguages?: LanguageOption[];
   showContent?: boolean;
   renderContentField?: RenderContentField;
+  // Rótulo encima del contenido (por defecto "Contenido (Markdown)").
+  contentLabel?: string;
   // Se dispara con el código del idioma de la pestaña activa (al montar y al
   // cambiar de pestaña). Sirve para que la página muestre el resto del
   // contenido específico de ese idioma (ej. instrucciones/quiz de ejercicio)
@@ -68,6 +70,7 @@ export function TranslationsForm({
   availableLanguages = DEFAULT_LANGUAGES,
   showContent = false,
   renderContentField,
+  contentLabel,
   onActiveLanguageChange,
 }: TranslationsFormProps) {
   const t = useTranslation();
@@ -348,9 +351,11 @@ export function TranslationsForm({
 
           {showContent && (
             <div>
-              <label className="mb-1 block text-xs text-[rgb(var(--secondary-text))]">
-                {t("common.contentMarkdown")}
-              </label>
+              {(contentLabel ?? t("common.contentMarkdown")) && (
+                <label className="mb-1 block text-xs text-[rgb(var(--secondary-text))]">
+                  {contentLabel ?? t("common.contentMarkdown")}
+                </label>
+              )}
               {renderContentField ? (
                 renderContentField({
                   value: translation.content,

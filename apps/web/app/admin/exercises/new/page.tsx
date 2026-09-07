@@ -81,7 +81,6 @@ export default function AdminExerciseNew({
   });
 
   const [loading, setLoading] = useState(false);
-  const [activeLang, setActiveLang] = useState("es");
   const [contentSourceLang, setContentSourceLang] = useState<
     Record<string, string>
   >({});
@@ -470,79 +469,65 @@ export default function AdminExerciseNew({
           />
         </div>
 
-        {/* Traducciones básicas (título + descripción) */}
+        {/* Traducciones: título + descripción + contenido (instrucciones o
+            quiz) del idioma activo, todo bajo la misma pestaña — igual que en
+            el editor de lecciones. */}
         <div className="bg-[#111] border border-zinc-800 rounded-lg p-6">
           <TranslationsForm
             translations={translations}
             onChange={setTranslations}
-            showContent={false}
-            onActiveLanguageChange={setActiveLang}
+            showContent={type === "CODE" || type === "VIDEO_THEORY" || type === "QUIZ"}
+            contentLabel=""
+            renderContentField={({ languageCode }) => (
+              <div className="space-y-4">
+                {renderTranslateBar(languageCode)}
+                {type === "QUIZ" ? (
+                  <QuizExerciseForm
+                    questions={quizByLang[languageCode] || []}
+                    setQuestions={(updater) => {
+                      setQuizByLang((prev) => {
+                        const current = prev[languageCode] || [];
+                        const updated =
+                          typeof updater === "function"
+                            ? updater(current)
+                            : updater;
+                        return { ...prev, [languageCode]: updated };
+                      });
+                    }}
+                  />
+                ) : (
+                  <CodeExerciseForm
+                    section="instructions"
+                    codes={codes}
+                    instructionElements={instructionsByLang[languageCode] || []}
+                    setCodes={setCodes}
+                    setInstructionElements={(updater) => {
+                      setInstructionsByLang((prev) => {
+                        const current = prev[languageCode] || [];
+                        const updated =
+                          typeof updater === "function"
+                            ? updater(current)
+                            : updater;
+                        return { ...prev, [languageCode]: updated };
+                      });
+                    }}
+                  />
+                )}
+              </div>
+            )}
           />
         </div>
 
-        {/* Contenido específico por tipo — solo el del idioma de la pestaña
-            activa, en sincronía con <TranslationsForm> arriba. */}
+        {/* Códigos: compartidos entre idiomas, una sola vez. */}
         {(type === "CODE" || type === "VIDEO_THEORY") && (
-          <div className="space-y-8">
-            {translations
-              .filter((translation) => translation.languageCode === activeLang)
-              .map((translation) => (
-              <div
-                key={translation.languageCode}
-                className="bg-[#111] border border-zinc-800 rounded-lg p-6"
-              >
-                <h3 className="text-lg font-semibold text-yellow-400 mb-4">
-                  {t("admin.instructionsForLang", { lang: translation.languageCode.toUpperCase() })}
-                </h3>
-                {renderTranslateBar(translation.languageCode)}
-                <CodeExerciseForm
-                  codes={codes}
-                  instructionElements={instructionsByLang[translation.languageCode] || []}
-                  setCodes={setCodes}
-                  setInstructionElements={(updater) => {
-                    setInstructionsByLang((prev) => {
-                      const current = prev[translation.languageCode] || [];
-                      const updated =
-                        typeof updater === "function"
-                          ? updater(current)
-                          : updater;
-                      return { ...prev, [translation.languageCode]: updated };
-                    });
-                  }}
-                />
-              </div>
-            ))}
-          </div>
-        )}
-
-        {type === "QUIZ" && (
-          <div className="space-y-8">
-            {translations
-              .filter((translation) => translation.languageCode === activeLang)
-              .map((translation) => (
-              <div
-                key={translation.languageCode}
-                className="bg-[#111] border border-zinc-800 rounded-lg p-6"
-              >
-                <h3 className="text-lg font-semibold text-yellow-400 mb-4">
-                  {t("admin.quizQuestionsForLang", { lang: translation.languageCode.toUpperCase() })}
-                </h3>
-                {renderTranslateBar(translation.languageCode)}
-                <QuizExerciseForm
-                  questions={quizByLang[translation.languageCode] || []}
-                  setQuestions={(updater) => {
-                    setQuizByLang((prev) => {
-                      const current = prev[translation.languageCode] || [];
-                      const updated =
-                        typeof updater === "function"
-                          ? updater(current)
-                          : updater;
-                      return { ...prev, [translation.languageCode]: updated };
-                    });
-                  }}
-                />
-              </div>
-            ))}
+          <div className="bg-[#111] border border-zinc-800 rounded-lg p-6">
+            <CodeExerciseForm
+              section="codes"
+              codes={codes}
+              setCodes={setCodes}
+              instructionElements={[]}
+              setInstructionElements={() => {}}
+            />
           </div>
         )}
 
