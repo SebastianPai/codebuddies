@@ -28,6 +28,7 @@ import { FOCUS_RING } from "@/shared/ui/styles";
 import {
   BLOCK_DEFINITIONS,
   CALLOUT_VARIANTS,
+  cloneLessonContent,
   CODE_LANGUAGES,
   getBlockDefinition,
   isEmptyDoc,
@@ -102,6 +103,23 @@ export function LessonContentEditor({
     } finally {
       setTranslating(false);
     }
+  };
+
+  const copyFrom = (langCode: string) => {
+    const source = availableSources.find((s) => s.languageCode === langCode);
+    if (!source) return;
+    if (
+      !isEmptyDoc(value) &&
+      !window.confirm(
+        t("admin.lessonContent.translateOverwrite", {
+          count: value.blocks.length,
+          lang: (targetLang ?? "").toUpperCase(),
+        }),
+      )
+    ) {
+      return;
+    }
+    onChange(cloneLessonContent(source.value));
   };
 
   const blocks = value.blocks;
@@ -241,6 +259,49 @@ export function LessonContentEditor({
         </div>
       ) : (
         <>
+          {blocks.length === 0 && availableSources.length > 0 && (
+            <div className="rounded-xl border border-dashed border-[rgb(var(--primary)/0.5)] bg-[rgb(var(--primary)/0.05)] p-4">
+              <p className="text-sm font-semibold text-[rgb(var(--text))]">
+                {t("admin.lessonContent.prefillTitle")}
+              </p>
+              <p className="mt-0.5 text-xs text-[rgb(var(--secondary-text))]">
+                {t("admin.lessonContent.prefillHint")}
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <Select
+                  value={activeSourceLang}
+                  onChange={(event) => setSourceLang(event.target.value)}
+                  className="py-1.5 text-xs"
+                >
+                  {availableSources.map((source) => (
+                    <option key={source.languageCode} value={source.languageCode}>
+                      {source.languageCode.toUpperCase()}
+                    </option>
+                  ))}
+                </Select>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => copyFrom(activeSourceLang)}
+                  className="text-xs"
+                >
+                  {t("admin.lessonContent.prefillCopy")}
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => void runTranslate()}
+                  disabled={translating}
+                  className="text-xs"
+                >
+                  {translating
+                    ? t("common.loading")
+                    : t("admin.lessonContent.prefillTranslate", {
+                        lang: (targetLang ?? "").toUpperCase(),
+                      })}
+                </Button>
+              </div>
+            </div>
+          )}
           <div className="space-y-3">
             {blocks.map((block, index) => {
               const definition = getBlockDefinition(block.type);
