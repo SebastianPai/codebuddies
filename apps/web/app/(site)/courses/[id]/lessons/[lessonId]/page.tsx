@@ -22,7 +22,7 @@ import { api } from "@/shared/api";
 import { CurrencyIcon, ErrorState, Loader } from "@/shared/ui";
 import { classNames } from "@/shared/utils/class-names";
 import { useTranslation } from "@/i18n/useTranslation";
-import { useLanguage } from "@/i18n/LanguageContext";
+import { useApiLang } from "@/shared/hooks/use-api-lang";
 import {
   CalloutBlock,
   LessonContentRenderer,
@@ -70,13 +70,6 @@ interface ProgressItem {
   exercise?: { id: string } | null;
 }
 
-// Language.code en la base es "en" (no "en-us", que es lo que usa el switcher
-// del navbar) — se normaliza antes de pedirle contenido a la API.
-function toApiLang(lang: string | undefined): string {
-  if (!lang) return "es";
-  return lang === "en-us" ? "en" : lang;
-}
-
 export default function LessonTheoryPage() {
   const { id: courseId, lessonId } = useParams<{
     id: string;
@@ -86,7 +79,7 @@ export default function LessonTheoryPage() {
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
   const { showReward } = useReward();
-  const apiLang = toApiLang(useLanguage()?.lang);
+  const apiLang = useApiLang();
 
   const [lesson, setLesson] = useState<LessonResponse | null>(null);
   const [course, setCourse] = useState<CourseResponse | null>(null);

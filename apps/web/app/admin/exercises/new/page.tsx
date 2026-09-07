@@ -88,19 +88,19 @@ export default function AdminExerciseNew({
     null,
   );
 
-  const translateContentFor = async (targetLang: string) => {
-    const others = translations
-      .map((tr) => tr.languageCode)
-      .filter((code) => code !== targetLang);
-    const chosen = contentSourceLang[targetLang];
-    const src = chosen && others.includes(chosen) ? chosen : others[0];
-    if (!src) return;
+  const runContentTranslate = async (
+    targetLang: string,
+    sourceLang: string,
+    opts: { confirm?: boolean } = {},
+  ) => {
+    if (!sourceLang || sourceLang === targetLang) return;
 
     if (type === "QUIZ") {
       const hasContent = (quizByLang[targetLang] ?? []).some(
         (q) => q.question.trim() || q.options.some((o) => o.trim()),
       );
       if (
+        opts.confirm &&
         hasContent &&
         !window.confirm(
           t("admin.translateContentOverwrite", {
@@ -113,7 +113,7 @@ export default function AdminExerciseNew({
       setTranslatingContent(targetLang);
       try {
         const translated = await translateQuiz(
-          quizByLang[src] ?? [],
+          quizByLang[sourceLang] ?? [],
           targetLang,
         );
         setQuizByLang((prev) => ({ ...prev, [targetLang]: translated }));
@@ -127,6 +127,7 @@ export default function AdminExerciseNew({
       el.value.trim(),
     );
     if (
+      opts.confirm &&
       hasContent &&
       !window.confirm(
         t("admin.translateContentOverwrite", { lang: targetLang.toUpperCase() }),
@@ -137,13 +138,22 @@ export default function AdminExerciseNew({
     setTranslatingContent(targetLang);
     try {
       const translated = await translateInstructions(
-        instructionsByLang[src] ?? [],
+        instructionsByLang[sourceLang] ?? [],
         targetLang,
       );
       setInstructionsByLang((prev) => ({ ...prev, [targetLang]: translated }));
     } finally {
       setTranslatingContent(null);
     }
+  };
+
+  const translateContentFor = (targetLang: string) => {
+    const others = translations
+      .map((tr) => tr.languageCode)
+      .filter((code) => code !== targetLang);
+    const chosen = contentSourceLang[targetLang];
+    const src = chosen && others.includes(chosen) ? chosen : others[0];
+    return runContentTranslate(targetLang, src, { confirm: true });
   };
 
   const renderTranslateBar = (targetLang: string) => {
@@ -478,6 +488,11 @@ export default function AdminExerciseNew({
             onChange={setTranslations}
             showContent={type === "CODE" || type === "VIDEO_THEORY" || type === "QUIZ"}
             contentLabel=""
+            onTranslateContent={({ targetLanguageCode, sourceLanguageCode }) =>
+              runContentTranslate(targetLanguageCode, sourceLanguageCode, {
+                confirm: false,
+              })
+            }
             renderContentField={({ languageCode }) => (
               <div className="space-y-4">
                 {renderTranslateBar(languageCode)}

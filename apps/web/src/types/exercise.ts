@@ -3,6 +3,7 @@
 export interface BaseExercise {
   id: string;
   lessonId: string;
+  courseId?: string | null;
   order: number;
   title: string | null;
   description: string | null;

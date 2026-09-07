@@ -28,6 +28,7 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useTranslation } from "../../../../../../src/i18n/useTranslation";
 import { exercisePath } from "@/shared/utils/exercise-path";
+import { useApiLang } from "@/shared/hooks/use-api-lang";
 import { useReward } from "../../../../../../contexts/RewardContext";
 import { useTrackToolUsed, trackToolAction, trackCodeStarted, trackCodeResult } from "../../../../../../components/analytics/tool-tracking";
 
@@ -205,6 +206,7 @@ EditorContent.displayName = "EditorContent";
 
 export default function FullWidthConfidentialWorkspace() {
   const t = useTranslation();
+  const apiLang = useApiLang();
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const { showReward } = useReward();
@@ -277,10 +279,7 @@ export default function FullWidthConfidentialWorkspace() {
       setLoading(true);
 
       try {
-        const lang =
-          typeof window !== "undefined"
-            ? localStorage.getItem("lang") || "es"
-            : "es";
+        const lang = apiLang;
         const query = user?.userId
           ? `?lang=${lang}&userId=${user.userId}`
           : `?lang=${lang}`;
@@ -330,7 +329,7 @@ export default function FullWidthConfidentialWorkspace() {
     };
 
     loadExercise();
-  }, [id, authLoading, user?.userId]);
+  }, [id, authLoading, user?.userId, apiLang]);
 
   useEffect(() => {
     if (exercise) {

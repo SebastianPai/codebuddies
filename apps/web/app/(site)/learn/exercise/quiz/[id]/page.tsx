@@ -4,40 +4,57 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { fetcher } from "../../../../../../utils/fetcher";
-import { useReward } from "../../../../../../contexts/RewardContext";
-import { QuizExercise } from "../../../../../../src/types/exercise";
 import {
   Zap,
-  CheckCircle,
-  XCircle,
+  Coins,
   ChevronLeft,
   ChevronRight,
   ArrowLeft,
+  ArrowRight,
   RotateCcw,
   AlertTriangle,
-  Terminal,
-  ShieldAlert,
-  Coins,
-  FastForward,
   Rewind,
+  FastForward,
+  Bookmark,
+  BookmarkCheck,
+  CheckCircle2,
+  XCircle,
+  Circle,
+  Check,
+  BookOpen,
+  Lock,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
+import { fetcher } from "../../../../../../utils/fetcher";
+import { useReward } from "../../../../../../contexts/RewardContext";
+import { QuizExercise } from "../../../../../../src/types/exercise";
 import { useTranslation } from "../../../../../../src/i18n/useTranslation";
 import { ContentDiscussion } from "@/features/courses/components/content-discussion";
+import { CalloutBlock } from "@/features/academy";
+import { classNames } from "@/shared/utils/class-names";
 import { exercisePath } from "@/shared/utils/exercise-path";
-import { useTrackToolUsed, trackToolAction } from "../../../../../../components/analytics/tool-tracking";
+import { useApiLang } from "@/shared/hooks/use-api-lang";
+import {
+  useTrackToolUsed,
+  trackToolAction,
+} from "../../../../../../components/analytics/tool-tracking";
 
 interface ExtendedQuizExercise extends QuizExercise {
   prevExerciseId?: string | null;
   nextExerciseId?: string | null;
 }
 
-export default function BrutalistQuizExercisePage() {
+const SAVED_KEY = "cb:quiz:saved";
+
+export default function QuizExercisePage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { showReward } = useReward();
   const t = useTranslation();
+  const apiLang = useApiLang();
   useTrackToolUsed("quiz_exercise", "learning");
+
   const [exercise, setExercise] = useState<ExtendedQuizExercise | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState<number[]>([]);
@@ -50,9 +67,14 @@ export default function BrutalistQuizExercisePage() {
   const [coinsGained, setCoinsGained] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
-  const startedAtRef = useRef<number>(Date.now());
+  const [saved, setSaved] = useState(false);
+  const [solved, setSolved] = useState<Set<number>>(() => new Set());
+  const startedAtRef = useRef<number>(0);
 
   useEffect(() => {
+    // Cronómetro de la sesión — se ancla al montar, no durante el render.
+    if (startedAtRef.current === 0) startedAtRef.current = Date.now();
+
     const token = localStorage.getItem("token")?.trim();
     const userId = localStorage.getItem("userId")?.trim();
 
@@ -67,12 +89,9 @@ export default function BrutalistQuizExercisePage() {
     const loadExercise = async () => {
       try {
         setErrorMessage(null);
-        const lang = localStorage.getItem("lang") || "es";
         const data = await fetcher(
-          `/exercises/${id}?lang=${lang}&userId=${userId}`,
+          `/exercises/${id}?lang=${apiLang}&userId=${userId}`,
         );
-
-        console.log("QUIZ DATA", data);
 
         if (data.type !== "QUIZ") {
           router.replace("/404");
@@ -81,31 +100,54 @@ export default function BrutalistQuizExercisePage() {
 
         setExercise(data as ExtendedQuizExercise);
         setCompleted(data.completed);
-      } catch (err: any) {
+      } catch {
         setErrorMessage(t("site.fileNotFoundError"));
       }
     };
 
     loadExercise();
-  }, [id, router]);
+  }, [id, router, apiLang]);
+
+  // "Guardar para después" — lista liviana en localStorage, por ejercicio.
+  useEffect(() => {
+    try {
+      const list: string[] = JSON.parse(
+        localStorage.getItem(SAVED_KEY) || "[]",
+      );
+      setSaved(list.includes(id));
+    } catch {
+      /* localStorage no disponible: el bookmark simplemente no persiste */
+    }
+  }, [id]);
+
+  const toggleSaved = () => {
+    try {
+      const list: string[] = JSON.parse(
+        localStorage.getItem(SAVED_KEY) || "[]",
+      );
+      const next = list.includes(id)
+        ? list.filter((x) => x !== id)
+        : [...list, id];
+      localStorage.setItem(SAVED_KEY, JSON.stringify(next));
+      setSaved(next.includes(id));
+    } catch {
+      /* noop */
+    }
+  };
 
   if (!authChecked || !exercise) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[rgb(var(--background))] text-[rgb(var(--text))] font-mono p-4">
-        <div className="border-4 border-[rgb(var(--primary))] p-6 md:p-8 bg-[rgb(var(--card))] shadow-[8px_8px_0_0_rgb(var(--primary))] max-w-md w-full">
-          <div className="flex items-center gap-4 mb-4 border-b-2 border-[rgb(var(--border))] pb-4">
-            <Terminal
-              className="animate-pulse text-[rgb(var(--primary))]"
-              size={32}
-            />
-            <h2 className="text-lg md:text-xl font-bold uppercase tracking-widest text-[rgb(var(--primary))]">
-              {t("site.bootingSystem")}
-            </h2>
-          </div>
-          <div className="space-y-2 opacity-80 text-xs md:text-sm">
-            <p>{t("site.verifyingCredentials")}</p>
-            <p className="animate-pulse">
-              &gt; {errorMessage || t("site.loadingMatrix")}
+      <div className="relative flex min-h-[60vh] items-center justify-center">
+        <div className="flex flex-col items-center gap-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-8 py-10 text-center">
+          <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[rgb(var(--cb-info)/0.12)] text-[rgb(var(--cb-info))]">
+            <Loader2 size={24} className="animate-spin" />
+          </span>
+          <div>
+            <p className="text-base font-black text-[rgb(var(--text))]">
+              {errorMessage || t("site.academyQuiz.loading")}
+            </p>
+            <p className="mt-1 text-sm text-[rgb(var(--secondary-text))]">
+              {t("site.academyQuiz.loadingHint")}
             </p>
           </div>
         </div>
@@ -113,37 +155,55 @@ export default function BrutalistQuizExercisePage() {
     );
   }
 
-  console.log("QUESTIONS", exercise.questions);
-
   const questions = exercise.questions || [];
   const currentQuestion = questions[currentQuestionIndex];
+  const total = questions.length;
 
   if ((exercise as any).locked) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-6 bg-black text-white font-mono uppercase text-center p-6">
-        <ShieldAlert size={48} className="text-[rgb(var(--primary))]" />
-        <p className="text-xl max-w-md">{t("site.exerciseLockedMessage")}</p>
-        <Link
-          href="/premium"
-          className="rounded-lg bg-[rgb(var(--primary))] px-6 py-3 font-black text-black normal-case"
-        >
-          {t("site.premiumTitle")}
-        </Link>
+      <div className="relative flex min-h-[60vh] items-center justify-center">
+        <div className="max-w-md rounded-2xl border border-[rgb(var(--cb-warning)/0.5)] bg-[rgb(var(--cb-warning)/0.08)] p-8 text-center">
+          <span className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[rgb(var(--cb-warning)/0.16)] text-[rgb(var(--warning-text))]">
+            <Lock size={22} />
+          </span>
+          <p className="text-sm text-[rgb(var(--secondary-text))]">
+            {t("site.exerciseLockedMessage")}
+          </p>
+          <Link
+            href="/premium"
+            className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[rgb(var(--button))] px-6 py-3 text-sm font-black uppercase tracking-wide text-[rgb(var(--button-text))] transition hover:brightness-110"
+          >
+            {t("site.premiumTitle")}
+            <ArrowRight size={15} />
+          </Link>
+        </div>
       </div>
     );
   }
 
   if (!currentQuestion) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-black text-white font-mono uppercase text-xl p-6 text-center">
-        <ShieldAlert size={48} className="text-red-500 mb-4 md:mr-4 md:mb-0" />
-        {t("site.emptyMission")}
+      <div className="relative flex min-h-[60vh] items-center justify-center">
+        <div className="flex items-center gap-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-6 py-5 text-sm font-semibold text-[rgb(var(--secondary-text))]">
+          <AlertTriangle size={18} className="text-[rgb(var(--warning-text))]" />
+          {t("site.emptyMission")}
+        </div>
       </div>
     );
   }
 
   const isMultiple = currentQuestion.isMultiple;
   const correctIndices = revealedCorrect;
+
+  const answered = completed && solved.size === 0 ? total : solved.size;
+  const percent = total
+    ? Math.round((Math.min(answered, total) / total) * 100)
+    : 0;
+
+  const lessonHref =
+    exercise.courseId && exercise.lessonId
+      ? `/courses/${exercise.courseId}/lessons/${exercise.lessonId}`
+      : null;
 
   const toggleOption = (index: number) => {
     if (isCorrect !== null) return;
@@ -170,7 +230,13 @@ export default function BrutalistQuizExercisePage() {
     setCompleted(false);
     setXpGained(0);
     setCoinsGained(0);
+    setSolved(new Set());
     setErrorMessage(null);
+  };
+
+  const goToQuestion = (nextIndex: number) => {
+    setCurrentQuestionIndex(nextIndex);
+    resetQuestionState();
   };
 
   const handleSubmit = async () => {
@@ -189,14 +255,16 @@ export default function BrutalistQuizExercisePage() {
         }),
       });
 
-      // Éxito = el backend proceso la respuesta y devolvió un resultado
-      // válido (correcta o no) -- igual criterio que code_exercise.
       trackToolAction("quiz_exercise", "learning", "answer");
 
       setIsCorrect(res.correct);
       setRevealedCorrect(res.correctOptions || []);
       setRevealedExplanation(res.explanation || "");
       setShowExplanation(true);
+
+      if (res.correct) {
+        setSolved((prev) => new Set(prev).add(currentQuestionIndex));
+      }
 
       if (!res.correct || completed) return;
 
@@ -206,251 +274,570 @@ export default function BrutalistQuizExercisePage() {
       setXpGained(gainedXP);
       setCoinsGained(gainedCoins);
       showReward({ xp: gainedXP, coins: gainedCoins });
-    } catch (err: any) {
+    } catch {
       setErrorMessage(t("site.networkErrorProgress"));
     }
   };
 
-  return (
-    <div className="min-h-screen bg-[rgb(var(--background))] text-[rgb(var(--text))] selection:bg-[rgb(var(--primary))] selection:text-black relative overflow-x-hidden font-sans pb-10">
-      {/* FONDO ANIMADO */}
-      <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]"></div>
-      </div>
+  const isLastQuestion = currentQuestionIndex === total - 1;
+  const showCompletionCta = (completed || isCorrect) && isLastQuestion;
 
-      <div className="relative z-10 max-w-4xl mx-auto px-4 pt-6 md:pt-10">
-        {/* HEADER */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+  return (
+    <div className="relative pb-12">
+      {/* Fondo técnico discreto — rejilla tenue con degradado hacia arriba. */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-0 bg-[linear-gradient(to_right,rgb(var(--border)/0.14)_1px,transparent_1px),linear-gradient(to_bottom,rgb(var(--border)/0.14)_1px,transparent_1px)] bg-[size:46px_46px] [mask-image:radial-gradient(ellipse_75%_45%_at_50%_0%,#000_55%,transparent_100%)]"
+      />
+
+      <div className="relative z-10">
+        {/* Barra superior: abortar + sello de desafío */}
+        <div className="mb-6 flex items-center justify-between gap-3">
           <button
             onClick={() => router.back()}
-            className="group flex items-center gap-2 bg-[rgb(var(--card))] text-[rgb(var(--text))] px-4 py-2 font-black uppercase border-2 border-[rgb(var(--border))] shadow-[4px_4px_0_0_#000] hover:shadow-[6px_6px_0_0_rgb(var(--primary))] transition-all text-sm"
+            className="group inline-flex items-center gap-2 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3.5 py-2 text-xs font-bold uppercase tracking-wide text-[rgb(var(--secondary-text))] transition-colors hover:border-[rgb(var(--cb-info)/0.5)] hover:text-[rgb(var(--text))]"
           >
             <ArrowLeft
-              size={18}
-              className="group-hover:-translate-x-1 transition-transform"
+              size={15}
+              className="transition-transform group-hover:-translate-x-0.5"
             />
             {t("site.abortButton")}
           </button>
 
-          <div className="w-full sm:w-auto bg-black text-[rgb(var(--primary))] border-2 border-[rgb(var(--primary))] px-3 py-1.5 font-mono text-[10px] md:text-xs tracking-widest shadow-[4px_4px_0_0_rgb(var(--primary))] uppercase overflow-hidden whitespace-nowrap">
-            {t("site.liveSystemLabel", { id: id.slice(0, 8) })}
-          </div>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgb(var(--cb-info)/0.35)] bg-[rgb(var(--cb-info)/0.1)] px-3 py-1.5 text-[0.7rem] font-black uppercase tracking-[0.12em] text-[rgb(var(--cb-info))]">
+            <Sparkles size={12} />
+            {t("site.academyQuiz.challenge")}
+          </span>
         </div>
 
         {errorMessage && (
-          <div className="bg-red-600 text-white border-4 border-black p-4 mb-6 font-black uppercase flex items-center gap-3 shadow-[6px_6px_0_0_#000] text-sm animate-pulse">
-            <AlertTriangle size={24} className="shrink-0" />
+          <div className="mb-6 flex items-center gap-3 rounded-xl border border-[rgb(var(--error)/0.4)] bg-[rgb(var(--error)/0.1)] p-4 text-sm font-semibold text-[rgb(var(--error-text))]">
+            <AlertTriangle size={18} className="shrink-0" />
             <p>{errorMessage}</p>
           </div>
         )}
 
-        {/* TITULO */}
-        <div className="mb-8 md:mb-12">
-          <motion.div
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="inline-block bg-[rgb(var(--primary))] text-black font-black px-3 py-1 mb-4 transform -skew-x-12 border-2 border-black shadow-[3px_3px_0_0_#000] uppercase text-xs"
-          >
-            {t("site.questionOfTotal", { current: currentQuestionIndex + 1, total: questions.length })}
-          </motion.div>
-          <h1 className="text-3xl md:text-5xl lg:text-6xl font-black uppercase tracking-tighter leading-[0.95] drop-shadow-[3px_3px_0_rgb(var(--primary))]">
-            {exercise.title}
-          </h1>
-        </div>
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] xl:gap-8">
+          {/* ---------- Escenario del quiz ---------- */}
+          <div className="min-w-0">
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-[0_1px_0_0_rgb(var(--border)/0.6)] sm:p-7 md:p-8">
+              {/* Metadatos: número de pregunta, categoría, tipo */}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center rounded-full border border-[rgb(var(--primary)/0.4)] bg-[rgb(var(--primary)/0.12)] px-3 py-1 text-[0.7rem] font-black uppercase tracking-[0.1em] text-[rgb(var(--primary-text))]">
+                  {t("site.questionOfTotal", {
+                    current: currentQuestionIndex + 1,
+                    total,
+                  })}
+                </span>
+                {exercise.title && (
+                  <span className="text-[0.7rem] font-bold uppercase tracking-[0.14em] text-[rgb(var(--secondary-text))]">
+                    {exercise.title}
+                  </span>
+                )}
+                <span className="ml-auto inline-flex items-center rounded-md border border-[rgb(var(--border))] px-2 py-1 text-[0.62rem] font-bold uppercase tracking-wide text-[rgb(var(--secondary-text))]">
+                  {isMultiple
+                    ? t("site.academyQuiz.multiple")
+                    : t("site.academyQuiz.single")}
+                </span>
+              </div>
 
-        {/* AREA DE PREGUNTAS */}
-        <div className="bg-[rgb(var(--card))] border-4 border-[rgb(var(--border))] p-5 md:p-10 shadow-[8px_8px_0_0_#000] relative">
-          <div className="absolute top-0 right-0 bg-[rgb(var(--border))] text-[rgb(var(--background))] px-2 py-1 text-[10px] font-mono font-bold border-l-2 border-b-2 border-black">
-            {isMultiple ? t("site.multipleChoice") : t("site.singleChoice")}
-          </div>
-
-          <h2 className="text-xl md:text-3xl font-black uppercase text-[rgb(var(--text))] mb-8 leading-tight pt-2">
-            {currentQuestion.question}
-          </h2>
-
-          <div className="grid gap-3 md:gap-4">
-            {currentQuestion.options.map((option, index) => {
-              const isSelected = selectedOptions.includes(index);
-              const isCorrectOption = correctIndices.includes(index);
-
-              let optionClasses =
-                "w-full p-4 md:p-5 text-left border-4 transition-all duration-200 font-bold text-base md:text-lg flex items-start gap-4 ";
-
-              if (isCorrect !== null) {
-                if (isCorrectOption) {
-                  optionClasses +=
-                    "border-green-500 bg-green-500/10 text-green-500 shadow-[4px_4px_0_0_#22c55e]";
-                } else if (isSelected) {
-                  optionClasses +=
-                    "border-red-600 bg-red-600/10 text-red-600 shadow-[4px_4px_0_0_#dc2626] line-through";
-                } else {
-                  optionClasses +=
-                    "border-[rgb(var(--border))] opacity-40 grayscale";
-                }
-              } else if (isSelected) {
-                optionClasses +=
-                  "border-[rgb(var(--primary))] bg-[rgb(var(--primary))] text-black shadow-[4px_4px_0_0_#000] -translate-y-1";
-              } else {
-                optionClasses +=
-                  "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--text))] hover:border-[rgb(var(--primary))] shadow-[4px_4px_0_0_#000] hover:-translate-y-1 cursor-pointer";
-              }
-
-              return (
-                <button
-                  key={index}
-                  onClick={() => toggleOption(index)}
-                  disabled={isCorrect !== null}
-                  className={optionClasses}
+              {/* Pregunta protagonista + opciones (con transición al cambiar) */}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentQuestionIndex}
+                  initial={{ opacity: 0, x: 14 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -14 }}
+                  transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
                 >
-                  <div
-                    className={`mt-1 shrink-0 w-5 h-5 border-2 border-current flex items-center justify-center ${isSelected ? "bg-current" : ""}`}
-                  >
-                    {isSelected && (
-                      <div className="w-2 h-2 bg-[rgb(var(--card))]"></div>
+                  <h1 className="mt-4 text-2xl font-black leading-tight tracking-tight text-[rgb(var(--text))] sm:text-3xl md:text-[2.05rem]">
+                    {currentQuestion.question}
+                  </h1>
+                  <p className="mt-2 text-sm text-[rgb(var(--secondary-text))]">
+                    {isMultiple
+                      ? t("site.academyQuiz.selectMultiplePrompt")
+                      : t("site.academyQuiz.selectPrompt")}
+                  </p>
+
+                  <div className="mt-6 grid gap-3">
+                    {currentQuestion.options.map((option, index) => {
+                      const isSelected = selectedOptions.includes(index);
+                      const isCorrectOption = correctIndices.includes(index);
+                      const settled = isCorrect !== null;
+
+                      const state = settled
+                        ? isCorrectOption
+                          ? "correct"
+                          : isSelected
+                            ? "wrong"
+                            : "muted"
+                        : isSelected
+                          ? "selected"
+                          : "idle";
+
+                      return (
+                        <motion.button
+                          key={index}
+                          type="button"
+                          onClick={() => toggleOption(index)}
+                          disabled={settled}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{
+                            duration: 0.22,
+                            delay: index * 0.04,
+                            ease: [0.16, 1, 0.3, 1],
+                          }}
+                          whileTap={settled ? undefined : { scale: 0.992 }}
+                          className={classNames(
+                            "group relative flex w-full items-center gap-3.5 rounded-xl border p-4 text-left transition-all duration-200 md:gap-4 md:p-[18px]",
+                            state === "idle" &&
+                              "cursor-pointer border-[rgb(var(--border))] bg-[rgb(var(--card))] hover:-translate-y-0.5 hover:border-[rgb(var(--cb-info)/0.6)] hover:bg-[rgb(var(--cb-info)/0.06)]",
+                            state === "selected" &&
+                              "-translate-y-0.5 border-[rgb(var(--cb-info))] bg-[rgb(var(--cb-info)/0.1)] shadow-[0_0_26px_-8px_rgb(var(--cb-info)/0.6)]",
+                            state === "correct" &&
+                              "border-[rgb(var(--success))] bg-[rgb(var(--success)/0.12)] shadow-[0_0_26px_-10px_rgb(var(--success)/0.7)]",
+                            state === "wrong" &&
+                              "border-[rgb(var(--error))] bg-[rgb(var(--error)/0.1)]",
+                            state === "muted" &&
+                              "border-[rgb(var(--border)/0.6)] bg-[rgb(var(--card))] opacity-50",
+                          )}
+                        >
+                          {/* Guía de acento a la izquierda del estado seleccionado */}
+                          <span
+                            aria-hidden
+                            className={classNames(
+                              "absolute inset-y-2 left-0 w-[3px] rounded-full transition-opacity",
+                              state === "selected" &&
+                                "bg-[rgb(var(--cb-info))] opacity-100",
+                              state === "correct" &&
+                                "bg-[rgb(var(--success))] opacity-100",
+                              state === "wrong" &&
+                                "bg-[rgb(var(--error))] opacity-100",
+                              (state === "idle" || state === "muted") &&
+                                "opacity-0",
+                            )}
+                          />
+
+                          {/* Letra A/B/C/D */}
+                          <span
+                            className={classNames(
+                              "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border text-sm font-black transition-colors",
+                              state === "idle" &&
+                                "border-[rgb(var(--border))] text-[rgb(var(--secondary-text))] group-hover:border-[rgb(var(--cb-info)/0.6)] group-hover:text-[rgb(var(--cb-info))]",
+                              state === "selected" &&
+                                "border-[rgb(var(--cb-info))] bg-[rgb(var(--cb-info))] text-white",
+                              state === "correct" &&
+                                "border-[rgb(var(--success))] bg-[rgb(var(--success))] text-white",
+                              state === "wrong" &&
+                                "border-[rgb(var(--error))] bg-[rgb(var(--error))] text-white",
+                              state === "muted" &&
+                                "border-[rgb(var(--border))] text-[rgb(var(--secondary-text))]",
+                            )}
+                          >
+                            {String.fromCharCode(65 + index)}
+                          </span>
+
+                          {/* Texto de la opción */}
+                          <span className="min-w-0 flex-1 text-[15px] font-medium leading-snug text-[rgb(var(--text))] md:text-base">
+                            {option}
+                          </span>
+
+                          {/* Indicador de selección / resultado */}
+                          <span className="shrink-0">
+                            {settled ? (
+                              state === "correct" ? (
+                                <CheckCircle2
+                                  size={20}
+                                  className="text-[rgb(var(--success))]"
+                                />
+                              ) : state === "wrong" ? (
+                                <XCircle
+                                  size={20}
+                                  className="text-[rgb(var(--error))]"
+                                />
+                              ) : (
+                                <span className="block h-5 w-5" />
+                              )
+                            ) : (
+                              <span
+                                className={classNames(
+                                  "flex h-5 w-5 items-center justify-center border-2 transition-colors",
+                                  isMultiple ? "rounded-md" : "rounded-full",
+                                  isSelected
+                                    ? "border-[rgb(var(--cb-info))] bg-[rgb(var(--cb-info))] text-white"
+                                    : "border-[rgb(var(--border))] group-hover:border-[rgb(var(--cb-info)/0.6)]",
+                                )}
+                              >
+                                {isSelected &&
+                                  (isMultiple ? (
+                                    <Check size={13} strokeWidth={3} />
+                                  ) : (
+                                    <span className="h-1.5 w-1.5 rounded-full bg-white" />
+                                  ))}
+                              </span>
+                            )}
+                          </span>
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+
+              {/* Enviar respuesta + guardar para después */}
+              {isCorrect === null && (
+                <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
+                  <button
+                    type="button"
+                    onClick={toggleSaved}
+                    className={classNames(
+                      "inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-3.5 text-sm font-semibold transition-colors",
+                      saved
+                        ? "border-[rgb(var(--cb-info)/0.5)] text-[rgb(var(--cb-info))]"
+                        : "border-[rgb(var(--border))] text-[rgb(var(--secondary-text))] hover:border-[rgb(var(--cb-info)/0.4)] hover:text-[rgb(var(--text))]",
                     )}
-                  </div>
-                  <span className="leading-snug">{option}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {isCorrect === null && (
-            <motion.button
-              whileTap={{ y: 2, boxShadow: "0px 0px 0px 0px #000" }}
-              onClick={handleSubmit}
-              disabled={selectedOptions.length === 0}
-              className="mt-8 w-full bg-red-600 text-white font-black text-xl md:text-2xl uppercase py-4 border-4 border-black shadow-[6px_6px_0_0_#000] disabled:opacity-50 transition-colors"
-            >
-              {t("site.executeCodeButton")}
-            </motion.button>
-          )}
-
-          {/* RESULTADO */}
-          <AnimatePresence>
-            {isCorrect !== null && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="mt-8 pt-8 border-t-4 border-[rgb(var(--border))]"
-              >
-                {isCorrect ? (
-                  <div className="bg-black p-4 border-4 border-[rgb(var(--primary))] text-center">
-                    <h3 className="text-2xl md:text-4xl font-black uppercase text-[rgb(var(--primary))] mb-4 italic">
-                      {t("site.breachClearedTitle")}
-                    </h3>
-                    <div className="flex flex-wrap justify-center gap-3 md:gap-6">
-                      <div className="bg-[rgb(var(--card))] border-2 border-[rgb(var(--primary))] px-4 py-2 flex items-center gap-2 transform -rotate-1">
-                        <Zap className="text-[rgb(var(--primary))]" size={20} />
-                        <span className="text-[rgb(var(--text))] font-black text-lg">
-                          +{xpGained} XP
-                        </span>
-                      </div>
-                      <div className="bg-[rgb(var(--card))] border-2 border-yellow-400 px-4 py-2 flex items-center gap-2 transform rotate-1">
-                        <Coins className="text-yellow-400" size={20} />
-                        <span className="text-[rgb(var(--text))] font-black text-lg">
-                          +{coinsGained} {t("site.chipsUnit")}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-red-600 p-6 border-4 border-black text-center text-white">
-                    <h3 className="text-2xl font-black uppercase mb-1">
-                      {t("site.accessDeniedTitle")}
-                    </h3>
-                    <p className="font-mono text-xs opacity-90 tracking-tighter">
-                      {t("site.errorCodeRetry")}
-                    </p>
-                  </div>
-                )}
-
-                {showExplanation && revealedExplanation && (
-                  <div className="mt-6 bg-[rgb(var(--border))] bg-opacity-20 border-l-8 border-[rgb(var(--primary))] p-4 font-mono text-[rgb(var(--text))] text-sm md:text-base">
-                    <p className="font-bold uppercase text-[10px] mb-2 opacity-50">
-                      {t("site.logDecryptedLabel")}
-                    </p>
-                    <p>{revealedExplanation}</p>
-                  </div>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* NAVEGACIÓN */}
-        <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:justify-between items-stretch">
-          <div className="flex gap-3">
-            {currentQuestionIndex > 0 && (
-              <button
-                onClick={() => {
-                  setCurrentQuestionIndex(currentQuestionIndex - 1);
-                  resetQuestionState();
-                }}
-                className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-transparent text-[rgb(var(--text))] px-4 py-3 font-bold uppercase border-2 border-[rgb(var(--border))] hover:bg-[rgb(var(--text))] hover:text-[rgb(var(--background))] transition-colors text-sm"
-              >
-                <ChevronLeft size={18} />
-              </button>
-            )}
-
-            {currentQuestionIndex < questions.length - 1 && isCorrect && (
-              <button
-                onClick={() => {
-                  setCurrentQuestionIndex(currentQuestionIndex + 1);
-                  resetQuestionState();
-                }}
-                className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-[rgb(var(--primary))] text-black px-6 py-3 font-black uppercase border-2 border-black shadow-[4px_4px_0_0_#000] text-sm"
-              >
-                {t("common.next")} <ChevronRight size={18} />
-              </button>
-            )}
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-3">
-            {exercise.prevExerciseId && exercise.prevExerciseType && (
-              <Link
-                href={exercisePath(exercise.prevExerciseId, exercise.prevExerciseType)}
-                className="w-full"
-              >
-                <button className="w-full flex items-center justify-center gap-2 bg-black text-white px-4 py-3 font-black uppercase border-2 border-[rgb(var(--border))] text-sm">
-                  <Rewind size={18} /> {t("site.previousMissionButton")}
-                </button>
-              </Link>
-            )}
-
-            {(completed || isCorrect) &&
-            currentQuestionIndex === questions.length - 1 ? (
-              exercise.nextExerciseId && exercise.nextExerciseType ? (
-                <Link
-                  href={exercisePath(exercise.nextExerciseId, exercise.nextExerciseType)}
-                  className="w-full"
-                >
-                  <button className="w-full flex items-center justify-center gap-2 bg-[rgb(var(--primary))] text-black px-6 py-3 font-black uppercase border-2 border-black shadow-[4px_4px_0_0_#000] text-sm animate-bounce sm:animate-none">
-                    {t("site.nextMissionButton")} <FastForward size={18} />
+                  >
+                    {saved ? (
+                      <BookmarkCheck size={16} />
+                    ) : (
+                      <Bookmark size={16} />
+                    )}
+                    {saved
+                      ? t("site.academyQuiz.saved")
+                      : t("site.academyQuiz.saveForLater")}
                   </button>
-                </Link>
-              ) : (
-                <Link href="/dashboard" className="w-full">
-                  <button className="w-full flex items-center justify-center gap-2 bg-[rgb(var(--primary))] text-black px-6 py-3 font-black uppercase border-2 border-black shadow-[4px_4px_0_0_#000] text-sm">
-                    {t("site.courseCompleteButton")} <FastForward size={18} />
-                  </button>
-                </Link>
-              )
-            ) : (
-              isCorrect === false && (
+
+                  <motion.button
+                    type="button"
+                    whileTap={{ scale: 0.99 }}
+                    onClick={handleSubmit}
+                    disabled={selectedOptions.length === 0}
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[rgb(var(--cb-info))] to-[#3b82f6] px-6 py-3.5 text-base font-black uppercase tracking-wide text-white shadow-[0_10px_30px_-10px_rgb(var(--cb-info)/0.7)] transition-all hover:-translate-y-0.5 hover:brightness-110 disabled:pointer-events-none disabled:opacity-50"
+                  >
+                    {t("site.academyQuiz.submit")}
+                    <ArrowRight size={17} />
+                  </motion.button>
+                </div>
+              )}
+
+              {/* Feedback */}
+              <AnimatePresence>
+                {isCorrect !== null && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                    className="mt-7 space-y-4"
+                  >
+                    {isCorrect ? (
+                      <div className="relative overflow-hidden rounded-2xl border border-[rgb(var(--success)/0.4)] bg-[rgb(var(--success)/0.1)] p-5">
+                        <div className="flex items-start gap-3">
+                          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[rgb(var(--success)/0.18)] text-[rgb(var(--success))]">
+                            <CheckCircle2 size={22} />
+                          </span>
+                          <div className="min-w-0">
+                            <p className="text-lg font-black text-[rgb(var(--text))]">
+                              {t("site.academyQuiz.correctTitle")}
+                            </p>
+                            <p className="mt-0.5 text-sm text-[rgb(var(--secondary-text))]">
+                              {t("site.academyQuiz.correctSubtitle")}
+                            </p>
+                          </div>
+                        </div>
+
+                        {(xpGained > 0 || coinsGained > 0) && (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{
+                              delay: 0.15,
+                              type: "spring",
+                              stiffness: 220,
+                              damping: 18,
+                            }}
+                            className="mt-4 flex flex-wrap gap-2"
+                          >
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgb(var(--primary)/0.4)] bg-[rgb(var(--primary)/0.12)] px-3 py-1.5 text-sm font-black text-[rgb(var(--primary-text))]">
+                              <Zap size={14} /> +{xpGained} XP
+                            </span>
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgb(var(--primary)/0.4)] bg-[rgb(var(--primary)/0.12)] px-3 py-1.5 text-sm font-black text-[rgb(var(--primary-text))]">
+                              <Coins size={14} /> +{coinsGained}
+                            </span>
+                          </motion.div>
+                        )}
+
+                        <div
+                          aria-hidden
+                          className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-[rgb(var(--success)/0.25)] blur-3xl"
+                        />
+                      </div>
+                    ) : (
+                      <div className="rounded-2xl border border-[rgb(var(--error)/0.4)] bg-[rgb(var(--error)/0.08)] p-5">
+                        <div className="flex items-start gap-3">
+                          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[rgb(var(--error)/0.16)] text-[rgb(var(--error-text))]">
+                            <XCircle size={22} />
+                          </span>
+                          <div className="min-w-0">
+                            <p className="text-lg font-black text-[rgb(var(--text))]">
+                              {t("site.academyQuiz.incorrectTitle")}
+                            </p>
+                            <p className="mt-0.5 text-sm text-[rgb(var(--secondary-text))]">
+                              {t("site.academyQuiz.incorrectSubtitle")}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {showExplanation && revealedExplanation && (
+                      <div className="rounded-xl border-l-2 border-[rgb(var(--cb-info))] bg-[rgb(var(--border)/0.18)] p-4">
+                        <p className="mb-1 text-[0.7rem] font-black uppercase tracking-[0.08em] text-[rgb(var(--cb-info))]">
+                          {t("site.academyQuiz.explanation")}
+                        </p>
+                        <p className="text-sm leading-relaxed text-[rgb(var(--text))]">
+                          {revealedExplanation}
+                        </p>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Navegación */}
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              {currentQuestionIndex > 0 && (
                 <button
-                  onClick={resetQuiz}
-                  className="w-full flex items-center justify-center gap-2 bg-black text-white px-6 py-3 font-black uppercase border-2 border-white/20 shadow-[4px_4px_0_0_#000] text-sm"
+                  type="button"
+                  aria-label={t("common.previous")}
+                  onClick={() => goToQuestion(currentQuestionIndex - 1)}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-[rgb(var(--border))] px-3.5 py-2.5 text-sm font-bold text-[rgb(var(--secondary-text))] transition-colors hover:border-[rgb(var(--cb-info)/0.5)] hover:text-[rgb(var(--text))]"
                 >
-                  <RotateCcw size={18} /> {t("site.retryButton")}
+                  <ChevronLeft size={16} />
                 </button>
-              )
-            )}
+              )}
+
+              {!isLastQuestion && isCorrect && (
+                <button
+                  type="button"
+                  onClick={() => goToQuestion(currentQuestionIndex + 1)}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[rgb(var(--cb-info))] to-[#3b82f6] px-5 py-2.5 text-sm font-black uppercase tracking-wide text-white transition hover:brightness-110"
+                >
+                  {t("site.academyQuiz.nextQuestion")}
+                  <ChevronRight size={16} />
+                </button>
+              )}
+
+              {isCorrect === false && (
+                <button
+                  type="button"
+                  onClick={resetQuiz}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-[rgb(var(--border))] px-4 py-2.5 text-sm font-bold text-[rgb(var(--text))] transition-colors hover:border-[rgb(var(--cb-info)/0.5)]"
+                >
+                  <RotateCcw size={15} />
+                  {t("site.academyQuiz.retry")}
+                </button>
+              )}
+
+              <div className="ml-auto flex flex-wrap items-center gap-3">
+                {exercise.prevExerciseId && exercise.prevExerciseType && (
+                  <Link
+                    href={exercisePath(
+                      exercise.prevExerciseId,
+                      exercise.prevExerciseType,
+                    )}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-[rgb(var(--border))] px-4 py-2.5 text-sm font-bold text-[rgb(var(--secondary-text))] transition-colors hover:text-[rgb(var(--text))]"
+                  >
+                    <Rewind size={15} />
+                    {t("site.previousMissionButton")}
+                  </Link>
+                )}
+
+                {showCompletionCta &&
+                  (exercise.nextExerciseId && exercise.nextExerciseType ? (
+                    <Link
+                      href={exercisePath(
+                        exercise.nextExerciseId,
+                        exercise.nextExerciseType,
+                      )}
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[rgb(var(--cb-info))] to-[#3b82f6] px-5 py-2.5 text-sm font-black uppercase tracking-wide text-white transition hover:brightness-110"
+                    >
+                      {t("site.nextMissionButton")}
+                      <FastForward size={15} />
+                    </Link>
+                  ) : (
+                    <Link
+                      href="/dashboard"
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[rgb(var(--success))] to-[#16a34a] px-5 py-2.5 text-sm font-black uppercase tracking-wide text-white transition hover:brightness-110"
+                    >
+                      {t("site.courseCompleteButton")}
+                      <FastForward size={15} />
+                    </Link>
+                  ))}
+              </div>
+            </div>
+
+            <div className="mt-8">
+              <ContentDiscussion target={{ exerciseId: id }} />
+            </div>
           </div>
 
-          <ContentDiscussion target={{ exerciseId: id }} />
+          {/* ---------- Riel de progreso ---------- */}
+          <aside className="space-y-4 lg:sticky lg:top-24 lg:h-fit">
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
+              <p className="text-sm font-black text-[rgb(var(--text))]">
+                {t("site.academyQuiz.yourProgress")}
+              </p>
+
+              <div className="mt-4 flex items-center gap-4">
+                <ProgressRing percent={percent} />
+                <div className="min-w-0">
+                  {exercise.title && (
+                    <p className="truncate text-sm font-bold text-[rgb(var(--text))]">
+                      {exercise.title}
+                    </p>
+                  )}
+                  <p className="text-xs text-[rgb(var(--secondary-text))]">
+                    {t("site.questionOfTotal", {
+                      current: currentQuestionIndex + 1,
+                      total,
+                    })}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 h-2 overflow-hidden rounded-full bg-[rgb(var(--border))]">
+                <div
+                  className="h-full rounded-full bg-[rgb(var(--cb-info))] transition-all duration-500"
+                  style={{ width: `${Math.max(percent, answered > 0 ? 8 : 0)}%` }}
+                />
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
+              <ul className="space-y-2.5 text-sm">
+                <Step
+                  done={isCorrect !== null}
+                  label={t("site.academyQuiz.stepAnswer")}
+                />
+                <Step
+                  done={showExplanation}
+                  label={t("site.academyQuiz.stepReveal")}
+                />
+                <Step
+                  done={completed || (isCorrect === true && isLastQuestion)}
+                  label={t("site.academyQuiz.stepContinue")}
+                />
+              </ul>
+            </div>
+
+            {(xpGained > 0 || coinsGained > 0) && (
+              <div className="rounded-2xl border border-[rgb(var(--primary)/0.35)] bg-[rgb(var(--primary)/0.06)] p-5">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-black text-[rgb(var(--text))]">
+                    {t("site.academyQuiz.reward")}
+                  </p>
+                  <span className="text-[0.66rem] font-semibold uppercase tracking-wide text-[rgb(var(--secondary-text))]">
+                    {t("site.academyQuiz.rewardHint")}
+                  </span>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgb(var(--primary)/0.4)] bg-[rgb(var(--primary)/0.12)] px-3 py-1.5 text-sm font-black text-[rgb(var(--primary-text))]">
+                    <Zap size={14} /> +{xpGained} XP
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgb(var(--primary)/0.4)] bg-[rgb(var(--primary)/0.12)] px-3 py-1.5 text-sm font-black text-[rgb(var(--primary-text))]">
+                    <Coins size={14} /> +{coinsGained}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <CalloutBlock
+              variant="tip"
+              title={t("site.academyQuiz.tipTitle")}
+              markdown={t("site.academyQuiz.tipBody")}
+            />
+
+            {lessonHref && (
+              <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
+                <p className="flex items-center gap-2 text-sm font-black text-[rgb(var(--text))]">
+                  <BookOpen size={15} className="text-[rgb(var(--cb-info))]" />
+                  {t("site.academyQuiz.needReview")}
+                </p>
+                <p className="mt-1 text-xs text-[rgb(var(--secondary-text))]">
+                  {t("site.academyQuiz.needReviewBody")}
+                </p>
+                <Link
+                  href={lessonHref}
+                  className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-[rgb(var(--border))] px-3.5 py-2 text-xs font-bold text-[rgb(var(--text))] transition-colors hover:border-[rgb(var(--cb-info)/0.5)]"
+                >
+                  {t("site.academyQuiz.goToLesson")}
+                  <ArrowRight size={13} />
+                </Link>
+              </div>
+            )}
+          </aside>
         </div>
       </div>
     </div>
+  );
+}
+
+function ProgressRing({ percent }: { percent: number }) {
+  const radius = 26;
+  const circumference = 2 * Math.PI * radius;
+  const clamped = Math.min(100, Math.max(0, percent));
+  const offset = circumference - (clamped / 100) * circumference;
+
+  return (
+    <div className="relative h-16 w-16 shrink-0">
+      <svg viewBox="0 0 64 64" className="h-full w-full -rotate-90">
+        <circle
+          cx="32"
+          cy="32"
+          r={radius}
+          fill="none"
+          stroke="rgb(var(--border))"
+          strokeWidth="6"
+        />
+        <circle
+          cx="32"
+          cy="32"
+          r={radius}
+          fill="none"
+          stroke="rgb(var(--cb-info))"
+          strokeWidth="6"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          className="transition-[stroke-dashoffset] duration-700 ease-out"
+        />
+      </svg>
+      <span className="absolute inset-0 flex items-center justify-center text-xs font-black text-[rgb(var(--text))]">
+        {clamped}%
+      </span>
+    </div>
+  );
+}
+
+function Step({ done, label }: { done: boolean; label: string }) {
+  return (
+    <li className="flex items-center gap-2.5">
+      {done ? (
+        <CheckCircle2 size={16} className="shrink-0 text-[rgb(var(--success))]" />
+      ) : (
+        <Circle size={16} className="shrink-0 text-[rgb(var(--border))]" />
+      )}
+      <span
+        className={
+          done
+            ? "text-[rgb(var(--text))]"
+            : "text-[rgb(var(--secondary-text))]"
+        }
+      >
+        {label}
+      </span>
+    </li>
   );
 }

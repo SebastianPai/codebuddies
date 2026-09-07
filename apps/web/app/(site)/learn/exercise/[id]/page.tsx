@@ -16,12 +16,14 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../../../../hooks/useAuth"; // Ajusta la ruta según tu estructura
 import { useTranslation } from "../../../../../src/i18n/useTranslation";
+import { useApiLang } from "@/shared/hooks/use-api-lang";
 
 export default function QuizExercisePage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { user, isAuthenticated, loading: authLoading, logout } = useAuth();
   const t = useTranslation();
+  const apiLang = useApiLang();
 
   const [exercise, setExercise] = useState<QuizExercise | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -49,17 +51,9 @@ export default function QuizExercisePage() {
     const loadExercise = async () => {
       try {
         setErrorMessage(null);
-        const lang = localStorage.getItem("lang") || "es";
-
-        console.log(
-          "[Quiz] Cargando con userId:",
-          user.userId,
-          "y lang:",
-          lang,
-        );
 
         const data = await fetcher(
-          `/exercises/${id}?lang=${lang}&userId=${user.userId}`,
+          `/exercises/${id}?lang=${apiLang}&userId=${user.userId}`,
         );
 
         if (data.type !== "QUIZ") {
@@ -76,7 +70,7 @@ export default function QuizExercisePage() {
     };
 
     loadExercise();
-  }, [id, router, authLoading, isAuthenticated, user?.userId]);
+  }, [id, router, authLoading, isAuthenticated, user?.userId, apiLang]);
 
   // Pantalla de carga / verificación de sesión
   if (authLoading || !isAuthenticated) {

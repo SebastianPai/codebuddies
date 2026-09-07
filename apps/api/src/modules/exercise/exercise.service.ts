@@ -285,6 +285,7 @@ export class ExerciseService {
     const base: BaseExercise = {
       id: exercise.id,
       lessonId: exercise.lessonId,
+      courseId: exercise.lesson.courseId,
       order: exercise.order,
       title: translation?.title ?? null,
       description: translation?.description ?? null,

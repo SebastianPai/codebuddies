@@ -52,6 +52,14 @@ interface TranslationsFormProps {
   // contenido específico de ese idioma (ej. instrucciones/quiz de ejercicio)
   // en sincronía con la pestaña.
   onActiveLanguageChange?: (languageCode: string) => void;
+  // Cuando se pasa, el botón "Traducir" de un idioma (que ya traduce título +
+  // descripción) también traduce el contenido específico de ese idioma
+  // (instrucciones/quiz) desde el idioma origen elegido — así es un solo
+  // clic en vez de dos.
+  onTranslateContent?: (args: {
+    targetLanguageCode: string;
+    sourceLanguageCode: string;
+  }) => Promise<void> | void;
 }
 
 // Los códigos tienen que ser exactamente los de Language.code en la base
@@ -72,6 +80,7 @@ export function TranslationsForm({
   renderContentField,
   contentLabel,
   onActiveLanguageChange,
+  onTranslateContent,
 }: TranslationsFormProps) {
   const t = useTranslation();
   const [error, setError] = useState<string | null>(null);
@@ -172,6 +181,14 @@ export function TranslationsForm({
             : item,
         ),
       );
+      // Con un editor de contenido propio (ejercicios), el mismo botón
+      // traduce también las instrucciones/quiz de ese idioma.
+      if (renderContentField && onTranslateContent) {
+        await onTranslateContent({
+          targetLanguageCode: target.languageCode,
+          sourceLanguageCode: sourceLangCode,
+        });
+      }
     } catch {
       setError(t("common.errorTranslating"));
     } finally {

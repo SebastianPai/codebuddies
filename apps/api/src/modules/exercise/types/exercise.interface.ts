@@ -13,6 +13,7 @@ export interface BaseExercise {
   status?: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
   // Solo poblados en getExerciseById (vista de un ejercicio puntual) — un
   // listado de ejercicios de una lección no los necesita.
+  courseId?: string;
   nextExerciseId?: string | null;
   nextExerciseType?: 'QUIZ' | 'CODE' | 'LIVE' | null;
   prevExerciseId?: string | null;
