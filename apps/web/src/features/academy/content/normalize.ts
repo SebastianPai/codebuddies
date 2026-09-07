@@ -168,6 +168,16 @@ export function emptyLessonContent(): LessonContentDoc {
   return { version: LESSON_CONTENT_VERSION, blocks: [] };
 }
 
+/** Copia el doc tal cual pero con ids nuevos — para clonar el contenido de un
+ *  idioma a otro sin compartir referencias de bloque. */
+export function cloneLessonContent(input: unknown): LessonContentDoc {
+  const doc = normalizeLessonContent(input);
+  return {
+    version: doc.version,
+    blocks: doc.blocks.map((block) => ({ ...block, id: randomId() })),
+  };
+}
+
 function isBlockEmpty(block: LessonBlock): boolean {
   switch (block.type) {
     case "text":

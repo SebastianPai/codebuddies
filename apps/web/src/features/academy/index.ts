@@ -7,6 +7,7 @@ export {
   type BlockDefinition,
 } from "./content/block-registry";
 export {
+  cloneLessonContent,
   emptyLessonContent,
   isEmptyDoc,
   newBlock,
