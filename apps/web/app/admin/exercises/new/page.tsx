@@ -81,6 +81,7 @@ export default function AdminExerciseNew({
   });
 
   const [loading, setLoading] = useState(false);
+  const [activeLang, setActiveLang] = useState("es");
   const [contentSourceLang, setContentSourceLang] = useState<
     Record<string, string>
   >({});
@@ -475,13 +476,17 @@ export default function AdminExerciseNew({
             translations={translations}
             onChange={setTranslations}
             showContent={false}
+            onActiveLanguageChange={setActiveLang}
           />
         </div>
 
-        {/* Formularios específicos por tipo */}
+        {/* Contenido específico por tipo — solo el del idioma de la pestaña
+            activa, en sincronía con <TranslationsForm> arriba. */}
         {(type === "CODE" || type === "VIDEO_THEORY") && (
           <div className="space-y-8">
-            {translations.map((translation) => (
+            {translations
+              .filter((translation) => translation.languageCode === activeLang)
+              .map((translation) => (
               <div
                 key={translation.languageCode}
                 className="bg-[#111] border border-zinc-800 rounded-lg p-6"
@@ -512,7 +517,9 @@ export default function AdminExerciseNew({
 
         {type === "QUIZ" && (
           <div className="space-y-8">
-            {translations.map((translation) => (
+            {translations
+              .filter((translation) => translation.languageCode === activeLang)
+              .map((translation) => (
               <div
                 key={translation.languageCode}
                 className="bg-[#111] border border-zinc-800 rounded-lg p-6"
