@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AlertTriangle, Globe, Languages, Plus, Trash2 } from "lucide-react";
 import { useTranslation } from "@/i18n/useTranslation";
 import { autoTranslate } from "../lib/translate";
@@ -45,6 +45,11 @@ interface TranslationsFormProps {
   availableLanguages?: LanguageOption[];
   showContent?: boolean;
   renderContentField?: RenderContentField;
+  // Se dispara con el código del idioma de la pestaña activa (al montar y al
+  // cambiar de pestaña). Sirve para que la página muestre el resto del
+  // contenido específico de ese idioma (ej. instrucciones/quiz de ejercicio)
+  // en sincronía con la pestaña.
+  onActiveLanguageChange?: (languageCode: string) => void;
 }
 
 // Los códigos tienen que ser exactamente los de Language.code en la base
@@ -63,6 +68,7 @@ export function TranslationsForm({
   availableLanguages = DEFAULT_LANGUAGES,
   showContent = false,
   renderContentField,
+  onActiveLanguageChange,
 }: TranslationsFormProps) {
   const t = useTranslation();
   const [error, setError] = useState<string | null>(null);
@@ -76,6 +82,11 @@ export function TranslationsForm({
     translations.length === 0
       ? 0
       : Math.min(Math.max(activeIndex, 0), translations.length - 1);
+
+  const activeLanguageCode = translations[active]?.languageCode;
+  useEffect(() => {
+    if (activeLanguageCode) onActiveLanguageChange?.(activeLanguageCode);
+  }, [activeLanguageCode, onActiveLanguageChange]);
 
   const languageName = (code: string) =>
     availableLanguages.find((language) => language.code === code)?.name ??
