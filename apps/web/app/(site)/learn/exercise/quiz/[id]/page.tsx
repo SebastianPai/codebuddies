@@ -139,7 +139,7 @@ export default function QuizExercisePage() {
     return (
       <div className="relative flex min-h-[60vh] items-center justify-center">
         <div className="flex flex-col items-center gap-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-8 py-10 text-center">
-          <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[rgb(var(--cb-info)/0.12)] text-[rgb(var(--cb-info))]">
+          <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[rgb(var(--primary)/0.12)] text-[rgb(var(--primary))]">
             <Loader2 size={24} className="animate-spin" />
           </span>
           <div>
@@ -295,7 +295,7 @@ export default function QuizExercisePage() {
         <div className="mb-6 flex items-center justify-between gap-3">
           <button
             onClick={() => router.back()}
-            className="group inline-flex items-center gap-2 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3.5 py-2 text-xs font-bold uppercase tracking-wide text-[rgb(var(--secondary-text))] transition-colors hover:border-[rgb(var(--cb-info)/0.5)] hover:text-[rgb(var(--text))]"
+            className="group inline-flex items-center gap-2 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3.5 py-2 text-xs font-bold uppercase tracking-wide text-[rgb(var(--secondary-text))] transition-colors hover:border-[rgb(var(--primary)/0.5)] hover:text-[rgb(var(--text))]"
           >
             <ArrowLeft
               size={15}
@@ -304,8 +304,8 @@ export default function QuizExercisePage() {
             {t("site.abortButton")}
           </button>
 
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgb(var(--cb-info)/0.35)] bg-[rgb(var(--cb-info)/0.1)] px-3 py-1.5 text-[0.7rem] font-black uppercase tracking-[0.12em] text-[rgb(var(--cb-info))]">
-            <Sparkles size={12} />
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgb(var(--border))] px-3 py-1.5 text-[0.7rem] font-black uppercase tracking-[0.12em] text-[rgb(var(--secondary-text))]">
+            <Sparkles size={12} className="text-[rgb(var(--primary))]" />
             {t("site.academyQuiz.challenge")}
           </span>
         </div>
@@ -392,9 +392,9 @@ export default function QuizExercisePage() {
                           className={classNames(
                             "group relative flex w-full items-center gap-3.5 rounded-xl border p-4 text-left transition-all duration-200 md:gap-4 md:p-[18px]",
                             state === "idle" &&
-                              "cursor-pointer border-[rgb(var(--border))] bg-[rgb(var(--card))] hover:-translate-y-0.5 hover:border-[rgb(var(--cb-info)/0.6)] hover:bg-[rgb(var(--cb-info)/0.06)]",
+                              "cursor-pointer border-[rgb(var(--border))] bg-[rgb(var(--card))] hover:-translate-y-0.5 hover:border-[rgb(var(--primary)/0.6)] hover:bg-[rgb(var(--primary)/0.06)]",
                             state === "selected" &&
-                              "-translate-y-0.5 border-[rgb(var(--cb-info))] bg-[rgb(var(--cb-info)/0.1)] shadow-[0_0_26px_-8px_rgb(var(--cb-info)/0.6)]",
+                              "-translate-y-0.5 border-[rgb(var(--primary))] bg-[rgb(var(--primary)/0.1)] shadow-[0_0_26px_-8px_rgb(var(--primary)/0.6)]",
                             state === "correct" &&
                               "border-[rgb(var(--success))] bg-[rgb(var(--success)/0.12)] shadow-[0_0_26px_-10px_rgb(var(--success)/0.7)]",
                             state === "wrong" &&
@@ -409,7 +409,7 @@ export default function QuizExercisePage() {
                             className={classNames(
                               "absolute inset-y-2 left-0 w-[3px] rounded-full transition-opacity",
                               state === "selected" &&
-                                "bg-[rgb(var(--cb-info))] opacity-100",
+                                "bg-[rgb(var(--primary))] opacity-100",
                               state === "correct" &&
                                 "bg-[rgb(var(--success))] opacity-100",
                               state === "wrong" &&
@@ -424,13 +424,13 @@ export default function QuizExercisePage() {
                             className={classNames(
                               "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border text-sm font-black transition-colors",
                               state === "idle" &&
-                                "border-[rgb(var(--border))] text-[rgb(var(--secondary-text))] group-hover:border-[rgb(var(--cb-info)/0.6)] group-hover:text-[rgb(var(--cb-info))]",
+                                "border-[rgb(var(--border))] text-[rgb(var(--secondary-text))] group-hover:border-[rgb(var(--primary)/0.6)] group-hover:text-[rgb(var(--primary))]",
                               state === "selected" &&
-                                "border-[rgb(var(--cb-info))] bg-[rgb(var(--cb-info))] text-white",
+                                "border-[rgb(var(--primary))] bg-[rgb(var(--primary))] text-[rgb(var(--button-text))]",
                               state === "correct" &&
-                                "border-[rgb(var(--success))] bg-[rgb(var(--success))] text-white",
+                                "border-[rgb(var(--success))] bg-[rgb(var(--success))] text-[rgb(var(--button-text))]",
                               state === "wrong" &&
-                                "border-[rgb(var(--error))] bg-[rgb(var(--error))] text-white",
+                                "border-[rgb(var(--error))] bg-[rgb(var(--error))] text-[rgb(var(--button-text))]",
                               state === "muted" &&
                                 "border-[rgb(var(--border))] text-[rgb(var(--secondary-text))]",
                             )}
@@ -465,15 +465,15 @@ export default function QuizExercisePage() {
                                   "flex h-5 w-5 items-center justify-center border-2 transition-colors",
                                   isMultiple ? "rounded-md" : "rounded-full",
                                   isSelected
-                                    ? "border-[rgb(var(--cb-info))] bg-[rgb(var(--cb-info))] text-white"
-                                    : "border-[rgb(var(--border))] group-hover:border-[rgb(var(--cb-info)/0.6)]",
+                                    ? "border-[rgb(var(--primary))] bg-[rgb(var(--primary))] text-[rgb(var(--button-text))]"
+                                    : "border-[rgb(var(--border))] group-hover:border-[rgb(var(--primary)/0.6)]",
                                 )}
                               >
                                 {isSelected &&
                                   (isMultiple ? (
                                     <Check size={13} strokeWidth={3} />
                                   ) : (
-                                    <span className="h-1.5 w-1.5 rounded-full bg-white" />
+                                    <span className="h-1.5 w-1.5 rounded-full bg-[rgb(var(--button-text))]" />
                                   ))}
                               </span>
                             )}
@@ -494,8 +494,8 @@ export default function QuizExercisePage() {
                     className={classNames(
                       "inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-3.5 text-sm font-semibold transition-colors",
                       saved
-                        ? "border-[rgb(var(--cb-info)/0.5)] text-[rgb(var(--cb-info))]"
-                        : "border-[rgb(var(--border))] text-[rgb(var(--secondary-text))] hover:border-[rgb(var(--cb-info)/0.4)] hover:text-[rgb(var(--text))]",
+                        ? "border-[rgb(var(--primary)/0.5)] text-[rgb(var(--primary))]"
+                        : "border-[rgb(var(--border))] text-[rgb(var(--secondary-text))] hover:border-[rgb(var(--primary)/0.4)] hover:text-[rgb(var(--text))]",
                     )}
                   >
                     {saved ? (
@@ -513,7 +513,7 @@ export default function QuizExercisePage() {
                     whileTap={{ scale: 0.99 }}
                     onClick={handleSubmit}
                     disabled={selectedOptions.length === 0}
-                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[rgb(var(--cb-info))] to-[#3b82f6] px-6 py-3.5 text-base font-black uppercase tracking-wide text-white shadow-[0_10px_30px_-10px_rgb(var(--cb-info)/0.7)] transition-all hover:-translate-y-0.5 hover:brightness-110 disabled:pointer-events-none disabled:opacity-50"
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[rgb(var(--button))] px-6 py-3.5 text-base font-black uppercase tracking-wide text-[rgb(var(--button-text))] shadow-[0_8px_24px_-12px_rgb(var(--primary)/0.45)] transition-all hover:-translate-y-0.5 hover:brightness-110 disabled:pointer-events-none disabled:opacity-50"
                   >
                     {t("site.academyQuiz.submit")}
                     <ArrowRight size={17} />
@@ -591,8 +591,8 @@ export default function QuizExercisePage() {
                     )}
 
                     {showExplanation && revealedExplanation && (
-                      <div className="rounded-xl border-l-2 border-[rgb(var(--cb-info))] bg-[rgb(var(--border)/0.18)] p-4">
-                        <p className="mb-1 text-[0.7rem] font-black uppercase tracking-[0.08em] text-[rgb(var(--cb-info))]">
+                      <div className="rounded-xl border-l-2 border-[rgb(var(--primary))] bg-[rgb(var(--border)/0.18)] p-4">
+                        <p className="mb-1 text-[0.7rem] font-black uppercase tracking-[0.08em] text-[rgb(var(--primary))]">
                           {t("site.academyQuiz.explanation")}
                         </p>
                         <p className="text-sm leading-relaxed text-[rgb(var(--text))]">
@@ -612,7 +612,7 @@ export default function QuizExercisePage() {
                   type="button"
                   aria-label={t("common.previous")}
                   onClick={() => goToQuestion(currentQuestionIndex - 1)}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-[rgb(var(--border))] px-3.5 py-2.5 text-sm font-bold text-[rgb(var(--secondary-text))] transition-colors hover:border-[rgb(var(--cb-info)/0.5)] hover:text-[rgb(var(--text))]"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-[rgb(var(--border))] px-3.5 py-2.5 text-sm font-bold text-[rgb(var(--secondary-text))] transition-colors hover:border-[rgb(var(--primary)/0.5)] hover:text-[rgb(var(--text))]"
                 >
                   <ChevronLeft size={16} />
                 </button>
@@ -622,7 +622,7 @@ export default function QuizExercisePage() {
                 <button
                   type="button"
                   onClick={() => goToQuestion(currentQuestionIndex + 1)}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[rgb(var(--cb-info))] to-[#3b82f6] px-5 py-2.5 text-sm font-black uppercase tracking-wide text-white transition hover:brightness-110"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-[rgb(var(--button))] px-5 py-2.5 text-sm font-black uppercase tracking-wide text-[rgb(var(--button-text))] transition hover:brightness-110"
                 >
                   {t("site.academyQuiz.nextQuestion")}
                   <ChevronRight size={16} />
@@ -633,7 +633,7 @@ export default function QuizExercisePage() {
                 <button
                   type="button"
                   onClick={resetQuiz}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-[rgb(var(--border))] px-4 py-2.5 text-sm font-bold text-[rgb(var(--text))] transition-colors hover:border-[rgb(var(--cb-info)/0.5)]"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-[rgb(var(--border))] px-4 py-2.5 text-sm font-bold text-[rgb(var(--text))] transition-colors hover:border-[rgb(var(--primary)/0.5)]"
                 >
                   <RotateCcw size={15} />
                   {t("site.academyQuiz.retry")}
@@ -661,7 +661,7 @@ export default function QuizExercisePage() {
                         exercise.nextExerciseId,
                         exercise.nextExerciseType,
                       )}
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[rgb(var(--cb-info))] to-[#3b82f6] px-5 py-2.5 text-sm font-black uppercase tracking-wide text-white transition hover:brightness-110"
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-[rgb(var(--button))] px-5 py-2.5 text-sm font-black uppercase tracking-wide text-[rgb(var(--button-text))] transition hover:brightness-110"
                     >
                       {t("site.nextMissionButton")}
                       <FastForward size={15} />
@@ -669,7 +669,7 @@ export default function QuizExercisePage() {
                   ) : (
                     <Link
                       href="/dashboard"
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-[rgb(var(--success))] to-[#16a34a] px-5 py-2.5 text-sm font-black uppercase tracking-wide text-white transition hover:brightness-110"
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-[rgb(var(--button))] px-5 py-2.5 text-sm font-black uppercase tracking-wide text-[rgb(var(--button-text))] transition hover:brightness-110"
                     >
                       {t("site.courseCompleteButton")}
                       <FastForward size={15} />
@@ -709,7 +709,7 @@ export default function QuizExercisePage() {
 
               <div className="mt-4 h-2 overflow-hidden rounded-full bg-[rgb(var(--border))]">
                 <div
-                  className="h-full rounded-full bg-[rgb(var(--cb-info))] transition-all duration-500"
+                  className="h-full rounded-full bg-[rgb(var(--primary))] transition-all duration-500"
                   style={{ width: `${Math.max(percent, answered > 0 ? 8 : 0)}%` }}
                 />
               </div>
@@ -762,7 +762,7 @@ export default function QuizExercisePage() {
             {lessonHref && (
               <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5">
                 <p className="flex items-center gap-2 text-sm font-black text-[rgb(var(--text))]">
-                  <BookOpen size={15} className="text-[rgb(var(--cb-info))]" />
+                  <BookOpen size={15} className="text-[rgb(var(--primary))]" />
                   {t("site.academyQuiz.needReview")}
                 </p>
                 <p className="mt-1 text-xs text-[rgb(var(--secondary-text))]">
@@ -770,7 +770,7 @@ export default function QuizExercisePage() {
                 </p>
                 <Link
                   href={lessonHref}
-                  className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-[rgb(var(--border))] px-3.5 py-2 text-xs font-bold text-[rgb(var(--text))] transition-colors hover:border-[rgb(var(--cb-info)/0.5)]"
+                  className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-[rgb(var(--border))] px-3.5 py-2 text-xs font-bold text-[rgb(var(--text))] transition-colors hover:border-[rgb(var(--primary)/0.5)]"
                 >
                   {t("site.academyQuiz.goToLesson")}
                   <ArrowRight size={13} />
@@ -806,7 +806,7 @@ function ProgressRing({ percent }: { percent: number }) {
           cy="32"
           r={radius}
           fill="none"
-          stroke="rgb(var(--cb-info))"
+          stroke="rgb(var(--primary))"
           strokeWidth="6"
           strokeLinecap="round"
           strokeDasharray={circumference}
