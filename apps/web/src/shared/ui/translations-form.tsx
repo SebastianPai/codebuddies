@@ -333,7 +333,9 @@ export function TranslationsForm({
               >
                 {translatingIndex === active
                   ? t("common.loading")
-                  : t("common.translate")}
+                  : onTranslateContent
+                    ? t("common.translateAll")
+                    : t("common.translate")}
               </button>
             </div>
           )}

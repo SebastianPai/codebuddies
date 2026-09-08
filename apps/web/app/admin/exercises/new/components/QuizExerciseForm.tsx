@@ -25,63 +25,56 @@ export default function QuizExerciseForm({
     ]);
   };
 
+  // Todo inmutable: mutar options/correct in-place compartía referencias
+  // entre idiomas (el quiz de EN mutaba el de ES) y podía "perder" preguntas.
+  const patchQuestion = (
+    qIndex: number,
+    patch: (q: QuizQuestion) => QuizQuestion,
+  ) =>
+    setQuestions(questions.map((q, i) => (i === qIndex ? patch(q) : q)));
+
   const updateQuestion = (
     qIndex: number,
     field: keyof QuizQuestion | "isMultiple",
     value: any,
-  ) => {
-    const updated = [...questions];
-    if (field === "isMultiple") {
-      updated[qIndex] = {
-        ...updated[qIndex],
-        isMultiple: value,
-        correct: value
-          ? updated[qIndex].correct
-          : [updated[qIndex].correct[0] || 0],
-      };
-    } else {
-      updated[qIndex] = { ...updated[qIndex], [field]: value };
-    }
-    setQuestions(updated);
-  };
-
-  const updateOption = (qIndex: number, optIndex: number, value: string) => {
-    const updated = [...questions];
-    updated[qIndex].options[optIndex] = value;
-    setQuestions(updated);
-  };
-
-  const addOption = (qIndex: number) => {
-    const updated = [...questions];
-    updated[qIndex].options.push("");
-    setQuestions(updated);
-  };
-
-  const removeOption = (qIndex: number, optIndex: number) => {
-    const updated = [...questions];
-    updated[qIndex].options = updated[qIndex].options.filter(
-      (_, i) => i !== optIndex,
+  ) =>
+    patchQuestion(qIndex, (q) =>
+      field === "isMultiple"
+        ? {
+            ...q,
+            isMultiple: value,
+            correct: value ? [...q.correct] : [q.correct[0] || 0],
+          }
+        : { ...q, [field]: value },
     );
-    updated[qIndex].correct = updated[qIndex].correct
-      .filter((c) => c !== optIndex)
-      .map((c) => (c > optIndex ? c - 1 : c));
-    setQuestions(updated);
-  };
 
-  const toggleCorrect = (qIndex: number, optIndex: number) => {
-    const updated = [...questions];
-    const correct = updated[qIndex].correct;
-    if (updated[qIndex].isMultiple) {
-      if (correct.includes(optIndex)) {
-        updated[qIndex].correct = correct.filter((c) => c !== optIndex);
-      } else {
-        updated[qIndex].correct = [...correct, optIndex];
-      }
-    } else {
-      updated[qIndex].correct = [optIndex];
-    }
-    setQuestions(updated);
-  };
+  const updateOption = (qIndex: number, optIndex: number, value: string) =>
+    patchQuestion(qIndex, (q) => ({
+      ...q,
+      options: q.options.map((o, i) => (i === optIndex ? value : o)),
+    }));
+
+  const addOption = (qIndex: number) =>
+    patchQuestion(qIndex, (q) => ({ ...q, options: [...q.options, ""] }));
+
+  const removeOption = (qIndex: number, optIndex: number) =>
+    patchQuestion(qIndex, (q) => ({
+      ...q,
+      options: q.options.filter((_, i) => i !== optIndex),
+      correct: q.correct
+        .filter((c) => c !== optIndex)
+        .map((c) => (c > optIndex ? c - 1 : c)),
+    }));
+
+  const toggleCorrect = (qIndex: number, optIndex: number) =>
+    patchQuestion(qIndex, (q) => ({
+      ...q,
+      correct: q.isMultiple
+        ? q.correct.includes(optIndex)
+          ? q.correct.filter((c) => c !== optIndex)
+          : [...q.correct, optIndex]
+        : [optIndex],
+    }));
 
   const removeQuestion = (index: number) => {
     if (questions.length > 1) {

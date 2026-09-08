@@ -35,6 +35,7 @@ export async function translateQuiz(
       ...q,
       question: await autoTranslate(q.question, targetLang),
       options,
+      correct: [...q.correct],
       explanation: q.explanation
         ? await autoTranslate(q.explanation, targetLang)
         : q.explanation,

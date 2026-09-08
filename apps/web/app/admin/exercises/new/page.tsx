@@ -81,121 +81,28 @@ export default function AdminExerciseNew({
   });
 
   const [loading, setLoading] = useState(false);
-  const [contentSourceLang, setContentSourceLang] = useState<
-    Record<string, string>
-  >({});
-  const [translatingContent, setTranslatingContent] = useState<string | null>(
-    null,
-  );
 
-  const runContentTranslate = async (
-    targetLang: string,
-    sourceLang: string,
-    opts: { confirm?: boolean } = {},
-  ) => {
+  // Traduce TODO el contenido de un idioma (instrucciones o quiz) desde
+  // `sourceLang`. Lo dispara el botón "Traducir todo" del <TranslationsForm>
+  // (que además ya traduce título + descripción) — un solo botón, no uno por
+  // pregunta ni una barra aparte.
+  const runContentTranslate = async (targetLang: string, sourceLang: string) => {
     if (!sourceLang || sourceLang === targetLang) return;
 
     if (type === "QUIZ") {
-      const hasContent = (quizByLang[targetLang] ?? []).some(
-        (q) => q.question.trim() || q.options.some((o) => o.trim()),
-      );
-      if (
-        opts.confirm &&
-        hasContent &&
-        !window.confirm(
-          t("admin.translateContentOverwrite", {
-            lang: targetLang.toUpperCase(),
-          }),
-        )
-      ) {
-        return;
-      }
-      setTranslatingContent(targetLang);
-      try {
-        const translated = await translateQuiz(
-          quizByLang[sourceLang] ?? [],
-          targetLang,
-        );
-        setQuizByLang((prev) => ({ ...prev, [targetLang]: translated }));
-      } finally {
-        setTranslatingContent(null);
-      }
-      return;
-    }
-
-    const hasContent = (instructionsByLang[targetLang] ?? []).some((el) =>
-      el.value.trim(),
-    );
-    if (
-      opts.confirm &&
-      hasContent &&
-      !window.confirm(
-        t("admin.translateContentOverwrite", { lang: targetLang.toUpperCase() }),
-      )
-    ) {
-      return;
-    }
-    setTranslatingContent(targetLang);
-    try {
-      const translated = await translateInstructions(
-        instructionsByLang[sourceLang] ?? [],
+      const translated = await translateQuiz(
+        quizByLang[sourceLang] ?? [],
         targetLang,
       );
-      setInstructionsByLang((prev) => ({ ...prev, [targetLang]: translated }));
-    } finally {
-      setTranslatingContent(null);
+      setQuizByLang((prev) => ({ ...prev, [targetLang]: translated }));
+      return;
     }
-  };
 
-  const translateContentFor = (targetLang: string) => {
-    const others = translations
-      .map((tr) => tr.languageCode)
-      .filter((code) => code !== targetLang);
-    const chosen = contentSourceLang[targetLang];
-    const src = chosen && others.includes(chosen) ? chosen : others[0];
-    return runContentTranslate(targetLang, src, { confirm: true });
-  };
-
-  const renderTranslateBar = (targetLang: string) => {
-    const others = translations
-      .map((tr) => tr.languageCode)
-      .filter((code) => code !== targetLang);
-    if (others.length === 0) return null;
-    const chosen = contentSourceLang[targetLang];
-    const src = chosen && others.includes(chosen) ? chosen : others[0];
-    return (
-      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--background))] px-3 py-2">
-        <span className="text-xs text-[rgb(var(--secondary-text))]">
-          {t("admin.translateContentFrom")}
-        </span>
-        <select
-          value={src}
-          onChange={(e) =>
-            setContentSourceLang((prev) => ({
-              ...prev,
-              [targetLang]: e.target.value,
-            }))
-          }
-          className="rounded-md border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-2 py-1 text-xs text-[rgb(var(--text))]"
-        >
-          {others.map((code) => (
-            <option key={code} value={code}>
-              {code.toUpperCase()}
-            </option>
-          ))}
-        </select>
-        <button
-          type="button"
-          disabled={translatingContent === targetLang}
-          onClick={() => void translateContentFor(targetLang)}
-          className="text-xs font-semibold text-[rgb(var(--primary))] transition hover:opacity-80 disabled:opacity-50"
-        >
-          {translatingContent === targetLang
-            ? t("common.loading")
-            : t("common.translate")}
-        </button>
-      </div>
+    const translated = await translateInstructions(
+      instructionsByLang[sourceLang] ?? [],
+      targetLang,
     );
+    setInstructionsByLang((prev) => ({ ...prev, [targetLang]: translated }));
   };
 
   // Clonar contenido base entre idiomas cuando cambian las traducciones
@@ -251,7 +158,13 @@ export default function AdminExerciseNew({
 
       translations.forEach((t) => {
         if (!updated[t.languageCode]) {
-          updated[t.languageCode] = baseQuiz.map((q) => ({ ...q }));
+          // Deep clone: sin copiar options/correct, editar el quiz de un
+          // idioma mutaba el del otro (arrays compartidos por referencia).
+          updated[t.languageCode] = baseQuiz.map((q) => ({
+            ...q,
+            options: [...q.options],
+            correct: [...q.correct],
+          }));
         }
       });
       return updated;
@@ -492,13 +405,10 @@ export default function AdminExerciseNew({
             showContent={type === "CODE" || type === "VIDEO_THEORY" || type === "QUIZ"}
             contentLabel=""
             onTranslateContent={({ targetLanguageCode, sourceLanguageCode }) =>
-              runContentTranslate(targetLanguageCode, sourceLanguageCode, {
-                confirm: false,
-              })
+              runContentTranslate(targetLanguageCode, sourceLanguageCode)
             }
             renderContentField={({ languageCode }) => (
               <div className="space-y-4">
-                {renderTranslateBar(languageCode)}
                 {type === "QUIZ" ? (
                   <QuizExerciseForm
                     questions={quizByLang[languageCode] || []}
