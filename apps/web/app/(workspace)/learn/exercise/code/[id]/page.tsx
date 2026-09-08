@@ -21,11 +21,11 @@ import { Group, Panel, Separator } from "react-resizable-panels";
 import { api } from "../../../../../../utils/api";
 import { useAuth } from "../../../../../../hooks/useAuth";
 
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
+import {
+  LessonContentRenderer,
+  normalizeLessonContent,
+  type LessonContentDoc,
+} from "@/features/academy";
 import { useTranslation } from "../../../../../../src/i18n/useTranslation";
 import { exercisePath } from "@/shared/utils/exercise-path";
 import { useApiLang } from "@/shared/hooks/use-api-lang";
@@ -218,7 +218,12 @@ export default function FullWidthConfidentialWorkspace() {
 
   const [exercise, setExercise] = useState<any>(null);
 
-  const [instructionElements, setInstructionElements] = useState<any[]>([]);
+  // Instrucciones como doc de bloques (mismo formato/renderer que la teoría
+  // de una lección). `normalizeLessonContent` entiende el formato viejo
+  // `{ instructionElements }` sin migración.
+  const [instructionDoc, setInstructionDoc] = useState<LessonContentDoc>(() =>
+    normalizeLessonContent(null),
+  );
 
   const [loading, setLoading] = useState(true);
 
@@ -288,7 +293,7 @@ export default function FullWidthConfidentialWorkspace() {
         setExercise(data);
         setCompleted(Boolean(data.completed));
 
-        let elements: any[] = [];
+        let rawContent: unknown = null;
 
         if (data.translations?.length > 0) {
           const translation =
@@ -298,17 +303,15 @@ export default function FullWidthConfidentialWorkspace() {
 
           if (translation?.content) {
             try {
-              const parsed =
+              rawContent =
                 typeof translation.content === "string"
                   ? JSON.parse(translation.content)
                   : translation.content;
-
-              elements = parsed.instructionElements || [];
             } catch {}
           }
         }
 
-        setInstructionElements(elements);
+        setInstructionDoc(normalizeLessonContent(rawContent));
 
         const saved = localStorage.getItem(storageKey);
 
@@ -539,56 +542,23 @@ try {
       </div>
 
       <div className="p-6">
-        <div className="rounded-2xl border border-yellow-500/10 bg-yellow-500/[0.03] p-5 mb-6">
-          <p className="text-gray-300 leading-8 text-[15px]">
-            {exercise.description}
+        {exercise.description && (
+          <div className="mb-6 rounded-2xl border border-[rgb(var(--primary)/0.2)] bg-[rgb(var(--primary)/0.04)] p-5">
+            <p className="text-[15px] leading-8 text-[rgb(var(--secondary-text))]">
+              {exercise.description}
+            </p>
+          </div>
+        )}
+
+        {/* Mismo renderer que la teoría de una lección: encabezados, callouts
+            con iconos, bloques de código con "copiar", listas, etc. */}
+        {instructionDoc.blocks.length > 0 ? (
+          <LessonContentRenderer doc={instructionDoc} />
+        ) : (
+          <p className="text-sm italic text-[rgb(var(--secondary-text))]">
+            {t("site.academyLesson.noContentYet")}
           </p>
-        </div>
-
-        <div className="space-y-6">
-          {instructionElements.map((el: any, i: number) => (
-            <div key={i}>
-              {el.type === "text" && (
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm]}
-                  components={{
-                    code({ inline, className, children, ...props }: any) {
-                      const match = /language-(\w+)/.exec(className || "");
-
-                      return !inline && match ? (
-                        <SyntaxHighlighter
-                          style={vscDarkPlus}
-                          language={match[1]}
-                          PreTag="div"
-                          className="!rounded-2xl !bg-[#111111] !border !border-white/[0.06]"
-                          {...props}
-                        >
-                          {String(children).replace(/\n$/, "")}
-                        </SyntaxHighlighter>
-                      ) : (
-                        <code
-                          className="bg-white/[0.05] px-1.5 py-0.5 rounded text-yellow-300"
-                          {...props}
-                        >
-                          {children}
-                        </code>
-                      );
-                    },
-                  }}
-                >
-                  {el.value}
-                </ReactMarkdown>
-              )}
-
-              {el.type === "image" && (
-                <img
-                  src={el.value}
-                  className="rounded-2xl border border-white/[0.06]"
-                />
-              )}
-            </div>
-          ))}
-        </div>
+        )}
       </div>
     </div>
   );

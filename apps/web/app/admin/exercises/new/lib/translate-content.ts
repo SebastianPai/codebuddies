@@ -1,33 +1,10 @@
 import { autoTranslateMany } from "@/shared/lib/translate";
-import type { InstructionElement, QuizQuestion } from "../types";
+import type { QuizQuestion } from "../types";
 
-// Traduce el contenido real del ejercicio a `targetLang` (lo que el
-// <TranslationsForm> no toca: solo hace título + descripción). No traduce
-// bloques de código / URLs de imagen ni video. Junta TODOS los textos y los
-// manda en UNA sola request por lote — antes eran decenas de requests que
-// reventaban el rate limit y dejaban parte del contenido sin traducir.
-
-export async function translateInstructions(
-  elements: InstructionElement[],
-  targetLang: string,
-): Promise<InstructionElement[]> {
-  const targets: number[] = [];
-  const texts: string[] = [];
-  elements.forEach((el, index) => {
-    if (el.type === "text" && el.value.trim()) {
-      targets.push(index);
-      texts.push(el.value);
-    }
-  });
-  if (texts.length === 0) return elements.map((el) => ({ ...el }));
-
-  const translated = await autoTranslateMany(texts, targetLang);
-  const out = elements.map((el) => ({ ...el }));
-  targets.forEach((elementIndex, i) => {
-    out[elementIndex] = { ...out[elementIndex], value: translated[i] };
-  });
-  return out;
-}
+// Traduce las preguntas del quiz a `targetLang` (lo que el <TranslationsForm>
+// no toca: solo hace título + descripción). Junta TODOS los textos y los
+// manda en UNA sola request por lote. Las instrucciones de un ejercicio CODE
+// usan `translateLessonContent` de @/features/academy (mismo doc que teoría).
 
 export async function translateQuiz(
   questions: QuizQuestion[],

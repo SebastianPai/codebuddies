@@ -476,6 +476,15 @@ body {
   text-align: center;
 }
 
+/* Video incrustado — 16:9 responsive, mismo marco que las imágenes. */
+.cb-video iframe {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 1px solid rgb(var(--border));
+  border-radius: 14px;
+}
+
 /* Separador */
 .cb-divider {
   border: 0;

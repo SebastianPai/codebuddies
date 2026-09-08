@@ -43,10 +43,14 @@ export interface AdminExerciseResponse {
     };
     title: string;
     description: string | null;
+    // CODE/VIDEO_THEORY: LessonContentDoc `{ version, blocks, ... }` (nuevo) o
+    // `{ instructionElements }` (viejo). QUIZ: `{ questions }`. Se normaliza al
+    // leer, así que el tipo queda laxo a propósito.
     content: {
+      version?: number;
+      blocks?: unknown[];
       instructionElements?: InstructionElement[];
       questions?: QuizQuestion[];
-      // puedes dejarlo como any si no quieres tipar más profundo por ahora
     } | null;
   }>;
 }

@@ -8,9 +8,16 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 import { TranslationsForm, type Translation } from "@/shared/ui";
+import {
+  normalizeLessonContent,
+  serializeLessonContent,
+  translateLessonContent,
+} from "@/features/academy";
+import { LessonContentEditor } from "@/features/admin/lessons";
 import CommonFields from "./components/CommonFields";
 import CodeExerciseForm from "./components/CodeExerciseForm";
 import QuizExerciseForm from "./components/QuizExerciseForm";
+import { blocksToInstructionElements } from "./lib/blocks-to-legacy";
 
 import {
   ArrowLeft,
@@ -22,14 +29,9 @@ import {
   ListChecks,
 } from "lucide-react";
 
-import {
-  Code,
-  InstructionElement,
-  QuizQuestion,
-  AdminExerciseResponse,
-} from "./types";
+import { Code, QuizQuestion, AdminExerciseResponse } from "./types";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
-import { translateInstructions, translateQuiz } from "./lib/translate-content";
+import { translateQuiz } from "./lib/translate-content";
 
 export default function AdminExerciseNew({
   exerciseId,
@@ -62,12 +64,10 @@ export default function AdminExerciseNew({
     { language: "javascript", initialCode: "", expectedCode: "" },
   ]);
 
-  const [instructionsByLang, setInstructionsByLang] = useState<
-    Record<string, InstructionElement[]>
-  >({
-    es: [{ type: "text", value: "" }],
-  });
-
+  // Las instrucciones de un ejercicio CODE/VIDEO_THEORY viven en
+  // `translations[].content` como un LessonContentDoc (mismo formato y editor
+  // que la teoría de una lección). El quiz sigue en estado aparte porque su
+  // forma de guardado (`{ questions }`) es distinta.
   const [quizByLang, setQuizByLang] = useState<Record<string, QuizQuestion[]>>({
     es: [
       {
@@ -98,51 +98,27 @@ export default function AdminExerciseNew({
       return;
     }
 
-    const translated = await translateInstructions(
-      instructionsByLang[sourceLang] ?? [],
+    // CODE / VIDEO_THEORY: traducir el doc de instrucciones del idioma origen
+    // y volcarlo en el idioma destino.
+    const source = translations.find((tr) => tr.languageCode === sourceLang);
+    const translatedDoc = await translateLessonContent(
+      normalizeLessonContent(source?.content),
       targetLang,
     );
-    setInstructionsByLang((prev) => ({ ...prev, [targetLang]: translated }));
+    setTranslations((prev) =>
+      prev.map((tr) =>
+        tr.languageCode === targetLang
+          ? { ...tr, content: translatedDoc }
+          : tr,
+      ),
+    );
   };
 
-  // Clonar contenido base entre idiomas cuando cambian las traducciones
+  // Clonar el quiz base entre idiomas cuando cambian las traducciones. Las
+  // instrucciones (CODE/VIDEO_THEORY) NO se auto-clonan: un idioma nuevo
+  // arranca vacío y el editor de bloques ofrece "traducir/copiar desde X"
+  // (mismo comportamiento que la teoría de una lección).
   useEffect(() => {
-    function cloneInstructionElement(
-      el: InstructionElement,
-    ): InstructionElement {
-      switch (el.type) {
-        case "text":
-          return { type: "text", value: el.value };
-        case "code":
-          return { type: "code", value: el.value, language: el.language };
-        case "image":
-          return { type: "image", value: el.value };
-        case "video":
-          return { type: "video", value: el.value };
-        default:
-          return { type: "text", value: "" };
-      }
-    }
-
-    function cloneInstructionElements(
-      elements: InstructionElement[],
-    ): InstructionElement[] {
-      return elements.map(cloneInstructionElement);
-    }
-
-    setInstructionsByLang((prev) => {
-      const updated = { ...prev };
-      const baseLang = translations[0]?.languageCode || "es";
-      const baseInstructions = prev[baseLang] || [{ type: "text", value: "" }];
-
-      translations.forEach((t) => {
-        if (!updated[t.languageCode]) {
-          updated[t.languageCode] = cloneInstructionElements(baseInstructions);
-        }
-      });
-      return updated;
-    });
-
     setQuizByLang((prev) => {
       const updated = { ...prev };
       const baseLang = translations[0]?.languageCode || "es";
@@ -208,23 +184,22 @@ export default function AdminExerciseNew({
         setOrder(ex.order);
 
         if (ex.translations && ex.translations.length > 0) {
+          // El `content` crudo (doc de bloques nuevo o `{ instructionElements }`
+          // viejo) viaja en la traducción; `normalizeLessonContent` en el
+          // editor lo entiende sin migración.
           setTranslations(
             ex.translations.map((t) => ({
               languageCode: t.language.code,
               title: t.title,
               description: t.description ?? "",
+              content: t.content ?? "",
             })),
           );
 
-          const instructions: Record<string, InstructionElement[]> = {};
           const quiz: Record<string, QuizQuestion[]> = {};
           ex.translations.forEach((t) => {
-            instructions[t.language.code] = t.content?.instructionElements ?? [
-              { type: "text", value: "" },
-            ];
             quiz[t.language.code] = t.content?.questions ?? [];
           });
-          setInstructionsByLang(instructions);
           setQuizByLang(quiz);
         }
 
@@ -271,9 +246,16 @@ export default function AdminExerciseNew({
         let content: any = null;
 
         if (type === "CODE" || type === "VIDEO_THEORY") {
-          const elements = instructionsByLang[translation.languageCode] || [];
-          const filtered = elements.filter((el) => el.value.trim());
-          content = { instructionElements: filtered };
+          // Formato nuevo: LessonContentDoc de bloques. Se guarda además un
+          // `instructionElements` sintetizado para que un rollback del
+          // frontend siga renderizando algo (texto/código/imagen/video).
+          const doc = serializeLessonContent(translation.content);
+          content = doc
+            ? {
+                ...doc,
+                instructionElements: blocksToInstructionElements(doc.blocks),
+              }
+            : null;
         }
 
         if (type === "QUIZ") {
@@ -407,7 +389,7 @@ export default function AdminExerciseNew({
             onTranslateContent={({ targetLanguageCode, sourceLanguageCode }) =>
               runContentTranslate(targetLanguageCode, sourceLanguageCode)
             }
-            renderContentField={({ languageCode }) => (
+            renderContentField={({ value, onChange, languageCode, siblings }) => (
               <div className="space-y-4">
                 {type === "QUIZ" ? (
                   <QuizExerciseForm
@@ -424,21 +406,12 @@ export default function AdminExerciseNew({
                     }}
                   />
                 ) : (
-                  <CodeExerciseForm
-                    section="instructions"
-                    codes={codes}
-                    instructionElements={instructionsByLang[languageCode] || []}
-                    setCodes={setCodes}
-                    setInstructionElements={(updater) => {
-                      setInstructionsByLang((prev) => {
-                        const current = prev[languageCode] || [];
-                        const updated =
-                          typeof updater === "function"
-                            ? updater(current)
-                            : updater;
-                        return { ...prev, [languageCode]: updated };
-                      });
-                    }}
+                  /* Mismo editor de bloques que la teoría de una lección. */
+                  <LessonContentEditor
+                    value={normalizeLessonContent(value)}
+                    onChange={onChange}
+                    targetLang={languageCode}
+                    translateSources={siblings}
                   />
                 )}
               </div>

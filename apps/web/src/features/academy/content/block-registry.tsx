@@ -12,6 +12,7 @@ import {
   Quote,
   ShieldAlert,
   StickyNote,
+  Video,
   type LucideIcon,
 } from "lucide-react";
 
@@ -35,6 +36,7 @@ export const BLOCK_DEFINITIONS: BlockDefinition[] = [
   { type: "note", labelKey: "note", icon: StickyNote },
   { type: "quote", labelKey: "quote", icon: Quote },
   { type: "image", labelKey: "image", icon: ImageIcon },
+  { type: "video", labelKey: "video", icon: Video },
   { type: "list", labelKey: "list", icon: List },
   { type: "divider", labelKey: "divider", icon: Minus },
 ];

@@ -26,6 +26,7 @@ export type LessonBlockType =
   | "note"
   | "quote"
   | "image"
+  | "video"
   | "list"
   | "divider";
 
@@ -70,6 +71,12 @@ export interface ImageBlock extends BlockBase<"image"> {
   caption?: string;
 }
 
+export interface VideoBlock extends BlockBase<"video"> {
+  // URL de embed (YouTube/Vimeo/etc.). No se traduce.
+  url: string;
+  caption?: string;
+}
+
 export interface ListBlock extends BlockBase<"list"> {
   ordered: boolean;
   items: string[];
@@ -85,6 +92,7 @@ export type LessonBlock =
   | NoteBlock
   | QuoteBlock
   | ImageBlock
+  | VideoBlock
   | ListBlock
   | DividerBlock;
 

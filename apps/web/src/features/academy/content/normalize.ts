@@ -47,6 +47,8 @@ export function newBlock(type: LessonBlockType): LessonBlock {
       return { id, type, text: "", cite: "" };
     case "image":
       return { id, type, url: "", alt: "", caption: "" };
+    case "video":
+      return { id, type, url: "", caption: "" };
     case "list":
       return { id, type, ordered: false, items: [""] };
     case "divider":
@@ -109,6 +111,13 @@ function normalizeBlock(raw: unknown): LessonBlock | null {
         alt: asString(record.alt),
         caption: asString(record.caption) || undefined,
       };
+    case "video":
+      return {
+        id,
+        type,
+        url: asString(record.url ?? record.src),
+        caption: asString(record.caption) || undefined,
+      };
     case "list": {
       const items = Array.isArray(record.items)
         ? record.items.map((item) => asString(item)).filter(Boolean)
@@ -129,10 +138,39 @@ function normalizeBlock(raw: unknown): LessonBlock | null {
   }
 }
 
+// Formato viejo de las instrucciones de un ejercicio Live Code:
+// `{ instructionElements: [{ type: "text"|"code"|"image"|"video", value, language? }] }`.
+// Se mapea 1:1 a bloques para que el mismo editor/renderer de teoría los
+// entienda sin migración de datos.
+function blockFromInstructionElement(raw: unknown): LessonBlock | null {
+  if (!raw || typeof raw !== "object") return null;
+  const record = raw as Record<string, unknown>;
+  const value = asString(record.value);
+  const id = randomId();
+  switch (record.type) {
+    case "text":
+      return { id, type: "text", markdown: value };
+    case "code":
+      return {
+        id,
+        type: "code",
+        language: asString(record.language, "plain") || "plain",
+        code: value,
+      };
+    case "image":
+      return { id, type: "image", url: value, alt: "" };
+    case "video":
+      return { id, type: "video", url: value };
+    default:
+      return null;
+  }
+}
+
 /**
- * Acepta el doc nuevo, el formato viejo `{ markdown }`, un string suelto o
- * nada, y siempre devuelve un `LessonContentDoc` válido con ids en cada
- * bloque. El markdown legacy se convierte en un único bloque de texto.
+ * Acepta el doc nuevo, el formato viejo `{ markdown }`, el formato viejo de
+ * instrucciones `{ instructionElements }`, un string suelto o nada, y siempre
+ * devuelve un `LessonContentDoc` válido con ids en cada bloque. El markdown
+ * legacy se convierte en un único bloque de texto.
  */
 export function normalizeLessonContent(raw: unknown): LessonContentDoc {
   if (typeof raw === "string") {
@@ -148,6 +186,15 @@ export function normalizeLessonContent(raw: unknown): LessonContentDoc {
     if (Array.isArray((raw as LessonContentDoc).blocks)) {
       const blocks = (raw as LessonContentDoc).blocks
         .map(normalizeBlock)
+        .filter((block): block is LessonBlock => block !== null);
+      return { version: LESSON_CONTENT_VERSION, blocks };
+    }
+
+    const legacyInstructions = (raw as { instructionElements?: unknown })
+      .instructionElements;
+    if (Array.isArray(legacyInstructions)) {
+      const blocks = legacyInstructions
+        .map(blockFromInstructionElement)
         .filter((block): block is LessonBlock => block !== null);
       return { version: LESSON_CONTENT_VERSION, blocks };
     }
@@ -192,6 +239,7 @@ function isBlockEmpty(block: LessonBlock): boolean {
     case "quote":
       return !block.text.trim();
     case "image":
+    case "video":
       return !block.url.trim();
     case "list":
       return block.items.every((item) => !item.trim());

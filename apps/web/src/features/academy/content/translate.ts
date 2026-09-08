@@ -20,6 +20,8 @@ function extractStrings(block: LessonBlock): string[] {
       return [block.title ?? "", block.markdown];
     case "image":
       return [block.alt ?? "", block.caption ?? ""];
+    case "video":
+      return [block.caption ?? ""];
     case "list":
       return [...block.items];
     default:
@@ -48,6 +50,8 @@ function applyStrings(block: LessonBlock, values: string[]): LessonBlock {
         alt: block.alt ? values[0] : block.alt,
         caption: block.caption ? values[1] : block.caption,
       };
+    case "video":
+      return { ...block, caption: block.caption ? values[0] : block.caption };
     case "list":
       return { ...block, items: values };
     default:

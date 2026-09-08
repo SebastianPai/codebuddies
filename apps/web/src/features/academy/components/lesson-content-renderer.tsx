@@ -71,6 +71,19 @@ function BlockView({ block }: { block: LessonBlock }) {
           {block.caption?.trim() && <figcaption>{block.caption}</figcaption>}
         </figure>
       ) : null;
+    case "video":
+      return block.url ? (
+        <figure className="cb-figure cb-video">
+          <iframe
+            src={block.url}
+            title={block.caption?.trim() || "Video"}
+            loading="lazy"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+          {block.caption?.trim() && <figcaption>{block.caption}</figcaption>}
+        </figure>
+      ) : null;
     case "list":
       return block.ordered ? (
         <ol className="cb-prose cb-list">

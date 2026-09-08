@@ -647,6 +647,31 @@ function BlockFields({
         </div>
       );
 
+    case "video":
+      return (
+        <div className="space-y-3">
+          <Input
+            value={block.url}
+            onChange={(event) => p({ url: event.target.value })}
+            placeholder={t("admin.lessonContent.field.videoUrl")}
+          />
+          <Input
+            value={block.caption ?? ""}
+            onChange={(event) => p({ caption: event.target.value })}
+            placeholder={t("admin.lessonContent.field.captionOptional")}
+          />
+          {block.url && (
+            <iframe
+              src={block.url}
+              title={t("admin.previewTitle")}
+              className="aspect-video w-full rounded-lg border border-[rgb(var(--border))]"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          )}
+        </div>
+      );
+
     case "list":
       return (
         <div className="space-y-3">
