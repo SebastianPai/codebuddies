@@ -460,8 +460,29 @@ export class ExerciseService {
       exercise.translations.find((t) => t.language.code === 'es') ||
       exercise.translations[0];
 
-    const rawContent = translation?.content || exercise.content || {};
-    const quizBlocks = this.extractQuizBlocks(rawContent);
+    let quizBlocks = this.extractQuizBlocks(
+      translation?.content || exercise.content || {},
+    );
+
+    // Si la traducción elegida tiene menos preguntas que el índice pedido
+    // (p. ej. el alumno mira el quiz en un idioma con 5 preguntas pero esta
+    // traducción se guardó con menos), se cae a cualquier otra fuente que sí
+    // tenga esa pregunta. El orden de opciones y `correct` es el mismo en
+    // todos los idiomas, así que la corrección sigue siendo válida.
+    if (!quizBlocks[dto.questionIndex]) {
+      const sources = [
+        ...exercise.translations.map((t) => t.content),
+        exercise.content,
+      ];
+      for (const source of sources) {
+        const blocks = this.extractQuizBlocks(source || {});
+        if (blocks[dto.questionIndex]) {
+          quizBlocks = blocks;
+          break;
+        }
+      }
+    }
+
     const question = quizBlocks[dto.questionIndex];
 
     if (!question) {

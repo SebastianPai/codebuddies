@@ -251,6 +251,10 @@ export default function QuizExercisePage() {
         body: JSON.stringify({
           questionIndex: currentQuestionIndex,
           selectedOptions,
+          // Sin `lang`, el backend corregía siempre contra la traducción "es";
+          // si el alumno mira el quiz en otro idioma con distinta cantidad de
+          // preguntas, la pregunta 2+ daba 404 ("PROGRESS NOT SAVED").
+          lang: apiLang,
           timeSpentSeconds,
         }),
       });
