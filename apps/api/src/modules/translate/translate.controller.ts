@@ -17,7 +17,9 @@ export class TranslateController {
   constructor(private readonly translateService: TranslateService) {}
 
   @Post()
-  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  // Sube de 20 a 60/min: traducir un quiz o un doc de bloques dispara varias
+  // requests aunque ahora vayan por lotes.
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
   async translate(@Body() dto: TranslateTextDto) {
     const translated = await this.translateService.translateText(
       dto.text,

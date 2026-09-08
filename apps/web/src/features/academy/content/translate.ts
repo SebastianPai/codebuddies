@@ -1,47 +1,55 @@
-import { autoTranslate } from "@/shared/lib/translate";
+import { autoTranslateMany } from "@/shared/lib/translate";
 import { normalizeLessonContent } from "./normalize";
 import type { LessonBlock, LessonContentDoc } from "./types";
 
 // Traduce el texto de cada bloque a `targetLang`. NO toca bloques de código
-// ni URLs de imagen. Secuencial a propósito: el endpoint /translate suele
-// tener rate limit y una lección puede tener muchos bloques.
-async function translateBlock(
-  block: LessonBlock,
-  targetLang: string,
-): Promise<LessonBlock> {
+// ni URLs de imagen. Junta TODOS los textos del doc y los manda en UNA sola
+// request por lote (DeepL los procesa juntos) — antes era una request por
+// campo y el rate limit dejaba media lección sin traducir.
+
+// Extrae los strings traducibles de un bloque (en orden estable).
+function extractStrings(block: LessonBlock): string[] {
   switch (block.type) {
     case "text":
     case "note":
-      return { ...block, markdown: await autoTranslate(block.markdown, targetLang) };
+      return [block.markdown];
     case "heading":
-      return { ...block, text: await autoTranslate(block.text, targetLang) };
+    case "quote":
+      return [block.text];
+    case "callout":
+      return [block.title ?? "", block.markdown];
+    case "image":
+      return [block.alt ?? "", block.caption ?? ""];
+    case "list":
+      return [...block.items];
+    default:
+      return [];
+  }
+}
+
+// Re-inserta los strings traducidos en el bloque, en el mismo orden.
+function applyStrings(block: LessonBlock, values: string[]): LessonBlock {
+  switch (block.type) {
+    case "text":
+    case "note":
+      return { ...block, markdown: values[0] };
+    case "heading":
+    case "quote":
+      return { ...block, text: values[0] };
     case "callout":
       return {
         ...block,
-        title: block.title
-          ? await autoTranslate(block.title, targetLang)
-          : block.title,
-        markdown: await autoTranslate(block.markdown, targetLang),
+        title: block.title ? values[0] : block.title,
+        markdown: values[1],
       };
-    case "quote":
-      return { ...block, text: await autoTranslate(block.text, targetLang) };
     case "image":
       return {
         ...block,
-        alt: block.alt ? await autoTranslate(block.alt, targetLang) : block.alt,
-        caption: block.caption
-          ? await autoTranslate(block.caption, targetLang)
-          : block.caption,
+        alt: block.alt ? values[0] : block.alt,
+        caption: block.caption ? values[1] : block.caption,
       };
-    case "list": {
-      const items: string[] = [];
-      for (const item of block.items) {
-        items.push(item.trim() ? await autoTranslate(item, targetLang) : item);
-      }
-      return { ...block, items };
-    }
-    case "code":
-    case "divider":
+    case "list":
+      return { ...block, items: values };
     default:
       return block;
   }
@@ -52,9 +60,24 @@ export async function translateLessonContent(
   targetLang: string,
 ): Promise<LessonContentDoc> {
   const doc = normalizeLessonContent(source);
-  const blocks: LessonBlock[] = [];
+
+  const texts: string[] = [];
+  const spans: Array<{ start: number; end: number }> = [];
   for (const block of doc.blocks) {
-    blocks.push(await translateBlock(block, targetLang));
+    const strings = extractStrings(block);
+    spans.push({ start: texts.length, end: texts.length + strings.length });
+    texts.push(...strings);
   }
+
+  if (texts.length === 0) return { version: doc.version, blocks: doc.blocks };
+
+  const translated = await autoTranslateMany(texts, targetLang);
+  const blocks = doc.blocks.map((block, index) => {
+    const { start, end } = spans[index];
+    return end > start
+      ? applyStrings(block, translated.slice(start, end))
+      : block;
+  });
+
   return { version: doc.version, blocks };
 }
