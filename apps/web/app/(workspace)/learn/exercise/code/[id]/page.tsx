@@ -32,6 +32,17 @@ import { useApiLang } from "@/shared/hooks/use-api-lang";
 import { useReward } from "../../../../../../contexts/RewardContext";
 import { useTrackToolUsed, trackToolAction, trackCodeStarted, trackCodeResult } from "../../../../../../components/analytics/tool-tracking";
 
+type CodeTab = "html" | "css" | "js";
+
+// El editor tiene 3 pestañas fijas (HTML/CSS/JS). Mapea el lenguaje del
+// ejercicio a la pestaña correcta para no arrancar siempre en JS.
+function langToTab(lang?: string): CodeTab {
+  const l = (lang || "").toLowerCase();
+  if (l === "html" || l === "markup" || l === "xml") return "html";
+  if (l === "css") return "css";
+  return "js";
+}
+
 const panelClass = `
 relative
 overflow-hidden
@@ -74,6 +85,7 @@ const EditorContent = memo(
     jsCode,
     setJsCode,
     starterCode,
+    starterTab,
     isMobile,
     onUserEdit,
   }: any) => {
@@ -97,8 +109,12 @@ const EditorContent = memo(
     const handleReset = useCallback(() => {
       setHtmlCode("");
       setCssCode("");
-      setJsCode(starterCode);
-    }, [starterCode]);
+      setJsCode("");
+      // El starter vuelve a la pestaña del lenguaje del ejercicio, no a JS.
+      if (starterTab === "html") setHtmlCode(starterCode);
+      else if (starterTab === "css") setCssCode(starterCode);
+      else setJsCode(starterCode);
+    }, [starterCode, starterTab, setHtmlCode, setCssCode, setJsCode]);
 
     return (
       <div className={`${panelClass} h-full flex flex-col`}>
@@ -243,7 +259,10 @@ export default function FullWidthConfidentialWorkspace() {
 
   const [coinsGained, setCoinsGained] = useState(0);
 
-  const [activeTab, setActiveTab] = useState<"html" | "css" | "js">("js");
+  const [activeTab, setActiveTab] = useState<CodeTab>("js");
+
+  // El botón "Comprobar" se habilita cuando el estudiante editó el código.
+  const [dirty, setDirty] = useState(false);
 
   const [mobileView, setMobileView] = useState<
     "instructions" | "code" | "preview"
@@ -277,8 +296,12 @@ export default function FullWidthConfidentialWorkspace() {
 
     startedAtRef.current = Date.now();
     // Nueva "sesión" de ejercicio (cambió el id, ej. botón Siguiente) --
-    // code_started debe poder volver a dispararse para este ejercicio nuevo.
+    // code_started debe poder volver a dispararse para este ejercicio nuevo,
+    // y el estado de comprobación no debe arrastrarse del ejercicio anterior.
     codeStartedRef.current = false;
+    setCheckResult("idle");
+    setCheckMessage(null);
+    setDirty(false);
 
     const loadExercise = async () => {
       setLoading(true);
@@ -313,6 +336,10 @@ export default function FullWidthConfidentialWorkspace() {
 
         setInstructionDoc(normalizeLessonContent(rawContent));
 
+        // Pestaña inicial = lenguaje del ejercicio (HTML/CSS/JS), no siempre JS.
+        const tab = langToTab(data.language);
+        setActiveTab(tab);
+
         const saved = localStorage.getItem(storageKey);
 
         if (saved) {
@@ -321,8 +348,12 @@ export default function FullWidthConfidentialWorkspace() {
           setHtmlCode(parsed.html || "");
           setCssCode(parsed.css || "");
           setJsCode(parsed.js || "");
+          setDirty(true);
         } else {
-          setJsCode(data.starterCode || "");
+          const starter = data.starterCode || "";
+          setHtmlCode(tab === "html" ? starter : "");
+          setCssCode(tab === "css" ? starter : "");
+          setJsCode(tab === "js" ? starter : "");
         }
       } catch (err: any) {
         setError(err.message || t("site.codeExerciseLoadError"));
@@ -442,6 +473,7 @@ try {
   }, []);
 
   const handleUserEdit = useCallback(() => {
+    setDirty(true);
     if (codeStartedRef.current || !exercise?.id) return;
     codeStartedRef.current = true;
     trackCodeStarted(exercise.id);
@@ -461,8 +493,19 @@ try {
       const timeSpentSeconds = Math.round(
         (Date.now() - startedAtRef.current) / 1000,
       );
+      // Enviar el buffer del lenguaje del ejercicio (antes iba siempre `jsCode`,
+      // así un ejercicio de HTML nunca podía completarse).
+      const langTab = langToTab(exercise?.language);
+      const primaryCode =
+        langTab === "html" ? htmlCode : langTab === "css" ? cssCode : jsCode;
+      const submittedCode =
+        primaryCode.trim() ||
+        jsCode.trim() ||
+        htmlCode.trim() ||
+        cssCode.trim() ||
+        "";
       const res = (await api.post(`/exercises/${exercise.id}/code/submit`, {
-        code: jsCode,
+        code: submittedCode,
         timeSpentSeconds,
       })) as any;
 
@@ -493,10 +536,11 @@ try {
     }
   };
 
+  // El servidor es la autoridad: re-corre las assertions (o acepta código no
+  // vacío si el ejercicio no tiene). El check del iframe queda como feedback
+  // en vivo, no como candado del botón.
   const handleCheckSolution = () => {
-    if (checkResult === "pass") {
-      void submitCompletion();
-    }
+    void submitCompletion();
   };
 
   if (loading) {
@@ -612,6 +656,7 @@ try {
                   jsCode={jsCode}
                   setJsCode={setJsCode}
                   starterCode={exercise?.starterCode || ""}
+                  starterTab={langToTab(exercise?.language)}
                   isMobile={isMobile}
                   onUserEdit={handleUserEdit}
                 />
@@ -638,6 +683,7 @@ try {
                   jsCode={jsCode}
                   setJsCode={setJsCode}
                   starterCode={exercise?.starterCode || ""}
+                  starterTab={langToTab(exercise?.language)}
                   isMobile={isMobile}
                   onUserEdit={handleUserEdit}
                 />
@@ -711,7 +757,7 @@ try {
 
             <button
               onClick={handleCheckSolution}
-              disabled={completed || submitting || checkResult !== "pass"}
+              disabled={completed || submitting || !dirty}
               className="
                 h-12
                 px-8
