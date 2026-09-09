@@ -9,6 +9,7 @@ import {
   Req,
   UseGuards,
   Query,
+  Headers,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { ExerciseService } from './exercise.service';
@@ -75,12 +76,14 @@ export class ExerciseController {
     @Req() req: OptionallyAuthenticatedRequest,
     @Param('id') id: string,
     @Query('lang') lang = 'es',
+    @Headers('x-admin-bypass-locks') bypassLocks?: string,
   ) {
     return this.exerciseService.getExerciseById(
       id,
       req.user?.userId,
       lang,
       req.user?.role,
+      bypassLocks === '1',
     );
   }
 

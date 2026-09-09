@@ -16,6 +16,8 @@ describe('CourseService', () => {
   const premiumAccessService = {
     hasPremiumAccess: jest.fn().mockResolvedValue(false),
     hasFullAccess: jest.fn().mockReturnValue(false),
+    isLessonProgressionLocked: jest.fn().mockResolvedValue(false),
+    getProgressionLockedLessonIds: jest.fn().mockResolvedValue(new Set<string>()),
   };
   const adminAuditService = {
     log: jest.fn(),

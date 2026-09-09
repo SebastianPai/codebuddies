@@ -8,6 +8,7 @@ import {
   Req,
   UseGuards,
   Query,
+  Headers,
 } from '@nestjs/common';
 
 import { CourseService } from './course.service';
@@ -70,10 +71,12 @@ export class CourseController {
     @Req() req: OptionallyAuthenticatedRequest,
     @Param('id') id: string,
     @Query('lang') lang = 'es',
+    @Headers('x-admin-bypass-locks') bypassLocks?: string,
   ) {
     return this.courseService.getCourseById(id, lang, {
       userId: req.user?.userId,
       role: req.user?.role,
+      bypassLocks: bypassLocks === '1',
     });
   }
 

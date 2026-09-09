@@ -160,20 +160,29 @@ export default function QuizExercisePage() {
   const total = questions.length;
 
   if ((exercise as any).locked) {
+    const progression = (exercise as any).lockedReason === "progression";
     return (
       <div className="relative flex min-h-[60vh] items-center justify-center">
-        <div className="max-w-md rounded-2xl border border-[rgb(var(--cb-warning)/0.5)] bg-[rgb(var(--cb-warning)/0.08)] p-8 text-center">
-          <span className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[rgb(var(--cb-warning)/0.16)] text-[rgb(var(--warning-text))]">
+        <div className="max-w-md rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-8 text-center">
+          <span className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[rgb(var(--border)/0.4)] text-[rgb(var(--secondary-text))]">
             <Lock size={22} />
           </span>
           <p className="text-sm text-[rgb(var(--secondary-text))]">
-            {t("site.exerciseLockedMessage")}
+            {progression
+              ? t("site.academyLesson.lockedProgressionBody")
+              : t("site.exerciseLockedMessage")}
           </p>
           <Link
-            href="/premium"
+            href={
+              progression && exercise.courseId
+                ? `/courses/${exercise.courseId}`
+                : "/premium"
+            }
             className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[rgb(var(--button))] px-6 py-3 text-sm font-black uppercase tracking-wide text-[rgb(var(--button-text))] transition hover:brightness-110"
           >
-            {t("site.premiumTitle")}
+            {progression
+              ? t("site.academyLesson.backToCourse")
+              : t("site.premiumTitle")}
             <ArrowRight size={15} />
           </Link>
         </div>

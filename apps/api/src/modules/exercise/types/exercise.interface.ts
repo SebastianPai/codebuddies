@@ -10,6 +10,7 @@ export interface BaseExercise {
   coins: number;
   completed: boolean;
   locked: boolean;
+  lockedReason?: 'premium' | 'progression';
   status?: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
   // Solo poblados en getExerciseById (vista de un ejercicio puntual) — un
   // listado de ejercicios de una lección no los necesita.

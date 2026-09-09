@@ -9,6 +9,7 @@ import {
   Req,
   UseGuards,
   Query,
+  Headers,
 } from '@nestjs/common';
 import { LessonService } from './lesson.service';
 import { CreateLessonDto } from './dto/create-lesson.dto';
@@ -61,10 +62,12 @@ export class LessonController {
     @Req() req: OptionallyAuthenticatedRequest,
     @Param('courseId') courseId: string,
     @Query('lang') lang = 'es',
+    @Headers('x-admin-bypass-locks') bypassLocks?: string,
   ) {
     return this.lessonService.getLessonsByCourse(courseId, lang, {
       userId: req.user?.userId,
       role: req.user?.role,
+      bypassLocks: bypassLocks === '1',
     });
   }
 
@@ -75,10 +78,12 @@ export class LessonController {
     @Req() req: OptionallyAuthenticatedRequest,
     @Param('id') id: string,
     @Query('lang') lang = 'es',
+    @Headers('x-admin-bypass-locks') bypassLocks?: string,
   ) {
     return this.lessonService.getLessonById(id, lang, {
       userId: req.user?.userId,
       role: req.user?.role,
+      bypassLocks: bypassLocks === '1',
     });
   }
 

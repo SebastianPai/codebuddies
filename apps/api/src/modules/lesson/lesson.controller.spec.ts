@@ -35,7 +35,7 @@ describe('LessonController', () => {
     expect(lessonService.getLessonsByCourse).toHaveBeenCalledWith(
       'course-1',
       'en',
-      { userId: 'user-1', role: 'STUDENT' },
+      { userId: 'user-1', role: 'STUDENT', bypassLocks: false },
     );
     expect(result).toEqual([{ id: 'lesson-1' }]);
   });

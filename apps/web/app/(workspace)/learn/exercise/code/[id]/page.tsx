@@ -561,15 +561,26 @@ try {
   }
 
   if (exercise.locked) {
+    const progression = exercise.lockedReason === "progression";
     return (
       <div className="fixed inset-0 bg-[#070707] flex flex-col items-center justify-center gap-6 text-center px-6">
         <Lock className="text-yellow-400" size={48} />
-        <p className="max-w-md text-white">{t("site.exerciseLockedMessage")}</p>
+        <p className="max-w-md text-white">
+          {progression
+            ? t("site.academyLesson.lockedProgressionBody")
+            : t("site.exerciseLockedMessage")}
+        </p>
         <Link
-          href="/premium"
+          href={
+            progression && exercise.courseId
+              ? `/courses/${exercise.courseId}`
+              : "/premium"
+          }
           className="rounded-lg bg-yellow-400 px-6 py-3 font-black text-black"
         >
-          {t("site.premiumTitle")}
+          {progression
+            ? t("site.academyLesson.backToCourse")
+            : t("site.premiumTitle")}
         </Link>
       </div>
     );

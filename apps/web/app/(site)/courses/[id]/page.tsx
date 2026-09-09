@@ -240,6 +240,8 @@ export default function CourseDetailPage() {
               // usuario logueado (sin importar si tenía premium) veía todo
               // desbloqueado.
               const isLocked = Boolean(lesson.locked);
+              const isProgressionLocked =
+                isLocked && lesson.lockedReason === "progression";
               const completedCount =
                 lesson.exercises?.filter((ex: Exercise) =>
                   completedExercises.includes(ex.id),
@@ -304,13 +306,20 @@ export default function CourseDetailPage() {
                   </button>
 
                   {isLocked && (
-                    <Link
-                      href="/premium"
-                      className="flex items-center justify-center gap-2 border-t-2 border-[rgb(var(--border))] bg-[rgb(var(--primary)/0.08)] px-6 py-3 text-xs font-black uppercase text-[rgb(var(--primary-text))] transition hover:bg-[rgb(var(--primary)/0.15)]"
-                    >
-                      <Lock size={14} />
-                      {t("site.premiumTitle")}
-                    </Link>
+                    isProgressionLocked ? (
+                      <div className="flex items-center justify-center gap-2 border-t-2 border-[rgb(var(--border))] bg-[rgb(var(--primary)/0.06)] px-6 py-3 text-xs font-black uppercase text-[rgb(var(--secondary-text))]">
+                        <Lock size={14} />
+                        {t("site.academyLesson.lockedProgressionTitle")}
+                      </div>
+                    ) : (
+                      <Link
+                        href="/premium"
+                        className="flex items-center justify-center gap-2 border-t-2 border-[rgb(var(--border))] bg-[rgb(var(--primary)/0.08)] px-6 py-3 text-xs font-black uppercase text-[rgb(var(--primary-text))] transition hover:bg-[rgb(var(--primary)/0.15)]"
+                      >
+                        <Lock size={14} />
+                        {t("site.premiumTitle")}
+                      </Link>
+                    )
                   )}
 
                   <AnimatePresence>

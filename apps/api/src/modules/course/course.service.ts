@@ -13,6 +13,8 @@ const COURSE_LIST_CACHE_TTL_SECONDS = 60;
 export interface CourseRequester {
   userId?: string;
   role?: Role;
+  // Toggle solo-admin (header X-Admin-Bypass-Locks).
+  bypassLocks?: boolean;
 }
 
 @Injectable()
@@ -290,6 +292,18 @@ export class CourseService {
       course.module?.translations?.find((t) => t.language.code === lang) ||
       course.module?.translations?.[0];
 
+    const progressionLocked =
+      await this.premiumAccessService.getProgressionLockedLessonIds({
+        courseId: course.id,
+        userId: requester.userId,
+        role: requester.role,
+        bypass: requester.bypassLocks,
+        lessons: course.lessons.map((l) => ({
+          id: l.id,
+          exerciseIds: l.exercises.map((e) => e.id),
+        })),
+      });
+
     const allExercises = course.lessons.flatMap((l) => l.exercises);
 
     const xpTotal = allExercises.reduce(
@@ -336,12 +350,10 @@ export class CourseService {
           lesson.translations.find((t) => t.language.code === 'es') ||
           lesson.translations[0];
 
-        // El contenido de los cursos es gratis para todos (ver
-        // PremiumAccessService#isLessonLocked) — se mantiene el campo
-        // `locked` en la respuesta (siempre false hoy) para no romper el
-        // contrato con el frontend, y por si el gating se reactiva más
-        // adelante.
-        const locked = false;
+        // Candado de progresión secuencial (el de Premium sigue sin
+        // aplicarse — ver PremiumAccessService#isLessonLocked).
+        const locked = progressionLocked.has(lesson.id);
+        const lockedReason = locked ? ('progression' as const) : undefined;
 
         return {
           id: lesson.id,
@@ -350,6 +362,7 @@ export class CourseService {
           title: lessonTranslation?.title ?? null,
           description: lessonTranslation?.description ?? null,
           locked,
+          lockedReason,
 
           exercises: lesson.exercises.map((ex) => {
             const exTranslation =
@@ -366,6 +379,7 @@ export class CourseService {
               coins: ex.coins,
               type: ex.type,
               locked,
+              lockedReason,
             };
           }),
         };

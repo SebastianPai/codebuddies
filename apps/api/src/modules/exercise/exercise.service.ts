@@ -236,6 +236,7 @@ export class ExerciseService {
     userId?: string,
     lang: string = 'es',
     role?: Role,
+    bypassLocks?: boolean,
   ): Promise<Exercise> {
     const exercise = await this.prisma.exercise.findUnique({
       where: { id },
@@ -263,13 +264,28 @@ export class ExerciseService {
       completed = !!completion;
     }
 
-    const locked = await this.premiumAccessService.isLessonLocked({
+    const premiumLocked = await this.premiumAccessService.isLessonLocked({
       courseId: exercise.lesson.courseId,
       lessonOrder: exercise.lesson.order,
       freeLimit: exercise.lesson.course.freeLimit,
       userId,
       role,
     });
+    const progressionLocked =
+      await this.premiumAccessService.isLessonProgressionLocked({
+        courseId: exercise.lesson.courseId,
+        lessonId: exercise.lessonId,
+        lessonOrder: exercise.lesson.order,
+        userId,
+        role,
+        bypass: bypassLocks,
+      });
+    const locked = premiumLocked || progressionLocked;
+    const lockedReason = premiumLocked
+      ? ('premium' as const)
+      : progressionLocked
+        ? ('progression' as const)
+        : undefined;
 
     const translation =
       exercise.translations.find((t) => t.language.code === lang) ||
@@ -293,6 +309,7 @@ export class ExerciseService {
       coins: completed ? exercise.coins : 0,
       completed,
       locked,
+      lockedReason,
       status: exercise.status,
       ...adjacent,
     };
@@ -453,6 +470,17 @@ export class ExerciseService {
         'Este ejercicio requiere una suscripción Premium',
       );
     }
+    if (
+      await this.premiumAccessService.isLessonProgressionLocked({
+        courseId: exercise.lesson.courseId,
+        lessonId: exercise.lessonId,
+        lessonOrder: exercise.lesson.order,
+        userId,
+        role,
+      })
+    ) {
+      throw new ForbiddenException('Completá la lección anterior primero');
+    }
 
     const lang = dto.lang || 'es';
     const translation =
@@ -591,6 +619,17 @@ export class ExerciseService {
       throw new ForbiddenException(
         'Este ejercicio requiere una suscripción Premium',
       );
+    }
+    if (
+      await this.premiumAccessService.isLessonProgressionLocked({
+        courseId: exercise.lesson.courseId,
+        lessonId: exercise.lessonId,
+        lessonOrder: exercise.lesson.order,
+        userId,
+        role,
+      })
+    ) {
+      throw new ForbiddenException('Completá la lección anterior primero');
     }
 
     const codeEntry = (exercise.codes as any)?.[0] as

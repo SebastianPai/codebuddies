@@ -79,6 +79,15 @@ export async function apiFetch<T>(
     headers.set("Accept-Language", localStorage.getItem("lang") || "es");
   }
 
+  // Toggle solo-admin (Ajustes) para revisar contenido sin respetar el
+  // candado de progresión. El backend solo lo honra si el rol es ADMIN.
+  if (
+    typeof window !== "undefined" &&
+    localStorage.getItem("cb:bypass-locks") === "1"
+  ) {
+    headers.set("X-Admin-Bypass-Locks", "1");
+  }
+
   const response = await fetch(createUrl(endpoint), {
     ...options,
     headers,

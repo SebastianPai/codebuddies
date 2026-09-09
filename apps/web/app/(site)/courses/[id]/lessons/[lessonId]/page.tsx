@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -45,6 +45,7 @@ interface LessonResponse {
   description: string | null;
   content: unknown;
   locked: boolean;
+  lockedReason?: "premium" | "progression" | null;
   experience?: number;
   coins?: number;
   exercises?: LessonExercise[];
@@ -56,6 +57,7 @@ interface SidebarLesson {
   order: number;
   title: string | null;
   locked?: boolean;
+  lockedReason?: "premium" | "progression" | null;
 }
 
 interface CourseResponse {
@@ -150,6 +152,48 @@ export default function LessonTheoryPage() {
     completedLessonIds.has(item.id),
   ).length;
   const isCompleted = completedLessonIds.has(lessonId);
+
+  // Gate estilo "términos y condiciones": el botón de continuar se habilita
+  // cuando el contenido se leyó hasta el final (centinela + observer). Una
+  // vez visto queda marcado por lección en localStorage.
+  const endRef = useRef<HTMLDivElement | null>(null);
+  const [reachedEnd, setReachedEnd] = useState(false);
+
+  useEffect(() => {
+    let seen = false;
+    try {
+      seen = localStorage.getItem(`cb:lesson-read:${lessonId}`) === "1";
+    } catch {
+      /* noop */
+    }
+    setReachedEnd(seen);
+  }, [lessonId]);
+
+  useEffect(() => {
+    // Ya completada, o sin nada que leer -> no gatear.
+    if (isCompleted || (lesson && doc.blocks.length === 0)) setReachedEnd(true);
+  }, [isCompleted, lesson, doc.blocks.length]);
+
+  useEffect(() => {
+    const el = endRef.current;
+    if (!el || reachedEnd) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setReachedEnd(true);
+          try {
+            localStorage.setItem(`cb:lesson-read:${lessonId}`, "1");
+          } catch {
+            /* noop */
+          }
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "0px 0px -10% 0px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [reachedEnd, lessonId, doc.blocks.length]);
 
   const xp = lesson?.experience ?? lesson?.course?.experience ?? 50;
   const coins = lesson?.coins ?? lesson?.course?.coins ?? 10;
@@ -288,43 +332,61 @@ export default function LessonTheoryPage() {
         {sidebarLessons.map((item) => {
           const done = completedLessonIds.has(item.id);
           const active = item.id === lessonId;
+          const rowClass = classNames(
+            "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition",
+            active
+              ? "bg-[rgb(var(--primary)/0.12)] font-semibold text-[rgb(var(--text))] ring-1 ring-[rgb(var(--primary)/0.5)]"
+              : item.locked
+                ? "text-[rgb(var(--disabled))] cursor-not-allowed"
+                : "text-[rgb(var(--secondary-text))] hover:bg-[rgb(var(--border)/0.4)] hover:text-[rgb(var(--text))]",
+          );
+          const inner = (
+            <>
+              {item.locked ? (
+                <Lock size={15} className="shrink-0 text-[rgb(var(--disabled))]" />
+              ) : done ? (
+                <CheckCircle2
+                  size={15}
+                  className="shrink-0 text-[rgb(var(--success))]"
+                />
+              ) : (
+                <Circle
+                  size={15}
+                  className={classNames(
+                    "shrink-0",
+                    active
+                      ? "text-[rgb(var(--primary))]"
+                      : "text-[rgb(var(--border))]",
+                  )}
+                />
+              )}
+              <span className="tabular-nums text-[0.7rem] text-[rgb(var(--secondary-text))]">
+                {String(item.order).padStart(2, "0")}
+              </span>
+              <span className="min-w-0 flex-1 truncate">
+                {item.title ?? t("courseDetail.lessonFallback")}
+              </span>
+            </>
+          );
           return (
             <li key={item.id}>
-              <Link
-                href={`/courses/${courseId}/lessons/${item.id}`}
-                aria-current={active ? "page" : undefined}
-                className={classNames(
-                  "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition",
-                  active
-                    ? "bg-[rgb(var(--primary)/0.12)] font-semibold text-[rgb(var(--text))] ring-1 ring-[rgb(var(--primary)/0.5)]"
-                    : "text-[rgb(var(--secondary-text))] hover:bg-[rgb(var(--border)/0.4)] hover:text-[rgb(var(--text))]",
-                )}
-              >
-                {item.locked ? (
-                  <Lock size={15} className="shrink-0 text-[rgb(var(--disabled))]" />
-                ) : done ? (
-                  <CheckCircle2
-                    size={15}
-                    className="shrink-0 text-[rgb(var(--success))]"
-                  />
-                ) : (
-                  <Circle
-                    size={15}
-                    className={classNames(
-                      "shrink-0",
-                      active
-                        ? "text-[rgb(var(--primary))]"
-                        : "text-[rgb(var(--border))]",
-                    )}
-                  />
-                )}
-                <span className="tabular-nums text-[0.7rem] text-[rgb(var(--secondary-text))]">
-                  {String(item.order).padStart(2, "0")}
-                </span>
-                <span className="min-w-0 flex-1 truncate">
-                  {item.title ?? t("courseDetail.lessonFallback")}
-                </span>
-              </Link>
+              {item.locked ? (
+                <div
+                  className={rowClass}
+                  title={t("site.academyLesson.lockedProgressionTitle")}
+                  aria-disabled
+                >
+                  {inner}
+                </div>
+              ) : (
+                <Link
+                  href={`/courses/${courseId}/lessons/${item.id}`}
+                  aria-current={active ? "page" : undefined}
+                  className={rowClass}
+                >
+                  {inner}
+                </Link>
+              )}
             </li>
           );
         })}
@@ -443,7 +505,27 @@ export default function LessonTheoryPage() {
           )}
         </div>
 
-        {lesson.locked ? (
+        {lesson.locked && lesson.lockedReason === "progression" ? (
+          <div className="mt-8 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-8 text-center">
+            <Lock
+              size={28}
+              className="mx-auto mb-3 text-[rgb(var(--secondary-text))]"
+            />
+            <h2 className="text-xl font-bold text-[rgb(var(--text))]">
+              {t("site.academyLesson.lockedProgressionTitle")}
+            </h2>
+            <p className="mx-auto mt-2 max-w-md text-sm text-[rgb(var(--secondary-text))]">
+              {t("site.academyLesson.lockedProgressionBody")}
+            </p>
+            <Link
+              href={`/courses/${courseId}`}
+              className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[rgb(var(--button))] px-5 py-2.5 text-sm font-bold uppercase tracking-wide text-[rgb(var(--button-text))] transition hover:brightness-110"
+            >
+              {t("site.academyLesson.backToCourse")}
+              <ArrowRight size={15} />
+            </Link>
+          </div>
+        ) : lesson.locked ? (
           <div className="mt-8 rounded-2xl border border-[rgb(var(--cb-warning))] bg-[rgb(var(--cb-warning)/0.08)] p-8 text-center">
             <Lock
               size={28}
@@ -480,6 +562,10 @@ export default function LessonTheoryPage() {
               </p>
             )}
 
+            {/* Centinela: al entrar en viewport marca la lectura como
+                completa y habilita "Continuar". */}
+            <div ref={endRef} aria-hidden className="h-px w-full" />
+
             {/* Transición a los ejercicios */}
             <div className="mt-12 overflow-hidden rounded-2xl border border-[rgb(var(--primary)/0.35)] bg-[rgb(var(--primary)/0.06)] p-6 sm:p-8">
               <h2 className="flex items-center gap-2 text-xl font-black text-[rgb(var(--text))]">
@@ -491,8 +577,8 @@ export default function LessonTheoryPage() {
               </p>
               <button
                 onClick={() => void handleContinue()}
-                disabled={completing}
-                className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[rgb(var(--button))] px-6 py-3 text-sm font-black uppercase tracking-wide text-[rgb(var(--button-text))] transition hover:brightness-110 disabled:opacity-60"
+                disabled={completing || !reachedEnd}
+                className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[rgb(var(--button))] px-6 py-3 text-sm font-black uppercase tracking-wide text-[rgb(var(--button-text))] transition hover:brightness-110 disabled:opacity-60 disabled:hover:brightness-100"
               >
                 {completing ? (
                   <Loader label="" size={16} />
@@ -505,6 +591,11 @@ export default function LessonTheoryPage() {
                   </>
                 )}
               </button>
+              {!reachedEnd && !completing && (
+                <p className="mt-2 text-xs text-[rgb(var(--secondary-text))]">
+                  {t("site.academyLesson.readToEndHint")}
+                </p>
+              )}
             </div>
           </>
         )}
@@ -538,8 +629,9 @@ export default function LessonTheoryPage() {
 
           <button
             onClick={() => void handleContinue()}
-            disabled={completing}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[rgb(var(--button))] px-4 py-3 text-sm font-black uppercase tracking-wide text-[rgb(var(--button-text))] transition hover:brightness-110 disabled:opacity-60"
+            disabled={completing || !reachedEnd}
+            title={!reachedEnd ? t("site.academyLesson.readToEndHint") : undefined}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[rgb(var(--button))] px-4 py-3 text-sm font-black uppercase tracking-wide text-[rgb(var(--button-text))] transition hover:brightness-110 disabled:opacity-60 disabled:hover:brightness-100"
           >
             <Gift size={15} />
             {firstExercise

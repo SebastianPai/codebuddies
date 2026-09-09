@@ -58,6 +58,7 @@ describe('CourseController', () => {
     expect(courseService.getCourseById).toHaveBeenCalledWith('course-1', 'es', {
       userId: 'user-1',
       role: 'STUDENT',
+      bypassLocks: false,
     });
     expect(result).toEqual({ id: 'course-1' });
   });
@@ -70,6 +71,7 @@ describe('CourseController', () => {
     expect(courseService.getCourseById).toHaveBeenCalledWith('course-1', 'es', {
       userId: undefined,
       role: undefined,
+      bypassLocks: false,
     });
   });
 });

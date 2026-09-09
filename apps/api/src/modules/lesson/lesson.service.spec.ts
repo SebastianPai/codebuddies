@@ -19,6 +19,8 @@ describe('LessonService', () => {
     hasPremiumAccess: jest.fn().mockResolvedValue(false),
     hasFullAccess: jest.fn().mockReturnValue(false),
     isLessonLocked: jest.fn().mockResolvedValue(false),
+    isLessonProgressionLocked: jest.fn().mockResolvedValue(false),
+    getProgressionLockedLessonIds: jest.fn().mockResolvedValue(new Set<string>()),
   };
 
   beforeEach(async () => {

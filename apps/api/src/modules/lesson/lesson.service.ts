@@ -9,6 +9,9 @@ import { PremiumAccessService } from '../premium-access/premium-access.service';
 export interface LessonRequester {
   userId?: string;
   role?: Role;
+  // Toggle solo-admin (header X-Admin-Bypass-Locks) para revisar contenido
+  // sin respetar el candado de progresión.
+  bypassLocks?: boolean;
 }
 
 @Injectable()
@@ -176,13 +179,25 @@ export class LessonService {
       },
     });
 
+    const progressionLocked =
+      await this.premiumAccessService.getProgressionLockedLessonIds({
+        courseId,
+        userId: requester.userId,
+        role: requester.role,
+        bypass: requester.bypassLocks,
+        lessons: lessons.map((l) => ({
+          id: l.id,
+          exerciseIds: l.exercises.map((e) => e.id),
+        })),
+      });
+
     return lessons.map((lesson) => {
       const translation =
         lesson.translations.find((t) => t.language.code === lang) ||
         lesson.translations.find((t) => t.language.code === 'es') ||
         lesson.translations[0];
 
-      const locked = false;
+      const locked = progressionLocked.has(lesson.id);
 
       return {
         id: lesson.id,
@@ -195,6 +210,7 @@ export class LessonService {
         description: translation?.description ?? null,
         content: locked ? null : (translation?.content ?? null),
         locked,
+        lockedReason: locked ? ('progression' as const) : undefined,
         exercises: lesson.exercises,
       };
     });
@@ -227,13 +243,28 @@ export class LessonService {
       lesson.translations.find((t) => t.language.code === 'es') ||
       lesson.translations[0];
 
-    const locked = await this.premiumAccessService.isLessonLocked({
+    const premiumLocked = await this.premiumAccessService.isLessonLocked({
       courseId: lesson.courseId,
       lessonOrder: lesson.order,
       freeLimit: lesson.course.freeLimit,
       userId: requester.userId,
       role: requester.role,
     });
+    const progressionLocked =
+      await this.premiumAccessService.isLessonProgressionLocked({
+        courseId: lesson.courseId,
+        lessonId: lesson.id,
+        lessonOrder: lesson.order,
+        userId: requester.userId,
+        role: requester.role,
+        bypass: requester.bypassLocks,
+      });
+    const locked = premiumLocked || progressionLocked;
+    const lockedReason = premiumLocked
+      ? ('premium' as const)
+      : progressionLocked
+        ? ('progression' as const)
+        : undefined;
 
     return {
       id: lesson.id,
@@ -249,6 +280,7 @@ export class LessonService {
       // por el gating de la vista de curso.
       content: locked ? null : (translation?.content ?? null),
       locked,
+      lockedReason,
       course: lesson.course,
       exercises: lesson.exercises,
     };

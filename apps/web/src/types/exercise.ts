@@ -10,6 +10,8 @@ export interface BaseExercise {
   experience: number;
   coins: number;
   completed: boolean;
+  locked?: boolean;
+  lockedReason?: "premium" | "progression" | null;
   nextExerciseId?: string | null;
   nextExerciseType?: "QUIZ" | "CODE" | "LIVE" | null;
   prevExerciseId?: string | null;

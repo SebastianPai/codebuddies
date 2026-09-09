@@ -24,6 +24,8 @@ describe('ExerciseService', () => {
     hasFullAccess: jest.fn().mockReturnValue(false),
     getLessonIndex: jest.fn().mockResolvedValue(0),
     isLessonLocked: jest.fn().mockResolvedValue(false),
+    isLessonProgressionLocked: jest.fn().mockResolvedValue(false),
+    getProgressionLockedLessonIds: jest.fn().mockResolvedValue(new Set<string>()),
   };
 
   const quizExercise = {
