@@ -19,8 +19,17 @@ type NpcInput = {
   animations?: unknown;
   greetingLines?: unknown;
   idleLines?: unknown;
+  coinsPrice?: number | null;
+  gemsPrice?: number | null;
+  shopVisible?: boolean;
   enabled?: boolean;
   sortOrder?: number;
+};
+
+const nullablePrice = (n: unknown): number | null => {
+  if (n === null || n === undefined || n === '') return null;
+  const v = Math.trunc(Number(n));
+  return Number.isFinite(v) && v > 0 ? v : null;
 };
 
 const posInt = (n: unknown, fallback: number) => {
@@ -85,6 +94,15 @@ export class NpcService {
         greetingLines: toLines(data.greetingLines),
       }),
       ...(data.idleLines !== undefined && { idleLines: toLines(data.idleLines) }),
+      ...(data.coinsPrice !== undefined && {
+        coinsPrice: nullablePrice(data.coinsPrice),
+      }),
+      ...(data.gemsPrice !== undefined && {
+        gemsPrice: nullablePrice(data.gemsPrice),
+      }),
+      ...(data.shopVisible !== undefined && {
+        shopVisible: Boolean(data.shopVisible),
+      }),
       ...(data.enabled !== undefined && { enabled: Boolean(data.enabled) }),
       ...(data.sortOrder !== undefined && {
         sortOrder: Math.trunc(Number(data.sortOrder)) || 0,
@@ -109,9 +127,19 @@ export class NpcService {
         animations: p.animations ?? [],
         greetingLines: p.greetingLines ?? [],
         idleLines: p.idleLines ?? [],
+        coinsPrice: p.coinsPrice ?? null,
+        gemsPrice: p.gemsPrice ?? null,
+        shopVisible: p.shopVisible ?? false,
         enabled: p.enabled ?? true,
         sortOrder: p.sortOrder ?? 0,
       },
+    });
+  }
+
+  /** Un NPC habilitado por su key (para compra/resolución de look). */
+  getEnabledByKey(key: string) {
+    return this.prisma.npcConfig.findFirst({
+      where: { key: String(key), enabled: true },
     });
   }
 

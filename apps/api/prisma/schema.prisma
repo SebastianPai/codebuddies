@@ -695,6 +695,7 @@ model User {
   rooms  Room[]
   apps   App[]
   pets   Pet[]
+  butler UserButler?
 
   itemGiftsSent     ItemGift[] @relation("ItemGiftsSent")
   itemGiftsReceived ItemGift[] @relation("ItemGiftsReceived")
@@ -1016,6 +1017,30 @@ model NpcConfig {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Mayordomo "contratado" por el jugador. A diferencia de Pet no tiene stats
+// ni decaimiento: solo un look (npcKey -> NpcConfig) y la sala donde está
+// "sacado". Una fila por usuario (@@unique). El comportamiento (deambular +
+// frases) vive en el cliente; el catálogo/assets en NpcConfig (/admin/butler).
+model UserButler {
+  id     String @id @default(uuid())
+  userId String @unique
+
+  // Referencia suelta a NpcConfig.key (mismo criterio que Pet.species). El
+  // sprite/animaciones/frases se resuelven por esta key en el cliente.
+  npcKey String
+  name   String @default("")
+
+  // Sala donde está "sacado"; null = guardado.
+  activeRoomId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([activeRoomId])
 }
 
 model AvatarItemData {

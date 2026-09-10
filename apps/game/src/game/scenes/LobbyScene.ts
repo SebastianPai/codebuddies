@@ -8,6 +8,7 @@ import EasyStar from "easystarjs";
 
 import BuildSystem from "../systems/BuildSystem";
 import PetSystem from "../systems/PetSystem";
+import ButlerSystem from "../systems/ButlerSystem";
 import BuildCommandStack from "../systems/BuildCommandStack";
 import AmbientLightOverlay from "../systems/AmbientLightOverlay";
 import RoomItemsManager from "../systems/RoomItemsManager";
@@ -59,6 +60,8 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
   private roomItems!: RoomItemsManager;
   private petSystem?: PetSystem;
   private onPetChanged = () => this.petSystem?.sync();
+  private butlerSystem?: ButlerSystem;
+  private onButlerChanged = () => this.butlerSystem?.sync();
   private placementValidator!: PlacementValidator;
   private ambientLight!: AmbientLightOverlay;
 
@@ -965,6 +968,17 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
       this.petSystem = undefined;
     });
 
+    // Mayordomo: mismo ciclo que la mascota, pero deambula en vez de seguir
+    // (ver ButlerSystem). Se resincroniza con "butler:changed".
+    this.butlerSystem = new ButlerSystem(this);
+    void this.butlerSystem.sync();
+    window.addEventListener("butler:changed", this.onButlerChanged);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      window.removeEventListener("butler:changed", this.onButlerChanged);
+      this.butlerSystem?.destroy();
+      this.butlerSystem = undefined;
+    });
+
     this.furnitureSockets = new FurnitureSocketSystem(
       this,
       this.roomItems,
@@ -1430,6 +1444,7 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     this.buildSystem?.update(this.input.activePointer);
     this.updateBuildPreviewTint(this.input.activePointer);
     this.petSystem?.update(this.game.loop.delta);
+    this.butlerSystem?.update(this.game.loop.delta);
     if (!this.player || !this.groundLayer) return;
 
     const socket = (this.game as any).socket;

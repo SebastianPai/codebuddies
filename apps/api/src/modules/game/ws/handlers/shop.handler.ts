@@ -5,6 +5,8 @@ import { ItemsService } from '../../items/items.service';
 import { BackgroundsService } from '../../backgrounds/backgrounds.service';
 import { PetService } from '../../pets/pet.service';
 import { PetSpeciesService } from '../../pets/pet-species.service';
+import { NpcService } from '../../npcs/npc.service';
+import { ButlerService } from '../../npcs/butler.service';
 import {
   BuyBackgroundDto,
   BuyItemDto,
@@ -33,6 +35,8 @@ export class ShopHandler {
     private readonly backgroundsService: BackgroundsService,
     private readonly petService: PetService,
     private readonly petSpeciesService: PetSpeciesService,
+    private readonly npcService: NpcService,
+    private readonly butlerService: ButlerService,
   ) {}
 
   // ====================== OBTENER ITEMS DE LA TIENDA ======================
@@ -133,10 +137,46 @@ export class ShopHandler {
           createdAt: s.createdAt,
         }));
 
+      // Mayordomos: mismo tratamiento que las mascotas (se compran y se
+      // sacan a la sala) pero salen de NpcConfig (kind BUTLER). Reusa
+      // `speciesKey` como identificador opaco para que la UI del shop no
+      // tenga que duplicar ramas.
+      const butlers = await this.npcService.listEnabled('BUTLER');
+      const myButler = userId
+        ? await this.butlerService.getMine(userId)
+        : null;
+      const formattedButlers = butlers
+        .filter((n: any) => n.shopVisible && (n.coinsPrice ?? 0) > 0)
+        .map((n: any) => ({
+          id: `butler:${n.key}`,
+          speciesKey: n.key,
+          npcKey: n.key,
+          type: 'BUTLER',
+          name: n.name,
+          description: null,
+          owned: !!myButler, // 1 mayordomo por usuario
+          ownedThis: myButler?.npcKey === n.key,
+          petSprite: {
+            spriteSheetUrl: n.spriteSheetUrl,
+            frameWidth: n.frameWidth,
+            frameHeight: n.frameHeight,
+            directions: n.directions,
+            animations: n.animations ?? [],
+          },
+          coinsPrice: n.coinsPrice ?? 0,
+          gemsPrice: n.gemsPrice ?? 0,
+          rarity: 0,
+          rarityKey: 'common',
+          shopVisible: true,
+          category: 'butler',
+          createdAt: n.createdAt,
+        }));
+
       socket.emit('shop:items', [
         ...formatted,
         ...formattedBackgrounds,
         ...formattedPets,
+        ...formattedButlers,
       ]);
       this.logger.debug(`Enviados ${formatted.length} items al shop`);
     } catch (err: any) {
@@ -211,6 +251,41 @@ export class ShopHandler {
       this.logger.warn(`Compra de mascota rechazada: ${err.message}`);
       socket.emit('shop:item:error', {
         message: err.message || 'No se pudo adoptar la mascota',
+      });
+    }
+  }
+
+  // ====================== CONTRATAR MAYORDOMO ======================
+  async handleBuyButler(
+    socket: Socket,
+    data: { npcKey?: string; name?: string },
+  ) {
+    const userId = socket.data.user?.userId;
+    if (!userId) {
+      return socket.emit('shop:item:error', { message: 'No autenticado' });
+    }
+    if (!data?.npcKey) {
+      return socket.emit('shop:item:error', {
+        message: 'npcKey es requerido',
+      });
+    }
+
+    try {
+      const butler = await this.butlerService.buyFromShop(
+        userId,
+        data.npcKey,
+        data.name,
+      );
+      socket.emit('butler:data', butler);
+      socket.emit('shop:item:bought', {
+        itemId: `butler:${data.npcKey}`,
+        message: 'Mayordomo contratado',
+      });
+      this.logger.log(`Usuario ${userId} contrató mayordomo ${data.npcKey}`);
+    } catch (err: any) {
+      this.logger.warn(`Compra de mayordomo rechazada: ${err.message}`);
+      socket.emit('shop:item:error', {
+        message: err.message || 'No se pudo contratar el mayordomo',
       });
     }
   }

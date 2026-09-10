@@ -28,7 +28,8 @@
     "discordLabel": "Official Discord",
     "collapse": "Collapse menu",
     "expand": "Expand menu",
-    "pet": "Pet"
+    "pet": "Pet",
+    "butler": "Butler"
   },
   "topBar": {
     "energyHint": "Energy — spent when you complete learning exercises",
@@ -131,5 +132,17 @@
     "mood_SAD": "Sad 😿",
     "mood_SICK": "Sick 🤒",
     "mood_SLEEPING": "Sleeping 💤"
+  },
+  "butler": {
+    "title": "My butler",
+    "none": "You don't have a butler yet. Hire one in the shop (Butler tab).",
+    "unnamed": "Unnamed",
+    "rename": "Tap to rename",
+    "bringOut": "Bring to room",
+    "putAway": "Put away",
+    "enterRoomFirst": "Enter a room to bring it out.",
+    "release": "Dismiss",
+    "releaseTitle": "Dismiss the butler?",
+    "releaseMessage": "You'll lose the butler. This can't be undone."
   }
 }

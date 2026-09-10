@@ -28,7 +28,8 @@
     "discordLabel": "Discord Oficial",
     "collapse": "Colapsar menú",
     "expand": "Expandir menú",
-    "pet": "Mascota"
+    "pet": "Mascota",
+    "butler": "Mayordomo"
   },
   "topBar": {
     "energyHint": "Energía — se gasta al completar ejercicios de aprendizaje",
@@ -131,5 +132,17 @@
     "mood_SAD": "Triste 😿",
     "mood_SICK": "Enferma 🤒",
     "mood_SLEEPING": "Durmiendo 💤"
+  },
+  "butler": {
+    "title": "Mi mayordomo",
+    "none": "Todavía no tenés un mayordomo. Contratá uno en la tienda (pestaña Mayordomo).",
+    "unnamed": "Sin nombre",
+    "rename": "Tocá para renombrar",
+    "bringOut": "Sacar a la sala",
+    "putAway": "Guardar",
+    "enterRoomFirst": "Entrá a una sala para sacarlo.",
+    "release": "Despedir",
+    "releaseTitle": "¿Despedir al mayordomo?",
+    "releaseMessage": "Vas a perder al mayordomo. Esta acción no se puede deshacer."
   }
 }

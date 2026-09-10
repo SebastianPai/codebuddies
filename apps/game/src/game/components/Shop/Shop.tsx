@@ -30,7 +30,8 @@ type TabType =
   | "textures"
   | "backgrounds"
   | "effects"
-  | "pets";
+  | "pets"
+  | "butler";
 
 const ITEMS_PER_PAGE = 12;
 
@@ -85,10 +86,15 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
       setItems(data);
       setCurrentPage(1);
     };
-    const handleBought = () => {
+    const handleBought = (data?: { itemId?: string }) => {
       if (buyingSafetyTimeout.current) {
         clearTimeout(buyingSafetyTimeout.current);
         buyingSafetyTimeout.current = null;
+      }
+      // El mayordomo recién contratado ya puede aparecer si la escena lo
+      // resincroniza (mismo patrón que "pet:changed").
+      if (typeof data?.itemId === "string" && data.itemId.startsWith("butler:")) {
+        window.dispatchEvent(new CustomEvent("butler:changed"));
       }
       requestItems();
       setBuyingItemId(null);
@@ -161,7 +167,9 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
     if (!confirmed) return;
 
     setBuyingItemId(itemId);
-    if (item?.type === "PET") {
+    if (item?.type === "BUTLER") {
+      socket?.emit("shop:butler:buy", { npcKey: item.speciesKey });
+    } else if (item?.type === "PET") {
       socket?.emit("shop:pet:buy", { speciesKey: item.speciesKey });
     } else {
       socket?.emit(
@@ -183,10 +191,17 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
   const adoptPet = (item: any) => {
     if (buyingItemId) return;
     setBuyingItemId(item.id);
-    socket?.emit("shop:pet:buy", {
-      speciesKey: item.speciesKey,
-      name: petName.trim(),
-    });
+    if (item?.type === "BUTLER") {
+      socket?.emit("shop:butler:buy", {
+        npcKey: item.speciesKey,
+        name: petName.trim(),
+      });
+    } else {
+      socket?.emit("shop:pet:buy", {
+        speciesKey: item.speciesKey,
+        name: petName.trim(),
+      });
+    }
     if (buyingSafetyTimeout.current) clearTimeout(buyingSafetyTimeout.current);
     buyingSafetyTimeout.current = setTimeout(() => {
       setBuyingItemId(null);
@@ -287,6 +302,7 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
       if (activeTab === "backgrounds" && item.type !== "BACKGROUND") return false;
       if (activeTab === "effects" && !isEffect) return false;
       if (activeTab === "pets" && item.type !== "PET") return false;
+      if (activeTab === "butler" && item.type !== "BUTLER") return false;
 
       return (
         item.id?.toLowerCase().includes(term) ||
@@ -355,6 +371,12 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
         >
           🐾 {t("commerce.shopTabPets")}
         </button>
+        <button
+          className={`${styles.tab} ${activeTab === "butler" ? styles.active : ""}`}
+          onClick={() => setActiveTab("butler")}
+        >
+          🎩 {t("commerce.shopTabButler")}
+        </button>
       </div>
 
       <div className={styles.shopBanner}>
@@ -369,7 +391,9 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
                   ? t("commerce.shopBannerEffects")
                   : activeTab === "pets"
                     ? t("commerce.shopBannerPets")
-                    : t("commerce.shopBannerWorld")}
+                    : activeTab === "butler"
+                      ? t("commerce.shopBannerButler")
+                      : t("commerce.shopBannerWorld")}
         </h2>
 
         <p>{t("commerce.shopItemsAvailable", { count: items.length })}</p>
@@ -399,6 +423,10 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
           const owned = inventoryMap.has(item.id) || item.owned;
           const isBuying = buyingItemId === item.id;
           const alreadyHasBackground = item.type === "BACKGROUND" && item.canUse;
+          // Mascota y mayordomo comparten toda la UI de "adoptar/contratar":
+          // se compran con un nombre opcional y se sacan a la sala.
+          const isCompanion = item.type === "PET" || item.type === "BUTLER";
+          const isButler = item.type === "BUTLER";
           // Nombre real del item; si no tiene traducción, cae a la etiqueta
           // de categoría (slot/kind) como antes.
           const displayName = item.name || getLabel(item);
@@ -410,12 +438,15 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
               rarity={item.rarity}
               effectPreview={item.type === "EFFECT" ? item.effectKey : undefined}
               preview={
-                item.type === "PET" ? (
+                item.type === "PET" || item.type === "BUTLER" ? (
                   <PetSpriteCell petSprite={item.petSprite} />
                 ) : undefined
               }
               title={
-                owned && (item.type === "BACKGROUND" || item.type === "PET")
+                owned &&
+                (item.type === "BACKGROUND" ||
+                  item.type === "PET" ||
+                  item.type === "BUTLER")
                   ? `${displayName} ✓`
                   : displayName
               }
@@ -437,18 +468,26 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
                       </RarityText>
                     )}
                   </div>
-                  {item.type === "PET" ? (
+                  {isCompanion ? (
                     owned ? (
                       <div className={styles.footerActions}>
                         <Button variant="primary" size="sm" fullWidth disabled>
-                          {t("commerce.petOwned")}
+                          {t(
+                            isButler
+                              ? "commerce.butlerOwned"
+                              : "commerce.petOwned",
+                          )}
                         </Button>
                       </div>
                     ) : petAdoptKey === item.speciesKey ? (
                       <div className={styles.giftForm}>
                         <input
                           className={styles.giftInput}
-                          placeholder={t("commerce.petNamePlaceholder")}
+                          placeholder={t(
+                            isButler
+                              ? "commerce.butlerNamePlaceholder"
+                              : "commerce.petNamePlaceholder",
+                          )}
                           value={petName}
                           maxLength={24}
                           onChange={(e) => setPetName(e.target.value)}
@@ -470,11 +509,15 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
                             variant="primary"
                             size="sm"
                             onClick={() => adoptPet(item)}
-                            disabled={isBuying || !petName.trim()}
+                            disabled={isBuying || (!isButler && !petName.trim())}
                           >
                             {isBuying
                               ? t("commerce.shopBuying")
-                              : t("commerce.petAdopt")}
+                              : t(
+                                  isButler
+                                    ? "commerce.butlerHire"
+                                    : "commerce.petAdopt",
+                                )}
                           </Button>
                         </div>
                       </div>
@@ -489,7 +532,11 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
                             setPetName("");
                           }}
                         >
-                          {t("commerce.petAdopt")}
+                          {t(
+                            isButler
+                              ? "commerce.butlerHire"
+                              : "commerce.petAdopt",
+                          )}
                         </Button>
                       </div>
                     )

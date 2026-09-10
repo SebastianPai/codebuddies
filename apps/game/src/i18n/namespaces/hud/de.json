@@ -28,7 +28,8 @@
     "discordLabel": "Offizieller Discord",
     "collapse": "Menü einklappen",
     "expand": "Menü ausklappen",
-    "pet": "Haustier"
+    "pet": "Haustier",
+    "butler": "Butler"
   },
   "topBar": {
     "energyHint": "Energie – wird verbraucht, wenn du Lernübungen abschließt",
@@ -131,5 +132,17 @@
     "mood_SAD": "Traurig 😿",
     "mood_SICK": "Krank 🤒",
     "mood_SLEEPING": "Schläft 💤"
+  },
+  "butler": {
+    "title": "Mein Butler",
+    "none": "Du hast noch keinen Butler. Stell einen im Shop ein (Tab Butler).",
+    "unnamed": "Namenlos",
+    "rename": "Zum Umbenennen tippen",
+    "bringOut": "In den Raum holen",
+    "putAway": "Wegräumen",
+    "enterRoomFirst": "Betritt einen Raum, um ihn herauszuholen.",
+    "release": "Entlassen",
+    "releaseTitle": "Butler entlassen?",
+    "releaseMessage": "Du verlierst den Butler. Das kann nicht rückgängig gemacht werden."
   }
 }

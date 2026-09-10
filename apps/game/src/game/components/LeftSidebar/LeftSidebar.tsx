@@ -59,6 +59,7 @@ type Props = {
   onCustomize: () => void;
   onOpenFriends: () => void;
   onOpenPet: () => void;
+  onOpenButler: () => void;
   onOpenMessages: () => void;
   onOpenNotifications: () => void;
   onOpenShop: () => void;
@@ -79,6 +80,7 @@ function LeftSidebar({
   onCustomize,
   onOpenFriends,
   onOpenPet,
+  onOpenButler,
   onOpenMessages,
   onOpenNotifications,
   onOpenShop,
@@ -322,6 +324,24 @@ function LeftSidebar({
           <circle cx="14.5" cy="6.5" r="2.1" />
           <circle cx="19" cy="10" r="2.1" />
           <path d="M12 11c-3 0-5.5 2.2-5.5 4.7 0 1.9 1.7 3.1 3.7 3.1 1 0 1.4-.4 1.8-.4s.8.4 1.8.4c2 0 3.7-1.2 3.7-3.1C17.5 13.2 15 11 12 11z" />
+        </svg>
+      ),
+    },
+    {
+      name: t("hud.sidebar.butler"),
+      onClick: onOpenButler,
+      icon: (
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.25"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M18 20a6 6 0 0 0-12 0" />
+          <circle cx="12" cy="8" r="4" />
+          <path d="M12 12l-2.5 3.5M12 12l2.5 3.5" />
         </svg>
       ),
     },

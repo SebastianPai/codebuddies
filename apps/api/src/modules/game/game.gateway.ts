@@ -226,6 +226,14 @@ export class GameGateway
     this.shopHandler.handleBuyPet(socket, data);
   }
 
+  @SubscribeMessage('shop:butler:buy')
+  handleBuyButler(
+    @MessageBody() data: { npcKey?: string; name?: string },
+    @ConnectedSocket() socket: Socket,
+  ) {
+    this.shopHandler.handleBuyButler(socket, data);
+  }
+
   @SubscribeMessage('shop:item:gift')
   handleGiftItem(
     @MessageBody() data: GiftItemDto,

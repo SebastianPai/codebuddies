@@ -27,6 +27,9 @@ type Npc = {
   animations: AnimClip[];
   greetingLines: string[];
   idleLines: string[];
+  coinsPrice: number | null;
+  gemsPrice: number | null;
+  shopVisible: boolean;
   enabled: boolean;
   sortOrder: number;
 };
@@ -43,6 +46,9 @@ const EMPTY: Partial<Npc> = {
   animations: [],
   greetingLines: [],
   idleLines: [],
+  coinsPrice: null,
+  gemsPrice: null,
+  shopVisible: false,
   enabled: true,
   sortOrder: 0,
 };
@@ -215,7 +221,15 @@ export default function AdminButlerPage() {
             />
           </Field>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-3">
+            <Field label={t("admin.petsPrice")} hint={t("admin.petsPriceHint")}>
+              <NumberInput
+                value={draft.coinsPrice ?? 0}
+                onChange={(e) =>
+                  set({ coinsPrice: Number(e.target.value) || null })
+                }
+              />
+            </Field>
             <Field
               label={t("admin.petsSortOrder")}
               hint={t("admin.petsSortOrderHint")}
@@ -225,14 +239,24 @@ export default function AdminButlerPage() {
                 onChange={(e) => set({ sortOrder: Number(e.target.value) })}
               />
             </Field>
-            <label className="flex items-center gap-2 self-end pb-2 text-sm text-zinc-300">
-              <input
-                type="checkbox"
-                checked={draft.enabled ?? true}
-                onChange={(e) => set({ enabled: e.target.checked })}
-              />
-              {t("admin.petsEnabled")}
-            </label>
+            <div className="flex flex-col gap-2 self-end pb-2 text-sm text-zinc-300">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={draft.shopVisible ?? false}
+                  onChange={(e) => set({ shopVisible: e.target.checked })}
+                />
+                {t("admin.petsShopVisible")}
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={draft.enabled ?? true}
+                  onChange={(e) => set({ enabled: e.target.checked })}
+                />
+                {t("admin.petsEnabled")}
+              </label>
+            </div>
           </div>
 
           <div className="flex gap-3">
@@ -303,6 +327,9 @@ export default function AdminButlerPage() {
               )}
               <p className="text-xs text-zinc-500">
                 {n.greetingLines.length} {t("admin.butlerGreetingsShort")}
+                {n.shopVisible && n.coinsPrice
+                  ? ` · ${n.coinsPrice} coins`
+                  : ""}
               </p>
               <div className="flex gap-4 pt-1 text-sm">
                 <button
