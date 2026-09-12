@@ -41,6 +41,10 @@ export default class ModularPlayer extends Phaser.GameObjects.Container {
   // Distancia medida del origen del Container a los pies del avatar.
   private footOffsetY = 0;
 
+  // Desglose por slot de esa medición (solo depuración, ver F9).
+  private footMeasurement: { slot: string; bottom: number; height: number }[] =
+    [];
+
   constructor(
     scene: Phaser.Scene,
     groundX: number,
@@ -100,20 +104,42 @@ export default class ModularPlayer extends Phaser.GameObjects.Container {
   private measureFootOffset() {
     let bottom = -Infinity;
 
+    this.footMeasurement = [];
+
     for (const slotName in this.slotMap) {
       const slot = this.slotMap[slotName];
       if (!slot) continue;
 
-      for (const sprite of [slot.base, slot.anim]) {
+      for (const [kind, sprite] of [
+        ["base", slot.base],
+        ["anim", slot.anim],
+      ] as const) {
         if (!sprite) continue;
-        bottom = Math.max(
-          bottom,
-          sprite.y + sprite.displayHeight * (1 - sprite.originY),
-        );
+        const spriteBottom =
+          sprite.y + sprite.displayHeight * (1 - sprite.originY);
+        this.footMeasurement.push({
+          slot: `${slotName}.${kind}`,
+          bottom: spriteBottom,
+          height: sprite.displayHeight,
+        });
+        bottom = Math.max(bottom, spriteBottom);
       }
     }
 
     this.footOffsetY = Number.isFinite(bottom) ? bottom : 0;
+  }
+
+  /**
+   * Desglose de la medición de los pies, para depuración (F9).
+   *
+   * El borde inferior de un sprite incluye el padding transparente que
+   * tenga el arte: si una parte del avatar se dibuja con hueco por debajo
+   * de los pies, esa parte manda en el máximo y el personaje queda flotando
+   * sobre su sombra. Esto dice QUÉ slot está mandando, para corregir el
+   * asset (o su offsetY) en vez de compensarlo con una constante.
+   */
+  getFootMeasurement(): { slot: string; bottom: number; height: number }[] {
+    return [...this.footMeasurement].sort((a, b) => b.bottom - a.bottom);
   }
 
   // ─────────────────────── construcción ───────────────────────

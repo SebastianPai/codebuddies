@@ -24,6 +24,8 @@ type DebugTarget = {
   groundX: number;
   groundY: number;
   originY?: number;
+  /** Texto libre extra (p. ej. el desglose de la medición de los pies). */
+  detail?: string;
 };
 
 // Interruptor accesible desde la consola del navegador sin recargar.
@@ -188,6 +190,10 @@ export default class IsoDebugOverlay {
       lines.push(
         `${target.label.padEnd(7)} apoyo (${target.groundX.toFixed(0)}, ${target.groundY.toFixed(0)})  tile (${gt ? gt.x.toFixed(2) : "?"}, ${gt ? gt.y.toFixed(2) : "?"})  depth ${depth.toFixed(0)}${foot}`,
       );
+
+      if (target.detail) {
+        lines.push(`        ${target.detail}`);
+      }
     }
 
     this.text.setText(lines.join("\n"));

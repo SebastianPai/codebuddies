@@ -928,36 +928,71 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     return scoredLayers[0]?.layer || layers[0];
   }
 
-  // Antes el jugador aparecía en un literal fijo (250, 250) en coordenadas
-  // de mundo — solo caía "en el medio del mapa" por coincidencia al tamaño
-  // de viewport con el que se probó originalmente (buildMap() posiciona el
-  // tilemap con un offset que depende de this.scale.width/height, distinto
-  // en tablet/desktop). Un primer intento de arreglo calculó el centro
-  // geométrico del rectángulo del mapa en píxeles, pero las salas acá son
-  // isométricas con forma de rombo (ver el comentario de setupPathfinding
-  // sobre corner-cutting) — el centro del rectángulo puede caer justo en una
-  // punta vacía del rombo, un tile que no existe. Esta versión usa el
-  // centro en coordenadas de TILE (no depende del tamaño de canvas en
-  // absoluto) y lo valida con isWalkable(), la misma función de la que ya
-  // depende el pathfinding — si no es caminable, no arriesga otra regla
-  // inventada: cae al punto fijo de siempre.
-  private resolveSpawnPosition(): [number, number] {
-    const fallback: [number, number] = [250, 250];
-    if (!this.isoGrid) return fallback;
+  /**
+   * Punto de apoyo donde aparece el jugador al entrar en la sala.
+   *
+   * OJO CON EL ORDEN DE ARRANQUE: esto corre al principio de createWorld,
+   * cuando todavía NO existen ni `navGrid` (se crea en setupPathfinding, al
+   * final) ni `roomItems`. Por eso NO puede usar `isWalkable()`: esa
+   * consulta va contra navGrid y devolvería siempre false, mandando el
+   * spawn al fallback en TODAS las salas. Aquí sólo se puede preguntar por
+   * el terreno, que es justo lo que hace falta — los muebles aún no se han
+   * cargado.
+   *
+   * Tampoco hay ya un literal (250, 250) de reserva: era una coordenada de
+   * mundo arbitraria que caía dentro de la pared. Si el centro no es suelo
+   * se busca en anillos el suelo más cercano, que siempre existe salvo que
+   * la sala esté completamente vacía.
+   */
+  private resolveSpawnPosition(): [number, number] | null {
+    if (!this.isoGrid) return null;
 
-    const tx = Math.floor(this.isoGrid.width / 2);
-    const ty = Math.floor(this.isoGrid.height / 2);
-    if (!this.isWalkable(tx, ty)) return fallback;
+    const cx = Math.floor(this.isoGrid.width / 2);
+    const cy = Math.floor(this.isoGrid.height / 2);
 
-    // Ancla de suelo, igual que el destino de cada paso al caminar (ver
-    // update()). Antes esto devolvía `worldPos.y + tileHeight/2` mientras
-    // que caminar apuntaba a `worldPos.y + tileHeight/2 + PLAYER_Y_OFFSET`:
-    // 20 px de diferencia, así que el jugador daba un saltito hacia arriba
-    // en su primer paso.
-    const anchor = this.isoGrid.groundAnchor(tx, ty);
-    if (!anchor) return fallback;
+    const spawnTile = this.findNearestFloorTile(cx, cy);
+    if (!spawnTile) return null;
 
-    return [anchor.x, anchor.y];
+    // Ancla de suelo, el mismo punto al que apunta cada paso al caminar
+    // (ver update()), para que el jugador no dé un saltito en su primer
+    // movimiento.
+    const anchor = this.isoGrid.groundAnchor(spawnTile.x, spawnTile.y);
+    return anchor ? [anchor.x, anchor.y] : null;
+  }
+
+  /** Suelo más cercano a (cx, cy) en anillos crecientes. Sólo terreno. */
+  private findNearestFloorTile(cx: number, cy: number): NavTile | null {
+    const grid = this.isoGrid;
+    if (!grid) return null;
+
+    if (grid.isFloorTile(cx, cy)) return { x: cx, y: cy };
+
+    const maxRadius = Math.max(grid.width, grid.height);
+
+    for (let r = 1; r <= maxRadius; r++) {
+      let best: NavTile | null = null;
+      let bestDistance = Infinity;
+
+      for (let dy = -r; dy <= r; dy++) {
+        for (let dx = -r; dx <= r; dx++) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+
+          const x = cx + dx;
+          const y = cy + dy;
+          if (!grid.isFloorTile(x, y)) continue;
+
+          const distance = dx * dx + dy * dy;
+          if (distance < bestDistance) {
+            bestDistance = distance;
+            best = { x, y };
+          }
+        }
+      }
+
+      if (best) return best;
+    }
+
+    return null;
   }
 
   private setBuildMode(active: boolean) {
@@ -984,16 +1019,22 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
 
     // El constructor recibe el PUNTO DE APOYO (dónde pisa), no el origen
     // del Container: ModularPlayer deriva ese origen midiendo el avatar.
-    const [spawnX, spawnY] = this.resolveSpawnPosition();
+    const spawn = this.resolveSpawnPosition();
+    if (!spawn) {
+      console.error("❌ La sala no tiene ninguna casilla de suelo donde aparecer");
+      return;
+    }
+    const [spawnX, spawnY] = spawn;
     this.player = new ModularPlayer(this, spawnX, spawnY, []);
 
     // Elipse plana y semitransparente bajo los pies del jugador. Se dibuja
     // exactamente en el punto de apoyo, sin ningún offset propio: si la
     // sombra se ve descolocada, lo que está mal es el ancla, no la sombra.
     // Tamaño derivado del tile, no dos literales.
-    const shadow = this.isoGrid
-      ? { w: this.isoGrid.tileWidth * 0.6, h: this.isoGrid.tileHeight * 0.5 }
-      : { w: 40, h: 16 };
+    const shadow = {
+      w: this.isoGrid.tileWidth * 0.6,
+      h: this.isoGrid.tileHeight * 0.5,
+    };
     const playerGround = this.player.getGroundPoint();
     this.playerShadow = this.add.ellipse(
       playerGround.x,
@@ -1603,6 +1644,7 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
       groundX: number;
       groundY: number;
       originY?: number;
+      detail?: string;
     }[] = [];
 
     if (this.player) {
@@ -1612,6 +1654,13 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
         groundX: g.x,
         groundY: g.y,
         originY: this.player.y,
+        // Qué partes del avatar llegan más abajo: la que manda es la que
+        // fija dónde se cree que están los pies.
+        detail: this.player
+          .getFootMeasurement()
+          .slice(0, 3)
+          .map((m) => `${m.slot}=${m.bottom.toFixed(0)}(h${m.height.toFixed(0)})`)
+          .join(" "),
       });
     }
 
