@@ -43,6 +43,28 @@ import TileWalkability, {
 const DEFAULT_TILESET_NAME = "tiles3";
 const DEFAULT_TILESET_KEY = "tiles";
 
+// ═══════════════════════════════════════════════════════════════════════
+// ███ INSTRUMENTACIÓN TEMPORAL DEL MOVIMIENTO — BORRAR TRAS DIAGNOSTICAR
+//
+// Solo registra. No cambia ninguna decisión de movimiento: los try/catch
+// vuelven a lanzar la excepción para que el flujo sea idéntico.
+// Todo lo que imprime lleva el prefijo [MOVE] para poder filtrarlo.
+// ═══════════════════════════════════════════════════════════════════════
+const MOVE_DEBUG = true;
+
+function mlog(...args: unknown[]) {
+  if (MOVE_DEBUG) console.log("%c[MOVE]", "color:#22d3ee;font-weight:bold", ...args);
+}
+
+function mwarn(...args: unknown[]) {
+  if (MOVE_DEBUG) console.warn("%c[MOVE]", "color:#f59e0b;font-weight:bold", ...args);
+}
+
+function merr(...args: unknown[]) {
+  if (MOVE_DEBUG) console.error("%c[MOVE]", "color:#ef4444;font-weight:bold", ...args);
+}
+// ███ FIN INSTRUMENTACIÓN ███
+
 export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
   player!: ModularPlayer;
   otherPlayers!: Phaser.GameObjects.Group;
@@ -91,6 +113,13 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
   // mueble), pero siguen siendo de UNA casilla cada uno. Se apaga en cuanto
   // termina esa ruta.
   private escaping = false;
+  // ███ INSTRUMENTACIÓN TEMPORAL ███
+  private dbgFrame = 0;
+  private dbgPendingSince = -1;
+  private dbgPendingWarned = false;
+  private dbgBlockedFrames = 0;
+  private dbgLastBlockReason = "";
+  // ███ FIN ███
   private speed = 180;
   private arrivalThreshold = 5;
 
@@ -1244,6 +1273,29 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     // vayan entrando) se vuelcan por el listener de ocupación.
     this.navDirty = true;
     this.flushNavIfDirty();
+
+    // ███ INSTRUMENTACIÓN TEMPORAL ███
+    mlog("NavGrid creado |", this.isoGrid.describe(), "|",
+      this.isoGrid.describeWalkability(),
+      "| transitables:", this.navGrid.walkableCount());
+    // Acceso desde consola: window.lobby
+    (window as unknown as { lobby: unknown }).lobby = this;
+    (window as unknown as { moveState: () => unknown }).moveState = () => ({
+      navGrid: !!this.navGrid,
+      transitables: this.navGrid?.walkableCount(),
+      currentPath: this.currentPath,
+      pathTarget: this.pathTarget,
+      pendingPathId: this.pendingPathId,
+      pathRequestId: this.pathRequestId,
+      escaping: this.escaping,
+      navDirty: this.navDirty,
+      playerTile: this.playerTile(),
+      ground: this.player?.getGroundPoint(),
+      isMoving: this.player?.isMoving,
+      frame: this.dbgFrame,
+    });
+    mlog("consola: window.moveState()  /  window.lobby");
+    // ███ FIN ███
   }
 
   private isWalkable(tx: number, ty: number): boolean {
@@ -1297,8 +1349,36 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     if (affectsRoute) this.repathToCurrentTarget();
   }
 
+  // ███ INSTRUMENTACIÓN TEMPORAL ███
+  /** Avisa de un bloqueo repetido sin inundar la consola. */
+  private dbgBlockRepeat(reason: string) {
+    if (reason !== this.dbgLastBlockReason) {
+      this.dbgLastBlockReason = reason;
+      this.dbgBlockedFrames = 0;
+      mwarn("frame bloqueado:", reason);
+    }
+    this.dbgBlockedFrames++;
+    if (this.dbgBlockedFrames === 60 || this.dbgBlockedFrames === 300) {
+      merr("⚠️ BLOQUEADO", this.dbgBlockedFrames, "frames seguidos por:", reason, {
+        currentPath: this.currentPath.length,
+        pathTarget: this.pathTarget,
+        pendingPathId: this.pendingPathId,
+        escaping: this.escaping,
+      });
+    }
+  }
+  // ███ FIN ███
+
   /** Deja al jugador quieto y sin ruta pendiente, de forma limpia. */
   private stopWalking() {
+    // ███ INSTRUMENTACIÓN TEMPORAL ███
+    mwarn("stopWalking()", {
+      currentPath: this.currentPath.length,
+      pathTarget: this.pathTarget,
+      pendingPathId: this.pendingPathId,
+      escaping: this.escaping,
+    });
+    // ███ FIN ███
     this.navGrid?.cancelPath(this.pendingPathId);
     this.pendingPathId = null;
     this.pathRequestId++;
@@ -1361,6 +1441,12 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
 
     const token = ++this.pathRequestId;
 
+    // ███ INSTRUMENTACIÓN TEMPORAL ███
+    mlog("  requestPath", from, "->", to, "| token:", token,
+      "| cancelando pendingPathId:", this.pendingPathId);
+    const askedAtFrame = this.dbgFrame;
+    // ███ FIN ███
+
     this.navGrid.cancelPath(this.pendingPathId);
     this.pendingPathId = null;
     // Nunca se conserva la ruta anterior mientras se busca la nueva.
@@ -1368,19 +1454,45 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     this.pathTarget = { x: to.x, y: to.y };
     this.escaping = false;
 
-    const id = this.navGrid.findPath(from, to, (path) => {
-      if (token !== this.pathRequestId) return; // respuesta obsoleta
+    let id: number | null = null;
+    try {
+      id = this.navGrid.findPath(from, to, (path) => {
+        // ███ INSTRUMENTACIÓN TEMPORAL ███
+        mlog("  ✅ CALLBACK EasyStar | token:", token, "vigente:", this.pathRequestId,
+          "| tras", this.dbgFrame - askedAtFrame, "frames",
+          "| path:", path === null ? "null (SIN RUTA)" : `${path.length} nodos`);
+        // ███ FIN ███
 
-      this.pendingPathId = null;
+        if (token !== this.pathRequestId) {
+          mwarn("  ↳ descartado: respuesta OBSOLETA");
+          return; // respuesta obsoleta
+        }
 
-      if (path && path.length > 1) {
-        this.currentPath = path.slice(1);
-        return;
-      }
+        this.pendingPathId = null;
+        this.dbgPendingSince = -1;
+        this.dbgPendingWarned = false;
 
-      // null (sin ruta) o length <= 1 (ya estamos ahí): no dejar basura.
-      this.stopWalking();
-    });
+        if (path && path.length > 1) {
+          this.currentPath = path.slice(1);
+          mlog("  ↳ currentPath =", this.currentPath.length, "pasos; primero:",
+            this.currentPath[0]);
+          return;
+        }
+
+        // null (sin ruta) o length <= 1 (ya estamos ahí): no dejar basura.
+        mwarn("  ↳ sin ruta utilizable -> stopWalking()");
+        this.stopWalking();
+      });
+    } catch (err) {
+      merr("  ✖ findPath LANZÓ:", err);
+      throw err;
+    }
+
+    // ███ INSTRUMENTACIÓN TEMPORAL ███
+    mlog("  findPath devolvió id:", id);
+    this.dbgPendingSince = this.dbgFrame;
+    this.dbgPendingWarned = false;
+    // ███ FIN ███
 
     if (token === this.pathRequestId) this.pendingPathId = id;
   }
@@ -1441,26 +1553,63 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
 
     const target = this.isoGrid.pointerToTile(this.cameras.main, pointer);
 
-    if (!target || !this.navGrid) return;
+    // ███ INSTRUMENTACIÓN TEMPORAL ███
+    mlog("━━━━━━━━━━ CLICK ━━━━━━━━━━");
+    mlog("  estado previo:", {
+      currentPath: this.currentPath.length,
+      pathTarget: this.pathTarget,
+      pendingPathId: this.pendingPathId,
+      escaping: this.escaping,
+      navDirty: this.navDirty,
+      navGrid: !!this.navGrid,
+      isMoving: this.player?.isMoving,
+    });
+    // ███ FIN ███
+
+    if (!target || !this.navGrid) {
+      mwarn("  ABORTA: sin target o sin navGrid", { target, navGrid: !!this.navGrid });
+      return;
+    }
 
     // Resolver el click contra la ocupación más reciente, no contra la del
     // frame anterior.
     this.flushNavIfDirty();
 
-    if (!this.isWalkable(target.x, target.y)) return;
+    const targetWalkable = this.isWalkable(target.x, target.y);
+    const fromTile = this.playerTile();
+    const fromWalkable = fromTile
+      ? this.isWalkable(fromTile.x, fromTile.y)
+      : null;
+
+    mlog("  destino:", target, "walkable:", targetWalkable);
+    mlog("  origen :", fromTile, "walkable:", fromWalkable,
+      "| apoyo:", this.player?.getGroundPoint());
+    mlog("  navGrid: casillas transitables =", this.navGrid.walkableCount());
+
+    if (!targetWalkable) {
+      mwarn("  ABORTA: destino BLOQUEADO -> el click se descarta en silencio");
+      return;
+    }
 
     // Tile de ORIGEN a partir del punto de apoyo del jugador (sus pies).
     // Antes el destino y el origen se calculaban con dos criterios
     // distintos dentro de esta misma función.
     const from = this.playerTile();
-    if (!from) return;
+    if (!from) {
+      mwarn("  ABORTA: playerTile() devolvió null");
+      return;
+    }
 
-    if (from.x === target.x && from.y === target.y) return;
+    if (from.x === target.x && from.y === target.y) {
+      mwarn("  ABORTA: ya estás en esa casilla");
+      return;
+    }
 
     // Si el jugador quedó dentro de una huella que se bloqueó bajo sus
     // pies, EasyStar no encontraría salida desde ahí: primero se sale
     // andando a la casilla libre más cercana.
     if (!this.isWalkable(from.x, from.y)) {
+      mwarn("  ABORTA: el jugador está sobre casilla BLOQUEADA -> unstick (destino descartado)");
       this.unstickPlayer();
       return;
     }
@@ -1490,6 +1639,11 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     // de escape sí puede atravesar el mueble en el que ya está, pero
     // siempre casilla a casilla.
     const escape = this.navGrid.escapeRoute(from);
+
+    // ███ INSTRUMENTACIÓN TEMPORAL ███
+    mwarn("unstickPlayer() desde", from, "-> ruta de escape:",
+      escape === null ? "null (SIN SALIDA)" : `${escape.length} pasos`, escape);
+    // ███ FIN ███
 
     if (!escape || !escape.length) {
       this.stopWalking();
@@ -1649,18 +1803,62 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
   }
 
   update() {
-    this.buildSystem?.update(this.input.activePointer);
-    this.updateBuildPreviewTint(this.input.activePointer);
-    this.petSystem?.update(this.game.loop.delta);
-    this.butlerSystem?.update(this.game.loop.delta);
-    if (!this.player || !this.isoGrid || !this.navGrid) return;
+    // ███ INSTRUMENTACIÓN TEMPORAL ███
+    this.dbgFrame++;
+    // Estos cuatro corren ANTES del guard: si alguno lanza, update() aborta
+    // y navGrid.update() —y por tanto easystar.calculate()— no se ejecuta
+    // nunca. Se relanza para no cambiar el comportamiento.
+    try {
+      this.buildSystem?.update(this.input.activePointer);
+      this.updateBuildPreviewTint(this.input.activePointer);
+      this.petSystem?.update(this.game.loop.delta);
+      this.butlerSystem?.update(this.game.loop.delta);
+    } catch (err) {
+      merr("✖ EXCEPCIÓN antes del guard de update() — calculate() NO correrá:", err);
+      throw err;
+    }
+    // ███ FIN ███
+
+    if (!this.player || !this.isoGrid || !this.navGrid) {
+      if (this.dbgFrame % 120 === 0) {
+        mwarn("update() abortado en el guard:", {
+          player: !!this.player, isoGrid: !!this.isoGrid, navGrid: !!this.navGrid,
+        });
+      }
+      return;
+    }
 
     const socket = (this.game as any).socket;
     // Primero la ocupación pendiente, luego las búsquedas en curso: así una
     // ruta se calcula siempre contra la rejilla actual, no la del frame
     // anterior.
     this.flushNavIfDirty();
-    this.navGrid.update();
+
+    // ███ INSTRUMENTACIÓN TEMPORAL ███
+    try {
+      this.navGrid.update();
+    } catch (err) {
+      merr("✖ navGrid.update() / easystar.calculate() LANZÓ:", err);
+      throw err;
+    }
+
+    // Vigilante: ¿se pidió una ruta y el callback no llega?
+    if (this.pendingPathId !== null && this.dbgPendingSince >= 0) {
+      const waited = this.dbgFrame - this.dbgPendingSince;
+      if (waited > 30 && !this.dbgPendingWarned) {
+        this.dbgPendingWarned = true;
+        merr("⚠️ EL CALLBACK DE EASYSTAR NO HA LLEGADO tras", waited, "frames", {
+          pendingPathId: this.pendingPathId,
+          pathRequestId: this.pathRequestId,
+          currentPath: this.currentPath.length,
+          pathTarget: this.pathTarget,
+          escaping: this.escaping,
+        });
+        merr("   -> el jugador queda con ruta vacía y update() sale cada frame");
+      }
+    }
+    // ███ FIN ███
+
     this.updateSceneDepths();
     this.updateIsoDebug();
 
@@ -1705,6 +1903,10 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     // varias casillas se recorría en línea recta atravesando los muebles
     // que hubiera en medio.
     if (!NavGrid.isAdjacentOrSame(current, next)) {
+      // ███ INSTRUMENTACIÓN TEMPORAL ███
+      this.dbgBlockRepeat("S4 adyacencia: actual " + JSON.stringify(current) +
+        " vs siguiente " + JSON.stringify(next));
+      // ███ FIN ███
       this.repathToCurrentTarget();
       return;
     }
@@ -1717,6 +1919,9 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     // definición, casillas no transitables. La invariante de adyacencia de
     // arriba sigue aplicando, así que sale andando casilla a casilla.
     if (!this.escaping && !this.navGrid.isWalkable(next.x, next.y)) {
+      // ███ INSTRUMENTACIÓN TEMPORAL ███
+      this.dbgBlockRepeat("siguiente casilla BLOQUEADA: " + JSON.stringify(next));
+      // ███ FIN ███
       this.repathToCurrentTarget();
       return;
     }
