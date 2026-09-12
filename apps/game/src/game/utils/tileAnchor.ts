@@ -1,71 +1,44 @@
 /**
- * Punto visual "correcto" de una tile isométrica. TILE_VISUAL_Y_OFFSET es el
- * único número a tunear para mover cursor + muebles + texturas juntos — lo
- * importan tanto getFurnitureAnchorY como LobbyScene.updateHoverHighlight
- * (el cuadro amarillo), así que ya no se puede desincronizar entre ambos.
- *
- * El cursor es un Phaser.GameObjects.Polygon: Phaser posiciona estos shapes
- * por el CENTRO de su bounding box (no por su esquina/vértice superior), así
- * que su fórmula ya es `worldPos.y + tileHeight + TILE_VISUAL_Y_OFFSET` para
- * ese centro. Los sprites de muebles (origin 0.5, 1 — anclados por su base)
- * necesitan el VÉRTICE INFERIOR del mismo rombo, que está a +tileHeight/2 de
- * ese centro. Antes de este archivo, BuildSystem/FurnitureSocketSystem/
- * LobbyScene calculaban la Y del mueble como `worldPos.y + tileHeight` a
- * secas — le faltaba tanto ese +tileHeight/2 (para llegar al vértice
- * inferior en vez de al centro) como el TILE_VISUAL_Y_OFFSET, y por eso el
- * mueble quedaba visualmente más arriba que el tile que el cursor marca.
- *
- * Si al probarlo en el navegador el mueble todavía no queda exactamente
- * sobre el cursor, ajustar solo TILE_VISUAL_Y_OFFSET acá (un valor más alto
- * mueve todo hacia abajo en pantalla) — no volver a tocar los +tileHeight
- * de cada archivo.
- */
-export const TILE_VISUAL_Y_OFFSET = 16;
-
-export function getFurnitureAnchorY(worldPosY: number, tileHeight: number) {
-  return worldPosY + tileHeight * 1.5 + TILE_VISUAL_Y_OFFSET;
-}
-
-/**
- * Vértice superior "desplazado" del rombo de una tile, para dibujar el
- * footprint (BuildSystem.drawFootprint — el rombo verde/rojo/azul que marca
- * qué tiles va a ocupar el mueble). Ese rombo se dibuja con Graphics.
- * fillPoints usando puntos absolutos (no setPosition), así que a diferencia
- * del cursor (un Polygon con auto-centrado) su `worldPos.y` de base SÍ era
- * el vértice superior puro, sin TILE_VISUAL_Y_OFFSET — por eso quedaba
- * desalineado del cursor/preview una vez que esos empezaron a usar el
- * offset. El vértice superior real del cursor está a `tileHeight/2 +
- * TILE_VISUAL_Y_OFFSET` de `worldPos.y` (mismo cálculo que getFurnitureAnchorY
- * pero restando tileHeight/2 en vez de sumarlo, porque acá partimos del
- * vértice de arriba, no del de abajo).
- */
-export function getFootprintTopY(worldPosY: number, tileHeight: number) {
-  return worldPosY + tileHeight / 2 + TILE_VISUAL_Y_OFFSET;
-}
-
-/**
- * Calibración visual del artwork de un world item (WorldItemData.
- * spriteOffsetX/Y en la DB). Corre SOLO el sprite en pantalla; el ancla de
+ * Calibración visual del artwork de un world item (`WorldItemData.
+ * spriteOffsetX/Y` en la DB). Corre SOLO el sprite en pantalla; el ancla de
  * la tile, el footprint, la profundidad, la colisión y la interacción se
  * calculan como siempre y NO lo usan. La fórmula es siempre:
  *
  *   finalScreenX = baseScreenX + spriteOffsetX
  *   finalScreenY = baseScreenY + spriteOffsetY
  *
+ * Este es el único offset legítimo del sistema: es un DATO DEL ASSET
+ * (configurable por item desde el editor web), no una constante global para
+ * compensar un error geométrico. La geometría del mundo — dónde está el
+ * suelo de un tile, dónde apoya un mueble, dónde están los pies de un
+ * personaje — vive entera en `iso/IsoGrid.ts` y se deriva del tileset.
+ *
+ * NOTA HISTÓRICA — este archivo contenía además tres constantes calibradas
+ * a ojo que ya no existen:
+ *
+ *   TILE_VISUAL_Y_OFFSET = 16        → era (tilesetTileHeight − mapTileHeight)/2
+ *   getFurnitureAnchorY  = y + TH·1.5 + 16 → era y + tilesetTileHeight
+ *   PLAYER_Y_OFFSET      = −20       → suplía la distancia real del origen
+ *                                      del Container a los pies del avatar,
+ *                                      que depende de los slots y ahora se
+ *                                      MIDE (ver ModularPlayer)
+ *
+ * Las dos primeras son ahora `IsoGrid.groundAnchor()` / `groundOffsetY`,
+ * derivadas del tileset en runtime. La tercera es
+ * `ModularPlayer.getFootOffsetY()`, medida del avatar ya construido.
+ *
+ * El offset de artwork es POR DIRECCIÓN: `worldData.spriteOffsets` es un
+ * mapa { NORTH:{x,y}, EAST, SOUTH, WEST } (cada frame del spritesheet puede
+ * traer padding distinto). Si el mapa no está (item viejo), se cae a las
+ * columnas escalares `spriteOffsetX/Y`. La rotación 0-3 mapea a
+ * NORTH/EAST/SOUTH/WEST igual que `directionFromRotation()` en IsoFootprint.
+ *
  * Se aplica en UN solo lugar por cada forma de render, para que el editor
  * web, el ghost de construcción y el objeto ya colocado muestren el mueble
  * exactamente en la misma posición:
  *   - RoomItemsManager.addItem  → objeto colocado + carga inicial de la sala
  *   - BuildSystem.update        → ghost de "mueble en mano"
- *   - FurnitureSocketSystem.handleItemMoved / handleItemRotated → al
- *     reposicionar tras mover o rotar (rotar cambia la dirección y por lo
- *     tanto el offset)
- *
- * El offset es POR DIRECCIÓN: `worldData.spriteOffsets` es un mapa
- * { NORTH:{x,y}, EAST, SOUTH, WEST } (cada frame del spritesheet puede traer
- * padding distinto). Si el mapa no está (item viejo), se cae a las columnas
- * escalares `spriteOffsetX/Y`. La rotación 0-3 mapea a NORTH/EAST/SOUTH/WEST
- * igual que directionFromRotation() en IsoFootprint.
+ *   - FurnitureSocketSystem.handleItemMoved / handleItemRotated
  */
 type SpriteOffsetPair = { x?: number | null; y?: number | null };
 
@@ -107,8 +80,8 @@ function normalizeSpriteOffset(value: unknown): number {
 }
 
 /**
- * Suma getSpriteOffset() in-place sobre cualquier objeto con x/y (un
- * Phaser.GameObjects.Sprite ya posicionado en su ancla base).
+ * Suma `getSpriteOffset()` in-place sobre cualquier objeto con x/y (un
+ * Phaser.GameObjects.Sprite ya posicionado en su ancla de suelo).
  */
 export function applySpriteOffset(
   target: { x: number; y: number },
@@ -119,14 +92,3 @@ export function applySpriteOffset(
   target.x += offset.x;
   target.y += offset.y;
 }
-
-/**
- * Offset del jugador (LobbyScene: cálculo de targetY al caminar hacia una
- * tile). ModularPlayer es un Phaser.GameObjects.Container, no un Sprite con
- * origin(0.5,1) como los muebles — su punto (0,0) depende de los
- * offsetX/offsetY que trae cada parte del avatar (ver AvatarBuilder.ts), no
- * de un origin estándar de Phaser. Por eso NO comparte getFurnitureAnchorY
- * (esa fórmula asume anclaje por el borde inferior de un Sprite, que aquí no
- * aplica) y tiene su propia constante, calibrada por separado a ojo.
- */
-export const PLAYER_Y_OFFSET = -20;

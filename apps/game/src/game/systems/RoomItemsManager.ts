@@ -5,12 +5,40 @@ import {
   getDirectionalSurface,
   toWorldTiles,
 } from "./IsoFootprint";
-import { applySpriteOffset, getFurnitureAnchorY } from "../utils/tileAnchor";
-import { getSpriteFrameIndex } from "../utils/spriteFrames";
+import { applySpriteOffset } from "../utils/tileAnchor";
+import { getSpriteFrameIndex, getSpriteFrameHeight, getSpriteFrameWidth } from "../utils/spriteFrames";
 import { pointerToScreenPosition } from "../utils/pointerToScreenPosition";
+import IsoGrid from "../iso/IsoGrid";
+import { depthFromGroundPoint } from "../iso/IsoDepth";
+import { FLOOR_SURFACE_DEPTH, WALL_SURFACE_DEPTH } from "../utils/depth";
+
+/**
+ * Payload de un room item tal como lo entrega el servidor (evento
+ * `room:item:placed` / `room:items` / `room:surface:painted`).
+ *
+ * Antes cada call site desarmaba este objeto en una llamada posicional de 14
+ * argumentos, repetida casi idéntica en tres sitios (LobbyScene.spawnRoomItem
+ * y FurnitureSocketSystem ×2), y cada uno calculaba por su cuenta la posición
+ * en pantalla. Ahora el cálculo vive sólo aquí.
+ */
+export type RoomItemPayload = {
+  id: string;
+  x: number;
+  y: number;
+  rotation?: number | null;
+  roomId?: string | null;
+  userId?: string | null;
+  item: any;
+  state?: any;
+  elevation?: number | null;
+  parentRoomItemId?: string | null;
+  wallSide?: string | null;
+  wallOffset?: number | null;
+};
 
 export default class RoomItemsManager {
   private scene: Phaser.Scene;
+  private grid: IsoGrid;
 
   private items = new Map<string, WorldObject>();
 
@@ -19,70 +47,87 @@ export default class RoomItemsManager {
   // otro o al deseleccionar (Escape / clic en otro lado / cerrar el menú).
   private selectedId: string | null = null;
 
-  constructor(scene: Phaser.Scene) {
+  constructor(scene: Phaser.Scene, grid: IsoGrid) {
     this.scene = scene;
+    this.grid = grid;
   }
 
-  addItem(
-    id: string,
-    texture: string,
-    x: number,
-    y: number,
+  private get elevationStep() {
+    return this.grid.elevationStep;
+  }
 
+  /**
+   * Tiles que ocupa un item en coordenadas de mundo, resolviendo su
+   * footprint por dirección y su `origin`.
+   */
+  private occupiedTilesOf(
     tileX: number,
     tileY: number,
-
-    rotation: number = 0,
-
-    frameWidth?: number,
-    frameHeight?: number,
-
-    roomId: string = "",
-    ownerId: string = "",
-    itemData: any = null,
-
-    elevation: number = 0,
-    parentRoomItemId: string | null = null,
-    wallSide: string | null = null,
-    wallOffset: number | null = null,
+    worldData: any,
+    rotation: number,
   ) {
+    return toWorldTiles(
+      tileX,
+      tileY,
+      getDirectionalFootprint(worldData, rotation),
+    );
+  }
+
+  /**
+   * Punto de apoyo del sprite: el ancla del footprint COMPLETO, no la del
+   * tile `origin`. Ver IsoGrid.footprintAnchor para por qué esa distinción
+   * importa en muebles de varios tiles.
+   */
+  private groundAnchorFor(
+    tileX: number,
+    tileY: number,
+    worldData: any,
+    rotation: number,
+  ) {
+    const tiles = this.occupiedTilesOf(tileX, tileY, worldData, rotation);
+    return (
+      this.grid.footprintAnchor(tiles) ?? {
+        ...(this.grid.groundAnchor(tileX, tileY) ?? { x: 0, y: 0 }),
+        frontTile: { x: tileX, y: tileY },
+      }
+    );
+  }
+
+  addItem(payload: RoomItemPayload, texture: string) {
     if (!this.scene.textures.exists(texture)) {
       console.error("❌ TEXTURA NO CARGADA", texture);
-
       return null;
     }
 
-    const tex = this.scene.textures.get(texture);
+    const id = payload.id;
+    const tileX = payload.x;
+    const tileY = payload.y;
+    const rotation = payload.rotation ?? 0;
+    const elevation = payload.elevation ?? 0;
+    const parentRoomItemId = payload.parentRoomItemId ?? null;
+    const wallSide = payload.wallSide ?? null;
+    const wallOffset = payload.wallOffset ?? null;
+
+    const itemData = { ...payload.item, roomItemState: payload.state };
     const worldData = itemData?.worldData;
-    const state = itemData?.roomItemState ?? itemData?.state ?? {};
+    const state = payload.state ?? {};
     const isSurface =
-      state?.surface ||
-      worldData?.kind === "FLOOR" ||
-      worldData?.kind === "WALL";
+      state?.surface || worldData?.kind === "FLOOR" || worldData?.kind === "WALL";
+
+    const tex = this.scene.textures.get(texture);
+    const frameWidth = getSpriteFrameWidth(worldData);
+    const frameHeight = getSpriteFrameHeight(worldData);
 
     let frameName = "__BASE";
 
     // Spritesheet horizontal de 1/2/4 caras: el frame se envuelve al número
     // de caras (worldData.directions), no a la rotación cruda 0-3.
-    if (
-      !isSurface &&
-      frameWidth &&
-      frameHeight &&
-      rotation >= 0 &&
-      rotation <= 3
-    ) {
+    if (!isSurface && frameWidth && frameHeight && rotation >= 0 && rotation <= 3) {
       const frameIndex = getSpriteFrameIndex(rotation, worldData);
       frameName = `${texture}-room-${frameIndex}`;
 
       if (!tex.has(frameName)) {
-        tex.add(
-          frameName,
-          0,
-          frameWidth * frameIndex,
-          0,
-          frameWidth,
-          frameHeight,
-        );
+        tex.add(frameName, 0, frameWidth * frameIndex, 0, frameWidth, frameHeight);
       }
     }
 
@@ -90,68 +135,58 @@ export default class RoomItemsManager {
       ? this.createSurfaceSprites(texture, tileX, tileY, itemData, wallSide)
       : [];
 
+    const anchor = this.groundAnchorFor(tileX, tileY, worldData, rotation);
+
     const sprite =
       surfaceSprites[0] ??
-      this.scene.add.sprite(x, y - elevation * 16, texture, frameName);
+      this.scene.add.sprite(
+        anchor.x,
+        anchor.y - elevation * this.elevationStep,
+        texture,
+        frameName,
+      );
 
     if (!isSurface) {
-      sprite.setInteractive({
-        useHandCursor: true,
-      });
+      // TODO (Fase 5): el hit area sigue siendo el rectángulo completo del
+      // frame, zonas transparentes incluidas. Sustituir por el polígono del
+      // footprint (IsoGrid.groundDiamond) + el cuerpo del sprite.
+      sprite.setInteractive({ useHandCursor: true });
     }
 
     sprite.setOrigin(0.5, 1);
 
     // Calibración visual por-item (WorldItemData.spriteOffsetX/Y): corre solo
     // el sprite respecto de su ancla, no el footprint/profundidad/colisión.
-    // Mismo helper que usa el ghost de construcción y el editor web, así que
-    // lo que se calibra en el editor es lo que se ve acá. Las superficies
-    // (FLOOR/WALL) se pegan a la tile y no se calibran.
+    // Las superficies (FLOOR/WALL) se pegan a la tile y no se calibran.
     if (!isSurface) {
       applySpriteOffset(sprite, worldData, rotation);
     }
 
-    const depthTile = this.getBaseDepthTile(
-      tileX,
-      tileY,
-      worldData,
-      rotation,
-      parentRoomItemId,
-    );
-    const depth = depthTile.y * 1000 + depthTile.x + elevation * 100;
-
-    if (!isSurface) {
-      sprite.setDepth(depth);
-    }
-
     const worldObject: WorldObject = {
       roomItemId: id,
-
-      roomId,
-
-      ownerId,
-
+      roomId: payload.roomId ?? "",
+      ownerId: payload.userId ?? "",
       rotation,
-
       tileX,
       tileY,
-
       elevation,
       parentRoomItemId,
       wallSide,
       wallOffset,
       state,
-
       sprite,
       surfaceSprites,
-
       item: itemData,
     };
+
     this.items.set(id, worldObject);
     this.invalidateOccupancy();
 
-    // Estado inicial (ej: la TV ya estaba encendida al entrar a la sala).
-    if (!isSurface) this.applyItemState(id);
+    if (!isSurface) {
+      this.updateSingleItemDepth(worldObject);
+      // Estado inicial (ej: la TV ya estaba encendida al entrar a la sala).
+      this.applyItemState(id);
+    }
 
     if (!isSurface) {
       sprite.on(
@@ -172,8 +207,7 @@ export default class RoomItemsManager {
           // Sin esto, el pointerdown global de la escena (this.input.on
           // "pointerdown" -> handleClickToMove) también se dispara y el
           // personaje sale a caminar hacia el mueble clickeado a la vez que
-          // se selecciona — mismo fix que makeOtherPlayerClickable en
-          // LobbyScene para el clic sobre otros jugadores.
+          // se selecciona.
           event.stopPropagation();
 
           this.selectItem(id);
@@ -191,6 +225,42 @@ export default class RoomItemsManager {
     }
 
     return sprite;
+  }
+
+  /**
+   * Recoloca el sprite de un item ya existente tras moverse o rotar.
+   * Antes esto estaba duplicado y escrito a mano en
+   * FurnitureSocketSystem.handleItemMoved y handleItemRotated, cada uno con
+   * su propia copia de la fórmula de anclaje.
+   */
+  repositionItem(id: string) {
+    const worldObject = this.items.get(id);
+    if (!worldObject) return;
+
+    const worldData = worldObject.item?.worldData;
+    const isSurface =
+      worldObject.state?.surface ||
+      worldData?.kind === "FLOOR" ||
+      worldData?.kind === "WALL";
+
+    if (isSurface) return;
+
+    const anchor = this.groundAnchorFor(
+      worldObject.tileX,
+      worldObject.tileY,
+      worldData,
+      worldObject.rotation,
+    );
+
+    worldObject.sprite.setPosition(
+      anchor.x,
+      anchor.y - worldObject.elevation * this.elevationStep,
+    );
+
+    // El offset de artwork es por dirección, así que rotar puede cambiarlo.
+    applySpriteOffset(worldObject.sprite, worldData, worldObject.rotation);
+
+    this.updateSingleItemDepth(worldObject);
   }
 
   // Solo resalta el sprite (tint); no abre ningún modal por sí solo — quién
@@ -227,49 +297,32 @@ export default class RoomItemsManager {
     wallSide: string | null,
   ) {
     const sprites: Phaser.GameObjects.Sprite[] = [];
-    const sceneWithMap = this.scene as any;
-    const groundLayer = sceneWithMap.groundLayer as
-      | Phaser.Tilemaps.TilemapLayer
-      | undefined;
-    const map = sceneWithMap.map as Phaser.Tilemaps.Tilemap | undefined;
-
-    if (!groundLayer || !map) return sprites;
 
     const state = itemData?.roomItemState ?? itemData?.state ?? {};
-    const width = Math.max(
-      1,
-      Number(state.width ?? itemData?.worldData?.width ?? 1),
-    );
-    const height = Math.max(
-      1,
-      Number(state.height ?? itemData?.worldData?.height ?? 1),
-    );
+    const width = Math.max(1, Number(state.width ?? itemData?.worldData?.width ?? 1));
+    const height = Math.max(1, Number(state.height ?? itemData?.worldData?.height ?? 1));
     const kind = itemData?.worldData?.kind;
 
     for (let iy = 0; iy < height; iy++) {
       for (let ix = 0; ix < width; ix++) {
-        const worldPos = groundLayer.tileToWorldXY(tileX + ix, tileY + iy);
-        if (!worldPos) continue;
+        const anchor = this.grid.groundAnchor(tileX + ix, tileY + iy);
+        if (!anchor) continue;
 
-        const sprite = this.scene.add.sprite(
-          worldPos.x + map.tileWidth / 2,
-          getFurnitureAnchorY(worldPos.y, map.tileHeight),
-          texture,
-        );
+        const sprite = this.scene.add.sprite(anchor.x, anchor.y, texture);
 
         sprite.setOrigin(0.5, 1);
 
         if (kind === "FLOOR") {
-          sprite.setDisplaySize(map.tileWidth, map.tileHeight);
+          sprite.setDisplaySize(this.grid.tileWidth, this.grid.tileHeight);
         }
 
         sprite.setAlpha(0.96);
 
         if (kind === "WALL" || wallSide) {
-          sprite.setY(sprite.y - map.tileHeight / 2);
-          sprite.setDepth(1000000);
+          sprite.setY(sprite.y - this.grid.tileHeight / 2);
+          sprite.setDepth(WALL_SURFACE_DEPTH);
         } else {
-          sprite.setDepth(1);
+          sprite.setDepth(FLOOR_SURFACE_DEPTH);
         }
 
         sprites.push(sprite);
@@ -280,8 +333,7 @@ export default class RoomItemsManager {
   }
 
   // Refleja worldObject.state visualmente. Hoy: state.on -> luz cálida de
-  // "encendido" (PointLight, sin asset). El resto de las interacciones
-  // (abrir, sentarse) todavía no tienen visual acá.
+  // "encendido" (PointLight, sin asset).
   applyItemState(id: string) {
     const worldObject = this.items.get(id);
     if (!worldObject) return;
@@ -341,13 +393,13 @@ export default class RoomItemsManager {
   }
 
   getItemsAt(tileX: number, tileY: number) {
-    return this.getAll().filter(
-      (item) =>
-        toWorldTiles(
-          item.tileX,
-          item.tileY,
-          getDirectionalFootprint(item.item?.worldData, item.rotation),
-        ).some((tile) => tile.x === tileX && tile.y === tileY),
+    return this.getAll().filter((item) =>
+      this.occupiedTilesOf(
+        item.tileX,
+        item.tileY,
+        item.item?.worldData,
+        item.rotation,
+      ).some((tile) => tile.x === tileX && tile.y === tileY),
     );
   }
 
@@ -355,9 +407,7 @@ export default class RoomItemsManager {
   // cada llamada — y se llaman en rutas calientes: cada pixel que cruza el
   // mouse sobre un tile nuevo (updateHoverHighlight → isWalkable) y cada
   // frame en build mode (updateBuildPreviewTint → canPlace). El resultado
-  // solo cambia cuando algo se coloca/mueve/rota/elimina, así que se cachea
-  // y se recalcula una sola vez (un único recorrido O(items) para ambos
-  // sets) recién cuando algo lo invalida.
+  // solo cambia cuando algo se coloca/mueve/rota/elimina, así que se cachea.
   private occupancyCache: { blocking: Set<string>; occupied: Set<string> } | null = null;
 
   invalidateOccupancy() {
@@ -380,17 +430,14 @@ export default class RoomItemsManager {
 
       if (isWallObject) return;
 
-      const footprint = getDirectionalFootprint(
-        worldData,
-        worldObject.rotation,
-      );
       const blocksMovement =
         worldData?.isCollidable === true && !worldData?.walkable;
 
-      for (const tile of toWorldTiles(
+      for (const tile of this.occupiedTilesOf(
         worldObject.tileX,
         worldObject.tileY,
-        footprint,
+        worldData,
+        worldObject.rotation,
       )) {
         const key = `${tile.x},${tile.y}`;
         occupied.add(key);
@@ -408,10 +455,7 @@ export default class RoomItemsManager {
 
   // Variante sin caché para el ghost de "mover un mueble ya colocado": el
   // mueble que se está moviendo no puede contarse como ocupando SUS PROPIAS
-  // tiles, si no canPlace() siempre lo vería bloqueado por sí mismo. No se
-  // cachea porque solo se usa mientras dura un drag activo (infrecuente),
-  // a diferencia de getBlockingTiles()/getOccupiedTiles() que sí están en
-  // rutas calientes de 60fps.
+  // tiles, si no canPlace() siempre lo vería bloqueado por sí mismo.
   getOccupancyExcluding(excludeId: string): { blocking: Set<string>; occupied: Set<string> } {
     return this.computeOccupancyEntries(excludeId);
   }
@@ -421,81 +465,52 @@ export default class RoomItemsManager {
     return (this.occupancyCache ?? this.computeOccupancy()).blocking;
   }
 
-  // Tiles ocupados por CUALQUIER item colocado, sea o no colisionable — a
-  // diferencia de getBlockingTiles(). PlacementValidator.canPlace() necesita
-  // esto: antes solo miraba getBlockingTiles(), así que un item no
-  // colisionable (una alfombra, un cuadro) nunca marcaba su tile como
-  // ocupado y se podía apilar un número ilimitado de copias en el mismo
-  // lugar.
+  // Tiles ocupados por CUALQUIER item colocado, sea o no colisionable.
+  // PlacementValidator.canPlace() necesita esto para no permitir apilar
+  // copias ilimitadas de un item no colisionable en el mismo lugar.
   getOccupiedTiles(): Set<string> {
     return (this.occupancyCache ?? this.computeOccupancy()).occupied;
   }
 
-  // El "depth tile" de un item apilado (parentRoomItemId) no se calcula
-  // desde su propia posición: un item 1x1 apilado sobre la tile trasera de
-  // un mueble grande (p.ej. una mesa que ocupa 2 filas) quedaba con un
-  // tileY*1000 menor al del mueble y se dibujaba detrás de él, aunque
-  // visualmente estuviera "encima". Al heredar el depth tile del item base
-  // (recursivo, por si hay varios niveles de apilado) garantizamos que
-  // cualquier hijo quede en la misma fila que su base, y solo la elevación
-  // (que sí es mayor en cada nivel) decide el orden dentro de esa fila.
-  private getBaseDepthTile(
-    tileX: number,
-    tileY: number,
-    worldData: any,
-    rotation: number,
-    parentRoomItemId: string | null | undefined,
-  ): { x: number; y: number } {
-    if (parentRoomItemId) {
-      const parent = this.items.get(parentRoomItemId);
-      if (parent) {
-        return this.getBaseDepthTile(
-          parent.tileX,
-          parent.tileY,
-          parent.item?.worldData,
-          parent.rotation,
-          parent.parentRoomItemId,
-        );
-      }
+  /**
+   * Punto de apoyo que decide la profundidad de un item.
+   *
+   * Para un item apilado (parentRoomItemId) se hereda el del item base
+   * (recursivo): un item 1x1 apoyado sobre la tile trasera de una mesa
+   * grande debe quedar en la MISMA línea de profundidad que la mesa, y que
+   * sólo la elevación decida el orden dentro de esa línea. Si se calculara
+   * desde su propia tile quedaría detrás de la mesa aunque visualmente esté
+   * encima.
+   *
+   * Para el resto, es el ancla del footprint completo, cuyo tile frontal es
+   * el de mayor (tx + ty) — el frontal isométrico real. Antes se tomaba el
+   * de mayor ty, que coincide en footprints rectos pero no en forma de L.
+   */
+  private getDepthAnchor(worldObject: WorldObject): { x: number; y: number } {
+    const parentId = worldObject.parentRoomItemId;
+    if (parentId) {
+      const parent = this.items.get(parentId);
+      if (parent) return this.getDepthAnchor(parent);
     }
 
-    const footprint = getDirectionalFootprint(worldData, rotation);
-    return (
-      toWorldTiles(tileX, tileY, footprint).sort(
-        (a, b) => b.y - a.y || b.x - a.x,
-      )[0] || { x: tileX, y: tileY }
+    const anchor = this.groundAnchorFor(
+      worldObject.tileX,
+      worldObject.tileY,
+      worldObject.item?.worldData,
+      worldObject.rotation,
     );
+
+    // La X del depth es la del TILE FRONTAL, no el centro del bounding box
+    // del footprint: el desempate dentro de una línea de profundidad se hace
+    // por la X de pantalla de ese tile.
+    const front = this.grid.groundAnchor(
+      anchor.frontTile.x,
+      anchor.frontTile.y,
+    );
+
+    return front ?? { x: anchor.x, y: anchor.y };
   }
 
-  getStackTarget(tileX: number, tileY: number) {
-    return this.getAll()
-      .filter((item) => {
-        if (!item.item?.worldData?.allowsStacking) return false;
-        const surface = getDirectionalSurface(item.item.worldData, item.rotation);
-        const tiles = surface.occupied.length
-          ? toWorldTiles(item.tileX, item.tileY, surface)
-          : toWorldTiles(
-              item.tileX,
-              item.tileY,
-              getDirectionalFootprint(item.item.worldData, item.rotation),
-            );
-        return tiles.some((tile) => tile.x === tileX && tile.y === tileY);
-      })
-      .sort((a, b) => b.elevation - a.elevation)[0];
-  }
-
-  getHighestItemAt(tileX: number, tileY: number) {
-    return this.getItemsAt(tileX, tileY).sort(
-      (a, b) => b.elevation - a.elevation,
-    )[0];
-  }
-
-  // Antes se llamaba a esto (recorriendo TODOS los items) sin condición en
-  // cada frame desde LobbyScene.update() — la profundidad de un mueble solo
-  // cambia cuando se coloca/mueve/rota, eventos que ya se manejan puntuales
-  // en FurnitureSocketSystem. updateItemDepth() permite recalcular solo el
-  // item que realmente cambió, en vez de recorrer la sala entera 60 veces
-  // por segundo sin que nada haya cambiado.
   private updateSingleItemDepth(worldObject: WorldObject) {
     const worldData = worldObject.item?.worldData;
     const isSurface =
@@ -505,16 +520,10 @@ export default class RoomItemsManager {
 
     if (isSurface || worldObject.wallSide) return;
 
-    const depthTile = this.getBaseDepthTile(
-      worldObject.tileX,
-      worldObject.tileY,
-      worldData,
-      worldObject.rotation,
-      worldObject.parentRoomItemId,
-    );
+    const anchor = this.getDepthAnchor(worldObject);
 
     worldObject.sprite.setDepth(
-      depthTile.y * 1000 + depthTile.x + worldObject.elevation * 100,
+      depthFromGroundPoint(this.grid, anchor.x, anchor.y, worldObject.elevation),
     );
   }
 
@@ -527,10 +536,37 @@ export default class RoomItemsManager {
     this.items.forEach((worldObject) => this.updateSingleItemDepth(worldObject));
   }
 
+  getStackTarget(tileX: number, tileY: number) {
+    return this.getAll()
+      .filter((item) => {
+        if (!item.item?.worldData?.allowsStacking) return false;
+        const surface = getDirectionalSurface(item.item.worldData, item.rotation);
+        const tiles = surface.occupied.length
+          ? toWorldTiles(item.tileX, item.tileY, surface)
+          : this.occupiedTilesOf(
+              item.tileX,
+              item.tileY,
+              item.item.worldData,
+              item.rotation,
+            );
+        return tiles.some((tile) => tile.x === tileX && tile.y === tileY);
+      })
+      .sort((a, b) => b.elevation - a.elevation)[0];
+  }
+
+  getHighestItemAt(tileX: number, tileY: number) {
+    return this.getItemsAt(tileX, tileY).sort(
+      (a, b) => b.elevation - a.elevation,
+    )[0];
+  }
+
   clear() {
     this.items.forEach((item) => {
       item.glowLight?.destroy();
-      item.sprite.destroy();
+      item.surfaceSprites?.forEach((sprite) => sprite.destroy());
+      if (!item.surfaceSprites?.includes(item.sprite)) {
+        item.sprite.destroy();
+      }
     });
 
     this.items.clear();

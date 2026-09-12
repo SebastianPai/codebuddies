@@ -1,9 +1,16 @@
-export type IsoDirection = "NORTH" | "EAST" | "SOUTH" | "WEST";
+import {
+  calculateBounds,
+  createRectTiles,
+  normalizeTiles,
+  resolveDirectionalFootprints,
+  resolveOrigin,
+  type CardinalDirection,
+  type FootprintTile,
+} from "../iso/footprintRotation";
 
-export type IsoTile = {
-  x: number;
-  y: number;
-};
+export type IsoDirection = CardinalDirection;
+
+export type IsoTile = FootprintTile;
 
 export type IsoDirectionalFootprint = {
   occupied: IsoTile[];
@@ -24,43 +31,39 @@ export function directionFromRotation(rotation = 0): IsoDirection {
   return DIRECTIONS[((rotation % 4) + 4) % 4];
 }
 
+/**
+ * Huella del mueble para una rotación concreta.
+ *
+ * Se resuelve SIEMPRE con `resolveDirectionalFootprints`, que completa por
+ * rotación geométrica las direcciones que el admin no haya dibujado. Antes
+ * esto leía `engineData.footprints[direction]` a pelo, y como el backend
+ * rellenaba las direcciones ausentes copiando el rectángulo SIN rotar, un
+ * mueble 3x1 girado a EAST seguía bloqueando 3 casillas en la orientación
+ * equivocada — o sólo 1, si el editor había dejado ahí su default.
+ *
+ * El antiguo fallback `swapAxes` de esta función era código muerto: sólo se
+ * alcanzaba cuando `worldData` no traía `footprints` ni `engineData`, cosa
+ * que `buildWorldEngineData` nunca deja pasar.
+ */
 export function getDirectionalFootprint(
   worldData: any,
   rotation = 0,
 ): IsoDirectionalFootprint {
   const direction = directionFromRotation(rotation);
-  const engineFootprint = worldData?.engineData?.footprints?.[direction];
-  const directFootprint = worldData?.footprints?.[direction];
-  const footprint = engineFootprint || directFootprint;
+  const source =
+    worldData?.engineData?.footprints ?? worldData?.footprints ?? null;
 
-  if (footprint?.occupied?.length) {
-    return {
-      occupied: normalizeTiles(footprint.occupied),
-      origin: normalizeOrigin(footprint.origin, footprint.occupied),
-      bounds: footprint.bounds || calculateBounds(footprint.occupied),
-    };
-  }
+  const fallbackTiles = createRectTiles(
+    Math.max(1, Number(worldData?.footprintWidth) || 1),
+    Math.max(1, Number(worldData?.footprintHeight) || 1),
+  );
 
-  // Sin footprint explicito por direccion, se cae a un rectangulo liso de
-  // footprintWidth x footprintHeight — pero ese rectangulo esta definido
-  // para la orientacion NORTH/SOUTH del sprite. Si el mueble esta rotado a
-  // EAST/WEST (un sofa mas ancho que profundo, por ejemplo), el rectangulo
-  // tiene que rotar con el, o la esquina "mas cercana a camara" que usa el
-  // calculo de profundidad (RoomItemsManager.addItem/updateDepths) queda mal
-  // ubicada y el mueble se dibuja con la profundidad de un tile que no es el
-  // que visualmente ocupa — eso hace que el jugador pase "delante" del
-  // sprite en la posicion equivocada.
-  const swapAxes = direction === "EAST" || direction === "WEST";
-  const rawWidth = Math.max(1, Number(worldData?.footprintWidth) || 1);
-  const rawHeight = Math.max(1, Number(worldData?.footprintHeight) || 1);
-  const width = swapAxes ? rawHeight : rawWidth;
-  const height = swapAxes ? rawWidth : rawHeight;
-  const occupied = createRectTiles(width, height);
+  const resolved = resolveDirectionalFootprints(source, fallbackTiles)[direction];
 
   return {
-    occupied,
-    origin: { x: 0, y: 0 },
-    bounds: calculateBounds(occupied),
+    occupied: resolved.occupied,
+    origin: resolved.origin,
+    bounds: calculateBounds(resolved.occupied),
   };
 }
 
@@ -77,10 +80,13 @@ export function getDirectionalSurface(worldData: any, rotation = 0) {
     };
   }
 
+  const occupied = normalizeTiles(surface.occupied);
+
   return {
-    occupied: normalizeTiles(surface.occupied),
-    origin: normalizeOrigin(surface.origin, surface.occupied),
-    bounds: surface.bounds || calculateBounds(surface.occupied),
+    occupied,
+    // Misma regla de origin que la huella: debe pertenecer a occupied.
+    origin: resolveOrigin(surface.origin, occupied),
+    bounds: calculateBounds(occupied),
   };
 }
 
@@ -99,56 +105,6 @@ export function getFootprintSize(footprint: IsoDirectionalFootprint) {
   return footprint.bounds || calculateBounds(footprint.occupied);
 }
 
-function createRectTiles(width: number, height: number) {
-  const tiles: IsoTile[] = [];
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      tiles.push({ x, y });
-    }
-  }
-  return tiles;
-}
-
-function normalizeTiles(tiles: any[]): IsoTile[] {
-  return tiles
-    .map((tile) => ({ x: Number(tile?.x), y: Number(tile?.y) }))
-    .filter((tile) => Number.isInteger(tile.x) && Number.isInteger(tile.y));
-}
-
-function normalizeOrigin(origin: any, occupied: any[]) {
-  const normalized = { x: Number(origin?.x), y: Number(origin?.y) };
-  const tiles = normalizeTiles(occupied);
-
-  if (
-    Number.isInteger(normalized.x) &&
-    Number.isInteger(normalized.y) &&
-    tiles.some((tile) => tile.x === normalized.x && tile.y === normalized.y)
-  ) {
-    return normalized;
-  }
-
-  return tiles[0] || { x: 0, y: 0 };
-}
-
-function calculateBounds(tiles: any[]) {
-  const normalized = normalizeTiles(tiles);
-  if (!normalized.length) {
-    return { minX: 0, minY: 0, maxX: 0, maxY: 0, width: 0, height: 0 };
-  }
-
-  const xs = normalized.map((tile) => tile.x);
-  const ys = normalized.map((tile) => tile.y);
-  const minX = Math.min(...xs);
-  const maxX = Math.max(...xs);
-  const minY = Math.min(...ys);
-  const maxY = Math.max(...ys);
-
-  return {
-    minX,
-    minY,
-    maxX,
-    maxY,
-    width: maxX - minX + 1,
-    height: maxY - minY + 1,
-  };
-}
+// normalizeTiles / resolveOrigin / calculateBounds / createRectTiles vivían
+// duplicados aquí. Ahora se importan de iso/footprintRotation.ts, que es la
+// única definición y la que comparte semántica con el backend.

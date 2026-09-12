@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { loadTextureOnce } from "../utils/phaserAssetCache";
 import { getMyPet, getPetSpeciesList, type Pet, type PetSpecies, type PetAnimClip } from "../network/pets";
+import { resolveActorGroundPoint, syncActorDepth } from "../iso/IsoActorDepth";
 
 // Orden estándar de filas del spritesheet -> dirección. Debe coincidir con
 // COMPANION_DIRECTION_ORDER del backend / admin.
@@ -72,9 +73,16 @@ export default class PetSystem {
     this.despawn();
     this.species = species;
 
+    // Punto de APOYO del jugador (sus pies), no el origen de su Container:
+    // el sprite de la mascota usa origin(0.5, 1), así que su (x, y) también
+    // es un punto de apoyo. Comparar orígenes de sprite con orígenes de
+    // container mezclaba dos anclajes distintos.
     const player = (this.scene as any).player;
-    const px = player?.x ?? 0;
-    const py = player?.y ?? 0;
+    const playerGround = player
+      ? resolveActorGroundPoint(player)
+      : { x: 0, y: 0 };
+    const px = playerGround.x;
+    const py = playerGround.y;
 
     // Cargar el sheet principal + el propio de cada clip que tenga uno.
     const urls = new Set<string>([species.spriteSheetUrl!]);
@@ -95,8 +103,8 @@ export default class PetSystem {
 
     this.sprite = this.scene.add
       .sprite(px - 24, py, this.textureKey)
-      .setOrigin(0.5, 1)
-      .setDepth(py);
+      .setOrigin(0.5, 1);
+    syncActorDepth(this.scene, this.sprite);
     this.lastX = px - 24;
     this.lastY = py;
     this.animKey = "";
@@ -211,8 +219,9 @@ export default class PetSystem {
     const player = (this.scene as any).player;
     if (!player) return;
 
-    const targetX = player.x - 22;
-    const targetY = player.y;
+    const playerGround = resolveActorGroundPoint(player);
+    const targetX = playerGround.x - 22;
+    const targetY = playerGround.y;
     const dx = targetX - this.sprite.x;
     const dy = targetY - this.sprite.y;
     const dist = Math.hypot(dx, dy);
@@ -241,7 +250,7 @@ export default class PetSystem {
     }
     this.lastX = this.sprite.x;
     this.lastY = this.sprite.y;
-    this.sprite.setDepth(this.sprite.y);
+    syncActorDepth(this.scene, this.sprite);
 
     const clip = this.pickClip(moving);
     if (!clip) return;

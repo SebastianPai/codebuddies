@@ -1,9 +1,7 @@
-import Phaser from "phaser";
-import RoomItemsManager from "./RoomItemsManager";
+import RoomItemsManager, { RoomItemPayload } from "./RoomItemsManager";
 import { LobbySceneType } from "../types/LobbySceneType";
 import { loadTextureOnce } from "../utils/phaserAssetCache";
 import { audioManager } from "../audio/AudioManager";
-import { getFurnitureAnchorY, getSpriteOffset } from "../utils/tileAnchor";
 import {
   getSpriteFrameHeight,
   getSpriteFrameIndex,
@@ -29,46 +27,20 @@ export default class FurnitureSocketSystem {
     console.error("Error completo:", JSON.stringify(err, null, 2));
   };
 
-  private handleItemPlaced = (item: any) => {
-    const imageUrl = item.item.imageUrl;
-
-    const spawnItem = () => {
-      const worldPos = this.scene.groundLayer.tileToWorldXY(item.x, item.y);
-
-      if (!worldPos) return;
-
-      this.roomItems.addItem(
-        item.id,
-        imageUrl,
-
-        worldPos.x + this.scene.map.tileWidth / 2,
-        getFurnitureAnchorY(worldPos.y, this.scene.map.tileHeight),
-
-        item.x,
-        item.y,
-
-        item.rotation,
-
-        getSpriteFrameWidth(item.item.worldData),
-        getSpriteFrameHeight(item.item.worldData),
-
-        item.roomId,
-        item.userId,
-        {
-          ...item.item,
-          roomItemState: item.state,
-        },
-
-        item.elevation ?? 0,
-        item.parentRoomItemId ?? null,
-        item.wallSide ?? null,
-        item.wallOffset ?? null,
-      );
+  // El payload del servidor ya tiene la forma que espera
+  // RoomItemsManager.addItem — antes cada handler lo desarmaba en una
+  // llamada posicional de 14 argumentos y calculaba la posición en pantalla
+  // por su cuenta. Ahora el anclaje lo resuelve RoomItemsManager con IsoGrid.
+  private spawn(item: RoomItemPayload, imageUrl: string, sound = false) {
+    void loadTextureOnce(this.scene, imageUrl).then((textureKey) => {
+      this.roomItems.addItem(item, textureKey);
       this.scene.refreshPathfinding?.();
-      audioManager.play("place");
-    };
+      if (sound) audioManager.play("place");
+    });
+  }
 
-    void loadTextureOnce(this.scene, imageUrl).then(spawnItem);
+  private handleItemPlaced = (item: any) => {
+    this.spawn(item, item.item.imageUrl, true);
   };
 
   private handleSurfacePainted = (data: any) => {
@@ -79,45 +51,7 @@ export default class FurnitureSocketSystem {
     const item = data.surface;
     if (!item?.item?.imageUrl) return;
 
-    const imageUrl = item.item.imageUrl;
-
-    const spawnSurface = () => {
-      const worldPos = this.scene.groundLayer.tileToWorldXY(item.x, item.y);
-
-      if (!worldPos) return;
-
-      this.roomItems.addItem(
-        item.id,
-        imageUrl,
-
-        worldPos.x + this.scene.map.tileWidth / 2,
-        getFurnitureAnchorY(worldPos.y, this.scene.map.tileHeight),
-
-        item.x,
-        item.y,
-
-        item.rotation,
-
-        getSpriteFrameWidth(item.item.worldData),
-        getSpriteFrameHeight(item.item.worldData),
-
-        item.roomId,
-        item.userId,
-        {
-          ...item.item,
-          roomItemState: item.state,
-        },
-
-        item.elevation ?? 0,
-        item.parentRoomItemId ?? null,
-        item.wallSide ?? null,
-        item.wallOffset ?? null,
-      );
-
-      this.scene.refreshPathfinding?.();
-    };
-
-    void loadTextureOnce(this.scene, imageUrl).then(spawnSurface);
+    this.spawn(item, item.item.imageUrl);
   };
 
   private handleItemRemoved = (data: any) => {
@@ -151,36 +85,22 @@ export default class FurnitureSocketSystem {
 
     if (!worldObject) return;
 
-    const worldPos = this.scene.groundLayer.tileToWorldXY(item.x, item.y);
-    if (!worldPos) return;
-
     worldObject.tileX = item.x;
     worldObject.tileY = item.y;
     worldObject.elevation = item.elevation ?? 0;
     worldObject.parentRoomItemId = item.parentRoomItemId ?? null;
     worldObject.wallSide = item.wallSide ?? null;
     worldObject.wallOffset = item.wallOffset ?? null;
+
     // El tile ocupado por este objeto cambió: invalidar el cache de
-    // ocupación/bloqueo (ver RoomItemsManager) o quedaría desactualizado
-    // hasta que algo más lo invalidara por otro lado.
+    // ocupación/bloqueo o quedaría desactualizado hasta que algo más lo
+    // invalidara por otro lado.
     this.roomItems.invalidateOccupancy();
-    // Reposición manual (no pasa por RoomItemsManager.addItem), así que la
-    // calibración visual del artwork hay que volver a sumarla acá.
-    const offset = getSpriteOffset(
-      worldObject.item?.worldData,
-      worldObject.rotation,
-    );
-    worldObject.sprite.setPosition(
-      worldPos.x + this.scene.map.tileWidth / 2 + offset.x,
-      getFurnitureAnchorY(worldPos.y, this.scene.map.tileHeight) -
-        worldObject.elevation * 16 +
-        offset.y,
-    );
-    // updateItemDepth (no una fórmula ad-hoc acá): esta línea antes ignoraba
-    // el footprint del objeto (usaba directo item.y*1000+item.x), dando una
-    // profundidad distinta a la que recibe el mismo objeto recién colocado
-    // para muebles de más de 1 tile.
-    this.roomItems.updateItemDepth(item.id);
+
+    // repositionItem recalcula ancla + offset de artwork + profundidad con
+    // la misma fórmula que usa un item recién colocado. Antes esto era una
+    // copia manual de esas tres cosas aquí mismo, que se desincronizaba.
+    this.roomItems.repositionItem(item.id);
     this.roomItems.applyItemState(item.id);
     this.scene.refreshPathfinding?.();
   };
@@ -200,12 +120,6 @@ export default class FurnitureSocketSystem {
     // objeto) aunque no cambie de tile — invalidar el cache de ocupación.
     this.roomItems.invalidateOccupancy();
 
-    // El footprint (y por lo tanto el "tile más lejano" que decide la
-    // profundidad) puede cambiar con la rotación aunque el objeto no se
-    // mueva de tile — sin esto, un mueble rotado podía quedar con la
-    // profundidad vieja hasta el próximo recálculo global.
-    this.roomItems.updateItemDepth(item.id);
-
     const textureKey = worldObject.sprite.texture.key;
     const texture = this.scene.textures.get(textureKey);
     const frameWidth = getSpriteFrameWidth(item.item.worldData);
@@ -215,45 +129,22 @@ export default class FurnitureSocketSystem {
     const frameName = `${textureKey}-room-${frameIndex}`;
 
     if (!texture.has(frameName)) {
-      texture.add(
-        frameName,
-        0,
-        frameWidth * frameIndex,
-        0,
-        frameWidth,
-        frameHeight,
-      );
+      texture.add(frameName, 0, frameWidth * frameIndex, 0, frameWidth, frameHeight);
     }
 
     worldObject.sprite.setFrame(frameName);
 
-    // El spriteOffset es por dirección, así que rotar puede cambiarlo.
-    // setFrame solo cambia el recorte del spritesheet, no la posición —
-    // reposicionar con el offset de la nueva dirección.
-    const worldPos = this.scene.groundLayer.tileToWorldXY(
-      worldObject.tileX,
-      worldObject.tileY,
-    );
-    if (worldPos) {
-      const offset = getSpriteOffset(worldObject.item?.worldData, item.rotation);
-      worldObject.sprite.setPosition(
-        worldPos.x + this.scene.map.tileWidth / 2 + offset.x,
-        getFurnitureAnchorY(worldPos.y, this.scene.map.tileHeight) -
-          worldObject.elevation * 16 +
-          offset.y,
-      );
-    }
-
+    // Rotar cambia el footprint (y por tanto el ancla y el tile frontal que
+    // decide la profundidad) y también el offset de artwork, que es por
+    // dirección. repositionItem cubre los tres.
+    this.roomItems.repositionItem(item.id);
     this.roomItems.applyItemState(item.id);
     this.scene.refreshPathfinding?.();
   };
 
   // "Pintar TODO el suelo" — el backend devuelve un array con la misma forma
   // {surface, removedIds} que ya usa el evento singular, uno por cada tile
-  // pintado, así que reusamos handleSurfacePainted por cada uno en vez de
-  // duplicar la lógica de spawn. Antes de esto, la sala sólo se veía pintada
-  // tras salir y volver a entrar (el único listener de este evento era el
-  // que agenda la captura del thumbnail, en LobbyScene).
+  // pintado, así que reusamos handleSurfacePainted por cada uno.
   private handleAllSurfacesPainted = (data: any) => {
     const surfaces = data?.surfaces ?? [];
     surfaces.forEach((surfaceResult: any) => this.handleSurfacePainted(surfaceResult));

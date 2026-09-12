@@ -25,6 +25,11 @@ export default class PlayerSocketSystem {
 
       if (other.playerId !== playerData.id) return;
 
+      // playerData.x/y es el PUNTO DE APOYO del jugador remoto (sus pies),
+      // no el origen de su Container: ver el comentario de
+      // LobbyScene.update sobre qué se emite en "playerMove". Cada cliente
+      // tiene su propio footOffsetY según el avatar que esté renderizando,
+      // así que la red sólo puede transportar la posición en el suelo.
       other.move(playerData.x, playerData.y);
 
       if (playerData.isMoving && playerData.direction) {

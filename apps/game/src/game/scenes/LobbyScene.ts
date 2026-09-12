@@ -4,7 +4,6 @@ import { Player } from "../types/player";
 import ModularPlayer from "../players/ModularPlayer";
 import PlayerHUD from "../hud/PlayerHUD";
 import { AvatarSlot } from "../types/avatar";
-import EasyStar from "easystarjs";
 
 import BuildSystem from "../systems/BuildSystem";
 import PetSystem from "../systems/PetSystem";
@@ -21,23 +20,21 @@ import PlayerSocketSystem from "../systems/PlayerSocketSystem";
 import BackgroundManager from "../systems/BackgroundManager";
 import {
   getDirectionalFootprint,
-  getFootprintSize,
   toWorldTiles,
 } from "../systems/IsoFootprint";
 import { loadTextureOnce } from "../utils/phaserAssetCache";
 import { getSharedAuthToken } from "../network/auth";
-import {
-  getFurnitureAnchorY,
-  PLAYER_Y_OFFSET,
-  TILE_VISUAL_Y_OFFSET,
-} from "../utils/tileAnchor";
-import {
-  getSpriteFrameHeight,
-  getSpriteFrameWidth,
-} from "../utils/spriteFrames";
 import { WORLD_OVERLAY_DEPTH } from "../utils/depth";
 import { pointerToScreenPosition } from "../utils/pointerToScreenPosition";
 import { burstConfetti, burstSparkle } from "../systems/ParticleFx";
+import IsoGrid from "../iso/IsoGrid";
+import IsoDebugOverlay from "../iso/IsoDebugOverlay";
+import { syncActorDepth } from "../iso/IsoActorDepth";
+import NavGrid, { type NavTile } from "../iso/NavGrid";
+import TileWalkability, {
+  parseWalkabilityDeclaration,
+  type TileWalkabilityDeclaration,
+} from "../iso/TileWalkability";
 
 // Tileset compartido que se precarga en preload() antes de unirse a
 // cualquier sala, y al que se cae si el layout de la sala no trae su propio
@@ -57,6 +54,14 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
   map!: Phaser.Tilemaps.Tilemap;
   groundLayer!: Phaser.Tilemaps.TilemapLayer;
 
+  // Autoridad geométrica de la sala activa (ver iso/IsoGrid.ts). Toda
+  // conversión pantalla↔mundo↔tile y todo anclaje al suelo pasa por aquí.
+  // Undefined mientras se carga o se cambia de sala, igual que map y
+  // groundLayer.
+  isoGrid?: IsoGrid;
+
+  private isoDebug?: IsoDebugOverlay;
+
   private roomItems!: RoomItemsManager;
   private petSystem?: PetSystem;
   private onPetChanged = () => this.petSystem?.sync();
@@ -65,9 +70,13 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
   private placementValidator!: PlacementValidator;
   private ambientLight!: AmbientLightOverlay;
 
-  // Pathfinding
-  private easystar!: EasyStar.js;
-  private currentPath: { x: number; y: number }[] = [];
+  // Navegación: autoridad única de colisión y rutas (ver iso/NavGrid.ts).
+  private navGrid?: NavGrid;
+  private currentPath: NavTile[] = [];
+  // Destino final de la ruta activa, para poder recalcularla si un mueble
+  // la invalida a mitad de camino sin tener que parar al jugador.
+  private pathTarget: NavTile | null = null;
+  private pendingPathId: number | null = null;
   private speed = 180;
   private arrivalThreshold = 5;
 
@@ -90,9 +99,11 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
   private currentLayoutComposition: {
     layoutOffset: { x: number; y: number };
     cameraAnchor: { x: number; y: number } | null;
+    tiles: TileWalkabilityDeclaration;
   } = {
     layoutOffset: { x: 0, y: 0 },
     cameraAnchor: null,
+    tiles: {},
   };
 
   private mapLayers: Phaser.Tilemaps.TilemapLayer[] = [];
@@ -137,6 +148,13 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     const user = (this.game as any).user;
     this.backgroundManager = new BackgroundManager(this);
     this.ambientLight = new AmbientLightOverlay(this);
+    // Overlay de verificación geométrica (F9). Apagado por defecto y sin
+    // coste cuando lo está.
+    this.isoDebug = new IsoDebugOverlay(this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.isoDebug?.destroy();
+      this.isoDebug = undefined;
+    });
 
     socket.on("room:joined", (data: any) => {
       // Antes el cambio de sala era un corte seco: destroyCurrentMap()
@@ -787,6 +805,12 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     // `this.tilemap` interno ya es undefined → crash en pleno cambio de sala.
     this.groundLayer = undefined as unknown as Phaser.Tilemaps.TilemapLayer;
     this.map = undefined as unknown as Phaser.Tilemaps.Tilemap;
+    this.isoGrid = undefined;
+    this.navGrid = undefined;
+    this.currentPath = [];
+    this.pathTarget = null;
+    this.pendingPathId = null;
+    this.isoDebug?.setGrid(undefined);
   }
 
   private buildMap() {
@@ -825,6 +849,22 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
 
     this.groundLayer = this.detectGroundLayer(createdLayers);
     this.groundLayer?.setDepth(0);
+
+    // La geometría de la sala se deriva del tileset REAL que acaba de
+    // cargarse (tamaño de celda y tileoffset), no de constantes: un tileset
+    // de otro tamaño en otra sala sigue funcionando sin tocar nada.
+    //
+    // La caminabilidad viene de los datos (propiedad `walkable` del tileset
+    // de Tiled, o `__codebuddies.tiles` del layoutJson). Sin declaración se
+    // mantiene el comportamiento histórico: todo tile pintado es suelo.
+    if (this.groundLayer) {
+      const walkability = new TileWalkability(
+        this.map.tilesets,
+        this.currentLayoutComposition.tiles,
+      );
+      this.isoGrid = new IsoGrid(this.map, this.groundLayer, tileset, walkability);
+      this.isoDebug?.setGrid(this.isoGrid);
+    }
   }
 
   private getLayoutComposition(layoutJson: any) {
@@ -843,6 +883,10 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
             y: Number(cameraAnchor.y ?? 0),
           }
         : null,
+      // Declaración de caminabilidad por GID (puente mientras el tileset de
+      // Tiled no lleve la propiedad `walkable` por tile). Ver
+      // iso/TileWalkability.ts para el orden de prioridad.
+      tiles: parseWalkabilityDeclaration(config.tiles),
     };
   }
 
@@ -899,16 +943,21 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
   // inventada: cae al punto fijo de siempre.
   private resolveSpawnPosition(): [number, number] {
     const fallback: [number, number] = [250, 250];
-    if (!this.map || !this.groundLayer) return fallback;
+    if (!this.isoGrid) return fallback;
 
-    const tx = Math.floor(this.map.width / 2);
-    const ty = Math.floor(this.map.height / 2);
+    const tx = Math.floor(this.isoGrid.width / 2);
+    const ty = Math.floor(this.isoGrid.height / 2);
     if (!this.isWalkable(tx, ty)) return fallback;
 
-    const worldPos = this.groundLayer.tileToWorldXY(tx, ty);
-    if (!worldPos) return fallback;
+    // Ancla de suelo, igual que el destino de cada paso al caminar (ver
+    // update()). Antes esto devolvía `worldPos.y + tileHeight/2` mientras
+    // que caminar apuntaba a `worldPos.y + tileHeight/2 + PLAYER_Y_OFFSET`:
+    // 20 px de diferencia, así que el jugador daba un saltito hacia arriba
+    // en su primer paso.
+    const anchor = this.isoGrid.groundAnchor(tx, ty);
+    if (!anchor) return fallback;
 
-    return [worldPos.x + this.map.tileWidth / 2, worldPos.y + this.map.tileHeight / 2];
+    return [anchor.x, anchor.y];
   }
 
   private setBuildMode(active: boolean) {
@@ -919,21 +968,38 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
   }
 
   private createWorld(user: any, socket: any, players: Player[], items: any[]) {
+    // Sin grid no hay sala: buildMap() aborta si el tileset no se resolvió
+    // (addTilesetImage devuelve null) y entonces no hay geometría con la que
+    // colocar nada. Antes esto seguía adelante y reventaba más abajo en el
+    // primer tileToWorldXY sobre una capa inexistente.
+    if (!this.isoGrid || !this.groundLayer) {
+      console.error("❌ No se pudo construir la sala: falta el tilemap/tileset");
+      return;
+    }
+
     this.pcZone = this.add.zone(300, 300, 100, 100);
     this.physics.add.existing(this.pcZone);
 
     this.cameras.main.roundPixels = true;
 
+    // El constructor recibe el PUNTO DE APOYO (dónde pisa), no el origen
+    // del Container: ModularPlayer deriva ese origen midiendo el avatar.
     const [spawnX, spawnY] = this.resolveSpawnPosition();
     this.player = new ModularPlayer(this, spawnX, spawnY, []);
 
-    // Elipse plana y semitransparente bajo los pies del jugador — ver
-    // PLAYER_Y_OFFSET más abajo para por qué la Y no es this.player.y a secas.
+    // Elipse plana y semitransparente bajo los pies del jugador. Se dibuja
+    // exactamente en el punto de apoyo, sin ningún offset propio: si la
+    // sombra se ve descolocada, lo que está mal es el ancla, no la sombra.
+    // Tamaño derivado del tile, no dos literales.
+    const shadow = this.isoGrid
+      ? { w: this.isoGrid.tileWidth * 0.6, h: this.isoGrid.tileHeight * 0.5 }
+      : { w: 40, h: 16 };
+    const playerGround = this.player.getGroundPoint();
     this.playerShadow = this.add.ellipse(
-      this.player.x,
-      this.player.y - PLAYER_Y_OFFSET,
-      40,
-      16,
+      playerGround.x,
+      playerGround.y,
+      shadow.w,
+      shadow.h,
       0x000000,
       0.35,
     );
@@ -954,7 +1020,7 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     this.cameras.main.roundPixels = true;
     this.cameras.main.setZoom(1);
 
-    this.roomItems = new RoomItemsManager(this);
+    this.roomItems = new RoomItemsManager(this, this.isoGrid);
 
     // Mascota del jugador: se muestra siguiéndolo si la "sacó" a esta sala
     // (Pet.activeRoomId). Se resincroniza cuando el panel de mascota emite
@@ -993,39 +1059,13 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
 
     this.playerSockets.initialize();
 
+    // El payload del servidor ya tiene la forma que espera addItem; el
+    // anclaje y la profundidad los resuelve RoomItemsManager con IsoGrid.
+    // Sin refresco de navegación por item: la carga inicial hacía una
+    // reconstrucción completa de la rejilla por CADA mueble. Se sincroniza
+    // una sola vez cuando han entrado todos (ver el .then de abajo).
     const spawnRoomItem = (item: any, textureKey: string) => {
-      const worldPos = this.groundLayer.tileToWorldXY(item.x, item.y);
-
-      if (!worldPos) return;
-
-      this.roomItems.addItem(
-        item.id,
-        textureKey,
-
-        worldPos.x + this.map.tileWidth / 2,
-        getFurnitureAnchorY(worldPos.y, this.map.tileHeight),
-
-        item.x,
-        item.y,
-
-        item.rotation,
-
-        getSpriteFrameWidth(item.item.worldData),
-        getSpriteFrameHeight(item.item.worldData),
-
-        item.roomId,
-        item.userId,
-        {
-          ...item.item,
-          roomItemState: item.state,
-        },
-
-        item.elevation ?? 0,
-        item.parentRoomItemId ?? null,
-        item.wallSide ?? null,
-        item.wallOffset ?? null,
-      );
-      this.refreshPathfinding();
+      this.roomItems.addItem(item, textureKey);
     };
 
     // Promise.all + updateDepths() al final, no forEach suelto: cada item
@@ -1042,14 +1082,13 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
           spawnRoomItem(item, textureKey),
         ),
       ),
-    ).then(() => this.roomItems.updateDepths());
+    ).then(() => {
+      this.roomItems.updateDepths();
+      this.refreshPathfinding();
+    });
 
     this.placementValidator = new PlacementValidator();
-    this.placementValidator.configure(
-      this.map,
-      this.groundLayer,
-      this.roomItems,
-    );
+    this.placementValidator.configure(this.isoGrid, this.roomItems);
 
     this.buildSystem = new BuildSystem(this);
 
@@ -1076,11 +1115,27 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
 
     this.otherPlayers = this.add.group();
 
+    // Rombo del tamaño real de la rejilla, no un literal 64x32: si una sala
+    // usara otro tileWidth/tileHeight el resaltado seguiría encajando.
+    const tw = this.isoGrid.tileWidth;
+    const th = this.isoGrid.tileHeight;
+
+    // El resaltado se recrea en cada sala, así que la memoria de "ya estoy
+    // en este tile" debe reiniciarse o el primer hover sobre la misma
+    // coordenada de la sala nueva no lo haría aparecer.
+    this.lastHoverTile = { x: -1, y: -1 };
+
     this.hoverHighlight = this.add
-      .polygon(0, 0, [32, 0, 64, 16, 32, 32, 0, 16], 0xffff44, 0.45)
+      .polygon(
+        0,
+        0,
+        [tw / 2, 0, tw, th / 2, tw / 2, th, 0, th / 2],
+        0xffff44,
+        0.45,
+      )
       // Antes 150: por debajo de la profundidad real de cualquier mueble/
-      // avatar (tileY*1000+tileX) desde la fila 1 en adelante, así que el
-      // resaltado quedaba oculto casi en todo el mapa.
+      // avatar desde la fila 1 en adelante, así que el resaltado quedaba
+      // oculto casi en todo el mapa.
       .setDepth(WORLD_OVERLAY_DEPTH)
       .setStrokeStyle(2.5, 0xffffff, 0.7)
       .setVisible(false);
@@ -1104,108 +1159,130 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
   }
 
   private setupPathfinding() {
-    if (!this.groundLayer) return console.error("❌ No groundLayer");
+    if (!this.isoGrid) return console.error("❌ No isoGrid");
 
-    this.easystar = new EasyStar.js() as any;
-
-    // Se calcula una sola vez fuera del loop de tiles: getBlockingTiles() recorre
-    // todos los muebles de la sala, así que llamarlo por-tile era O(ancho*alto*muebles)
-    // en vez de O(ancho*alto + muebles) (mismo patrón ya usado en PlacementValidator).
-    const blockingTiles = this.roomItems?.getBlockingTiles();
-
-    const grid: number[][] = [];
-    for (let y = 0; y < this.map.height; y++) {
-      const row: number[] = [];
-      for (let x = 0; x < this.map.width; x++) {
-        const tile = this.groundLayer.getTileAt(x, y);
-        const blocked = blockingTiles?.has(`${x},${y}`) ?? false;
-        row.push(tile && tile.index !== -1 && !blocked ? 0 : 1);
-      }
-      grid.push(row);
-    }
-
-    this.easystar.setGrid(grid);
-    this.easystar.setAcceptableTiles([0]);
-    this.easystar.enableDiagonals();
-    // Sin disableCornerCutting(): en una sala isométrica con forma de rombo,
-    // los tiles de la punta (arriba/abajo/izquierda/derecha) suelen tener
-    // sus dos vecinos ortogonales fuera de la sala (bloqueados) y sólo son
-    // alcanzables en diagonal. Con corner-cutting deshabilitado, EasyStar
-    // exige que AMBOS vecinos ortogonales sean caminables para permitir esa
-    // diagonal — imposible en esas puntas — dejando al jugador trabado ahí.
+    this.navGrid = new NavGrid(this.isoGrid);
+    this.syncBlockedTiles();
   }
 
   private isWalkable(tx: number, ty: number): boolean {
-    if (!this.groundLayer) return false;
-    const tile = this.groundLayer.getTileAt(tx, ty);
-    return !!(tile && tile.index !== -1 && !this.isTileBlockedByObject(tx, ty));
+    return this.navGrid?.isWalkable(tx, ty) ?? false;
   }
 
-  private isTileBlockedByObject(tx: number, ty: number): boolean {
-    return this.roomItems?.getBlockingTiles().has(`${tx},${ty}`) ?? false;
-  }
-
+  /**
+   * Sincroniza la navegación con los muebles actuales.
+   *
+   * Antes esto era `refreshPathfinding()`: creaba una instancia nueva de
+   * EasyStar, reconstruía la rejilla entera y hacía `currentPath = []`.
+   * Resultado: colocar un mueble en cualquier rincón DETENÍA EN SECO a
+   * todos los jugadores de la sala, y en la carga inicial se repetía una
+   * vez por cada mueble.
+   *
+   * Ahora se aplica sólo el delta de casillas, y la ruta activa se recalcula
+   * únicamente si el cambio la toca de verdad.
+   */
   refreshPathfinding() {
-    if (!this.groundLayer || !this.map) return;
-    this.currentPath = [];
-    this.setupPathfinding();
+    this.syncBlockedTiles();
+  }
+
+  private syncBlockedTiles() {
+    if (!this.navGrid) return;
+
+    const changed = this.navGrid.setBlockedTiles(
+      this.roomItems?.getBlockingTiles() ?? new Set<string>(),
+    );
+
+    if (!changed.length || !this.currentPath.length) return;
+
+    // ¿El cambio afecta a los pasos que quedan por recorrer?
+    const remaining = new Set(
+      this.currentPath.map((step) => `${step.x},${step.y}`),
+    );
+    const affectsRoute = changed.some((tile) =>
+      remaining.has(`${tile.x},${tile.y}`),
+    );
+
+    if (affectsRoute) this.repathToCurrentTarget();
+  }
+
+  /**
+   * Recalcula la ruta hacia el destino vigente desde donde esté el jugador.
+   * Si el destino ya no es alcanzable, se busca la casilla libre más cercana
+   * a él en vez de dejar al jugador plantado.
+   */
+  private repathToCurrentTarget() {
+    if (!this.navGrid || !this.pathTarget) return;
+
+    const from = this.playerTile();
+    if (!from) return;
+
+    const target =
+      this.navGrid.nearestWalkable(this.pathTarget.x, this.pathTarget.y) ??
+      null;
+
+    if (!target || (from.x === target.x && from.y === target.y)) {
+      this.currentPath = [];
+      this.pathTarget = null;
+      return;
+    }
+
+    this.requestPath(from, target);
+  }
+
+  /**
+   * Única puerta de entrada a la búsqueda de rutas. Cancela la búsqueda
+   * anterior si seguía en vuelo (antes esto se "resolvía" creando una
+   * instancia nueva de EasyStar, que además tiraba las de todos los demás).
+   */
+  private requestPath(from: NavTile, to: NavTile) {
+    if (!this.navGrid) return;
+
+    this.navGrid.cancelPath(this.pendingPathId);
+    this.pathTarget = { x: to.x, y: to.y };
+
+    this.pendingPathId = this.navGrid.findPath(from, to, (path) => {
+      this.pendingPathId = null;
+      if (path && path.length > 1) {
+        this.currentPath = path.slice(1);
+      }
+    });
   }
 
   // ====================== HIGHLIGHT CORREGIDO (más preciso) ======================
   private updateHoverHighlight(pointer: Phaser.Input.Pointer) {
-    if (!this.groundLayer) return;
+    if (!this.isoGrid) return;
 
-    const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+    const tile = this.isoGrid.pointerToTile(this.cameras.main, pointer);
 
-    // Misma conversión (sin offset) que FurniturePlacementSystem.ts, la
-    // única que siempre coincidió con el tile que el jugador ve bajo el
-    // puntero. Los offsets "afinados" que había antes acá compensaban a
-    // ojo el bug real (ver handleClickToMove/paintSelected*), no lo
-    // arreglaban — desalineaban el highlight en vez de corregir el click.
-    const tileXY = this.groundLayer.worldToTileXY(
-      worldPoint.x,
-      worldPoint.y,
-      false,
-    );
-
-    if (!tileXY) {
+    if (!tile) {
       this.hoverHighlight.setVisible(false);
       return;
     }
 
-    const tx = Math.floor(tileXY.x);
-    const ty = Math.floor(tileXY.y);
+    if (tile.x === this.lastHoverTile.x && tile.y === this.lastHoverTile.y) {
+      return;
+    }
+    this.lastHoverTile = { x: tile.x, y: tile.y };
 
-    if (tx === this.lastHoverTile.x && ty === this.lastHoverTile.y) return;
-    this.lastHoverTile = { x: tx, y: ty };
-
-    if (
-      !this.isWalkable(tx, ty) ||
-      tx < 0 ||
-      ty < 0 ||
-      tx >= this.map.width ||
-      ty >= this.map.height
-    ) {
+    if (!this.isWalkable(tile.x, tile.y)) {
       this.hoverHighlight.setVisible(false);
       return;
     }
 
-    const worldPos = this.groundLayer.tileToWorldXY(tx, ty);
+    // El polígono del resaltado se posiciona por el CENTRO de su bounding
+    // box, así que se ancla al centro del rombo de suelo — el mismo que
+    // devuelve IsoGrid para el footprint de construcción y para la base de
+    // los muebles. Antes era una tercera fórmula independiente.
+    const center = this.isoGrid.groundCenter(tile.x, tile.y);
 
-    if (worldPos) {
-      this.hoverHighlight.setPosition(
-        worldPos.x + this.map.tileWidth / 2,
-        // Mismo TILE_VISUAL_Y_OFFSET que getFurnitureAnchorY (antes hardcodeado
-        // como +11 acá, se desincronizaba cada vez que se recalibraba el de
-        // muebles/texturas — ver tileAnchor.ts).
-        worldPos.y + this.map.tileHeight + TILE_VISUAL_Y_OFFSET,
-      );
+    if (center) {
+      this.hoverHighlight.setPosition(center.x, center.y);
       this.hoverHighlight.setVisible(true);
     }
   }
 
   private handleClickToMove(pointer: Phaser.Input.Pointer) {
-    if (!this.groundLayer) return;
+    if (!this.isoGrid) return;
     // this.movingRoomItem primero: al mover un mueble ya colocado,
     // buildSystem.getCurrentItem() también queda con valor (mismo ghost que
     // colocar uno nuevo), así que el guard de abajo bloqueaba por completo
@@ -1225,71 +1302,69 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
       window.dispatchEvent(new CustomEvent("room:item:deselected"));
     }
 
-    const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+    const target = this.isoGrid.pointerToTile(this.cameras.main, pointer);
 
-    // Misma conversión que FurniturePlacementSystem.ts (sin offset en Y) —
-    // antes este destino se calculaba CON offset mientras el tile de origen
-    // (playerTile, dos líneas abajo) se calculaba SIN offset, dos criterios
-    // distintos en la misma función. Eso es lo que hacía que el pathfinding
-    // apuntara a un tile distinto al que se ve bajo el cursor.
-    const tileXY = this.groundLayer.worldToTileXY(
-      worldPoint.x,
-      worldPoint.y,
-      false,
-    );
+    if (!target || !this.navGrid) return;
 
-    if (!tileXY) return;
+    if (!this.isWalkable(target.x, target.y)) return;
 
-    const targetX = Math.floor(tileXY.x);
-    const targetY = Math.floor(tileXY.y);
+    // Tile de ORIGEN a partir del punto de apoyo del jugador (sus pies).
+    // Antes el destino y el origen se calculaban con dos criterios
+    // distintos dentro de esta misma función.
+    const from = this.playerTile();
+    if (!from) return;
 
-    if (!this.isWalkable(targetX, targetY)) return;
+    if (from.x === target.x && from.y === target.y) return;
 
-    // Restar PLAYER_Y_OFFSET acá también (mismo motivo que en
-    // updateSceneDepths): sin esto, el tile de ORIGEN del pathfinding podía
-    // calcularse una fila distinta a la real, y EasyStar terminaba armando
-    // un camino que parecía cruzar derecho por un mueble bloqueado.
-    const playerTile = this.groundLayer.worldToTileXY(
-      this.player.x,
-      this.player.y - PLAYER_Y_OFFSET,
-      false,
-    );
-    if (!playerTile) return;
+    // Si el jugador quedó dentro de una huella que se bloqueó bajo sus
+    // pies, EasyStar no encontraría salida desde ahí: primero se sale
+    // andando a la casilla libre más cercana.
+    if (!this.isWalkable(from.x, from.y)) {
+      this.unstickPlayer();
+      return;
+    }
 
-    const fromX = Math.floor(playerTile.x);
-    const fromY = Math.floor(playerTile.y);
+    this.requestPath(from, target);
+  }
 
-    if (fromX === targetX && fromY === targetY) return;
+  /**
+   * Saca al jugador de una casilla que quedó bloqueada bajo sus pies
+   * (alguien colocó un mueble justo encima mientras caminaba).
+   *
+   * Le da un DESTINO al que ir andando, no una posición a la que saltar:
+   * nada de teletransportes. Si no hay salida en el radio de búsqueda, se
+   * deja como está en vez de inventar una posición.
+   */
+  private unstickPlayer() {
+    if (!this.navGrid) return;
 
-    this.easystar.findPath(fromX, fromY, targetX, targetY, (path) => {
-      // 🐛 DEBUG TEMPORAL — borrar después de diagnosticar el bug de
-      // colisión.
-      console.log("🗺️ PATH CALCULADO", { fromX, fromY, targetX, targetY, path });
+    const from = this.playerTile();
+    if (!from || this.isWalkable(from.x, from.y)) return;
 
-      if (path && path.length > 1) {
-        this.currentPath = path.slice(1);
-      }
-    });
+    const escape = this.navGrid.nearestWalkable(from.x, from.y);
+    if (!escape) return;
+
+    this.currentPath = [escape];
+    this.pathTarget = escape;
+  }
+
+  /** Tile que ocupa el jugador, resuelto desde su punto de apoyo. */
+  private playerTile() {
+    if (!this.isoGrid || !this.player) return null;
+    const ground = this.player.getGroundPoint();
+    const tile = this.isoGrid.worldToGroundTile(ground.x, ground.y);
+    return tile ? { x: Math.floor(tile.x), y: Math.floor(tile.y) } : null;
   }
 
   private moveSelectedRoomItem(pointer: Phaser.Input.Pointer) {
-    if (!this.movingRoomItem || !this.groundLayer) return false;
+    if (!this.movingRoomItem || !this.isoGrid) return false;
 
-    const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
-    const tileXY = this.groundLayer.worldToTileXY(
-      worldPoint.x,
-      worldPoint.y,
-      false,
-    );
+    const tile = this.isoGrid.pointerToTile(this.cameras.main, pointer);
 
-    if (!tileXY) return true;
+    if (!tile || !this.isoGrid.contains(tile.x, tile.y)) return true;
 
-    const tx = Math.floor(tileXY.x);
-    const ty = Math.floor(tileXY.y);
-
-    if (tx < 0 || ty < 0 || tx >= this.map.width || ty >= this.map.height) {
-      return true;
-    }
+    const tx = tile.x;
+    const ty = tile.y;
 
     // Antes esto emitía a ciegas apenas se clickeaba, sin ghost ni
     // validación — el servidor lo rechazaba en silencio si la casilla
@@ -1336,23 +1411,14 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
   }
 
   private paintSelectedSurfaceTexture(pointer: Phaser.Input.Pointer) {
-    if (!this.selectedSurfaceTexture || !this.groundLayer) return false;
+    if (!this.selectedSurfaceTexture || !this.isoGrid) return false;
 
-    const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
-    const tileXY = this.groundLayer.worldToTileXY(
-      worldPoint.x,
-      worldPoint.y,
-      false,
-    );
+    const tile = this.isoGrid.pointerToTile(this.cameras.main, pointer);
 
-    if (!tileXY) return true;
+    if (!tile || !this.isoGrid.contains(tile.x, tile.y)) return true;
 
-    const tx = Math.floor(tileXY.x);
-    const ty = Math.floor(tileXY.y);
-
-    if (tx < 0 || ty < 0 || tx >= this.map.width || ty >= this.map.height) {
-      return true;
-    }
+    const tx = tile.x;
+    const ty = tile.y;
 
     const socket = (this.game as any).socket;
     const item = this.selectedSurfaceTexture.item;
@@ -1375,15 +1441,7 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
       return true;
     }
 
-    // ❌ Validación: No permitir pintar paredes en el suelo
-    if (kind === "WALL") {
-      console.warn(
-        "❌ Las texturas de pared no se pueden pintar en el suelo. Solo usa texturas de SUELO para el piso.",
-      );
-      return true;
-    }
-
-    const paintKey = `${tx}:${ty}:${item.id}:${this.selectedSurfaceTexture.width}:${this.selectedSurfaceTexture.height}`;
+    const paintKey =`${tx}:${ty}:${item.id}:${this.selectedSurfaceTexture.width}:${this.selectedSurfaceTexture.height}`;
     if (this.lastPaintedTileKey === paintKey) return true;
     this.lastPaintedTileKey = paintKey;
 
@@ -1412,30 +1470,24 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
   }
 
   private paintSelectedFloorTile(pointer: Phaser.Input.Pointer) {
-    if (this.selectedFloorTileIndex === null || !this.groundLayer) return false;
+    if (this.selectedFloorTileIndex === null || !this.isoGrid) return false;
 
-    const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
-    const tileXY = this.groundLayer.worldToTileXY(
-      worldPoint.x,
-      worldPoint.y,
-      false,
-    );
+    const tile = this.isoGrid.pointerToTile(this.cameras.main, pointer);
 
-    if (!tileXY) return true;
+    if (!tile || !this.isoGrid.contains(tile.x, tile.y)) return true;
 
-    const tx = Math.floor(tileXY.x);
-    const ty = Math.floor(tileXY.y);
-
-    if (tx < 0 || ty < 0 || tx >= this.map.width || ty >= this.map.height) {
-      return true;
-    }
+    const tx = tile.x;
+    const ty = tile.y;
 
     const paintKey = `${tx}:${ty}:${this.selectedFloorTileIndex}`;
     if (this.lastPaintedTileKey === paintKey) return true;
     this.lastPaintedTileKey = paintKey;
 
     this.groundLayer.putTileAt(this.selectedFloorTileIndex, tx, ty);
-    this.refreshPathfinding();
+    // Pintar cambia el TERRENO de esa casilla (el tile nuevo puede ser
+    // suelo o no serlo), no los muebles: se refresca sólo esa celda en vez
+    // de reconstruir la rejilla entera.
+    this.navGrid?.refreshTerrainAt(tx, ty);
 
     return true;
   }
@@ -1445,18 +1497,26 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     this.updateBuildPreviewTint(this.input.activePointer);
     this.petSystem?.update(this.game.loop.delta);
     this.butlerSystem?.update(this.game.loop.delta);
-    if (!this.player || !this.groundLayer) return;
+    if (!this.player || !this.isoGrid || !this.navGrid) return;
 
     const socket = (this.game as any).socket;
-    this.easystar.calculate();
+    this.navGrid.update();
     this.updateSceneDepths();
+    this.updateIsoDebug();
+
+    // Todo el movimiento se razona sobre el PUNTO DE APOYO del jugador, no
+    // sobre el origen de su Container: así el destino de cada paso es
+    // literalmente el ancla de suelo de la casilla, sin ninguna constante
+    // de por medio. Lo que se emite por red también es ese punto, porque
+    // cada cliente tiene un footOffsetY distinto según el avatar.
+    const ground = this.player.getGroundPoint();
 
     if (this.currentPath.length === 0) {
       if (this.player.isMoving) {
         this.player.playIdle();
         socket.emit("playerMove", {
-          x: this.player.x,
-          y: this.player.y,
+          x: ground.x,
+          y: ground.y,
           direction: this.player.currentDirection,
           isMoving: false,
         });
@@ -1465,29 +1525,36 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     }
 
     const next = this.currentPath[0];
-    const worldPos = this.groundLayer.tileToWorldXY(next.x, next.y);
-    if (!worldPos) {
+
+    // REVALIDACIÓN ANTES DE ENTRAR (4.6). La ruta se calculó en el pasado;
+    // entre medias alguien pudo colocar un mueble sobre esta casilla. Antes
+    // no se comprobaba nada después del click, así que el personaje entraba
+    // igual y atravesaba el obstáculo.
+    if (!this.navGrid.isWalkable(next.x, next.y)) {
+      this.repathToCurrentTarget();
+      return;
+    }
+
+    const anchor = this.isoGrid.groundAnchor(next.x, next.y);
+    if (!anchor) {
       this.currentPath.shift();
       return;
     }
 
-    const targetX = worldPos.x + this.map.tileWidth / 2;
-    const targetY = worldPos.y + this.map.tileHeight / 2 + PLAYER_Y_OFFSET;
-
-    const dx = targetX - this.player.x;
-    const dy = targetY - this.player.y;
+    const dx = anchor.x - ground.x;
+    const dy = anchor.y - ground.y;
     const dist = Math.hypot(dx, dy);
 
     if (dist < this.arrivalThreshold) {
       this.currentPath.shift();
-      this.player.x = targetX;
-      this.player.y = targetY;
+      this.player.setGroundPosition(anchor.x, anchor.y);
 
       if (this.currentPath.length === 0) {
+        this.pathTarget = null;
         this.player.playIdle();
         socket.emit("playerMove", {
-          x: this.player.x,
-          y: this.player.y,
+          x: anchor.x,
+          y: anchor.y,
           direction: this.player.currentDirection,
           isMoving: false,
         });
@@ -1496,11 +1563,12 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     }
 
     const delta = this.game.loop.delta / 1000;
-    this.player.x += (dx / dist) * this.speed * delta;
-    this.player.y += (dy / dist) * this.speed * delta;
+    const step = this.speed * delta;
 
-    this.player.x = Math.round(this.player.x);
-    this.player.y = Math.round(this.player.y);
+    this.player.setGroundPosition(
+      Math.round(ground.x + (dx / dist) * step),
+      Math.round(ground.y + (dy / dist) * step),
+    );
 
     let direction = this.player.currentDirection;
     if (Math.abs(dx) > Math.abs(dy)) {
@@ -1513,9 +1581,11 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
       this.player.playAnimation(direction);
     }
 
+    const moved = this.player.getGroundPoint();
+
     socket.emit("playerMove", {
-      x: this.player.x,
-      y: this.player.y,
+      x: moved.x,
+      y: moved.y,
       direction,
       isMoving: true,
     });
@@ -1523,64 +1593,71 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     this.updateSceneDepths();
   }
 
-  private updateSceneDepths() {
-    if (!this.player || !this.groundLayer) return;
+  /** Alimenta el overlay de verificación geométrica (F9). Sin coste si está off. */
+  private updateIsoDebug() {
+    if (!this.isoDebug?.isEnabled() || !this.isoGrid) return;
 
-    // Antes esto llamaba a roomItems.updateDepths() (recorre TODOS los
-    // muebles) sin condición acá, 60 veces por segundo — la profundidad de
-    // un mueble solo cambia al colocarse/moverse/rotarse, y esos tres
-    // eventos ya actualizan su propio depth puntual (ver
-    // FurnitureSocketSystem.handleItemPlaced/Moved/Rotated), así que
-    // recorrer la sala entera acá era trabajo repetido sin ningún cambio
-    // real que reflejar.
+    const pointer = this.input.activePointer;
+    const targets: {
+      label: string;
+      groundX: number;
+      groundY: number;
+      originY?: number;
+    }[] = [];
 
-    // Restar PLAYER_Y_OFFSET antes de convertir a tile: ese offset es puro
-    // ajuste visual (dónde se dibuja el sprite), no debe afectar a qué tile
-    // "pertenece" el jugador para ordenar profundidad — si no se resta acá,
-    // cambiar PLAYER_Y_OFFSET (ver tileAnchor.ts) puede correr el punto donde
-    // el personaje pasa de "detrás" a "delante" de un mueble, desalineándolo
-    // del límite visual real entre tiles.
-    const playerTile = this.groundLayer.worldToTileXY(
-      this.player.x,
-      this.player.y - PLAYER_Y_OFFSET,
-      false,
-    );
-
-    if (playerTile) {
-      // playerTile.y SIN floor: los muebles tienen profundidad fija por
-      // tile (y*1000+x), pero el jugador se mueve de forma continua. Si acá
-      // se redondeaba a tile entero, dos objetos a 1 tile de distancia
-      // quedaban con depths casi iguales (diferencia de un "salto" de 1000
-      // recién al cruzar el borde exacto del tile) y el jugador parpadeaba
-      // detrás/delante de forma incorrecta hasta cruzar ese borde. Usando el
-      // valor fraccionario, el depth interpola en el camino y el cruce
-      // delante/detrás pasa exactamente cuando visualmente corresponde, no
-      // solo al llegar al tile siguiente.
-      const depth = playerTile.y * 1000 + Math.floor(playerTile.x);
-
-      this.player.setDepth(depth);
-
-      // -1: apenas por debajo del jugador (nunca invade el rango de la fila
-      // siguiente, que empieza 1000 más arriba) para que la sombra quede
-      // "bajo" los pies sin taparlos ni competir con su propio depth.
-      this.playerShadow?.setPosition(
-        this.player.x,
-        this.player.y - PLAYER_Y_OFFSET,
-      );
-      this.playerShadow?.setDepth(depth - 1);
+    if (this.player) {
+      const g = this.player.getGroundPoint();
+      targets.push({
+        label: "jugador",
+        groundX: g.x,
+        groundY: g.y,
+        originY: this.player.y,
+      });
     }
 
-    this.otherPlayers.getChildren().forEach((child: any) => {
-      const tile = this.groundLayer.worldToTileXY(
-        child.x,
-        child.y - PLAYER_Y_OFFSET,
-        false,
-      );
+    // Tiles del mueble bajo el cursor, para verificar el anclaje por
+    // footprint de los muebles de varias casillas.
+    const tile = this.isoGrid.pointerToTile(this.cameras.main, pointer);
+    let footprintTiles: { x: number; y: number }[] | undefined;
 
-      if (tile && child.setDepth) {
-        child.setDepth(tile.y * 1000 + Math.floor(tile.x));
+    if (tile) {
+      const item = this.roomItems?.getHighestItemAt(tile.x, tile.y);
+      if (item) {
+        footprintTiles = toWorldTiles(
+          item.tileX,
+          item.tileY,
+          getDirectionalFootprint(item.item?.worldData, item.rotation),
+        );
       }
+    }
 
+    this.isoDebug.update(pointer, targets, footprintTiles);
+  }
+
+  private updateSceneDepths() {
+    if (!this.player || !this.isoGrid) return;
+
+    // No se recorren los muebles aquí: su profundidad solo cambia al
+    // colocarse/moverse/rotarse, y esos tres eventos ya la actualizan
+    // puntualmente (ver FurnitureSocketSystem). Recorrer la sala entera 60
+    // veces por segundo era trabajo repetido sin nada que reflejar.
+    //
+    // Los actores sí se recalculan cada frame porque se mueven de forma
+    // continua. syncActorDepth usa el punto de apoyo SIN redondear a tile:
+    // así el cruce delante/detrás ocurre exactamente donde visualmente
+    // corresponde y no al saltar de casilla.
+    const depth = syncActorDepth(this, this.player);
+
+    const ground = this.player.getGroundPoint();
+
+    // La sombra va literalmente en el punto de apoyo, sin offset propio, y
+    // justo por debajo del jugador (nunca invade la línea de profundidad
+    // siguiente, que está 1000 más arriba).
+    this.playerShadow?.setPosition(ground.x, ground.y);
+    this.playerShadow?.setDepth(depth - 1);
+
+    this.otherPlayers.getChildren().forEach((child: any) => {
+      syncActorDepth(this, child);
       child.hud?.update();
     });
 
@@ -1591,24 +1668,18 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     const item = this.buildSystem?.getCurrentItem();
     const preview = this.buildSystem?.getPreview();
 
-    if (!item || !preview || !this.groundLayer || !this.placementValidator) {
+    if (!item || !preview || !this.isoGrid || !this.placementValidator) {
       return;
     }
 
-    const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y);
-    const tileXY = this.groundLayer.worldToTileXY(
-      worldPoint.x,
-      worldPoint.y,
-      false,
-    );
+    const tile = this.isoGrid.pointerToTile(this.cameras.main, pointer);
 
-    if (!tileXY) {
+    if (!tile) {
       preview.setTint(0xff4444);
       return;
     }
 
-    const tx = Math.floor(tileXY.x);
-    const ty = Math.floor(tileXY.y);
+    const { x: tx, y: ty } = tile;
     const canPlace = this.placementValidator.canPlace(
       tx,
       ty,
@@ -1617,23 +1688,15 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
       this.movingRoomItem?.roomItemId,
     );
 
-    const rotation = this.buildSystem.getRotation();
-
-    const footprint = getDirectionalFootprint(item.worldData, rotation);
-    const size = getFootprintSize(footprint);
-    const tiles = toWorldTiles(tx, ty, footprint).map((tile) => ({
-      x: tile.x - tx,
-      y: tile.y - ty,
-    }));
-    const hasStackSupport = Boolean((this.roomItems as any)?.getStackTarget(tx, ty));
+    // Tiles ABSOLUTOS: drawFootprint los resuelve con IsoGrid.groundDiamond,
+    // la misma fuente que el resaltado del cursor. Antes se pasaban como
+    // offsets relativos y el rombo se recalculaba con una fórmula aparte.
+    const tiles = this.buildSystem.getFootprintTilesAt(tx, ty);
+    const hasStackSupport = Boolean(this.roomItems?.getStackTarget(tx, ty));
 
     this.buildSystem.drawFootprint(
-      tx,
-      ty,
-      size.width,
-      size.height,
-      canPlace,
       tiles,
+      canPlace,
       hasStackSupport ? "stack" : "ground",
     );
 
@@ -1664,6 +1727,9 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
   }
 
   addOtherPlayer(playerData: Player) {
+    // playerData.x/y es el punto de APOYO del jugador remoto (lo que emite
+    // "playerMove"), no el origen de su Container: ModularPlayer deriva ese
+    // origen midiendo su propio avatar cuando termine de construirse.
     const other = new ModularPlayer(
       this,
       playerData.x,

@@ -36,21 +36,15 @@ export default class FurniturePlacementSystem {
 
     if (!preview) return;
 
-    const worldPoint = this.scene.cameras.main.getWorldPoint(
-      pointer.x,
-      pointer.y,
-    );
+    const grid = this.scene.isoGrid;
+    if (!grid) return;
 
-    const tileXY = this.scene.groundLayer.worldToTileXY(
-      worldPoint.x,
-      worldPoint.y,
-      false,
-    );
+    const tile = grid.pointerToTile(this.scene.cameras.main, pointer);
 
-    if (!tileXY) return;
+    if (!tile) return;
 
-    const tx = Math.floor(tileXY.x);
-    const ty = Math.floor(tileXY.y);
+    const tx = tile.x;
+    const ty = tile.y;
 
     if (!this.placementValidator.canPlace(tx, ty, item, this.buildSystem.getRotation())) {
       console.warn("❌ No se puede colocar aquí");

@@ -1,10 +1,10 @@
-import Phaser from "phaser";
 import RoomItemsManager from "./RoomItemsManager";
 import {
   getDirectionalFootprint,
   getFootprintSize,
   toWorldTiles,
 } from "./IsoFootprint";
+import type IsoGrid from "../iso/IsoGrid";
 
 // Si el item no define maxStackHeight, antes se trataba como "sin límite" y
 // una pila podía crecer hasta invadir el rango de profundidad de la fila de
@@ -13,19 +13,12 @@ import {
 const DEFAULT_MAX_STACK_HEIGHT = 5;
 
 export default class PlacementValidator {
-  private map?: Phaser.Tilemaps.Tilemap;
-
-  private groundLayer?: Phaser.Tilemaps.TilemapLayer;
+  private grid?: IsoGrid;
 
   private roomItems?: RoomItemsManager;
 
-  configure(
-    map: Phaser.Tilemaps.Tilemap,
-    groundLayer: Phaser.Tilemaps.TilemapLayer,
-    roomItems: RoomItemsManager,
-  ) {
-    this.map = map;
-    this.groundLayer = groundLayer;
+  configure(grid: IsoGrid, roomItems: RoomItemsManager) {
+    this.grid = grid;
     this.roomItems = roomItems;
   }
 
@@ -39,10 +32,9 @@ export default class PlacementValidator {
     rotation = 0,
     excludeRoomItemId?: string,
   ): boolean {
-    if (!this.map || !this.groundLayer || !this.roomItems) return false;
+    if (!this.grid || !this.roomItems) return false;
     if (!item) return false;
-    if (x < 0 || y < 0 || x >= this.map.width || y >= this.map.height)
-      return false;
+    if (!this.grid.contains(x, y)) return false;
 
     const worldData = item.worldData;
     const placementType = worldData?.placementType ?? "FLOOR";
@@ -63,12 +55,10 @@ export default class PlacementValidator {
       const tx = tile.x;
       const ty = tile.y;
 
-      if (tx < 0 || ty < 0 || tx >= this.map.width || ty >= this.map.height) {
-        return false;
-      }
-
-      const groundTile = this.groundLayer.getTileAt(tx, ty);
-      if (!groundTile || groundTile.index === -1) return false;
+      // Misma autoridad de suelo que la navegación: un mueble no se puede
+      // colocar sobre una casilla que no es suelo (antes bastaba con que
+      // hubiera CUALQUIER tile pintado, piezas de pared incluidas).
+      if (!this.grid.isFloorTile(tx, ty)) return false;
 
       if (blockingTiles.has(`${tx},${ty}`) || occupiedTiles.has(`${tx},${ty}`)) {
         blocked = true;

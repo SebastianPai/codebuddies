@@ -2,6 +2,8 @@ import Phaser from "phaser";
 import { loadTextureOnce } from "../utils/phaserAssetCache";
 import { getMyButler, getButlerCatalog, type ButlerNpc } from "../network/butlers";
 import type { PetAnimClip } from "../network/pets";
+import { resolveActorGroundPoint, syncActorDepth } from "../iso/IsoActorDepth";
+import { WORLD_OVERLAY_DEPTH } from "../utils/depth";
 
 // El mayordomo comparte el renderizado direccional con PetSystem (mismo
 // layout de spritesheet: `directions` filas por clip, orden estándar de
@@ -99,9 +101,14 @@ export default class ButlerSystem {
     this.npc = npc;
     this.npcKey = npc.key;
 
+    // Punto de APOYO del jugador (sus pies): el sprite del mayordomo usa
+    // origin(0.5, 1), así que su (x, y) también es un punto de apoyo.
     const player = (this.scene as any).player;
-    const px = player?.x ?? 0;
-    const py = player?.y ?? 0;
+    const playerGround = player
+      ? resolveActorGroundPoint(player)
+      : { x: 0, y: 0 };
+    const px = playerGround.x;
+    const py = playerGround.y;
 
     const urls = new Set<string>([npc.spriteSheetUrl!]);
     for (const c of npc.animations ?? []) {
@@ -124,8 +131,8 @@ export default class ButlerSystem {
     this.homeY = py;
     this.sprite = this.scene.add
       .sprite(this.homeX, this.homeY, this.textureKey)
-      .setOrigin(0.5, 1)
-      .setDepth(this.homeY);
+      .setOrigin(0.5, 1);
+    syncActorDepth(this.scene, this.sprite);
     this.lastX = this.homeX;
     this.lastY = this.homeY;
     this.targetX = this.homeX;
@@ -277,9 +284,13 @@ export default class ButlerSystem {
     bg.strokeRoundedRect(-w / 2, -h, w, h, 6);
     bg.fillTriangle(-4, -1, 4, -1, 0, 5);
 
+    // Por encima de cualquier objeto del mundo pero por debajo del
+    // resaltado de tile, la luz ambiental y el HUD — mismo orden relativo
+    // que tenía el 100000 literal de antes, ahora sin número mágico (el
+    // techo del mundo cambió al pasar a la profundidad isométrica).
     this.bubble = this.scene.add
       .container(this.sprite.x, this.sprite.y, [bg, label])
-      .setDepth(100000);
+      .setDepth(WORLD_OVERLAY_DEPTH - 1);
     this.bubbleUntil = this.timer + BUBBLE_MS;
     this.positionBubble();
   }
@@ -366,7 +377,7 @@ export default class ButlerSystem {
 
     this.lastX = this.sprite.x;
     this.lastY = this.sprite.y;
-    this.sprite.setDepth(this.sprite.y);
+    syncActorDepth(this.scene, this.sprite);
 
     // Globo de diálogo: sigue al sprite y se cierra al vencer.
     if (this.bubble) {

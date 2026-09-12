@@ -10,6 +10,7 @@ import {
   EffectivePermissions,
   resolveEffectivePermissions,
 } from '../rooms/room-permissions.util';
+import { resolveDirectionalFootprints } from '../items/engine-data.util';
 
 @Injectable()
 export class RoomItemsService {
@@ -65,54 +66,49 @@ export class RoomItemsService {
     return resolveEffectivePermissions(false, permission);
   }
 
+  /**
+   * Huella del mueble para una rotación concreta.
+   *
+   * Delega en `resolveDirectionalFootprints`, EL MISMO resolvedor que usa
+   * `buildWorldEngineData` al persistir y que el cliente usa al leer
+   * (apps/game/.../iso/footprintRotation.ts). Antes esta función tenía su
+   * propia copia de las reglas, con dos divergencias respecto del cliente:
+   *
+   *   1. `origin` se tomaba crudo (`Number(origin?.x) || 0`) sin comprobar
+   *      que perteneciera a `occupied`. Con un origin inválido, el servidor
+   *      reservaba unas casillas y el cliente bloqueaba otras.
+   *   2. El fallback rotaba el rectángulo pero la rama principal no, así
+   *      que un item con engineData relleno nunca rotaba su huella.
+   *
+   * No reescribe nada persistido: sólo unifica cómo se LEE.
+   */
   private getFootprint(worldData: any, rotation = 0, state?: any) {
     const directions = ['NORTH', 'EAST', 'SOUTH', 'WEST'];
     const direction = directions[((rotation % 4) + 4) % 4];
-    const source =
-      worldData?.engineData?.footprints?.[direction] ||
-      worldData?.footprints?.[direction];
-
-    if (source?.occupied?.length) {
-      const occupied = source.occupied.map((tile) => ({
-        x: Number(tile.x),
-        y: Number(tile.y),
-      }));
-      const origin = {
-        x: Number(source.origin?.x) || 0,
-        y: Number(source.origin?.y) || 0,
-      };
-
-      return {
-        width: source.bounds?.width ?? 1,
-        height: source.bounds?.height ?? 1,
-        origin,
-        occupied,
-      };
-    }
 
     const rawWidth =
       Number(state?.footprintWidth ?? worldData?.footprintWidth) || 1;
-
     const rawHeight =
       Number(state?.footprintHeight ?? worldData?.footprintHeight) || 1;
     const width = Math.max(1, Math.min(rawWidth, 8));
     const height = Math.max(1, Math.min(rawHeight, 8));
-    const normalizedRotation = ((rotation % 4) + 4) % 4;
 
-    if (normalizedRotation === 1 || normalizedRotation === 3) {
-      return {
-        width: height,
-        height: width,
-        origin: { x: 0, y: 0 },
-        occupied: this.createRectTiles(height, width),
-      };
-    }
+    const source =
+      worldData?.engineData?.footprints ?? worldData?.footprints ?? null;
+
+    const resolved = resolveDirectionalFootprints(
+      source,
+      this.createRectTiles(width, height),
+    )[direction];
+
+    const xs = resolved.occupied.map((tile) => tile.x);
+    const ys = resolved.occupied.map((tile) => tile.y);
 
     return {
-      width,
-      height,
-      origin: { x: 0, y: 0 },
-      occupied: this.createRectTiles(width, height),
+      width: xs.length ? Math.max(...xs) - Math.min(...xs) + 1 : 1,
+      height: ys.length ? Math.max(...ys) - Math.min(...ys) + 1 : 1,
+      origin: resolved.origin,
+      occupied: resolved.occupied,
     };
   }
 
