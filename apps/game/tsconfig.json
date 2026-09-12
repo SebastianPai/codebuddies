@@ -30,5 +30,15 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "public", "**/* copy.ts", "**/* copy.tsx"]
+  "exclude": [
+    "node_modules",
+    "public",
+    "**/* copy.ts",
+    "**/* copy.tsx",
+    // Los .spec.ts de esta app no forman parte del bundle: no hay runner
+    // propio aquí (ni @types/jest), se ejecutan con el Jest que ya existe en
+    // apps/api apuntándolo a este directorio. Ver la cabecera de
+    // src/game/iso/NavGrid.spec.ts.
+    "**/*.spec.ts"
+  ]
 }

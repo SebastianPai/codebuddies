@@ -77,6 +77,20 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
   // la invalida a mitad de camino sin tener que parar al jugador.
   private pathTarget: NavTile | null = null;
   private pendingPathId: number | null = null;
+  // Token de generación de la búsqueda en curso. EasyStar invoca el callback
+  // de forma asíncrona (setTimeout) y en sus salidas tempranas ni siquiera
+  // devuelve un id que cancelar, así que cancelPath() por sí solo no basta
+  // para descartar una respuesta vieja: el token sí.
+  private pathRequestId = 0;
+  // La ocupación cambió y la rejilla de navegación aún no lo refleja. Se
+  // vacía una vez por frame (y antes de resolver un click) en vez de
+  // recalcular por cada mueble que entra durante la carga de la sala.
+  private navDirty = false;
+  // El jugador está SALIENDO de una casilla bloqueada. Mientras dure, los
+  // tramos de la ruta pueden ser casillas bloqueadas (está dentro del
+  // mueble), pero siguen siendo de UNA casilla cada uno. Se apaga en cuanto
+  // termina esa ruta.
+  private escaping = false;
   private speed = 180;
   private arrivalThreshold = 5;
 
@@ -810,6 +824,11 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     this.currentPath = [];
     this.pathTarget = null;
     this.pendingPathId = null;
+    // Invalida cualquier búsqueda de la sala anterior que todavía tenga un
+    // setTimeout pendiente: su callback no debe escribir la ruta de la sala
+    // nueva.
+    this.pathRequestId++;
+    this.escaping = false;
     this.isoDebug?.setGrid(undefined);
   }
 
@@ -1063,6 +1082,14 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
 
     this.roomItems = new RoomItemsManager(this, this.isoGrid);
 
+    // S1: la colisión se mantiene al día por SUSCRIPCIÓN, no porque alguien
+    // se acuerde de avisar. Cualquier alta/baja/movimiento/rotación pasa por
+    // invalidateOccupancy(), así que la navegación no puede quedarse atrás
+    // aunque falle la carga de un asset o alguien añada un camino nuevo.
+    this.roomItems.setOccupancyListener(() => {
+      this.navDirty = true;
+    });
+
     // Mascota del jugador: se muestra siguiéndolo si la "sacó" a esta sala
     // (Pet.activeRoomId). Se resincroniza cuando el panel de mascota emite
     // "pet:changed" y al cerrar la escena se limpia.
@@ -1117,16 +1144,26 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     // calculaba el depth solo con su propia tile, quedando detrás del
     // mueble base tras cada recarga aunque la colocación en vivo (donde el
     // padre ya existe de antes) se viera bien.
+    // El .catch() POR ITEM es lo que impide que un asset caído se lleve por
+    // delante a los demás: antes, un solo rechazo hacía que Promise.all
+    // rechazara y el .then() final —donde vivía la única sincronización de
+    // la colisión de toda la sala— no corriera nunca. El resultado era una
+    // sala con muebles dibujados y cero obstáculos.
     Promise.all(
       items.map((item) =>
-        loadTextureOnce(this, item.item.imageUrl).then((textureKey) =>
-          spawnRoomItem(item, textureKey),
-        ),
+        loadTextureOnce(this, item.item.imageUrl)
+          .then((textureKey) => spawnRoomItem(item, textureKey))
+          .catch((err) =>
+            console.error(
+              "❌ No se pudo cargar el mueble, se omite:",
+              item?.item?.imageUrl,
+              err,
+            ),
+          ),
       ),
-    ).then(() => {
-      this.roomItems.updateDepths();
-      this.refreshPathfinding();
-    });
+    )
+      .then(() => this.roomItems.updateDepths())
+      .catch((err) => console.error("❌ Error cargando los muebles", err));
 
     this.placementValidator = new PlacementValidator();
     this.placementValidator.configure(this.isoGrid, this.roomItems);
@@ -1203,7 +1240,10 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     if (!this.isoGrid) return console.error("❌ No isoGrid");
 
     this.navGrid = new NavGrid(this.isoGrid);
-    this.syncBlockedTiles();
+    // La rejilla nace vacía de muebles; los que ya estén cargados (y los que
+    // vayan entrando) se vuelcan por el listener de ocupación.
+    this.navDirty = true;
+    this.flushNavIfDirty();
   }
 
   private isWalkable(tx: number, ty: number): boolean {
@@ -1223,11 +1263,20 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
    * únicamente si el cambio la toca de verdad.
    */
   refreshPathfinding() {
-    this.syncBlockedTiles();
+    this.navDirty = true;
+    this.flushNavIfDirty();
   }
 
-  private syncBlockedTiles() {
-    if (!this.navGrid) return;
+  /**
+   * Vuelca a la rejilla de navegación los cambios de ocupación pendientes.
+   *
+   * Se acumulan en `navDirty` y se aplican como mucho una vez por frame (y
+   * justo antes de resolver un click) en vez de recalcular por cada mueble:
+   * durante la carga de una sala entran decenas de una vez.
+   */
+  private flushNavIfDirty() {
+    if (!this.navDirty || !this.navGrid) return;
+    this.navDirty = false;
 
     const changed = this.navGrid.setBlockedTiles(
       this.roomItems?.getBlockingTiles() ?? new Set<string>(),
@@ -1235,7 +1284,9 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
 
     if (!changed.length || !this.currentPath.length) return;
 
-    // ¿El cambio afecta a los pasos que quedan por recorrer?
+    // ¿El cambio afecta a los pasos que quedan por recorrer? Sólo entonces
+    // se recalcula — colocar un mueble en la otra punta de la sala no debe
+    // detener a nadie.
     const remaining = new Set(
       this.currentPath.map((step) => `${step.x},${step.y}`),
     );
@@ -1246,47 +1297,92 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     if (affectsRoute) this.repathToCurrentTarget();
   }
 
-  /**
-   * Recalcula la ruta hacia el destino vigente desde donde esté el jugador.
-   * Si el destino ya no es alcanzable, se busca la casilla libre más cercana
-   * a él en vez de dejar al jugador plantado.
-   */
-  private repathToCurrentTarget() {
-    if (!this.navGrid || !this.pathTarget) return;
+  /** Deja al jugador quieto y sin ruta pendiente, de forma limpia. */
+  private stopWalking() {
+    this.navGrid?.cancelPath(this.pendingPathId);
+    this.pendingPathId = null;
+    this.pathRequestId++;
+    this.currentPath = [];
+    this.pathTarget = null;
+    this.escaping = false;
 
-    const from = this.playerTile();
-    if (!from) return;
-
-    const target =
-      this.navGrid.nearestWalkable(this.pathTarget.x, this.pathTarget.y) ??
-      null;
-
-    if (!target || (from.x === target.x && from.y === target.y)) {
-      this.currentPath = [];
-      this.pathTarget = null;
-      return;
+    if (this.player?.isMoving) {
+      this.player.playIdle();
+      const ground = this.player.getGroundPoint();
+      (this.game as any).socket?.emit("playerMove", {
+        x: ground.x,
+        y: ground.y,
+        direction: this.player.currentDirection,
+        isMoving: false,
+      });
     }
-
-    this.requestPath(from, target);
   }
 
   /**
-   * Única puerta de entrada a la búsqueda de rutas. Cancela la búsqueda
-   * anterior si seguía en vuelo (antes esto se "resolvía" creando una
-   * instancia nueva de EasyStar, que además tiraba las de todos los demás).
+   * Recalcula la ruta hacia el destino vigente desde donde esté el jugador.
+   *
+   * S2: la ruta vieja se invalida ANTES de pedir la nueva. Antes se dejaba
+   * viva mientras la búsqueda estaba en vuelo, así que si EasyStar devolvía
+   * `null` (destino sellado) el callback no hacía nada, la cabeza bloqueada
+   * seguía ahí y el frame siguiente volvía a repathear: bucle infinito con
+   * el jugador clavado y sin volver nunca a idle.
+   */
+  private repathToCurrentTarget() {
+    const target = this.pathTarget;
+    const from = this.playerTile();
+
+    if (!this.navGrid || !target || !from) {
+      this.stopWalking();
+      return;
+    }
+
+    // Si el destino quedó bloqueado, se apunta a lo más cercano alcanzable.
+    const reachable = this.navGrid.nearestWalkable(target.x, target.y);
+
+    if (!reachable || (from.x === reachable.x && from.y === reachable.y)) {
+      this.stopWalking();
+      return;
+    }
+
+    this.requestPath(from, reachable);
+  }
+
+  /**
+   * Única puerta de entrada a la búsqueda de rutas.
+   *
+   * El token de generación descarta respuestas obsoletas: EasyStar llama al
+   * callback vía setTimeout y en sus salidas tempranas (origen == destino,
+   * destino no transitable) ni siquiera devuelve un id que cancelar, así que
+   * `cancelPath()` por sí solo no impide que una respuesta vieja pise la
+   * ruta nueva.
    */
   private requestPath(from: NavTile, to: NavTile) {
     if (!this.navGrid) return;
 
-    this.navGrid.cancelPath(this.pendingPathId);
-    this.pathTarget = { x: to.x, y: to.y };
+    const token = ++this.pathRequestId;
 
-    this.pendingPathId = this.navGrid.findPath(from, to, (path) => {
+    this.navGrid.cancelPath(this.pendingPathId);
+    this.pendingPathId = null;
+    // Nunca se conserva la ruta anterior mientras se busca la nueva.
+    this.currentPath = [];
+    this.pathTarget = { x: to.x, y: to.y };
+    this.escaping = false;
+
+    const id = this.navGrid.findPath(from, to, (path) => {
+      if (token !== this.pathRequestId) return; // respuesta obsoleta
+
       this.pendingPathId = null;
+
       if (path && path.length > 1) {
         this.currentPath = path.slice(1);
+        return;
       }
+
+      // null (sin ruta) o length <= 1 (ya estamos ahí): no dejar basura.
+      this.stopWalking();
     });
+
+    if (token === this.pathRequestId) this.pendingPathId = id;
   }
 
   // ====================== HIGHLIGHT CORREGIDO (más preciso) ======================
@@ -1347,6 +1443,10 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
 
     if (!target || !this.navGrid) return;
 
+    // Resolver el click contra la ocupación más reciente, no contra la del
+    // frame anterior.
+    this.flushNavIfDirty();
+
     if (!this.isWalkable(target.x, target.y)) return;
 
     // Tile de ORIGEN a partir del punto de apoyo del jugador (sus pies).
@@ -1372,9 +1472,11 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
    * Saca al jugador de una casilla que quedó bloqueada bajo sus pies
    * (alguien colocó un mueble justo encima mientras caminaba).
    *
-   * Le da un DESTINO al que ir andando, no una posición a la que saltar:
-   * nada de teletransportes. Si no hay salida en el radio de búsqueda, se
-   * deja como está en vez de inventar una posición.
+   * S3: la salida se recorre como RUTA REAL, casilla a casilla. Antes se
+   * metía la casilla libre más cercana directamente en `currentPath`, y
+   * como `nearestWalkable` busca hasta 6 casillas de distancia, el tramo
+   * resultante se interpolaba en línea recta de pantalla ATRAVESANDO todos
+   * los muebles intermedios. Ni teletransporte ni tramos largos.
    */
   private unstickPlayer() {
     if (!this.navGrid) return;
@@ -1382,11 +1484,24 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     const from = this.playerTile();
     if (!from || this.isWalkable(from.x, from.y)) return;
 
-    const escape = this.navGrid.nearestWalkable(from.x, from.y);
-    if (!escape) return;
+    // escapeRoute, no findPath: si el jugador quedó en el INTERIOR de un
+    // mueble grande, todas sus vecinas están bloqueadas y A* no encontraría
+    // ni un primer paso — devolvería null y se quedaría encerrado. La ruta
+    // de escape sí puede atravesar el mueble en el que ya está, pero
+    // siempre casilla a casilla.
+    const escape = this.navGrid.escapeRoute(from);
 
-    this.currentPath = [escape];
-    this.pathTarget = escape;
+    if (!escape || !escape.length) {
+      this.stopWalking();
+      return;
+    }
+
+    this.navGrid.cancelPath(this.pendingPathId);
+    this.pendingPathId = null;
+    this.pathRequestId++;
+    this.currentPath = escape;
+    this.pathTarget = escape[escape.length - 1];
+    this.escaping = true;
   }
 
   /** Tile que ocupa el jugador, resuelto desde su punto de apoyo. */
@@ -1541,6 +1656,10 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     if (!this.player || !this.isoGrid || !this.navGrid) return;
 
     const socket = (this.game as any).socket;
+    // Primero la ocupación pendiente, luego las búsquedas en curso: así una
+    // ruta se calcula siempre contra la rejilla actual, no la del frame
+    // anterior.
+    this.flushNavIfDirty();
     this.navGrid.update();
     this.updateSceneDepths();
     this.updateIsoDebug();
@@ -1553,6 +1672,11 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     const ground = this.player.getGroundPoint();
 
     if (this.currentPath.length === 0) {
+      // Con una búsqueda en vuelo no se pasa a idle: la ruta llega en uno o
+      // dos frames y si no, el propio callback llamará a stopWalking().
+      // Así un recálculo a media caminata no produce un parpadeo de parada.
+      if (this.pendingPathId !== null) return;
+
       if (this.player.isMoving) {
         this.player.playIdle();
         socket.emit("playerMove", {
@@ -1566,12 +1690,33 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     }
 
     const next = this.currentPath[0];
+    const current = this.playerTile();
 
-    // REVALIDACIÓN ANTES DE ENTRAR (4.6). La ruta se calculó en el pasado;
-    // entre medias alguien pudo colocar un mueble sobre esta casilla. Antes
-    // no se comprobaba nada después del click, así que el personaje entraba
-    // igual y atravesaba el obstáculo.
-    if (!this.navGrid.isWalkable(next.x, next.y)) {
+    if (!current) return;
+
+    // ── S4: INVARIANTE DE ADYACENCIA ─────────────────────────────────
+    // Un tramo sólo puede ir a una casilla vecina de la actual. Si no lo
+    // es, la ruta está obsoleta (o alguien la construyó a mano con un
+    // salto) y se recalcula en vez de interpolar.
+    //
+    // Es lo que hace que validar el DESTINO del tramo equivalga a validar
+    // toda la línea recorrida: entre dos casillas vecinas la recta no puede
+    // pasar por encima de una tercera. Sin esta invariante, un tramo de
+    // varias casillas se recorría en línea recta atravesando los muebles
+    // que hubiera en medio.
+    if (!NavGrid.isAdjacentOrSame(current, next)) {
+      this.repathToCurrentTarget();
+      return;
+    }
+
+    // REVALIDACIÓN ANTES DE ENTRAR. La ruta se calculó en el pasado; entre
+    // medias alguien pudo colocar un mueble sobre esta casilla.
+    //
+    // Se omite mientras el jugador SALE de una casilla bloqueada: en ese
+    // caso está dentro del mueble y los primeros tramos son, por
+    // definición, casillas no transitables. La invariante de adyacencia de
+    // arriba sigue aplicando, así que sale andando casilla a casilla.
+    if (!this.escaping && !this.navGrid.isWalkable(next.x, next.y)) {
       this.repathToCurrentTarget();
       return;
     }
@@ -1592,6 +1737,7 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
 
       if (this.currentPath.length === 0) {
         this.pathTarget = null;
+        this.escaping = false;
         this.player.playIdle();
         socket.emit("playerMove", {
           x: anchor.x,

@@ -410,8 +410,28 @@ export default class RoomItemsManager {
   // solo cambia cuando algo se coloca/mueve/rota/elimina, así que se cachea.
   private occupancyCache: { blocking: Set<string>; occupied: Set<string> } | null = null;
 
+  /**
+   * Aviso de que la ocupación cambió. Lo usa la navegación para mantener su
+   * rejilla al día.
+   *
+   * Es estructural a propósito: `invalidateOccupancy()` es el punto por el
+   * que pasan TODOS los cambios de ocupación (alta, baja, mover, rotar,
+   * vaciar), así que nadie puede olvidarse de avisar. Antes la colisión
+   * dependía de que alguien se acordara de llamar a `refreshPathfinding()`
+   * desde fuera, y en la carga inicial ese aviso vivía dentro de un único
+   * `.then()` global: si la textura de UN mueble fallaba, la promesa se
+   * rechazaba, el aviso no llegaba nunca y la sala entera se quedaba SIN
+   * obstáculos.
+   */
+  private occupancyListener?: () => void;
+
+  setOccupancyListener(listener: (() => void) | undefined) {
+    this.occupancyListener = listener;
+  }
+
   invalidateOccupancy() {
     this.occupancyCache = null;
+    this.occupancyListener?.();
   }
 
   private computeOccupancyEntries(excludeId?: string) {

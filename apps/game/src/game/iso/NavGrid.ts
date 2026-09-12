@@ -171,20 +171,41 @@ export default class NavGrid {
   // ───────────────────────── rutas ─────────────────────────
 
   /**
+   * ¿Son la misma casilla o dos casillas vecinas (incluida la diagonal)?
+   *
+   * Es la invariante que hace que validar el destino de un tramo equivalga a
+   * validar toda la línea recorrida: si cada tramo es como mucho un salto a
+   * una vecina, la interpolación en línea recta no puede cruzar por encima
+   * de una tercera casilla. Sin esto, un tramo largo (p. ej. el destino de
+   * desatasco, hasta 6 casillas) se recorría en recta atravesando todo lo
+   * que hubiera en medio.
+   */
+  static isAdjacentOrSame(a: NavTile, b: NavTile): boolean {
+    return Math.abs(a.x - b.x) <= 1 && Math.abs(a.y - b.y) <= 1;
+  }
+
+  /**
    * Pide una ruta. Devuelve el id de la búsqueda para poder cancelarla si
    * queda obsoleta (antes se descartaba creando una instancia nueva de
    * EasyStar, lo que además tiraba las búsquedas de todos los demás).
+   *
+   * EasyStar devuelve `undefined` —no un id— en sus salidas tempranas
+   * (origen == destino, o destino no transitable), pero el callback SÍ se
+   * invoca igualmente, de forma asíncrona vía setTimeout. Por eso quien
+   * llama no puede fiarse sólo de cancelPath() para descartar respuestas
+   * viejas: ver el token de generación en LobbyScene.requestPath.
    */
   findPath(
     from: NavTile,
     to: NavTile,
     callback: (path: NavTile[] | null) => void,
   ): number | null {
+    // findPath() LANZA si un extremo cae fuera de la rejilla.
     if (!this.inBounds(from.x, from.y) || !this.inBounds(to.x, to.y)) {
       callback(null);
       return null;
     }
-    return this.easystar.findPath(from.x, from.y, to.x, to.y, callback);
+    return this.easystar.findPath(from.x, from.y, to.x, to.y, callback) ?? null;
   }
 
   cancelPath(instanceId: number | null) {
@@ -225,6 +246,74 @@ export default class NavGrid {
       }
 
       if (best) return best;
+    }
+
+    return null;
+  }
+
+  /**
+   * Ruta para salir de una casilla bloqueada, PASO A PASO.
+   *
+   * `findPath` no sirve aquí: si el jugador quedó en el interior de un
+   * mueble grande, todas sus vecinas están bloqueadas y A* no encuentra ni
+   * un primer paso, así que devolvería null y el jugador se quedaría
+   * encerrado para siempre.
+   *
+   * Esta búsqueda en anchura ignora los muebles (el jugador ya está dentro
+   * de uno) pero respeta el terreno, y termina en cuanto toca una casilla
+   * realmente transitable. Devuelve la ruta completa casilla a casilla, así
+   * que sigue cumpliendo la invariante de un solo tile por tramo: el
+   * personaje SALE ANDANDO del mueble en vez de deslizarse en recta por
+   * encima de lo que haya en medio.
+   */
+  escapeRoute(from: NavTile, maxSteps = 12): NavTile[] | null {
+    if (!this.inBounds(from.x, from.y)) return null;
+    if (this.isWalkable(from.x, from.y)) return [];
+
+    const start = `${from.x},${from.y}`;
+    const cameFrom = new Map<string, string | null>([[start, null]]);
+    const queue: NavTile[] = [from];
+
+    const neighbours = [
+      [1, 0], [-1, 0], [0, 1], [0, -1],
+      [1, 1], [1, -1], [-1, 1], [-1, -1],
+    ];
+
+    let depth = 0;
+
+    while (queue.length && depth <= maxSteps) {
+      const levelSize = queue.length;
+      depth++;
+
+      for (let i = 0; i < levelSize; i++) {
+        const current = queue.shift()!;
+
+        for (const [dx, dy] of neighbours) {
+          const x = current.x + dx;
+          const y = current.y + dy;
+          const key = `${x},${y}`;
+
+          if (cameFrom.has(key)) continue;
+          // El terreno sí es infranqueable: no se sale por una pared.
+          if (!this.isTerrainWalkable(x, y)) continue;
+
+          cameFrom.set(key, `${current.x},${current.y}`);
+
+          if (this.isWalkable(x, y)) {
+            // Reconstruir la ruta, sin incluir la casilla de partida.
+            const path: NavTile[] = [];
+            let cursor: string | null = key;
+            while (cursor && cursor !== start) {
+              const [px, py] = cursor.split(",").map(Number);
+              path.unshift({ x: px, y: py });
+              cursor = cameFrom.get(cursor) ?? null;
+            }
+            return path;
+          }
+
+          queue.push({ x, y });
+        }
+      }
     }
 
     return null;
