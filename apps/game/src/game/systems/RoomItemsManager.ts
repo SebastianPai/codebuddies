@@ -36,6 +36,86 @@ export type RoomItemPayload = {
   wallOffset?: number | null;
 };
 
+/**
+ * Área de interacción de un mueble: la unión de los rombos de suelo de las
+ * casillas que ocupa, en coordenadas LOCALES del sprite.
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * POR QUÉ
+ *
+ * `setInteractive()` sin hit area usa el RECTÁNGULO COMPLETO del frame,
+ * píxeles transparentes incluidos. Los frames de los muebles llegan a medir
+ * 167x240 px cuando una casilla mide 64x32: eso son 2,6 casillas de ancho
+ * por 7,5 de alto de superficie clicable, casi toda aire.
+ *
+ * Medido sobre una sala real de producción (12 muebles, 169 casillas de
+ * suelo): **101 casillas — el 60 % — quedaban "muertas"**. Clicar ahí
+ * seleccionaba el mueble y `event.stopPropagation()` impedía que el evento
+ * llegara a `handleClickToMove`, así que el personaje no se movía aunque la
+ * casilla fuese perfectamente transitable.
+ *
+ * Ahora el área de interacción es la huella real sobre el suelo: se clica
+ * el mueble donde el mueble está, y el aire de su PNG deja pasar el click.
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * COORDENADAS
+ *
+ * Phaser evalúa el hit area en espacio local del objeto:
+ *
+ *     local = (mundo − sprite.position) + displayOrigin
+ *
+ * (ver InputManager.hitTest -> TransformXY, y pointWithinHitArea, que suma
+ * displayOriginX/Y). Con origin (0.5, 1) eso deja el (0,0) local en la
+ * esquina superior izquierda del frame. Por eso se resta
+ * `sprite.x - sprite.displayOriginX` y se usa la posición del sprite YA
+ * definitiva: después de setOrigin y de applySpriteOffset, para que la
+ * calibración de artwork no descoloque el área.
+ *
+ * No hay pixel-perfect (leer alpha por cada test es caro y aquí no hace
+ * falta), no hay rectángulo del PNG, y no hay ningún ajuste por mueble: la
+ * misma fórmula para todos, derivada de la huella que ya usan la colisión y
+ * la profundidad.
+ */
+type FootprintHitArea = { polygons: Phaser.Geom.Polygon[] };
+
+const hitFootprint: Phaser.Types.Input.HitAreaCallback = (hitArea, x, y) => {
+  const polygons = (hitArea as FootprintHitArea)?.polygons;
+  if (!polygons) return false;
+
+  for (const polygon of polygons) {
+    if (Phaser.Geom.Polygon.Contains(polygon, x, y)) return true;
+  }
+
+  return false;
+};
+
+/**
+ * Pasa los rombos de suelo (coordenadas de mundo) al espacio local del
+ * sprite. Pura y sin dependencias de Phaser, para poder verificarla.
+ *
+ * @param diamonds rombos de cada casilla ocupada, en mundo
+ * @param originX  sprite.x − sprite.displayOriginX
+ * @param originY  sprite.y − sprite.displayOriginY
+ * @param lift     píxeles que el sprite está elevado por apilado
+ * @returns        un array plano [x0,y0,x1,y1,...] por rombo
+ */
+export function toLocalFootprintPolygons(
+  diamonds: { x: number; y: number }[][],
+  originX: number,
+  originY: number,
+  lift = 0,
+): number[][] {
+  return diamonds
+    .filter((points) => points.length >= 3)
+    .map((points) => {
+      const flat: number[] = [];
+      for (const point of points) {
+        flat.push(point.x - originX, point.y - lift - originY);
+      }
+      return flat;
+    });
+}
+
 export default class RoomItemsManager {
   private scene: Phaser.Scene;
   private grid: IsoGrid;
@@ -146,13 +226,9 @@ export default class RoomItemsManager {
         frameName,
       );
 
-    if (!isSurface) {
-      // TODO (Fase 5): el hit area sigue siendo el rectángulo completo del
-      // frame, zonas transparentes incluidas. Sustituir por el polígono del
-      // footprint (IsoGrid.groundDiamond) + el cuerpo del sprite.
-      sprite.setInteractive({ useHandCursor: true });
-    }
-
+    // El hit area se aplica MÁS ABAJO, no aquí: necesita la posición y el
+    // origin definitivos del sprite (setOrigin + applySpriteOffset) para
+    // convertir los rombos de suelo al espacio local correcto.
     sprite.setOrigin(0.5, 1);
 
     // Calibración visual por-item (WorldItemData.spriteOffsetX/Y): corre solo
@@ -184,6 +260,7 @@ export default class RoomItemsManager {
 
     if (!isSurface) {
       this.updateSingleItemDepth(worldObject);
+      this.applyFootprintHitArea(worldObject);
       // Estado inicial (ej: la TV ya estaba encendida al entrar a la sala).
       this.applyItemState(id);
     }
@@ -261,6 +338,55 @@ export default class RoomItemsManager {
     applySpriteOffset(worldObject.sprite, worldData, worldObject.rotation);
 
     this.updateSingleItemDepth(worldObject);
+    // Mover o rotar cambia qué casillas ocupa (y dónde está el sprite), así
+    // que el área de interacción tiene que recalcularse con ellas.
+    this.applyFootprintHitArea(worldObject);
+  }
+
+  /**
+   * Define el área clicable del mueble como la unión de los rombos de suelo
+   * de las casillas que ocupa.
+   *
+   * Reutiliza `occupiedTilesOf()` — la MISMA fuente que usan la colisión
+   * (`computeOccupancyEntries`) y la profundidad (`getDepthAnchor`) — así
+   * que no hay una segunda definición de la huella que pueda desviarse, y
+   * respeta la rotación actual sin nada específico por mueble.
+   */
+  private applyFootprintHitArea(worldObject: WorldObject) {
+    const sprite = worldObject.sprite;
+
+    const tiles = this.occupiedTilesOf(
+      worldObject.tileX,
+      worldObject.tileY,
+      worldObject.item?.worldData,
+      worldObject.rotation,
+    );
+
+    const diamonds = tiles
+      .map((tile) => this.grid.groundDiamond(tile.x, tile.y))
+      .filter((diamond): diamond is { x: number; y: number }[] => !!diamond);
+
+    const flats = toLocalFootprintPolygons(
+      diamonds,
+      sprite.x - sprite.displayOriginX,
+      sprite.y - sprite.displayOriginY,
+      worldObject.elevation * this.elevationStep,
+    );
+
+    if (!flats.length) {
+      // Sin huella utilizable no se inventa un área: mejor no clicable que
+      // clicable donde no toca.
+      sprite.disableInteractive();
+      return;
+    }
+
+    const polygons = flats.map((flat) => new Phaser.Geom.Polygon(flat));
+
+    sprite.setInteractive({
+      hitArea: { polygons } satisfies FootprintHitArea,
+      hitAreaCallback: hitFootprint,
+      useHandCursor: true,
+    });
   }
 
   // Solo resalta el sprite (tint); no abre ningún modal por sí solo — quién
