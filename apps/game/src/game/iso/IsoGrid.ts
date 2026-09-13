@@ -211,12 +211,30 @@ export default class IsoGrid {
    * Es la entrada única del cálculo de profundidad: al pasar TODOS los
    * objetos (muebles, jugador, otros jugadores, mascota, mayordomo) por esta
    * misma función, quedan por construcción en el mismo espacio de orden.
+   *
+   * NO reutiliza `worldToTile()`: esa función pasa por
+   * `TilemapLayer.worldToTileXY()`, cuyo wrapper nunca reenvía el parámetro
+   * `originTop` de Phaser (queda `undefined`), y `IsometricWorldToTileXY`
+   * trata eso como `false` — resta un `tileHeight` COMPLETO antes de
+   * convertir. `groundAnchor()` (vía `tileToWorldXY`) no tiene ese concepto
+   * y nunca lo compensa, así que las dos quedaban desfasadas un tile entero
+   * en diagonal (playerTile() reportaba siempre la casilla vecina superior-
+   * izquierda de la real). Por eso aquí se llama a la función de Phaser
+   * directamente con `originTop: true` — el mismo valor que usa el propio
+   * `TilemapLayer.getIsoTileAtWorldXY()` por defecto —, que es lo que la
+   * hace realmente inversa de `tileToWorldXY`.
    */
   worldToGroundTile(worldX: number, worldY: number): IsoPoint | null {
-    return this.worldToTile(
+    const t = Phaser.Tilemaps.Components.IsometricWorldToTileXY(
       worldX - this.groundOffsetX,
       worldY - this.groundOffsetY + this.tileHeight / 2,
+      false,
+      this.scratchB,
+      this.layer.scene.cameras.main,
+      this.layer.layer,
+      true,
     );
+    return t ? { x: t.x, y: t.y } : null;
   }
 
   /** Puntero de pantalla → punto de mundo (aplica scroll y zoom de cámara). */
