@@ -113,6 +113,27 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
   // mueble), pero siguen siendo de UNA casilla cada uno. Se apaga en cuanto
   // termina esa ruta.
   private escaping = false;
+
+  // ── CORTE DE SEGURIDAD ──────────────────────────────────────────────
+  // Bug detectado en producción (ver commit de instrumentación temporal):
+  // en ciertas condiciones aún no diagnosticadas del todo, cada nueva ruta
+  // pedida por repathToCurrentTarget() vuelve a fallar la invariante de
+  // adyacencia (S4) o la revalidación de bloqueo INMEDIATAMENTE, antes de
+  // interpolar un solo paso. Como cada fallo dispara otro repath, el ciclo
+  // se repite para siempre: el personaje queda con la animación de caminar
+  // corriendo en loop (Phaser no la detiene porque nunca se llega a
+  // playIdle()) sin que el tile lógico avance jamás.
+  //
+  // Este contador corta ese ciclo sin tocar la causa raíz (que sigue en
+  // investigación) ni debilitar S4: si la MISMA validación falla varias
+  // veces seguidas SIN que ningún frame llegue a interpolar realmente, se
+  // asume que un repath no va a arreglarlo y se detiene el movimiento de
+  // forma limpia (stopWalking) en vez de seguir generando rutas que van a
+  // fallar igual. Un nuevo click resetea el contador: el corte es sólo
+  // contra el bucle automático, no contra el intento del jugador.
+  private stuckAttempts = 0;
+  private static readonly MAX_STUCK_ATTEMPTS = 5;
+
   // ███ INSTRUMENTACIÓN TEMPORAL ███
   private dbgFrame = 0;
   private dbgPendingSince = -1;
@@ -1369,6 +1390,33 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
   }
   // ███ FIN ███
 
+  /**
+   * Cuenta un fallo consecutivo de S4/bloqueo y decide si hay que cortar.
+   *
+   * Devuelve `true` (y ya deja al jugador en idle vía stopWalking) si se
+   * llegó al límite — quien llama debe `return` inmediatamente sin pedir
+   * otro repath. Devuelve `false` si todavía hay margen para reintentar
+   * normalmente.
+   */
+  private tripStuckBreaker(
+    kind: "adyacencia" | "bloqueo",
+    current: NavTile,
+    next: NavTile,
+  ): boolean {
+    this.stuckAttempts++;
+
+    if (this.stuckAttempts < LobbyScene.MAX_STUCK_ATTEMPTS) return false;
+
+    merr(
+      "⛔ CORTE DE SEGURIDAD:", this.stuckAttempts,
+      `repaths seguidos sin avanzar (${kind}). Se detiene el movimiento.`,
+      { current, next, pathTarget: this.pathTarget, escaping: this.escaping },
+    );
+
+    this.stopWalking();
+    return true;
+  }
+
   /** Deja al jugador quieto y sin ruta pendiente, de forma limpia. */
   private stopWalking() {
     // ███ INSTRUMENTACIÓN TEMPORAL ███
@@ -1385,6 +1433,10 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     this.currentPath = [];
     this.pathTarget = null;
     this.escaping = false;
+    // Defensivo: stopWalking() se llama tanto desde el corte de seguridad
+    // como desde otros caminos (destino sellado, etc). Cualquiera de ellos
+    // debe dejar el contador en cero para el próximo intento.
+    this.stuckAttempts = 0;
 
     if (this.player?.isMoving) {
       this.player.playIdle();
@@ -1614,6 +1666,10 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
       return;
     }
 
+    // Un click nuevo es intención fresca del jugador: le corresponde su
+    // propio presupuesto de reintentos, no el que haya quedado consumido
+    // por un bucle automático anterior.
+    this.stuckAttempts = 0;
     this.requestPath(from, target);
   }
 
@@ -1656,6 +1712,8 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     this.currentPath = escape;
     this.pathTarget = escape[escape.length - 1];
     this.escaping = true;
+    // Salida nueva, presupuesto de reintentos nuevo.
+    this.stuckAttempts = 0;
   }
 
   /** Tile que ocupa el jugador, resuelto desde su punto de apoyo. */
@@ -1907,6 +1965,7 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
       this.dbgBlockRepeat("S4 adyacencia: actual " + JSON.stringify(current) +
         " vs siguiente " + JSON.stringify(next));
       // ███ FIN ███
+      if (this.tripStuckBreaker("adyacencia", current, next)) return;
       this.repathToCurrentTarget();
       return;
     }
@@ -1922,9 +1981,15 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
       // ███ INSTRUMENTACIÓN TEMPORAL ███
       this.dbgBlockRepeat("siguiente casilla BLOQUEADA: " + JSON.stringify(next));
       // ███ FIN ███
+      if (this.tripStuckBreaker("bloqueo", current, next)) return;
       this.repathToCurrentTarget();
       return;
     }
+
+    // Este frame SÍ llegó a pasar ambas validaciones: se va a interpolar un
+    // paso real. El contador sólo debe medir fallos CONSECUTIVOS, así que
+    // se reinicia apenas el ciclo deja de estar estancado.
+    this.stuckAttempts = 0;
 
     const anchor = this.isoGrid.groundAnchor(next.x, next.y);
     if (!anchor) {
