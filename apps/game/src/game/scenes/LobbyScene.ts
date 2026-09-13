@@ -1371,6 +1371,38 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
   }
 
   // ███ INSTRUMENTACIÓN TEMPORAL ███
+  /**
+   * Snapshot de SOLO LECTURA de todo lo que interviene en playerTile(), para
+   * comparar dos llamadas dentro del mismo tick. No se usa en ninguna
+   * decisión de movimiento — es exclusivamente para el log.
+   */
+  private dbgGeoSnapshot(ground: { x: number; y: number }) {
+    const fractional = this.isoGrid
+      ? this.isoGrid.worldToGroundTile(ground.x, ground.y)
+      : null;
+    const layer = this.groundLayer;
+    const cam = this.cameras.main;
+    return {
+      ground,
+      fractional,
+      groundOffsetX: this.isoGrid?.groundOffsetX,
+      groundOffsetY: this.isoGrid?.groundOffsetY,
+      tileWidth: this.isoGrid?.tileWidth,
+      tileHeight: this.isoGrid?.tileHeight,
+      layerX: layer?.x,
+      layerY: layer?.y,
+      layerScaleX: layer?.scaleX,
+      layerScaleY: layer?.scaleY,
+      layerScrollFactorX: layer?.scrollFactorX,
+      layerScrollFactorY: layer?.scrollFactorY,
+      camScrollX: cam?.scrollX,
+      camScrollY: cam?.scrollY,
+      camZoom: cam?.zoom,
+    };
+  }
+  // ███ FIN ███
+
+  // ███ INSTRUMENTACIÓN TEMPORAL ███
   /** Avisa de un bloqueo repetido sin inundar la consola. */
   private dbgBlockRepeat(reason: string) {
     if (reason !== this.dbgLastBlockReason) {
@@ -1463,6 +1495,13 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     const target = this.pathTarget;
     const from = this.playerTile();
 
+    // ███ INSTRUMENTACIÓN TEMPORAL ███
+    if (this.player) {
+      mlog("  [tick-from] frame:", this.dbgFrame, "from:", from,
+        JSON.stringify(this.dbgGeoSnapshot(this.player.getGroundPoint())));
+    }
+    // ███ FIN ███
+
     if (!this.navGrid || !target || !from) {
       this.stopWalking();
       return;
@@ -1497,6 +1536,11 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     mlog("  requestPath", from, "->", to, "| token:", token,
       "| cancelando pendingPathId:", this.pendingPathId,
       "| apoyo crudo:", this.player?.getGroundPoint());
+    if (this.player) {
+      mlog("  [findPath-from] frame:", this.dbgFrame, "token:", token,
+        "from (tile despues de floor):", from, "to:", to,
+        JSON.stringify(this.dbgGeoSnapshot(this.player.getGroundPoint())));
+    }
     const askedAtFrame = this.dbgFrame;
     // ███ FIN ███
 
@@ -1514,6 +1558,9 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
         mlog("  ✅ CALLBACK EasyStar | token:", token, "vigente:", this.pathRequestId,
           "| tras", this.dbgFrame - askedAtFrame, "frames",
           "| path:", path === null ? "null (SIN RUTA)" : `${path.length} nodos`);
+        mlog("  [path-detail] token:", token, "from original:", from,
+          "path[0]:", path?.[0] ?? null, "path[1]:", path?.[1] ?? null,
+          "path completo:", path && path.length <= 15 ? JSON.stringify(path) : `${path?.length} nodos (omitido por tamaño)`);
         // ███ FIN ███
 
         if (token !== this.pathRequestId) {
@@ -1948,6 +1995,11 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
 
     const next = this.currentPath[0];
     const current = this.playerTile();
+
+    // ███ INSTRUMENTACIÓN TEMPORAL ███
+    mlog("  [tick-current] frame:", this.dbgFrame, "current:", current,
+      JSON.stringify(this.dbgGeoSnapshot(ground)));
+    // ███ FIN ███
 
     if (!current) return;
 
