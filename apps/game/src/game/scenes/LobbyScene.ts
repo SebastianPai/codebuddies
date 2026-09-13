@@ -1495,7 +1495,8 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
 
     // ███ INSTRUMENTACIÓN TEMPORAL ███
     mlog("  requestPath", from, "->", to, "| token:", token,
-      "| cancelando pendingPathId:", this.pendingPathId);
+      "| cancelando pendingPathId:", this.pendingPathId,
+      "| apoyo crudo:", this.player?.getGroundPoint());
     const askedAtFrame = this.dbgFrame;
     // ███ FIN ███
 
@@ -1963,7 +1964,9 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     if (!NavGrid.isAdjacentOrSame(current, next)) {
       // ███ INSTRUMENTACIÓN TEMPORAL ███
       this.dbgBlockRepeat("S4 adyacencia: actual " + JSON.stringify(current) +
-        " vs siguiente " + JSON.stringify(next));
+        " vs siguiente " + JSON.stringify(next) +
+        " | token vigente: " + this.pathRequestId +
+        " | apoyo crudo: " + JSON.stringify(ground));
       // ███ FIN ███
       if (this.tripStuckBreaker("adyacencia", current, next)) return;
       this.repathToCurrentTarget();
