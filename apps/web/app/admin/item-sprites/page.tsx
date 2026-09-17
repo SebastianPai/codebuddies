@@ -27,6 +27,7 @@ type Animation = { id: string; type: string; variant: string };
 
 type ItemSpriteRecord = {
   id: string;
+  animationId: string;
   imageUrl: string;
   frameWidth: number;
   frameHeight: number;
@@ -191,6 +192,40 @@ function ItemSpriteEditor() {
       })
       .catch(() => setError(t("items.loadItemsAnimationsError")));
   }, []);
+
+  // El atajo "Configurar sprite" desde Editar item (o desde crear item)
+  // solo manda ?itemId=, nunca la animación: el efecto de abajo que carga
+  // el sprite ya guardado (buscarlo, precargar su imagen/medidas) exige
+  // itemId Y animationId, así que sin esto la pantalla se quedaba con los
+  // defaults de "crear nuevo" (128x224, sin imagen) aunque el item ya
+  // tuviera un sprite -- indistinguible de estar creando uno desde cero.
+  // Se dispara UNA sola vez por itemId de URL, para no pisar una animación
+  // que el admin haya elegido a mano después.
+  const autoSelectedForItem = useRef<string | null>(null);
+  useEffect(() => {
+    if (!initialItemId || config.itemId !== initialItemId) return;
+    if (config.animationId) return;
+    if (autoSelectedForItem.current === initialItemId) return;
+
+    autoSelectedForItem.current = initialItemId;
+
+    api
+      .get<ItemSpriteRecord[]>(`/item-sprites?itemId=${initialItemId}`)
+      .then((sprites) => {
+        if (!sprites.length) return;
+        const preferred =
+          sprites.find((s) => s.direction === "SOUTH") ?? sprites[0];
+        setConfig((c) =>
+          c.animationId
+            ? c
+            : { ...c, animationId: preferred.animationId, direction: preferred.direction },
+        );
+      })
+      .catch(() => {
+        // Sin sprite existente (item recién creado) -- queda en modo
+        // "crear nuevo", que es lo correcto.
+      });
+  }, [initialItemId, config.itemId, config.animationId]);
 
   // Filtrado inteligente para el combobox
   const filteredItems = items.filter((item) => {
