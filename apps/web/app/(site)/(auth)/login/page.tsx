@@ -17,9 +17,12 @@ import {
 import Link from "next/link";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
 import { getGameUrl } from "../../../../src/config/env";
+import { useThemeAsset } from "../../../../hooks/useThemeAsset";
+import { ThemeFramedPhoto } from "../../../../components/ThemeFramedPhoto";
 
 export default function LoginPage() {
   const t = useTranslation();
+  const authPhoto = useThemeAsset("AUTH_HERO_PHOTO");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -238,10 +241,27 @@ export default function LoginPage() {
                 {t("auth.heroWord3")} <br />
                 {t("auth.heroWord4")}
               </h2>
-              <div className="bg-black p-4 inline-block">
-                <p className="text-[rgb(var(--primary))] font-mono text-sm leading-snug max-w-xs uppercase">
-                  &quot;{t("auth.decorativeQuote")}&quot;
-                </p>
+              <div className="flex items-end gap-6">
+                <div className="bg-black p-4 inline-block">
+                  <p className="text-[rgb(var(--primary))] font-mono text-sm leading-snug max-w-xs uppercase">
+                    &quot;{t("auth.decorativeQuote")}&quot;
+                  </p>
+                </div>
+
+                {/* Foto administrable (admin/theme-assets, slot
+                    AUTH_HERO_PHOTO) — sin ninguna activa no se renderiza
+                    nada, así la columna queda igual que siempre. */}
+                {authPhoto && (
+                  <div className="shrink-0 w-24 bg-white p-1.5 pb-4 border-2 border-black shadow-[6px_6px_0_0_#000] -rotate-3 hover:rotate-0 transition-transform duration-500">
+                    <div className="aspect-square overflow-hidden border-2 border-black bg-zinc-200">
+                      <ThemeFramedPhoto
+                        asset={authPhoto}
+                        alt={t.landing.hero.robotAlt}
+                        className="w-full h-full"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

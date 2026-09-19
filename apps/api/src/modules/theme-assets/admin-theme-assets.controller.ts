@@ -12,6 +12,10 @@ type VariantBody = {
   frameCount?: number;
   direction?: ThemeAssetAnimationDirection;
   frameRate?: number;
+  offsetX?: number;
+  offsetY?: number;
+  scale?: number;
+  rotation?: number;
 };
 
 @UseGuards(JwtAuthGuard, RolesGuard)

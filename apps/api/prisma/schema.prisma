@@ -3431,8 +3431,19 @@ model ThemeAssetVariant {
   frameCount Int                          @default(6)
   direction  ThemeAssetAnimationDirection @default(PINGPONG)
   frameRate  Int                          @default(10)
-  isActive   Boolean                      @default(false)
-  order      Int                          @default(0)
+
+  // Ajuste dentro de un marco de proporción fija (ej. el polaroid de la
+  // home): offsetX/offsetY son el foco en % (50/50 = centrado, como
+  // object-position), scale hace zoom sin recortar el marco, rotation es en
+  // grados. Slots que no muestran la imagen dentro de un marco (LOGO,
+  // ROOM_DOOR) simplemente no los usan -- los defaults son un no-op.
+  offsetX  Float @default(50)
+  offsetY  Float @default(50)
+  scale    Float @default(1)
+  rotation Float @default(0)
+
+  isActive Boolean @default(false)
+  order    Int     @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

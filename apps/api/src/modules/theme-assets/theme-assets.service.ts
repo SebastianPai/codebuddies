@@ -7,12 +7,20 @@ import { PrismaService } from '../../prisma/prisma.service';
 
 const MAX_VARIANTS_PER_SLOT = 5;
 
+function clamp(value: number, min: number, max: number): number {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return min;
+  return Math.min(max, Math.max(min, num));
+}
+
 // Slots conocidos por el código — agregar uno acá + consumirlo en el
 // frontend (Navbar/RoomList/etc.) es todo lo que hace falta para sumar una
 // nueva imagen administrable, sin migraciones nuevas.
 const SLOT_REGISTRY: { key: string; label: string; category: string }[] = [
   { key: 'LOGO', label: 'Logo principal', category: 'Marca' },
   { key: 'ROOM_DOOR', label: 'Puerta de Salas', category: 'Juego' },
+  { key: 'HOME_HERO_PHOTO', label: 'Foto — Home (polaroid)', category: 'Marketing' },
+  { key: 'AUTH_HERO_PHOTO', label: 'Foto — Login / Registro', category: 'Marketing' },
 ];
 
 export type ResolvedThemeAsset = {
@@ -21,6 +29,10 @@ export type ResolvedThemeAsset = {
   frameCount: number;
   direction: ThemeAssetAnimationDirection;
   frameRate: number;
+  offsetX: number;
+  offsetY: number;
+  scale: number;
+  rotation: number;
 };
 
 type UpsertVariantInput = {
@@ -30,6 +42,10 @@ type UpsertVariantInput = {
   frameCount?: number;
   direction?: ThemeAssetAnimationDirection;
   frameRate?: number;
+  offsetX?: number;
+  offsetY?: number;
+  scale?: number;
+  rotation?: number;
   order?: number;
 };
 
@@ -69,6 +85,10 @@ export class ThemeAssetsService {
             frameCount: active.frameCount,
             direction: active.direction,
             frameRate: active.frameRate,
+            offsetX: active.offsetX,
+            offsetY: active.offsetY,
+            scale: active.scale,
+            rotation: active.rotation,
           }
         : null;
     }
@@ -122,6 +142,10 @@ export class ThemeAssetsService {
         frameCount: input.frameCount ?? 6,
         direction: input.direction ?? ThemeAssetAnimationDirection.PINGPONG,
         frameRate: input.frameRate ?? 10,
+        offsetX: clamp(input.offsetX ?? 50, 0, 100),
+        offsetY: clamp(input.offsetY ?? 50, 0, 100),
+        scale: clamp(input.scale ?? 1, 0.5, 4),
+        rotation: clamp(input.rotation ?? 0, -180, 180),
         order: slot.variants.length,
       },
     });
@@ -137,6 +161,10 @@ export class ThemeAssetsService {
       ...(input.frameCount !== undefined ? { frameCount: input.frameCount } : {}),
       ...(input.direction !== undefined ? { direction: input.direction } : {}),
       ...(input.frameRate !== undefined ? { frameRate: input.frameRate } : {}),
+      ...(input.offsetX !== undefined ? { offsetX: clamp(input.offsetX, 0, 100) } : {}),
+      ...(input.offsetY !== undefined ? { offsetY: clamp(input.offsetY, 0, 100) } : {}),
+      ...(input.scale !== undefined ? { scale: clamp(input.scale, 0.5, 4) } : {}),
+      ...(input.rotation !== undefined ? { rotation: clamp(input.rotation, -180, 180) } : {}),
     };
 
     await this.prisma.themeAssetVariant.update({ where: { id: variantId }, data });

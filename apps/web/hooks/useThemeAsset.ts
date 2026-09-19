@@ -10,6 +10,13 @@ export type ResolvedThemeAsset = {
   frameCount: number;
   direction: ThemeAssetAnimationDirection;
   frameRate: number;
+  // Ajuste dentro de un marco de proporción fija (offsetX/offsetY en %,
+  // 50/50 = centrado; scale y rotation en grados). Solo lo consumen los
+  // slots que se muestran dentro de un marco recortado (ver ThemeFramedPhoto).
+  offsetX: number;
+  offsetY: number;
+  scale: number;
+  rotation: number;
 };
 
 type ResolvedThemeAssets = Record<string, ResolvedThemeAsset | null>;

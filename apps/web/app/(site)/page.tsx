@@ -18,6 +18,8 @@ import {
 import { api } from "../../utils/api";
 import { useTranslation } from "../../src/i18n/useTranslation"; // ← Asegúrate que la ruta sea correcta
 import { WorldPulseBar } from "../../src/features/world-pulse/world-pulse-bar";
+import { useThemeAsset } from "../../hooks/useThemeAsset";
+import { ThemeFramedPhoto } from "../../components/ThemeFramedPhoto";
 
 // Interfaces
 interface CoursePreview {
@@ -157,6 +159,7 @@ function LeaderList({
 
 export default function BrutalistLanding() {
   const t = useTranslation();
+  const homePhoto = useThemeAsset("HOME_HERO_PHOTO");
 
   const [courses, setCourses] = useState<CoursePreview[]>([]);
   const [loadingCourses, setLoadingCourses] = useState(true);
@@ -233,10 +236,15 @@ export default function BrutalistLanding() {
             <div className="flex-1 relative">
               <div className="bg-white p-4 pb-16 border-2 border-black shadow-[15px_15px_0_0_#000] rotate-3 hover:rotate-0 transition-transform duration-500">
                 <div className="bg-zinc-200 aspect-square overflow-hidden border-2 border-black relative">
-                  <img
-                    src="/robot-head.png"
+                  <ThemeFramedPhoto
+                    asset={homePhoto}
+                    fallbackSrc="/robot-head.png"
                     alt={t.landing.hero.robotAlt}
-                    className="w-full h-full object-contain p-4 grayscale hover:grayscale-0 transition-all"
+                    className={
+                      homePhoto
+                        ? "w-full h-full grayscale hover:grayscale-0 transition-all"
+                        : "w-full h-full object-contain p-4 grayscale hover:grayscale-0 transition-all"
+                    }
                   />
                   <div className="absolute top-2 left-2 bg-red-600 text-white text-[10px] px-2 font-bold animate-pulse">
                     REC ●

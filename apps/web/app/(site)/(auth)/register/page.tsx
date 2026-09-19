@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
+import { useThemeAsset } from "../../../../hooks/useThemeAsset";
+import { ThemeFramedPhoto } from "../../../../components/ThemeFramedPhoto";
 
 // Sub-componente para inputs limpios y consistentes
 type BrutalInputProps = React.InputHTMLAttributes<HTMLInputElement> & {
@@ -39,6 +41,7 @@ const BrutalInput = ({ icon: Icon, label, ...props }: BrutalInputProps) => (
 
 export default function RegisterPage() {
   const t = useTranslation();
+  const authPhoto = useThemeAsset("AUTH_HERO_PHOTO");
   const [formData, setFormData] = useState({
     email: "",
     username: "",
@@ -219,10 +222,27 @@ export default function RegisterPage() {
                 {t("auth.registerHeroWord3")} <br />
                 {t("auth.registerHeroWord4")}
               </h2>
-              <div className="bg-black p-4 inline-block">
-                <p className="text-[rgb(var(--primary))] font-mono text-sm leading-snug max-w-xs uppercase">
-                  &quot;{t("auth.registerDecorativeQuote")}&quot;
-                </p>
+              <div className="flex items-end gap-6">
+                <div className="bg-black p-4 inline-block">
+                  <p className="text-[rgb(var(--primary))] font-mono text-sm leading-snug max-w-xs uppercase">
+                    &quot;{t("auth.registerDecorativeQuote")}&quot;
+                  </p>
+                </div>
+
+                {/* Foto administrable (admin/theme-assets, slot
+                    AUTH_HERO_PHOTO) — mismo slot que login, sin ninguna
+                    activa no se renderiza nada. */}
+                {authPhoto && (
+                  <div className="shrink-0 w-24 bg-white p-1.5 pb-4 border-2 border-black shadow-[6px_6px_0_0_#000] -rotate-3 hover:rotate-0 transition-transform duration-500">
+                    <div className="aspect-square overflow-hidden border-2 border-black bg-zinc-200">
+                      <ThemeFramedPhoto
+                        asset={authPhoto}
+                        alt={t("auth.registerHeroWord1")}
+                        className="w-full h-full"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

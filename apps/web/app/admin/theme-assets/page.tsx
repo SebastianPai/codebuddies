@@ -17,6 +17,10 @@ type ThemeAssetVariant = {
   frameCount: number;
   direction: AnimationDirection;
   frameRate: number;
+  offsetX: number;
+  offsetY: number;
+  scale: number;
+  rotation: number;
   isActive: boolean;
   order: number;
 };
@@ -102,8 +106,30 @@ function VariantThumb({ variant, size }: { variant: ThemeAssetVariant; size: num
     return <div className="rounded" style={spriteStyle(variant, size, aspect)} />;
   }
 
+  // Aproximación de cómo se ve encajada en un marco cuadrado (home/login);
+  // no es 1:1 con cada marco real, pero da una idea del recorte sin tener
+  // que publicar para verlo.
+  const isDefaultTransform =
+    variant.offsetX === 50 && variant.offsetY === 50 && variant.scale === 1 && variant.rotation === 0;
+
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src={variant.imageUrl} alt={variant.name} className="rounded object-contain" style={{ width: size, height: size }} />;
+  return (
+    <img
+      src={variant.imageUrl}
+      alt={variant.name}
+      className={isDefaultTransform ? "rounded object-contain" : "rounded object-cover"}
+      style={
+        isDefaultTransform
+          ? { width: size, height: size }
+          : {
+              width: size,
+              height: size,
+              objectPosition: `${variant.offsetX}% ${variant.offsetY}%`,
+              transform: `scale(${variant.scale}) rotate(${variant.rotation}deg)`,
+            }
+      }
+    />
+  );
 }
 
 export default function AdminThemeAssetsPage() {
@@ -322,9 +348,18 @@ function VariantTile({
   const [frameCount, setFrameCount] = useState(variant.frameCount);
   const [direction, setDirection] = useState<AnimationDirection>(variant.direction);
   const [frameRate, setFrameRate] = useState(variant.frameRate);
+  const [offsetX, setOffsetX] = useState(variant.offsetX);
+  const [offsetY, setOffsetY] = useState(variant.offsetY);
+  const [scale, setScale] = useState(variant.scale);
+  const [rotation, setRotation] = useState(variant.rotation);
 
   const animationChanged =
     frameCount !== variant.frameCount || direction !== variant.direction || frameRate !== variant.frameRate;
+  const fitChanged =
+    offsetX !== variant.offsetX ||
+    offsetY !== variant.offsetY ||
+    scale !== variant.scale ||
+    rotation !== variant.rotation;
 
   return (
     <div className="relative flex flex-col gap-1.5">
@@ -445,6 +480,81 @@ function VariantTile({
               )}
             </div>
           )}
+
+          {/* Solo tiene efecto en los slots que muestran la imagen dentro de
+              un marco recortado (Foto — Home, Foto — Login/Registro); en el
+              resto queda guardado sin usarse. */}
+          <div className="mt-2 space-y-2 border-t border-zinc-800 pt-2 text-[11px] text-zinc-400">
+            <p className="text-[10px] uppercase tracking-wide text-zinc-500">Ajuste dentro del marco</p>
+            <label className="block">
+              Posición X ({offsetX}%)
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={offsetX}
+                onChange={(event) => setOffsetX(Number(event.target.value))}
+                className="mt-1 w-full accent-yellow-400"
+              />
+            </label>
+            <label className="block">
+              Posición Y ({offsetY}%)
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={offsetY}
+                onChange={(event) => setOffsetY(Number(event.target.value))}
+                className="mt-1 w-full accent-yellow-400"
+              />
+            </label>
+            <label className="block">
+              Zoom ({scale.toFixed(2)}x)
+              <input
+                type="range"
+                min={0.5}
+                max={4}
+                step={0.05}
+                value={scale}
+                onChange={(event) => setScale(Number(event.target.value))}
+                className="mt-1 w-full accent-yellow-400"
+              />
+            </label>
+            <label className="block">
+              Rotación ({rotation}°)
+              <input
+                type="range"
+                min={-180}
+                max={180}
+                value={rotation}
+                onChange={(event) => setRotation(Number(event.target.value))}
+                className="mt-1 w-full accent-yellow-400"
+              />
+            </label>
+            {fitChanged && (
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => onPatch({ offsetX, offsetY, scale, rotation })}
+                  className="flex-1 rounded-md bg-yellow-400 px-2 py-1 font-black text-black"
+                >
+                  Guardar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOffsetX(50);
+                    setOffsetY(50);
+                    setScale(1);
+                    setRotation(0);
+                  }}
+                  className="rounded-md border border-zinc-700 px-2 py-1 text-zinc-300"
+                >
+                  Reset
+                </button>
+              </div>
+            )}
+          </div>
 
           <label className="mt-2 block text-[11px] text-zinc-400">
             Nombre
