@@ -259,5 +259,10 @@
   "room_bedroom": "Schlafzimmer",
   "room_bathroom": "Bad",
   "room_office": "Büro",
-  "room_outdoor": "Außen"
+  "room_outdoor": "Außen",
+  "autoMirrorLabel": "Automatisch spiegeln (2 Seiten)",
+  "autoMirrorHint": "Lade eine Seite hoch; die zweite wird durch Spiegeln erzeugt, damit sich das Objekt drehen lässt.",
+  "autoMirrorWorking": "Gespiegelte Seite wird erzeugt...",
+  "autoMirrorError": "Die gespiegelte Seite konnte nicht erzeugt werden. Versuche ein anderes Bild.",
+  "autoMirrorNeedsUpload": "Lade das einseitige Bild erneut hoch, um automatisch zu spiegeln."
 }

@@ -59,6 +59,32 @@ const FURNITURE_CATEGORY_KEYS = [
   "DECORATION",
 ] as const;
 
+/**
+ * "Autoespejo": a partir de UNA cara arma la hoja de 2 caras que ya entiende
+ * el juego (frame 0 = N/S, frame 1 = E/O, ver spriteFrames.ts en apps/game):
+ * la imagen original a la izquierda y la misma volteada horizontalmente a la
+ * derecha. Sin suavizado para no emborronar el pixel art.
+ */
+async function buildMirroredSheet(source: Blob, baseName: string): Promise<File> {
+  const bitmap = await createImageBitmap(source);
+  const canvas = document.createElement("canvas");
+  canvas.width = bitmap.width * 2;
+  canvas.height = bitmap.height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("canvas 2d no disponible");
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(bitmap, 0, 0);
+  ctx.translate(canvas.width, 0);
+  ctx.scale(-1, 1);
+  ctx.drawImage(bitmap, 0, 0);
+  bitmap.close();
+
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+  if (!blob) throw new Error("no se pudo generar la imagen espejada");
+  const name = `${baseName.replace(/\.[^.]+$/, "") || "sprite"}-mirror.png`;
+  return new File([blob], name, { type: "image/png" });
+}
+
 const SPRITE_OFFSET_LIMIT = 1000;
 
 type TFn = (key: string, params?: Record<string, string | number>) => string;
@@ -486,6 +512,11 @@ export default function ItemEditor({
   );
 
   const [file, setFile] = useState<File | null>(null);
+  // Autoespejo: mirrorSource es la imagen de UNA cara que subió el usuario;
+  // `file` pasa a ser la hoja de 2 caras generada a partir de ella.
+  const [autoMirror, setAutoMirror] = useState(false);
+  const [mirrorSource, setMirrorSource] = useState<File | null>(null);
+  const [mirrorBusy, setMirrorBusy] = useState(false);
   const [preview, setPreview] = useState<string | null>(
     initial?.imageUrl || initial?.spriteUrl || initial?.previewUrl || null,
   );
@@ -749,11 +780,69 @@ export default function ItemEditor({
     }
   }
 
+  async function applyMirror(source: Blob, name: string) {
+    setMirrorBusy(true);
+    try {
+      const mirrored = await buildMirroredSheet(source, name);
+      setFile(mirrored);
+      setPreview(URL.createObjectURL(mirrored));
+      setDirections(2);
+    } catch {
+      setAutoMirror(false);
+      setErrors([t("items.autoMirrorError")]);
+    } finally {
+      setMirrorBusy(false);
+    }
+  }
+
+  async function toggleAutoMirror(next: boolean) {
+    if (!next) {
+      setAutoMirror(false);
+      // Vuelve a la imagen de una sola cara que subió el usuario.
+      if (mirrorSource) {
+        setFile(mirrorSource);
+        setPreview(URL.createObjectURL(mirrorSource));
+      }
+      setDirections(1);
+      return;
+    }
+
+    setAutoMirror(true);
+    let source: Blob | null = mirrorSource;
+    // Item ya guardado sin imagen nueva: se parte de la imagen actual. Puede
+    // fallar si el almacenamiento no permite leerla desde el navegador
+    // (CORS); en ese caso se pide volver a subirla.
+    if (!source && preview) {
+      try {
+        const response = await fetch(preview);
+        if (!response.ok) throw new Error(String(response.status));
+        source = await response.blob();
+        const restored = new File([source], "sprite.png", { type: source.type || "image/png" });
+        setMirrorSource(restored);
+      } catch {
+        source = null;
+      }
+    }
+
+    if (!source) {
+      setAutoMirror(false);
+      setErrors([t("items.autoMirrorNeedsUpload")]);
+      return;
+    }
+
+    await applyMirror(source, mirrorSource?.name ?? "sprite.png");
+  }
+
   function handleFile(selectedFile?: File) {
     if (readOnly) return;
     if (!selectedFile) return;
     if (!selectedFile.type.startsWith("image/")) {
       setErrors([t("admin.onlyImagesAllowed")]);
+      return;
+    }
+    setMirrorSource(selectedFile);
+    if (autoMirror && category === "world") {
+      void applyMirror(selectedFile, selectedFile.name);
       return;
     }
     setFile(selectedFile);
@@ -1185,7 +1274,12 @@ export default function ItemEditor({
                   <button
                     key={n}
                     type="button"
-                    onClick={() => setDirections(n)}
+                    disabled={mirrorBusy}
+                    onClick={() => {
+                      // Elegir 1 o 4 caras a mano deja de lado el espejo.
+                      if (autoMirror && n !== 2) void toggleAutoMirror(false);
+                      setDirections(n);
+                    }}
                     className={`rounded-lg px-3 py-1.5 text-xs font-black transition ${
                       directions === n
                         ? "bg-yellow-400 text-black"
@@ -1196,6 +1290,21 @@ export default function ItemEditor({
                   </button>
                 ))}
               </div>
+              <label className="mt-3 flex items-start gap-2 text-sm text-zinc-300">
+                <input
+                  type="checkbox"
+                  className="mt-0.5"
+                  checked={autoMirror}
+                  disabled={mirrorBusy}
+                  onChange={(event) => void toggleAutoMirror(event.target.checked)}
+                />
+                <span>
+                  <span className="font-black text-white">{t("items.autoMirrorLabel")}</span>
+                  <span className="block text-xs text-zinc-500">
+                    {mirrorBusy ? t("items.autoMirrorWorking") : t("items.autoMirrorHint")}
+                  </span>
+                </span>
+              </label>
             </div>
           </div>
 
