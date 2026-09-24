@@ -3,7 +3,13 @@ import { loadTextureOnce } from "../utils/phaserAssetCache";
 import { getMyButler, getButlerCatalog, type ButlerNpc } from "../network/butlers";
 import type { PetAnimClip } from "../network/pets";
 import { resolveActorGroundPoint, syncActorDepth } from "../iso/IsoActorDepth";
-import { WORLD_OVERLAY_DEPTH } from "../utils/depth";
+import {
+  createBubbleElement,
+  createHudAnchor,
+  frameToCanvas,
+  removeBubbleElement,
+} from "../hud/domHud";
+import { resolveChatBubbleTheme } from "../hud/nameplateStyles";
 
 // El mayordomo comparte el renderizado direccional con PetSystem (mismo
 // layout de spritesheet: `directions` filas por clip, orden estándar de
@@ -61,8 +67,12 @@ export default class ButlerSystem {
   // Frases
   private greetingAt = 0; // -1 = ya saludó
   private nextIdleLineAt = 0;
-  private bubble?: Phaser.GameObjects.Container;
+  // Globo en HTML sobre el canvas (mismo sistema que las burbujas de los
+  // jugadores, ver hud/domHud.ts): ancla que sigue al sprite + burbuja.
+  private hud?: { element: Phaser.GameObjects.DOMElement; root: HTMLDivElement };
+  private bubble?: HTMLElement;
   private bubbleUntil = 0;
+  private butlerName = "";
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -82,6 +92,7 @@ export default class ButlerSystem {
         this.despawn();
         return;
       }
+      this.butlerName = mine!.name?.trim() || "";
       if (this.sprite && this.npcKey === mine!.npcKey) return; // ya está
 
       const catalog = await getButlerCatalog().catch(() => [] as ButlerNpc[]);
@@ -152,13 +163,15 @@ export default class ButlerSystem {
   }
 
   despawn(): void {
+    this.clearBubble();
+    this.hud?.element.destroy();
+    this.hud = undefined;
     this.sprite?.destroy();
     this.sprite = undefined;
     this.npc = null;
     this.npcKey = null;
     this.textureKey = undefined;
     this.sheetKeys.clear();
-    this.clearBubble();
   }
 
   destroy(): void {
@@ -263,46 +276,28 @@ export default class ButlerSystem {
     if (!text) return;
     this.clearBubble();
 
-    const label = this.scene.add
-      .text(0, 0, text, {
-        fontFamily: "system-ui, sans-serif",
-        fontSize: "12px",
-        color: "#f4f4f5",
-        align: "center",
-        wordWrap: { width: 150 },
-      })
-      .setOrigin(0.5, 1);
-
-    const padX = 8;
-    const padY = 5;
-    const w = label.width + padX * 2;
-    const h = label.height + padY * 2;
-    const bg = this.scene.add.graphics();
-    bg.fillStyle(0x18181b, 0.92);
-    bg.lineStyle(1, 0x3f3f46, 1);
-    bg.fillRoundedRect(-w / 2, -h, w, h, 6);
-    bg.strokeRoundedRect(-w / 2, -h, w, h, 6);
-    bg.fillTriangle(-4, -1, 4, -1, 0, 5);
-
-    // Por encima de cualquier objeto del mundo pero por debajo del
-    // resaltado de tile, la luz ambiental y el HUD — mismo orden relativo
-    // que tenía el 100000 literal de antes, ahora sin número mágico (el
-    // techo del mundo cambió al pasar a la profundidad isométrica).
-    this.bubble = this.scene.add
-      .container(this.sprite.x, this.sprite.y, [bg, label])
-      .setDepth(WORLD_OVERLAY_DEPTH - 1);
+    this.hud ??= createHudAnchor(this.scene);
+    this.bubble = createBubbleElement({
+      message: text,
+      // Tema oscuro fijo: se distingue de un jugador (que usa el suyo).
+      theme: resolveChatBubbleTheme("midnight"),
+      name: this.butlerName || this.npc?.name || undefined,
+      face: frameToCanvas(this.sprite.frame),
+    });
+    this.hud.root.appendChild(this.bubble);
     this.bubbleUntil = this.timer + BUBBLE_MS;
     this.positionBubble();
   }
 
   private positionBubble(): void {
-    if (!this.bubble || !this.sprite) return;
+    if (!this.hud || !this.sprite) return;
     const fh = Math.max(1, Number(this.npc?.frameHeight) || 48);
-    this.bubble.setPosition(this.sprite.x, this.sprite.y - fh - 6);
+    this.hud.element.setPosition(this.sprite.x, this.sprite.y - fh - 6);
+    this.hud.element.setDepth(Math.round(this.sprite.y));
   }
 
   private clearBubble(): void {
-    this.bubble?.destroy();
+    if (this.bubble) removeBubbleElement(this.bubble);
     this.bubble = undefined;
     this.bubbleUntil = 0;
   }

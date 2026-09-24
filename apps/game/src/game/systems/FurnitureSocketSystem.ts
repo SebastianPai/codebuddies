@@ -28,6 +28,7 @@ export default class FurnitureSocketSystem {
     // servidor confirme; si una se rechaza, cortar el ghost evita seguir
     // mandando colocaciones con un contador que ya no es real.
     const scene = this.scene as any;
+    scene.furniturePlacement?.releasePending();
     if (scene.buildSystem?.getCurrentItem() && !scene.movingRoomItem) {
       scene.buildSystem.stop();
     }
@@ -46,6 +47,7 @@ export default class FurnitureSocketSystem {
   }
 
   private handleItemPlaced = (item: any) => {
+    (this.scene as any).furniturePlacement?.releasePending(item);
     this.spawn(item, item.item.imageUrl, true);
   };
 

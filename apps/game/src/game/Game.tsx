@@ -92,6 +92,9 @@ export default function Game() {
   const [currentUser, setCurrentUser] = useState<any>(null);
 
   const [inGame, setInGame] = useState(false);
+  // Sala a la que se está entrando (joinRoom enviado, sin respuesta aún).
+  const [joiningRoomId, setJoiningRoomId] = useState<string | null>(null);
+  const joinTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [selectedFurniture, setSelectedFurniture] = useState<any>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<{ username: string; x: number; y: number } | null>(null);
@@ -188,6 +191,13 @@ export default function Game() {
 
         backgroundColor: "#111",
 
+        // Capa HTML encima del canvas para nombres y burbujas (PlayerHUD,
+        // ButlerSystem). pointerEvents "none": nunca tapa clics al mundo.
+        dom: {
+          createContainer: true,
+          pointerEvents: "none",
+        },
+
         render: {
           pixelArt: true,
           antialias: false,
@@ -195,6 +205,16 @@ export default function Game() {
 
         callbacks: {
           postBoot: (game) => {
+            // Phaser crea la capa HTML con position:absolute pero sin
+            // top/left: sin esto quedaría debajo del canvas en vez de encima.
+            if (game.domContainer) {
+              game.domContainer.style.top = "0px";
+              game.domContainer.style.left = "0px";
+              // Contexto de apilamiento propio: el z-index de cada nombre
+              // (por profundidad) no debe competir con los paneles de React.
+              game.domContainer.style.zIndex = "0";
+            }
+
             (game as any).socket = socketInstance;
             (game as any).user = user;
 
@@ -282,6 +302,26 @@ export default function Game() {
     };
   }, []);
 
+  // Libera la traba de "entrando a sala" con cualquier respuesta del servidor.
+  useEffect(() => {
+    if (!socket) return;
+    const release = () => {
+      if (joinTimeoutRef.current) {
+        clearTimeout(joinTimeoutRef.current);
+        joinTimeoutRef.current = null;
+      }
+      setJoiningRoomId(null);
+    };
+    socket.on("room:joined", release);
+    socket.on("room:join:error", release);
+    socket.on("room:error", release);
+    return () => {
+      socket.off("room:joined", release);
+      socket.off("room:join:error", release);
+      socket.off("room:error", release);
+    };
+  }, [socket]);
+
   useEffect(() => {
     const handleDialog = (event: Event) => {
       setDialog((event as CustomEvent<GameDialogRequest>).detail);
@@ -366,6 +406,14 @@ export default function Game() {
 
   const handleEnterRoom = (roomId: string) => {
     if (!socket || !roomId) return;
+    // Con red lenta el clic parece no hacer nada y se repite: sin esta traba
+    // cada clic encolaba otro joinRoom y al volver la conexión se entraba
+    // N veces seguidas. Se libera con room:joined / room:join:error /
+    // room:error, o a los 15s por si la respuesta nunca llega.
+    if (joiningRoomId) return;
+    setJoiningRoomId(roomId);
+    if (joinTimeoutRef.current) clearTimeout(joinTimeoutRef.current);
+    joinTimeoutRef.current = setTimeout(() => setJoiningRoomId(null), 15000);
 
     console.log("🔥 ROOM GUARDADO", roomId);
 
@@ -524,7 +572,9 @@ export default function Game() {
 
       {/* ================= GAME ================= */}
 
-      <div ref={containerRef} className="phaser-game-container" />
+      {/* position:relative = referencia de la capa HTML de Phaser (nombres y
+          burbujas, ver dom en el config), que va absoluta encima del canvas. */}
+      <div ref={containerRef} className="phaser-game-container" style={{ position: "relative" }} />
 
       {/* ================= UI ================= */}
 
@@ -657,7 +707,7 @@ export default function Game() {
       {/* ================= ROOM LIST ================= */}
 
       {!inGame && socket && currentUser && (
-        <RoomList socket={socket} onJoinRoom={handleEnterRoom} />
+        <RoomList socket={socket} onJoinRoom={handleEnterRoom} joiningRoomId={joiningRoomId} />
       )}
 
       {/* ================= PC ================= */}

@@ -41,6 +41,7 @@
   "cardUnknownOwner": "Unknown",
   "cardFullBadge": "ROOM FULL",
   "cardJoinButton": "JOIN",
+  "cardJoiningButton": "Joining...",
 
   "listDoorAlt": "Door",
   "listTitle": "ROOMS",

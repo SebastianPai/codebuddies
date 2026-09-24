@@ -12,9 +12,13 @@ interface RoomCardProps {
   room: Room;
   onJoin: (roomId: string) => void;
   onView: (room: Room) => void;
+  /** Esta sala tiene un joinRoom en vuelo. */
+  joining?: boolean;
+  /** Hay una entrada en vuelo (a esta u otra sala): no aceptar más clics. */
+  joinLocked?: boolean;
 }
 
-export default function RoomCard({ room, onJoin, onView }: RoomCardProps) {
+export default function RoomCard({ room, onJoin, onView, joining = false, joinLocked = false }: RoomCardProps) {
   const t = useTranslation();
   const [zoomOpen, setZoomOpen] = useState(false);
   const currentUsers = room._count?.users || 0;
@@ -97,11 +101,16 @@ export default function RoomCard({ room, onJoin, onView }: RoomCardProps) {
 
           <button
             type="button"
-            disabled={isFull}
+            disabled={isFull || joinLocked}
+            aria-busy={joining}
             className={styles.joinBtn}
             onClick={() => onJoin(room.id)}
           >
-            {isFull ? t("rooms.cardFullBadge") : t("rooms.cardJoinButton")}
+            {isFull
+              ? t("rooms.cardFullBadge")
+              : joining
+                ? t("rooms.cardJoiningButton")
+                : t("rooms.cardJoinButton")}
           </button>
         </div>
       </div>
