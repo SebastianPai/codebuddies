@@ -6,7 +6,6 @@ import {
   getUserBadges,
   type BadgeIconConfig,
 } from "../network/badges";
-import { loadTextureOnce } from "../utils/phaserAssetCache";
 import type { AvatarSlot } from "../types/avatar";
 import {
   ChatBubbleStyle,
@@ -15,12 +14,13 @@ import {
   resolveChatBubbleTheme,
 } from "./nameplateStyles";
 import {
-  composeFaceCanvas,
   createBubbleElement,
   createHudAnchor,
   hudStyles as styles,
   nameEffectClass,
+  paintBubbleFace,
   removeBubbleElement,
+  snapshotHead,
 } from "./domHud";
 
 export interface HUDConfig {
@@ -48,31 +48,6 @@ const MAX_CHAT_STACK = 3;
 // Desde el punto del sprite hasta la base del nombre (arriba de la cabeza).
 const HUD_OFFSET_Y = 42;
 
-// Slots que forman "la cara" del avatar modular — mismo criterio que
-// <AvatarPreview> para el ícono del personaje.
-const FACE_SLOTS = new Set(["HEAD", "HAIR", "EYES", "ACCESSORY_FACE", "ACCESSORY_HEAD"]);
-
-export interface FaceLayer {
-  key: string;
-  tint: number | null;
-}
-
-// Reusa loadTextureOnce (la misma caché que AvatarBuilder usa para dibujar
-// al personaje), así el retrato siempre coincide con el avatar del mundo.
-async function buildFaceLayers(scene: Phaser.Scene, slots: AvatarSlot[]): Promise<FaceLayer[]> {
-  const faceSlots = slots
-    .filter((slot) => FACE_SLOTS.has(slot.slot) && !!slot.imageUrl)
-    .sort((a, b) => (a.layer ?? 0) - (b.layer ?? 0));
-
-  const layers: FaceLayer[] = [];
-  for (const slot of faceSlots) {
-    const key = await loadTextureOnce(scene, slot.imageUrl);
-    if (!key) continue;
-    layers.push({ key, tint: slot.colorable && slot.color ? slot.color : null });
-  }
-  return layers;
-}
-
 /**
  * Nombre + insignias + burbujas de chat de un jugador, en HTML encima del
  * canvas (Phaser DOMElement: sigue la cámara y el zoom solo).
@@ -96,7 +71,11 @@ export default class PlayerHUD {
   private nameEl: HTMLSpanElement;
   private badgesEl: HTMLSpanElement;
 
+  // Retrato (cabeza + cuello) capturado del personaje tal como se ve. Se
+  // recaptura en el próximo mensaje después de un cambio de avatar.
   private face: HTMLCanvasElement | null = null;
+  private faceDirty = true;
+  private faceCapture: Promise<HTMLCanvasElement | null> | null = null;
   private bubbles: Array<{ el: HTMLElement; token: number }> = [];
   private chatBubbleToken = 0;
   private destroyed = false;
@@ -206,17 +185,34 @@ export default class PlayerHUD {
     return img;
   }
 
-  // Retrato de la burbuja: se compone al conocer los slots del jugador (no
-  // en el constructor, porque el local arranca sin slots hasta room:joined).
-  async refreshAvatarHead(slots: AvatarSlot[] | null | undefined) {
+  // Llamado al entrar a la sala y cada vez que el jugador cambia de ropa:
+  // el retrato se vuelve a capturar en su próximo mensaje (para entonces el
+  // sprite ya muestra el avatar nuevo).
+  async refreshAvatarHead(slots?: AvatarSlot[] | null) {
+    // Sin slots todavía (jugador local antes de room:joined) no hay nada que
+    // recapturar; el retrato actual sigue valiendo.
     if (!slots || slots.length === 0) return;
-    try {
-      const layers = await buildFaceLayers(this.scene, slots);
-      const face = composeFaceCanvas(this.scene, layers);
-      if (face) this.face = face;
-    } catch {
-      // sin retrato en la burbuja este ciclo, no es crítico
-    }
+    this.faceDirty = true;
+  }
+
+  private captureFace(): Promise<HTMLCanvasElement | null> {
+    if (!this.sprite) return Promise.resolve(null);
+    if (!this.faceDirty && this.face) return Promise.resolve(this.face);
+    if (this.faceCapture) return this.faceCapture;
+
+    this.faceCapture = snapshotHead(this.scene, this.sprite)
+      .then((face) => {
+        if (face) {
+          this.face = face;
+          this.faceDirty = false;
+        }
+        return this.face;
+      })
+      .catch(() => this.face)
+      .finally(() => {
+        this.faceCapture = null;
+      });
+    return this.faceCapture;
   }
 
   update() {
@@ -241,8 +237,14 @@ export default class PlayerHUD {
       theme,
       name: this.username,
       nameEffectId: this.nameEffectId,
-      face: this.face,
+      face: this.faceDirty ? null : this.face,
+      withFace: true,
     });
+    if (this.faceDirty || !this.face) {
+      void this.captureFace().then((face) => {
+        if (face) paintBubbleFace(el, face);
+      });
+    }
     this.stack.appendChild(el);
     this.bubbles.push({ el, token });
 

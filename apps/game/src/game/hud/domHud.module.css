@@ -147,12 +147,24 @@
   display: none;
 }
 
+/* Retrato superpuesto: sale por el borde izquierdo de la burbuja, con aro
+   del color del tema, mostrando cara y un poco de cuello. */
+.hasFace {
+  margin-left: 22px;
+  padding-left: 28px;
+}
+
 .face {
-  flex: none;
-  width: 26px;
-  height: 26px;
+  position: absolute;
+  top: 50%;
+  left: -22px;
+  width: 40px;
+  height: 40px;
+  border: 2px solid var(--cbh-border);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.3);
+  background: radial-gradient(circle at 50% 35%, #ffffff, #dfe6f1);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+  transform: translateY(-50%);
   image-rendering: pixelated;
 }
 

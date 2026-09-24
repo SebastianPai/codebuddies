@@ -2,7 +2,7 @@ import type Phaser from "phaser";
 
 import styles from "./domHud.module.css";
 import type { ChatBubbleTheme } from "./nameplateStyles";
-import { bubbleThemeVars, hexNumberToCss, nameEffectClass } from "./hudStyleUtils";
+import { bubbleThemeVars, nameEffectClass } from "./hudStyleUtils";
 
 export { nameEffectClass };
 
@@ -40,22 +40,32 @@ export interface BubbleOptions {
   nameEffectId?: string | null;
   /** Retrato ya compuesto (se copia, el original se reutiliza). */
   face?: HTMLCanvasElement | null;
+  /**
+   * Reservar el retrato aunque todavía no exista (se pinta después con
+   * paintBubbleFace, cuando termina la captura del avatar).
+   */
+  withFace?: boolean;
 }
 
-export function createBubbleElement({ message, theme, name, nameEffectId, face }: BubbleOptions) {
+export function createBubbleElement({ message, theme, name, nameEffectId, face, withFace }: BubbleOptions) {
   const bubble = document.createElement("div");
-  bubble.className = `${styles.bubble} ${theme.tier === "premium" ? styles.premium : ""}`;
+  const hasFace = !!face || !!withFace;
+  bubble.className = [
+    styles.bubble,
+    theme.tier === "premium" ? styles.premium : "",
+    hasFace ? styles.hasFace : "",
+  ].join(" ");
   for (const [prop, value] of Object.entries(bubbleThemeVars(theme))) {
     bubble.style.setProperty(prop, value);
   }
 
-  if (face) {
+  if (hasFace) {
     const canvas = document.createElement("canvas");
-    canvas.width = face.width;
-    canvas.height = face.height;
+    canvas.width = PORTRAIT_SIZE;
+    canvas.height = PORTRAIT_SIZE;
     canvas.className = styles.face;
-    canvas.getContext("2d")?.drawImage(face, 0, 0);
     bubble.appendChild(canvas);
+    if (face) paintCanvas(canvas, face);
   }
 
   const text = document.createElement("div");
@@ -84,17 +94,47 @@ export function createBubbleElement({ message, theme, name, nameEffectId, face }
   return bubble;
 }
 
+function paintCanvas(canvas: HTMLCanvasElement, source: HTMLCanvasElement) {
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+  ctx.imageSmoothingEnabled = false;
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(source, 0, 0, canvas.width, canvas.height);
+}
+
+/** Pinta el retrato en una burbuja creada con withFace. */
+export function paintBubbleFace(bubble: HTMLElement, face: HTMLCanvasElement) {
+  const canvas = bubble.querySelector("canvas");
+  if (canvas) paintCanvas(canvas, face);
+}
+
 /** Saca una burbuja con transición y la elimina del DOM al terminar. */
 export function removeBubbleElement(bubble: HTMLElement) {
   bubble.classList.add(styles.bubbleLeaving);
   window.setTimeout(() => bubble.remove(), 220);
 }
 
+// Recorte de "retrato" (cara + un poco de cuello): cuadrado del ancho de la
+// cabeza, pegado arriba del personaje. Valores sobre el alto total del
+// sprite; los avatares y NPCs del juego tienen la cabeza en ~el 40% superior.
+const HEAD_CROP_HEIGHT = 0.44;
+const HEAD_CROP_TOP = 0.02;
+export const PORTRAIT_SIZE = 72;
+
+function headCropRect(width: number, height: number) {
+  const side = Math.max(1, Math.min(width, height * HEAD_CROP_HEIGHT));
+  return {
+    x: Math.max(0, (width - side) / 2),
+    y: Math.max(0, height * HEAD_CROP_TOP),
+    side,
+  };
+}
+
 /**
  * Retrato a partir de un frame de spritesheet (mayordomo/mascota): recorta
- * el cuadro actual y lo encaja centrado sin deformar.
+ * cabeza y cuello del cuadro actual.
  */
-export function frameToCanvas(frame: Phaser.Textures.Frame | null | undefined, size = 52) {
+export function frameToCanvas(frame: Phaser.Textures.Frame | null | undefined, size = PORTRAIT_SIZE) {
   if (!frame) return null;
   const canvas = document.createElement("canvas");
   canvas.width = size;
@@ -102,67 +142,65 @@ export function frameToCanvas(frame: Phaser.Textures.Frame | null | undefined, s
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
   ctx.imageSmoothingEnabled = false;
-  const scale = Math.min(size / frame.cutWidth, size / frame.cutHeight);
-  const w = frame.cutWidth * scale;
-  const h = frame.cutHeight * scale;
+  const crop = headCropRect(frame.cutWidth, frame.cutHeight);
   ctx.drawImage(
     frame.source.image as CanvasImageSource,
-    frame.cutX,
-    frame.cutY,
-    frame.cutWidth,
-    frame.cutHeight,
-    (size - w) / 2,
-    (size - h) / 2,
-    w,
-    h,
+    frame.cutX + crop.x,
+    frame.cutY + crop.y,
+    crop.side,
+    crop.side,
+    0,
+    0,
+    size,
+    size,
   );
   return canvas;
 }
 
 /**
- * Retrato circular a partir de capas de textura ya cargadas en Phaser
- * (cara del avatar). Se dibuja una vez por cambio de avatar y cada burbuja
- * lo copia con drawImage; nunca se lee el canvas, así que no importa si
- * alguna imagen vino de otro dominio sin CORS.
+ * Retrato del avatar TAL COMO SE VE en la sala: dibuja el contenedor del
+ * personaje (todas sus capas, colores y pose actuales) en una textura
+ * temporal y recorta cabeza y cuello. Antes se apilaban las texturas
+ * completas de cada parte reducidas a un círculo, y como muchas son hojas
+ * con varios cuadros, la cara salía diminuta o no salía.
  */
-export function composeFaceCanvas(
+export function snapshotHead(
   scene: Phaser.Scene,
-  layers: Array<{ key: string; tint: number | null }>,
-  size = 52,
-): HTMLCanvasElement | null {
-  if (layers.length === 0) return null;
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return null;
-  ctx.imageSmoothingEnabled = false;
+  target: Phaser.GameObjects.Container,
+  size = PORTRAIT_SIZE,
+): Promise<HTMLCanvasElement | null> {
+  const bounds = target.getBounds();
+  const width = Math.ceil(bounds.width);
+  const height = Math.ceil(bounds.height);
+  if (width < 4 || height < 4) return Promise.resolve(null);
 
-  const scratch = document.createElement("canvas");
-  scratch.width = size;
-  scratch.height = size;
-  const sctx = scratch.getContext("2d");
-  if (!sctx) return null;
-  sctx.imageSmoothingEnabled = false;
+  const rt = scene.add.renderTexture(0, 0, width, height).setVisible(false);
+  rt.draw(target, target.x - bounds.x, target.y - bounds.y);
 
-  for (const layer of layers) {
-    if (!scene.textures.exists(layer.key)) continue;
-    const source = scene.textures.get(layer.key).getSourceImage() as CanvasImageSource;
-    if (!layer.tint) {
-      ctx.drawImage(source, 0, 0, size, size);
-      continue;
-    }
-    // Tinte multiplicativo (igual que setTint de Phaser) conservando el
-    // alfa de la capa.
-    sctx.globalCompositeOperation = "source-over";
-    sctx.clearRect(0, 0, size, size);
-    sctx.drawImage(source, 0, 0, size, size);
-    sctx.globalCompositeOperation = "multiply";
-    sctx.fillStyle = hexNumberToCss(layer.tint);
-    sctx.fillRect(0, 0, size, size);
-    sctx.globalCompositeOperation = "destination-in";
-    sctx.drawImage(source, 0, 0, size, size);
-    ctx.drawImage(scratch, 0, 0);
-  }
-  return canvas;
+  const crop = headCropRect(width, height);
+  return new Promise((resolve) => {
+    rt.snapshotArea(
+      Math.round(crop.x),
+      Math.round(crop.y),
+      Math.round(crop.side),
+      Math.round(crop.side),
+      (image) => {
+        rt.destroy();
+        if (!(image instanceof HTMLImageElement)) return resolve(null);
+        const draw = () => {
+          const canvas = document.createElement("canvas");
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) return resolve(null);
+          ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(image, 0, 0, size, size);
+          resolve(canvas);
+        };
+        if (image.complete) draw();
+        else image.onload = draw;
+      },
+    );
+  });
 }
+
