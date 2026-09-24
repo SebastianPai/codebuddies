@@ -41,7 +41,7 @@ type TabType =
   | "pets"
   | "butler";
 
-const ITEMS_PER_PAGE = 12;
+const ITEMS_PER_PAGE = 30;
 
 // item.rarity es un tier numérico, pero la key canónica (common/uncommon/
 // rare/epic/legendary) ya viene calculada desde el backend como
@@ -492,7 +492,7 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
       variant="floating"
       title={t("commerce.shopTitle")}
       onClose={onClose ?? (() => {})}
-      style={{ width: "min(960px, calc(100vw - 24px))", height: "min(760px, calc(100dvh - 24px))" }}
+      style={{ width: "min(1320px, calc(100vw - 24px))", height: "min(880px, calc(100dvh - 24px))" }}
     >
       <div className={`${styles.tabs} ${tabsOverflow.scrollRow}`}>
         <button

@@ -317,29 +317,35 @@ export default class PlayerHUD {
   // colores/velocidad de ESTE efecto. Sin WebGL (renderer cayó a Canvas) ->
   // color sólido representativo, nunca texto invisible ni roto.
   private applyNameEffectVisuals(definition: VisualEffectDefinition | null) {
+    this.applyEffectToText(this.usernameText, definition, DEFAULT_NAMEPLATE_STYLE.textColor);
+  }
+
+  // Aplica un efecto de nombre a cualquier texto del HUD (el nameplate y el
+  // nombre dentro de la burbuja de chat usan exactamente el mismo efecto).
+  private applyEffectToText(
+    text: Phaser.GameObjects.Text,
+    definition: VisualEffectDefinition | null,
+    fallbackColor: string,
+  ) {
     // gradientAnimation puede faltar en teoría (efecto sin ese campo
     // poblado en el catálogo) -- tratamos eso igual que "sin animación",
     // nunca como crash: cae a color sólido, nunca texto roto/invisible.
-    if (
-      !definition?.animationName ||
-      !definition.gradientAnimation ||
-      PlayerHUD.prefersReducedMotion()
-    ) {
-      this.usernameText.resetPostPipeline();
-      this.usernameText.setColor(definition ? definition.glowColor : DEFAULT_NAMEPLATE_STYLE.textColor);
+    if (!definition?.animationName || !definition.gradientAnimation) {
+      text.resetPostPipeline();
+      text.setColor(definition ? definition.glowColor : fallbackColor);
       return;
     }
 
     if (!ensureNameGradientPipeline(this.scene)) {
-      this.usernameText.resetPostPipeline();
-      this.usernameText.setColor(definition.glowColor);
+      text.resetPostPipeline();
+      text.setColor(definition.glowColor);
       return;
     }
 
-    this.usernameText.setColor("#ffffff");
-    this.usernameText.setPostPipeline(NAME_GRADIENT_PIPELINE_KEY);
+    text.setColor("#ffffff");
+    text.setPostPipeline(NAME_GRADIENT_PIPELINE_KEY);
 
-    const attached = this.usernameText.getPostPipeline(NameGradientPipeline);
+    const attached = text.getPostPipeline(NameGradientPipeline);
     const pipeline = Array.isArray(attached) ? attached[0] : attached;
     if (pipeline instanceof NameGradientPipeline) {
       const { angleDeg, sizeX, sizeY, durationMs } = definition.gradientAnimation;
@@ -348,9 +354,22 @@ export default class PlayerHUD {
       // Mismo "box" que usaría el elemento DOM real para el cálculo del
       // ángulo de linear-gradient() -- el propio tamaño renderizado del
       // texto (con outline incluido, igual que el box de un <span> real).
-      const aspect = this.usernameText.width / Math.max(1, this.usernameText.height);
-      pipeline.setGradient(definition.gradientStops, { angleDeg, sizeX, sizeY, durationMs, kind }, aspect);
+      const aspect = text.width / Math.max(1, text.height);
+      // Con "reducir movimiento" antes se quitaba el degradado entero (el
+      // nombre quedaba de un solo color y parecía que el efecto no andaba);
+      // ahora se mantiene el degradado, solo que quieto.
+      const frozen = PlayerHUD.prefersReducedMotion();
+      pipeline.setGradient(
+        definition.gradientStops,
+        { angleDeg, sizeX, sizeY, durationMs, kind, frozen },
+        aspect,
+      );
     }
+  }
+
+  private currentEffectDefinition(): VisualEffectDefinition | null {
+    const id = this.nameEffectId;
+    return id && id !== "common" && id in VISUAL_EFFECTS ? getEffectDefinition(id) : null;
   }
 
   private async loadBadges(username: string) {
@@ -535,13 +554,30 @@ export default class PlayerHUD {
         align: "left",
         wordWrap: { width: style.maxWidth },
       })
-      .setOrigin(0, 0.5);
+      .setOrigin(0, 0);
+
+    // Nombre del autor dentro de la burbuja, con el mismo efecto de nombre
+    // que su nameplate (misma pipeline compartida, sin costo por frame
+    // extra salvo el propio shader mientras la burbuja vive: máx.
+    // MAX_CHAT_STACK por jugador y unos segundos).
+    const nameText = this.scene.add
+      .text(0, 0, this.username, {
+        fontFamily: style.fontFamily,
+        fontSize: `${Math.max(10, style.fontSize - 2)}px`,
+        fontStyle: "bold",
+        color: theme.textColor,
+      })
+      .setOrigin(0, 0);
+    this.applyEffectToText(nameText, this.currentEffectDefinition(), theme.textColor);
+    const nameGap = 2;
 
     const paddingX = 12;
     const paddingY = 8;
     const avatarBlockWidth = hasAvatar ? avatarSize + avatarGap : 0;
-    const boxWidth = avatarBlockWidth + messageText.width + paddingX * 2;
-    const boxHeight = Math.max(avatarSize, messageText.height) + paddingY * 2;
+    const textBlockWidth = Math.max(messageText.width, nameText.width);
+    const textBlockHeight = nameText.height + nameGap + messageText.height;
+    const boxWidth = avatarBlockWidth + textBlockWidth + paddingX * 2;
+    const boxHeight = Math.max(avatarSize, textBlockHeight) + paddingY * 2;
     const tailSize = 7;
 
     const bg = this.scene.add.graphics();
@@ -582,8 +618,11 @@ export default class PlayerHUD {
       }
     }
 
-    messageText.setPosition(contentLeft + avatarBlockWidth, 0);
-    children.push(messageText);
+    const textLeft = contentLeft + avatarBlockWidth;
+    const textTop = -textBlockHeight / 2;
+    nameText.setPosition(textLeft, textTop);
+    messageText.setPosition(textLeft, textTop + nameText.height + nameGap);
+    children.push(nameText, messageText);
 
     const container = this.scene.add.container(this.sprite.x, this.sprite.y - 104, children);
     container.setDepth(PlayerHUD.HUD_DEPTH);

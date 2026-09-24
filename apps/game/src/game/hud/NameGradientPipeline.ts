@@ -112,6 +112,8 @@ export interface GradientAnimationParams {
   durationMs: number;
   /** Qué @keyframes de effects.css reproducir: shimmer-sweep (barrido lineal, 1 eje) u holo-sweep (diagonal, ease-in-out, ida y vuelta). */
   kind: GradientAnimationKind;
+  /** Degradado quieto (prefers-reduced-motion): se ven los colores, sin barrido. */
+  frozen?: boolean;
 }
 
 interface PendingGradient {
@@ -293,7 +295,9 @@ export default class NameGradientPipeline extends Phaser.Renderer.WebGL.Pipeline
     }
     const coeffs = this.coeffs!;
 
-    const progress = (this.game.loop.time % pending.anim.durationMs) / pending.anim.durationMs;
+    const progress = pending.anim.frozen
+      ? 0.25
+      : (this.game.loop.time % pending.anim.durationMs) / pending.anim.durationMs;
     const { bx, by } = bgPositionFraction(pending.anim.kind, progress);
     const kconst = computeKconst(coeffs, bx, by);
 
