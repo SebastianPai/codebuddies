@@ -84,6 +84,9 @@ export class ShopHandler {
           // shop lo usa para mostrar/ocultar el selector de cantidad.
           maxStack: i.maxStack ?? 1,
 
+          // Ambientes (room:*) para los filtros de la tienda.
+          tags: i.tags ?? [],
+
           shopVisible: i.shopVisible,
           category: i.category,
           views: i.views ?? 0,
@@ -212,11 +215,10 @@ export class ShopHandler {
         quantity,
       );
 
-      // Recargar inventario actualizado
-      const inventory = await this.itemsService.getInventory(userId);
-
-      // Enviar respuestas al cliente
-      socket.emit('inventory:data', inventory);
+      // El cliente vuelve a pedir inventory:get, que devuelve el formato
+      // normalizado (con item.name). Mandar acá el UserItem crudo dejaba el
+      // panel de construcción sin nombres hasta recargar.
+      socket.emit('inventory:refresh');
       socket.emit('shop:item:bought', {
         itemId: data.itemId,
         quantity: result.quantity,

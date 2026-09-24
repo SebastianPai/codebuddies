@@ -45,6 +45,20 @@ function LabeledField({ text, hint, children }: { text: string; hint?: string; c
   );
 }
 
+// Mismas keys que ITEM_ROOMS / FURNITURE_TYPES de apps/game/src/game/utils/itemTaxonomy.ts.
+const ROOM_TAG_PREFIX = "room:";
+const ITEM_ROOM_KEYS = ["living", "kitchen", "bedroom", "bathroom", "office", "outdoor"] as const;
+const FURNITURE_CATEGORY_KEYS = [
+  "CHAIR",
+  "TABLE",
+  "BED",
+  "STORAGE",
+  "ELECTRONICS",
+  "PLANT",
+  "WALL_ITEM",
+  "DECORATION",
+] as const;
+
 const SPRITE_OFFSET_LIMIT = 1000;
 
 type TFn = (key: string, params?: Record<string, string | number>) => string;
@@ -378,8 +392,22 @@ export default function ItemEditor({
   const [itemCategory, setItemCategory] = useState(
     initial?.category ?? (getInitialKind(initial) === "texture" ? "texturas" : "furniture"),
   );
+  // Los ambientes viven en Item.tags como "room:<key>" (ver ITEM_ROOM_KEYS);
+  // el campo de texto de tags solo muestra el resto para no mezclarlos.
   const [tags, setTags] = useState(
-    Array.isArray(initial?.tags) ? initial.tags.join(", ") : initial?.category ?? "",
+    Array.isArray(initial?.tags)
+      ? initial.tags.filter((tag: string) => !tag.startsWith(ROOM_TAG_PREFIX)).join(", ")
+      : initial?.category ?? "",
+  );
+  const [rooms, setRooms] = useState<string[]>(() =>
+    Array.isArray(initial?.tags)
+      ? initial.tags
+          .filter((tag: string) => tag.startsWith(ROOM_TAG_PREFIX))
+          .map((tag: string) => tag.slice(ROOM_TAG_PREFIX.length))
+      : [],
+  );
+  const [furnitureCategory, setFurnitureCategory] = useState<string>(
+    initial?.furnitureCategory ?? "DECORATION",
   );
   const [rarity, setRarity] = useState(initial?.rarity ?? 0);
   const [effectKey, setEffectKey] = useState(initial?.effectKey ?? getOwnableEffectIds()[0]);
@@ -556,7 +584,10 @@ export default function ItemEditor({
       maxStack: Number(maxStack),
       category: itemCategory.trim(),
       imageUrl,
-      tags: compactTags(tags),
+      tags:
+        category === "world"
+          ? [...compactTags(tags), ...rooms.map((room) => `${ROOM_TAG_PREFIX}${room}`)]
+          : compactTags(tags),
       colorable,
     };
 
@@ -608,6 +639,7 @@ export default function ItemEditor({
       rotatable: directions > 1,
       directions,
       placementType,
+      furnitureCategory,
       allowsStacking,
       canBeStacked,
       stackHeight: Number(stackHeight),
@@ -1067,6 +1099,15 @@ export default function ItemEditor({
                   <option value="BOTH">{t("items.both")}</option>
                 </select>
               </LabeledField>
+              <LabeledField text={t("items.furnitureTypeLabel")} hint={t("items.furnitureTypeHint")}>
+                <select value={furnitureCategory} onChange={(event) => setFurnitureCategory(event.target.value)} className={fieldClass}>
+                  {FURNITURE_CATEGORY_KEYS.map((key) => (
+                    <option key={key} value={key}>
+                      {t(`items.furnitureType_${key}`)}
+                    </option>
+                  ))}
+                </select>
+              </LabeledField>
               <LabeledField text={t("items.width")} hint={t("items.widthHint")}>
                 <input type="number" min="1" value={width} onChange={(event) => setWidth(Number(event.target.value))} className={fieldClass} />
               </LabeledField>
@@ -1099,6 +1140,38 @@ export default function ItemEditor({
                   {label as string}
                 </label>
               ))}
+            </div>
+            <div className="mt-3 rounded-2xl border border-dashed border-zinc-700 bg-black/50 p-3">
+              <span className="mb-2 flex items-center gap-1.5 text-sm text-zinc-300">
+                {t("items.roomsLabel")}
+                <Tooltip content={t("items.roomsHint")}>
+                  <HelpCircle size={14} className="text-zinc-500" />
+                </Tooltip>
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {ITEM_ROOM_KEYS.map((room) => {
+                  const active = rooms.includes(room);
+                  return (
+                    <button
+                      key={room}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() =>
+                        setRooms((current) =>
+                          active ? current.filter((value) => value !== room) : [...current, room],
+                        )
+                      }
+                      className={`rounded-lg px-3 py-1.5 text-xs font-black transition ${
+                        active
+                          ? "bg-yellow-400 text-black"
+                          : "border border-zinc-800 bg-black/60 text-zinc-300 hover:border-yellow-400"
+                      }`}
+                    >
+                      {t(`items.room_${room}`)}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             <div className="mt-3 rounded-2xl border border-dashed border-zinc-700 bg-black/50 p-3">
               <span className="mb-2 flex items-center gap-1.5 text-sm text-zinc-300">

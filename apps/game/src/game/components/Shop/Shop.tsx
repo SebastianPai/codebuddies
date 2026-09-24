@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Socket } from "socket.io-client";
-import { Globe, Shirt, Sparkles } from "lucide-react";
+import { ConciergeBell, Globe, Minus, PawPrint, Plus, Shirt, Sparkles } from "lucide-react";
 
 import styles from "./Shop.module.css";
 import { requestGameConfirm, showGameAlert } from "../../utils/dialog";
@@ -16,6 +16,14 @@ import CurrencyBadge from "../shared/CurrencyBadge";
 import RarityText from "../shared/RarityText";
 import { useTranslation } from "../../../i18n/useTranslation";
 import tabsOverflow from "../shared/tabsOverflow.module.css";
+import {
+  AVATAR_GROUPS,
+  FURNITURE_TYPES,
+  ITEM_ROOMS,
+  getAvatarGroup,
+  getFurnitureType,
+  getItemRooms,
+} from "../../utils/itemTaxonomy";
 
 interface Props {
   socket: Socket | null;
@@ -57,6 +65,10 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortType>("new");
   const [activeTab, setActiveTab] = useState<TabType>("avatar");
+  // Subfiltro de la pestaña actual: grupo de ropa (avatar) o ambiente
+  // (objetos del mundo). "all" = sin filtrar.
+  const [subFilter, setSubFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [buyingItemId, setBuyingItemId] = useState<string | null>(null);
   const buyingSafetyTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -374,10 +386,10 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
     return item.name || t("commerce.itemFallbackName");
   };
 
-  const { currentItems, totalPages } = useMemo(() => {
-    const filtered = items.filter((item) => {
-      const term = search.toLowerCase();
+  const { currentItems, totalPages, filteredCount, subFilterCounts, typeCounts } = useMemo(() => {
+    const term = search.toLowerCase();
 
+    const inTab = items.filter((item) => {
       const isAvatar =
         item.type === "AVATAR" || !!item.slot || !!item.avatarData;
 
@@ -395,6 +407,7 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
       if (activeTab === "butler" && item.type !== "BUTLER") return false;
 
       return (
+        !term ||
         item.id?.toLowerCase().includes(term) ||
         item.name?.toLowerCase().includes(term) ||
         (item.slot || item.avatarData?.slot)?.toLowerCase().includes(term) ||
@@ -402,19 +415,77 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
       );
     });
 
-    const totalPagesCount = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+    const matchesSub = (item: any) => {
+      if (subFilter === "all") return true;
+      if (activeTab === "avatar") return getAvatarGroup(item) === subFilter;
+      if (activeTab === "world") return getItemRooms(item).includes(subFilter);
+      return true;
+    };
+    const matchesType = (item: any) =>
+      activeTab !== "world" || typeFilter === "all" || getFurnitureType(item) === typeFilter;
 
+    // Conteos por chip calculados sobre lo que dejan pasar los OTROS filtros,
+    // para que el número de cada chip sea lo que se verá al elegirlo.
+    const subCounts: Record<string, number> = {};
+    inTab.filter(matchesType).forEach((item) => {
+      if (activeTab === "avatar") {
+        const group = getAvatarGroup(item);
+        if (group) subCounts[group] = (subCounts[group] ?? 0) + 1;
+      } else if (activeTab === "world") {
+        getItemRooms(item).forEach((room) => {
+          subCounts[room] = (subCounts[room] ?? 0) + 1;
+        });
+      }
+    });
+
+    const types: Record<string, number> = {};
+    if (activeTab === "world") {
+      inTab.filter(matchesSub).forEach((item) => {
+        const type = getFurnitureType(item);
+        types[type] = (types[type] ?? 0) + 1;
+      });
+    }
+
+    const filtered = inTab.filter((item) => matchesSub(item) && matchesType(item));
+    const totalPagesCount = Math.ceil(filtered.length / ITEMS_PER_PAGE);
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
 
     return {
       currentItems: filtered.slice(start, start + ITEMS_PER_PAGE),
       totalPages: Math.max(1, totalPagesCount),
+      filteredCount: filtered.length,
+      subFilterCounts: subCounts,
+      typeCounts: types,
     };
-  }, [items, search, activeTab, currentPage]);
+  }, [items, search, activeTab, currentPage, subFilter, typeFilter]);
 
-  useEffect(() => {
+  // Cualquier cambio de filtro vuelve a la página 1 desde el propio handler
+  // (antes era un useEffect que re-renderizaba en cascada).
+  const changeTab = (tab: TabType) => {
+    setActiveTab(tab);
+    setSubFilter("all");
+    setTypeFilter("all");
     setCurrentPage(1);
-  }, [activeTab, search]);
+  };
+  const changeSubFilter = (value: string) => {
+    setSubFilter(value);
+    setCurrentPage(1);
+  };
+  const changeTypeFilter = (value: string) => {
+    setTypeFilter(value);
+    setCurrentPage(1);
+  };
+  const changeSearch = (value: string) => {
+    setSearch(value);
+    setCurrentPage(1);
+  };
+
+  const subFilterOptions: Array<{ key: string; label: string; icon?: typeof Shirt }> =
+    activeTab === "avatar"
+      ? AVATAR_GROUPS.map((group) => ({ key: group.key, label: t(group.labelKey) }))
+      : activeTab === "world"
+        ? ITEM_ROOMS.map((room) => ({ key: room.key, label: t(room.labelKey), icon: room.icon }))
+        : [];
 
   return (
     <Modal
@@ -426,46 +497,46 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
       <div className={`${styles.tabs} ${tabsOverflow.scrollRow}`}>
         <button
           className={`${styles.tab} ${activeTab === "avatar" ? styles.active : ""}`}
-          onClick={() => setActiveTab("avatar")}
+          onClick={() => changeTab("avatar")}
         >
           <Shirt size={14} /> {t("commerce.shopTabAvatar")}
         </button>
 
         <button
           className={`${styles.tab} ${activeTab === "world" ? styles.active : ""}`}
-          onClick={() => setActiveTab("world")}
+          onClick={() => changeTab("world")}
         >
           <Globe size={14} /> {t("commerce.shopTabWorld")}
         </button>
         <button
           className={`${styles.tab} ${activeTab === "textures" ? styles.active : ""}`}
-          onClick={() => setActiveTab("textures")}
+          onClick={() => changeTab("textures")}
         >
           {t("commerce.shopTabTextures")}
         </button>
         <button
           className={`${styles.tab} ${activeTab === "backgrounds" ? styles.active : ""}`}
-          onClick={() => setActiveTab("backgrounds")}
+          onClick={() => changeTab("backgrounds")}
         >
           {t("commerce.shopTabBackgrounds")}
         </button>
         <button
           className={`${styles.tab} ${activeTab === "effects" ? styles.active : ""}`}
-          onClick={() => setActiveTab("effects")}
+          onClick={() => changeTab("effects")}
         >
           <Sparkles size={14} /> {t("commerce.shopTabEffects")}
         </button>
         <button
           className={`${styles.tab} ${activeTab === "pets" ? styles.active : ""}`}
-          onClick={() => setActiveTab("pets")}
+          onClick={() => changeTab("pets")}
         >
-          🐾 {t("commerce.shopTabPets")}
+          <PawPrint size={14} /> {t("commerce.shopTabPets")}
         </button>
         <button
           className={`${styles.tab} ${activeTab === "butler" ? styles.active : ""}`}
-          onClick={() => setActiveTab("butler")}
+          onClick={() => changeTab("butler")}
         >
-          🎩 {t("commerce.shopTabButler")}
+          <ConciergeBell size={14} /> {t("commerce.shopTabButler")}
         </button>
       </div>
 
@@ -486,19 +557,70 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
                       : t("commerce.shopBannerWorld")}
         </h2>
 
-        <p>{t("commerce.shopItemsAvailable", { count: items.length })}</p>
+        <p>{t("commerce.shopItemsAvailable", { count: filteredCount })}</p>
       </div>
+
+      {subFilterOptions.length > 0 && (
+        <div
+          className={`${styles.chips} ${tabsOverflow.scrollRow}`}
+          role="group"
+          aria-label={t(activeTab === "world" ? "commerce.taxRoomFilterLabel" : "commerce.taxAvatarFilterLabel")}
+        >
+          <button
+            type="button"
+            className={`${styles.chip} ${subFilter === "all" ? styles.chipActive : ""}`}
+            aria-pressed={subFilter === "all"}
+            onClick={() => changeSubFilter("all")}
+          >
+            {t("commerce.taxAll")}
+          </button>
+          {subFilterOptions.map((option) => {
+            const count = subFilterCounts[option.key] ?? 0;
+            const Icon = option.icon;
+            return (
+              <button
+                key={option.key}
+                type="button"
+                className={`${styles.chip} ${subFilter === option.key ? styles.chipActive : ""}`}
+                aria-pressed={subFilter === option.key}
+                disabled={count === 0 && subFilter !== option.key}
+                onClick={() => changeSubFilter(option.key)}
+              >
+                {Icon && <Icon size={13} aria-hidden="true" />}
+                {option.label}
+                <span className={styles.chipCount}>{count}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <div className={styles.filters}>
         <input
           placeholder={t("commerce.shopSearchPlaceholder")}
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => changeSearch(e.target.value)}
         />
+
+        {activeTab === "world" && (
+          <select
+            value={typeFilter}
+            onChange={(e) => changeTypeFilter(e.target.value)}
+            aria-label={t("commerce.taxTypeFilterLabel")}
+          >
+            <option value="all">{t("commerce.taxAllTypes")}</option>
+            {FURNITURE_TYPES.map((type) => (
+              <option key={type.key} value={type.key} disabled={!typeCounts[type.key]}>
+                {t(type.labelKey)} ({typeCounts[type.key] ?? 0})
+              </option>
+            ))}
+          </select>
+        )}
 
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value as SortType)}
+          aria-label={t("commerce.shopSortLabel")}
         >
           <option value="new">{t("commerce.shopSortNewest")}</option>
           <option value="old">{t("commerce.shopSortOldest")}</option>
@@ -655,64 +777,84 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
                       {giftError && <p className={styles.giftError}>{giftError}</p>}
                     </div>
                   ) : (
-                    <div className={styles.footerActions}>
-                      {isBulkPurchasable(item) && getMaxBuyable(item) > 1 && (
-                        <div className={styles.quantityRow}>
-                          <span className={styles.quantityLabel}>{t("commerce.shopQuantityLabel")}</span>
-                          <div className={styles.stepper}>
-                            <button
-                              type="button"
-                              className={styles.stepperBtn}
-                              onClick={() => setQuantity(item, getQuantity(item) - 1)}
-                              disabled={isBuying || getQuantity(item) <= 1}
+                    (() => {
+                      const bulk = isBulkPurchasable(item);
+                      const maxBuyable = bulk ? getMaxBuyable(item) : 1;
+                      const quantity = bulk ? getQuantity(item) : 1;
+                      const stackFull = bulk && maxBuyable === 0;
+                      return (
+                        <>
+                          {bulk && maxBuyable > 1 && (
+                            <div className={styles.quantityRow}>
+                              <div className={styles.stepper} role="group" aria-label={t("commerce.shopQuantityLabel")}>
+                                <button
+                                  type="button"
+                                  className={styles.stepperBtn}
+                                  onClick={() => setQuantity(item, quantity - 1)}
+                                  disabled={isBuying || quantity <= 1}
+                                  aria-label={t("commerce.shopQuantityDecrease")}
+                                >
+                                  <Minus size={14} />
+                                </button>
+                                <input
+                                  type="number"
+                                  inputMode="numeric"
+                                  className={styles.stepperInput}
+                                  min={1}
+                                  max={maxBuyable}
+                                  value={quantity}
+                                  disabled={isBuying}
+                                  aria-label={t("commerce.shopQuantityLabel")}
+                                  onChange={(e) => setQuantity(item, Number(e.target.value) || 1)}
+                                />
+                                <button
+                                  type="button"
+                                  className={styles.stepperBtn}
+                                  onClick={() => setQuantity(item, quantity + 1)}
+                                  disabled={isBuying || quantity >= maxBuyable}
+                                  aria-label={t("commerce.shopQuantityIncrease")}
+                                >
+                                  <Plus size={14} />
+                                </button>
+                              </div>
+                              <div className={styles.quantityMeta}>
+                                <span>{t("commerce.shopQuantityMax", { max: maxBuyable })}</span>
+                                <span className={styles.quantityTotal}>
+                                  {t("commerce.shopTotalLabel")}
+                                  <CurrencyBadge currency="coins" amount={(item.coinsPrice || 0) * quantity} size="sm" />
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                          <div className={styles.footerActions}>
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              fullWidth
+                              onClick={() => void buyItem(item.id)}
+                              disabled={isBuying || alreadyHasBackground || stackFull}
                             >
-                              −
-                            </button>
-                            <input
-                              type="number"
-                              className={styles.stepperInput}
-                              min={1}
-                              max={getMaxBuyable(item)}
-                              value={getQuantity(item)}
-                              disabled={isBuying}
-                              onChange={(e) => setQuantity(item, Number(e.target.value) || 1)}
-                            />
-                            <button
-                              type="button"
-                              className={styles.stepperBtn}
-                              onClick={() => setQuantity(item, getQuantity(item) + 1)}
-                              disabled={isBuying || getQuantity(item) >= getMaxBuyable(item)}
-                            >
-                              +
-                            </button>
+                              {alreadyHasBackground
+                                ? t("commerce.shopAlreadyOwned")
+                                : stackFull
+                                  ? t("commerce.shopLimitReached")
+                                  : isBuying
+                                    ? t("commerce.shopBuying")
+                                    : quantity > 1
+                                      ? t("commerce.shopBuyQuantity", { count: quantity })
+                                      : owned
+                                        ? t("commerce.shopBuyAnother")
+                                        : t("commerce.shopBuy")}
+                            </Button>
+                            {item.type === "EFFECT" && (
+                              <Button variant="secondary" size="sm" onClick={() => openGiftForm(item.id)}>
+                                {t("commerce.giftButton")}
+                              </Button>
+                            )}
                           </div>
-                          <span className={styles.quantityTotal}>
-                            {t("commerce.shopTotalLabel")}{" "}
-                            <CurrencyBadge currency="coins" amount={(item.coinsPrice || 0) * getQuantity(item)} size="sm" />
-                          </span>
-                        </div>
-                      )}
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        fullWidth
-                        onClick={() => void buyItem(item.id)}
-                        disabled={isBuying || alreadyHasBackground}
-                      >
-                        {alreadyHasBackground
-                          ? t("commerce.shopAlreadyOwned")
-                          : isBuying
-                            ? t("commerce.shopBuying")
-                            : owned
-                              ? t("commerce.shopBuyAnother")
-                              : t("commerce.shopBuy")}
-                      </Button>
-                      {item.type === "EFFECT" && (
-                        <Button variant="secondary" size="sm" onClick={() => openGiftForm(item.id)}>
-                          {t("commerce.giftButton")}
-                        </Button>
-                      )}
-                    </div>
+                        </>
+                      );
+                    })()
                   )}
                 </div>
               }

@@ -380,7 +380,9 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     });
 
     window.addEventListener("build:item:selected", (event: any) => {
-      this.buildSystem.start(event.detail);
+      // availableAmount = unidades de ese mueble en el inventario; con eso
+      // el ghost sigue activo tras cada colocación hasta agotarlas.
+      this.buildSystem.start(event.detail, 0, event.detail?.availableAmount ?? 1);
       this.selectedFloorTileIndex = null;
       this.selectedSurfaceTexture = null;
     });
@@ -521,7 +523,8 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
       this.buildSystem.rotate();
     });
 
-    // ❌ ESC para cancelar pintura o un mueble que se está moviendo
+    // ESC: cancela pintura, un mueble que se está moviendo, o termina la
+    // colocación continua de un mueble del inventario.
     this.input.keyboard?.on("keydown-ESC", () => {
       if (this.selectedSurfaceTexture || this.selectedFloorTileIndex !== null) {
         window.dispatchEvent(new CustomEvent("build:surface:cancel"));
@@ -529,6 +532,11 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
 
       if (this.movingRoomItem) {
         this.movingRoomItem = null;
+        this.buildSystem.stop();
+        return;
+      }
+
+      if (this.buildSystem.getCurrentItem()) {
         this.buildSystem.stop();
       }
     });

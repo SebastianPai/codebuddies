@@ -76,7 +76,13 @@ export default class FurniturePlacementSystem {
       }),
     });
 
-    this.buildSystem.stop();
+    // Colocación continua: el ghost sigue con el mismo mueble y la misma
+    // rotación mientras queden unidades en el inventario. Si el servidor
+    // rechaza una colocación (room:item:error) el ghost se corta desde
+    // FurnitureSocketSystem, así el contador local nunca queda por delante.
+    if (this.buildSystem.consumeOne() <= 0) {
+      this.buildSystem.stop();
+    }
   };
 
   initialize() {

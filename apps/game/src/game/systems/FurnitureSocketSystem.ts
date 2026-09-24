@@ -22,9 +22,15 @@ export default class FurnitureSocketSystem {
   }
 
   private handleItemError = (err: any) => {
-    console.error("❌ ROOM ITEM ERROR");
-    console.error("Mensaje:", err?.message);
-    console.error("Error completo:", JSON.stringify(err, null, 2));
+    console.error("ROOM ITEM ERROR:", err?.message, err);
+
+    // En colocación continua el cliente descuenta unidades antes de que el
+    // servidor confirme; si una se rechaza, cortar el ghost evita seguir
+    // mandando colocaciones con un contador que ya no es real.
+    const scene = this.scene as any;
+    if (scene.buildSystem?.getCurrentItem() && !scene.movingRoomItem) {
+      scene.buildSystem.stop();
+    }
   };
 
   // El payload del servidor ya tiene la forma que espera

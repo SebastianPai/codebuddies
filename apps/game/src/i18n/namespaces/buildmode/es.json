@@ -70,5 +70,9 @@
   "interactTurnOn": "Encender",
   "interactTurnOff": "Apagar",
   "interactOpen": "Abrir",
-  "interactClose": "Cerrar"
+  "interactClose": "Cerrar",
+  "placingRemaining": "quedan {count}",
+  "placingHintClick": "Clic para colocar",
+  "placingHintRotate": "rotar",
+  "placingHintFinish": "terminar"
 }
