@@ -60,6 +60,22 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
   const [currentPage, setCurrentPage] = useState(1);
   const [buyingItemId, setBuyingItemId] = useState<string | null>(null);
   const buyingSafetyTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Cantidad elegida por item (solo aplica a items con Item.maxStack > 1,
+  // ver getMaxBuyable) -- clave = item.id, valor por defecto 1 si no hay
+  // entrada todavía.
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
+  // "Última versión" de buyingItemId/items para los handlers del socket:
+  // ese useEffect no puede depender de ninguno de los dos (buyingItemId
+  // cambia en cada click de compra, items en cada respuesta del shop) sin
+  // volver a suscribirse y re-emitir shop:items:request en bucle.
+  const buyingItemIdRef = useRef<string | null>(null);
+  const itemsRef = useRef<any[]>([]);
+  useEffect(() => {
+    buyingItemIdRef.current = buyingItemId;
+  }, [buyingItemId]);
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
   const [giftTargetId, setGiftTargetId] = useState<string | null>(null);
   const [giftUsername, setGiftUsername] = useState("");
   // Adopción de mascota: pide el nombre en el propio card antes de comprar.
@@ -76,6 +92,31 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
     return map;
   }, [inventory]);
 
+  // Cuántas unidades más puede comprar de este item en UNA operación, según
+  // Item.maxStack (el mismo límite que ya usa el backend para el tope de
+  // inventario, ver ItemsService.buyItem) y lo que ya tiene en su cuenta.
+  // maxStack ausente/1 -- o ya sin espacio -- devuelve 1/0 y el selector de
+  // cantidad no se muestra (compra individual de siempre).
+  const getMaxBuyable = (item: any) => {
+    const maxStack = Number(item?.maxStack) || 1;
+    const owned = inventoryMap.get(item?.id) || 0;
+    return Math.max(0, maxStack - owned);
+  };
+
+  const isBulkPurchasable = (item: any) =>
+    item?.type !== "BACKGROUND" && item?.type !== "PET" && item?.type !== "BUTLER" && Number(item?.maxStack) > 1;
+
+  const getQuantity = (item: any) => {
+    const max = getMaxBuyable(item);
+    const stored = quantities[item.id] ?? 1;
+    return Math.min(Math.max(1, stored), Math.max(1, max));
+  };
+
+  const setQuantity = (item: any, next: number) => {
+    const max = Math.max(1, getMaxBuyable(item));
+    setQuantities((prev) => ({ ...prev, [item.id]: Math.min(Math.max(1, next), max) }));
+  };
+
   useEffect(() => {
     if (!socket) return;
 
@@ -86,7 +127,7 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
       setItems(data);
       setCurrentPage(1);
     };
-    const handleBought = (data?: { itemId?: string }) => {
+    const handleBought = (data?: { itemId?: string; quantity?: number; totalPrice?: number }) => {
       if (buyingSafetyTimeout.current) {
         clearTimeout(buyingSafetyTimeout.current);
         buyingSafetyTimeout.current = null;
@@ -95,6 +136,25 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
       // resincroniza (mismo patrón que "pet:changed").
       if (typeof data?.itemId === "string" && data.itemId.startsWith("butler:")) {
         window.dispatchEvent(new CustomEvent("butler:changed"));
+      }
+      const quantity = data?.quantity ?? 1;
+      if (typeof data?.itemId === "string" && quantity > 1) {
+        setQuantities((prev) => {
+          const next = { ...prev };
+          delete next[data.itemId!];
+          return next;
+        });
+        const boughtItem = itemsRef.current.find((current) => current.id === data.itemId);
+        void showGameAlert({
+          title: t("commerce.shopPurchaseSuccessTitle"),
+          message: t("commerce.shopPurchaseSuccessMessage", {
+            quantity,
+            name: boughtItem?.name || t("commerce.shopDefaultItemName"),
+            total: data?.totalPrice ?? 0,
+          }),
+          confirmLabel: t("common.understood"),
+          tone: "success",
+        });
       }
       requestItems();
       setBuyingItemId(null);
@@ -113,12 +173,26 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
       window.dispatchEvent(new CustomEvent("fx:sparkle"));
     };
     const handleShopError = (data: { message?: string }) => {
-      // Comparte el evento con errores de compra (que hoy no muestran nada
-      // en UI) -- acá solo reacciona si había un regalo en curso, para no
-      // interferir con el flujo de compra.
-      if (!giftTargetId) return;
-      setSendingGift(false);
-      setGiftError(data?.message || t("commerce.giftGenericError"));
+      // Comparte el evento "shop:item:error" entre compra, regalo, mascota
+      // y mayordomo -- se distingue por cuál flujo estaba en curso.
+      if (giftTargetId) {
+        setSendingGift(false);
+        setGiftError(data?.message || t("commerce.giftGenericError"));
+        return;
+      }
+      if (buyingItemIdRef.current) {
+        if (buyingSafetyTimeout.current) {
+          clearTimeout(buyingSafetyTimeout.current);
+          buyingSafetyTimeout.current = null;
+        }
+        setBuyingItemId(null);
+        void showGameAlert({
+          title: t("commerce.shopErrorTitle"),
+          message: data?.message || t("commerce.shopGenericError"),
+          confirmLabel: t("common.understood"),
+          tone: "danger",
+        });
+      }
     };
 
     socket.on("shop:items", handleItems);
@@ -144,6 +218,8 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
     if (buyingItemId) return;
     const item = items.find((current) => current.id === itemId);
     const ownsItem = inventoryMap.has(itemId) || item?.owned || item?.canUse;
+    const bulk = isBulkPurchasable(item);
+    const quantity = bulk ? getQuantity(item) : 1;
 
     if (item?.type === "BACKGROUND" && ownsItem) {
       await showGameAlert({
@@ -155,12 +231,27 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
       return;
     }
 
+    const itemName = item?.name || t("commerce.shopDefaultItemName");
     const confirmed = await requestGameConfirm({
-      title: ownsItem ? t("commerce.shopConfirmBuyAnotherTitle") : t("commerce.shopConfirmPurchaseTitle"),
-      message: ownsItem
-        ? t("commerce.shopConfirmBuyAnotherMessage")
-        : t("commerce.shopConfirmBuyMessage", { name: item?.name || t("commerce.shopDefaultItemName") }),
-      confirmLabel: ownsItem ? t("commerce.shopConfirmBuyAnotherTitle") : t("commerce.shopBuy"),
+      title: quantity > 1
+        ? t("commerce.shopConfirmPurchaseTitle")
+        : ownsItem
+          ? t("commerce.shopConfirmBuyAnotherTitle")
+          : t("commerce.shopConfirmPurchaseTitle"),
+      message: quantity > 1
+        ? t("commerce.shopConfirmBuyQuantityMessage", {
+            quantity,
+            name: itemName,
+            total: (item?.coinsPrice || 0) * quantity,
+          })
+        : ownsItem
+          ? t("commerce.shopConfirmBuyAnotherMessage")
+          : t("commerce.shopConfirmBuyMessage", { name: itemName }),
+      confirmLabel: quantity > 1
+        ? t("commerce.shopConfirmBuyQuantityButton")
+        : ownsItem
+          ? t("commerce.shopConfirmBuyAnotherTitle")
+          : t("commerce.shopBuy"),
       cancelLabel: t("common.cancel"),
     });
 
@@ -171,11 +262,10 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
       socket?.emit("shop:butler:buy", { npcKey: item.speciesKey });
     } else if (item?.type === "PET") {
       socket?.emit("shop:pet:buy", { speciesKey: item.speciesKey });
+    } else if (item?.type === "BACKGROUND") {
+      socket?.emit("shop:background:buy", { backgroundId: itemId });
     } else {
-      socket?.emit(
-        item?.type === "BACKGROUND" ? "shop:background:buy" : "shop:item:buy",
-        item?.type === "BACKGROUND" ? { backgroundId: itemId } : { itemId },
-      );
+      socket?.emit("shop:item:buy", bulk ? { itemId, quantity } : { itemId });
     }
     // Red de seguridad por si el servidor nunca responde "shop:item:bought"
     // (p. ej. error silencioso); en el camino normal, handleBought cancela
@@ -566,6 +656,42 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
                     </div>
                   ) : (
                     <div className={styles.footerActions}>
+                      {isBulkPurchasable(item) && getMaxBuyable(item) > 1 && (
+                        <div className={styles.quantityRow}>
+                          <span className={styles.quantityLabel}>{t("commerce.shopQuantityLabel")}</span>
+                          <div className={styles.stepper}>
+                            <button
+                              type="button"
+                              className={styles.stepperBtn}
+                              onClick={() => setQuantity(item, getQuantity(item) - 1)}
+                              disabled={isBuying || getQuantity(item) <= 1}
+                            >
+                              −
+                            </button>
+                            <input
+                              type="number"
+                              className={styles.stepperInput}
+                              min={1}
+                              max={getMaxBuyable(item)}
+                              value={getQuantity(item)}
+                              disabled={isBuying}
+                              onChange={(e) => setQuantity(item, Number(e.target.value) || 1)}
+                            />
+                            <button
+                              type="button"
+                              className={styles.stepperBtn}
+                              onClick={() => setQuantity(item, getQuantity(item) + 1)}
+                              disabled={isBuying || getQuantity(item) >= getMaxBuyable(item)}
+                            >
+                              +
+                            </button>
+                          </div>
+                          <span className={styles.quantityTotal}>
+                            {t("commerce.shopTotalLabel")}{" "}
+                            <CurrencyBadge currency="coins" amount={(item.coinsPrice || 0) * getQuantity(item)} size="sm" />
+                          </span>
+                        </div>
+                      )}
                       <Button
                         variant="primary"
                         size="sm"

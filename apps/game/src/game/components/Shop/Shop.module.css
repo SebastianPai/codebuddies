@@ -132,6 +132,70 @@
   margin: 0;
 }
 
+.quantityRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.quantityLabel {
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--cb-muted);
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stepperBtn {
+  min-width: 26px;
+  height: 26px;
+  border-radius: var(--cb-radius-sm);
+  border: 1px solid var(--cb-border);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--cb-text);
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.15s;
+}
+
+.stepperBtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.stepperBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.stepperInput {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  border-radius: var(--cb-radius-sm);
+  border: 1px solid var(--cb-border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--cb-text);
+  font-size: 12px;
+  padding: 4px;
+}
+
+.quantityTotal {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 11px;
+  color: var(--cb-muted);
+}
+
 .pagination {
   display: flex;
   justify-content: center;

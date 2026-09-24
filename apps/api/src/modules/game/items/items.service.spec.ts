@@ -10,7 +10,7 @@ describe('ItemsService', () => {
   let service: ItemsService;
 
   const tx = {
-    user: { updateMany: jest.fn() },
+    user: { updateMany: jest.fn(), findUnique: jest.fn() },
     coinTransaction: { create: jest.fn() },
     userItem: { findUnique: jest.fn(), updateMany: jest.fn(), create: jest.fn() },
   };
@@ -141,9 +141,86 @@ describe('ItemsService', () => {
         prisma.item.findUnique.mockResolvedValue(freeItem);
         prisma.user.findUnique.mockResolvedValue({ id: 'user-1', coins: 5 });
         tx.user.updateMany.mockResolvedValue({ count: 0 });
+        tx.user.findUnique.mockResolvedValue({ coins: 5 });
 
         await expect(service.buyItem('user-1', 'item-1')).rejects.toThrow(BadRequestException);
         expect(tx.coinTransaction.create).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('quantity (compra múltiple)', () => {
+      it('rejects a non-integer or non-positive quantity before touching the DB', async () => {
+        await expect(service.buyItem('user-1', 'item-1', 0)).rejects.toThrow(BadRequestException);
+        await expect(service.buyItem('user-1', 'item-1', -1)).rejects.toThrow(BadRequestException);
+        await expect(service.buyItem('user-1', 'item-1', 1.5)).rejects.toThrow(BadRequestException);
+        expect(prisma.item.findUnique).not.toHaveBeenCalled();
+      });
+
+      it('rejects a quantity above maxStack before opening a transaction', async () => {
+        prisma.item.findUnique.mockResolvedValue({ ...freeItem, maxStack: 5 });
+        prisma.user.findUnique.mockResolvedValue({ id: 'user-1', coins: 5000 });
+
+        await expect(service.buyItem('user-1', 'item-1', 6)).rejects.toThrow(BadRequestException);
+        expect(prisma.$transaction).not.toHaveBeenCalled();
+      });
+
+      it('debits price * quantity and stacks the full amount in one shot', async () => {
+        prisma.item.findUnique.mockResolvedValue({ ...freeItem, maxStack: 20, coinsPrice: 100 });
+        prisma.user.findUnique.mockResolvedValue({ id: 'user-1', coins: 5000 });
+        tx.user.updateMany.mockResolvedValue({ count: 1 });
+        tx.userItem.findUnique.mockResolvedValue({ userId: 'user-1', itemId: 'item-1', amount: 2 });
+        tx.userItem.updateMany.mockResolvedValue({ count: 1 });
+
+        const result = await service.buyItem('user-1', 'item-1', 10);
+
+        expect(tx.user.updateMany).toHaveBeenCalledWith({
+          where: { id: 'user-1', coins: { gte: 1000 } },
+          data: { coins: { decrement: 1000 } },
+        });
+        expect(tx.coinTransaction.create).toHaveBeenCalledWith({
+          data: { userId: 'user-1', amount: -1000, reason: 'item:item-1:x10' },
+        });
+        expect(tx.userItem.updateMany).toHaveBeenCalledWith({
+          where: { userId: 'user-1', itemId: 'item-1', amount: { lte: 10 } },
+          data: { amount: { increment: 10 } },
+        });
+        expect(result).toEqual({ success: true, quantity: 10, totalPrice: 1000 });
+      });
+
+      it('creates the UserItem row with the full quantity on a first-time bulk purchase', async () => {
+        prisma.item.findUnique.mockResolvedValue({ ...freeItem, maxStack: 20, coinsPrice: 100 });
+        prisma.user.findUnique.mockResolvedValue({ id: 'user-1', coins: 5000 });
+        tx.user.updateMany.mockResolvedValue({ count: 1 });
+        tx.userItem.findUnique.mockResolvedValue(null);
+
+        await service.buyItem('user-1', 'item-1', 10);
+
+        expect(tx.userItem.create).toHaveBeenCalledWith({
+          data: { userId: 'user-1', itemId: 'item-1', amount: 10, source: 'shop' },
+        });
+      });
+
+      it('rejects a bulk purchase that would exceed maxStack given the amount already owned, with a clear "how many can I buy" message', async () => {
+        prisma.item.findUnique.mockResolvedValue({ ...freeItem, maxStack: 10, coinsPrice: 100 });
+        prisma.user.findUnique.mockResolvedValue({ id: 'user-1', coins: 5000 });
+        tx.user.updateMany.mockResolvedValue({ count: 1 });
+        tx.userItem.findUnique.mockResolvedValue({ userId: 'user-1', itemId: 'item-1', amount: 8 });
+
+        await expect(service.buyItem('user-1', 'item-1', 10)).rejects.toThrow(
+          /Solo puedes comprar 2 más/,
+        );
+        expect(tx.userItem.updateMany).not.toHaveBeenCalled();
+      });
+
+      it('reports how many units the user could actually afford when funds are short', async () => {
+        prisma.item.findUnique.mockResolvedValue({ ...freeItem, maxStack: 20, coinsPrice: 100 });
+        prisma.user.findUnique.mockResolvedValue({ id: 'user-1', coins: 5000 });
+        tx.user.updateMany.mockResolvedValue({ count: 0 });
+        tx.user.findUnique.mockResolvedValue({ coins: 350 });
+
+        await expect(service.buyItem('user-1', 'item-1', 10)).rejects.toThrow(
+          /puedes comprar hasta 3/,
+        );
       });
     });
 
@@ -158,7 +235,7 @@ describe('ItemsService', () => {
         await service.buyItem('user-1', 'item-1');
 
         expect(tx.userItem.updateMany).toHaveBeenCalledWith({
-          where: { userId: 'user-1', itemId: 'item-1', amount: { lt: 3 } },
+          where: { userId: 'user-1', itemId: 'item-1', amount: { lte: 2 } },
           data: { amount: { increment: 1 } },
         });
       });

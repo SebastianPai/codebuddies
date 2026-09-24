@@ -53,6 +53,16 @@ export class CreateItemDto {
   @IsBoolean()
   shopVisible?: boolean;
 
+  // Tope de unidades que un mismo usuario puede acumular en su inventario
+  // (UserItem.amount) -- también funciona como el máximo comprable en una
+  // sola operación (ver ItemsService.buyItem). maxStack=1 (default de
+  // Prisma) equivale a "compra individual, no permite múltiples unidades".
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(999)
+  maxStack?: number;
+
   @IsOptional()
   @IsString()
   category?: string;

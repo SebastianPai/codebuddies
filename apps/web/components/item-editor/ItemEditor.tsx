@@ -386,6 +386,11 @@ export default function ItemEditor({
   const [coinsPrice, setCoinsPrice] = useState(initial?.coinsPrice ?? initial?.priceCoins ?? 100);
   const [gemsPrice, setGemsPrice] = useState(initial?.gemsPrice ?? 0);
   const [shopVisible, setShopVisible] = useState(initial?.shopVisible ?? mode === "admin");
+  // Tope de unidades acumulables por usuario -- también el máximo comprable
+  // en una sola operación de la tienda (ver ItemsService.buyItem). 1 =
+  // compra individual (comportamiento de siempre); >1 habilita el selector
+  // de cantidad en el shop del juego.
+  const [maxStack, setMaxStack] = useState(initial?.maxStack ?? 1);
   const [colorable, setColorable] = useState(initial?.colorable ?? false);
 
   const [slot, setSlot] = useState(initial?.slot || "SHIRT");
@@ -498,6 +503,9 @@ export default function ItemEditor({
     if (Number(coinsPrice) < 0 || Number(gemsPrice) < 0) {
       nextErrors.push(t("items.negativePriceError"));
     }
+    if (!Number.isInteger(Number(maxStack)) || Number(maxStack) < 1) {
+      nextErrors.push(t("items.invalidMaxStackError"));
+    }
     if (!preview && !initial?.imageUrl && !initial?.spriteUrl && !initial?.previewUrl) {
       nextErrors.push(t("items.uploadSpriteRequiredError"));
     }
@@ -545,6 +553,7 @@ export default function ItemEditor({
       coinsPrice: Number(coinsPrice),
       gemsPrice: Number(gemsPrice),
       shopVisible,
+      maxStack: Number(maxStack),
       category: itemCategory.trim(),
       imageUrl,
       tags: compactTags(tags),
@@ -845,6 +854,16 @@ export default function ItemEditor({
             <option value="es">{t("items.spanish")}</option>
             <option value="en">{t("items.english")}</option>
           </select>
+        </LabeledField>
+        <LabeledField text={t("items.maxStackLabel")} hint={t("items.maxStackHint")}>
+          <input
+            type="number"
+            min="1"
+            max="999"
+            value={maxStack}
+            onChange={(event) => setMaxStack(Number(event.target.value))}
+            className={fieldClass}
+          />
         </LabeledField>
       </section>
 

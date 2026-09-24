@@ -54,6 +54,7 @@ export class ItemsService {
       coinsPrice,
       gemsPrice,
       shopVisible = true,
+      maxStack = 1,
       category,
       tags = [],
       accessType,
@@ -111,6 +112,7 @@ export class ItemsService {
         coinsPrice,
         gemsPrice,
         shopVisible,
+        maxStack,
         category,
         tags,
         ...(accessType && { accessType }),
@@ -728,7 +730,11 @@ export class ItemsService {
   // PREMIUM/VIP/EVENT quedan implementados y con tests aunque todavía no
   // haya ningún item usándolos, para que dejen de ser una promesa vacía del
   // schema (ver auditoría de economía).
-  async buyItem(userId: string, itemId: string) {
+  async buyItem(userId: string, itemId: string, quantity = 1) {
+    if (!Number.isInteger(quantity) || quantity < 1) {
+      throw new BadRequestException('La cantidad debe ser un entero mayor a 0');
+    }
+
     const item = await this.prisma.item.findUnique({
       where: { id: itemId },
     });
@@ -738,6 +744,15 @@ export class ItemsService {
 
     if (!item.coinsPrice || item.coinsPrice <= 0) {
       throw new BadRequestException('Este item no se puede comprar');
+    }
+
+    // El tope de unidades por operación es el mismo que el tope de stock
+    // acumulado (Item.maxStack) -- no hay un límite "por compra" separado,
+    // ver ItemEditor.tsx (admin) donde se configura este único valor.
+    if (quantity > item.maxStack) {
+      throw new BadRequestException(
+        `Solo puedes comprar hasta ${item.maxStack} unidad(es) de este item por operación`,
+      );
     }
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
@@ -780,6 +795,8 @@ export class ItemsService {
         throw new BadRequestException('accessType de item desconocido');
     }
 
+    const totalPrice = item.coinsPrice! * quantity;
+
     await this.prisma.$transaction(async (tx) => {
       // Débito condicional en una sola sentencia UPDATE...WHERE: si dos
       // compras del mismo usuario llegan a la vez, la segunda ve el saldo
@@ -787,19 +804,33 @@ export class ItemsService {
       // vez de que ambas lean el saldo viejo y decrementen igual (doble
       // gasto / saldo negativo).
       const debited = await tx.user.updateMany({
-        where: { id: userId, coins: { gte: item.coinsPrice! } },
-        data: { coins: { decrement: item.coinsPrice! } },
+        where: { id: userId, coins: { gte: totalPrice } },
+        data: { coins: { decrement: totalPrice } },
       });
 
       if (debited.count === 0) {
-        throw new BadRequestException('No tienes monedas suficientes');
+        // Solo se paga esta lectura extra cuando la compra YA falló, para
+        // poder avisar "con tu saldo alcanza para N" en vez de un genérico
+        // "no alcanza" -- no reemplaza la guarda atómica de arriba.
+        const current = await tx.user.findUnique({
+          where: { id: userId },
+          select: { coins: true },
+        });
+        const affordable = current
+          ? Math.floor(current.coins / item.coinsPrice!)
+          : 0;
+        throw new BadRequestException(
+          affordable > 0
+            ? `No tienes monedas suficientes para comprar ${quantity} unidad(es). Con tu saldo actual puedes comprar hasta ${affordable}.`
+            : 'No tienes monedas suficientes',
+        );
       }
 
       await tx.coinTransaction.create({
         data: {
           userId,
-          amount: -item.coinsPrice!,
-          reason: `item:${itemId}`,
+          amount: -totalPrice,
+          reason: `item:${itemId}${quantity > 1 ? `:x${quantity}` : ''}`,
         },
       });
 
@@ -808,15 +839,24 @@ export class ItemsService {
       });
 
       if (existing) {
+        const remaining = item.maxStack - existing.amount;
+        if (remaining < quantity) {
+          throw new BadRequestException(
+            remaining > 0
+              ? `Ya tienes ${existing.amount} de este item. Solo puedes comprar ${remaining} más (máximo ${item.maxStack}).`
+              : `Ya alcanzaste el máximo de este item (${item.maxStack})`,
+          );
+        }
+
         // Mismo patrón compare-and-swap que el débito de coins: solo
         // incrementa si todavía hay lugar bajo maxStack en el momento en
         // que el UPDATE corre -- una segunda compra concurrente que ya vio
-        // amount en el tope no matchea el WHERE (count=0) y se rechaza, en
-        // vez de las dos leyendo el mismo amount viejo e incrementando por
-        // encima del límite.
+        // amount cerca del tope no matchea el WHERE (count=0) y se rechaza,
+        // en vez de las dos leyendo el mismo amount viejo e incrementando
+        // por encima del límite.
         const stacked = await tx.userItem.updateMany({
-          where: { userId, itemId, amount: { lt: item.maxStack } },
-          data: { amount: { increment: 1 } },
+          where: { userId, itemId, amount: { lte: item.maxStack - quantity } },
+          data: { amount: { increment: quantity } },
         });
 
         if (stacked.count === 0) {
@@ -825,18 +865,23 @@ export class ItemsService {
           );
         }
       } else {
+        if (quantity > item.maxStack) {
+          throw new BadRequestException(
+            `Solo puedes comprar hasta ${item.maxStack} unidad(es) de este item`,
+          );
+        }
         // La unique constraint [userId, itemId] es la guarda real contra
         // una carrera en la primera compra: si dos requests concurrentes
         // llegan acá sin fila previa, solo uno de los dos INSERT gana: el
         // otro tira P2002 y aborta toda la transacción (coins incluidos),
         // sin dejar estado a medias.
         await tx.userItem.create({
-          data: { userId, itemId, amount: 1, source: 'shop' },
+          data: { userId, itemId, amount: quantity, source: 'shop' },
         });
       }
     });
 
-    return { success: true };
+    return { success: true, quantity, totalPrice };
   }
 
   // ───────────── GIFT ITEM ─────────────
