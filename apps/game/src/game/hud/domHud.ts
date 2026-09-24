@@ -53,6 +53,7 @@ export function createBubbleElement({ message, theme, name, nameEffectId, face, 
   bubble.className = [
     styles.bubble,
     theme.tier === "premium" ? styles.premium : "",
+    theme.variant ? styles[`fx_${theme.variant}`] : "",
     hasFace ? styles.hasFace : "",
   ].join(" ");
   for (const [prop, value] of Object.entries(bubbleThemeVars(theme))) {
@@ -114,55 +115,120 @@ export function removeBubbleElement(bubble: HTMLElement) {
   window.setTimeout(() => bubble.remove(), 220);
 }
 
-// Recorte de "retrato" (cara + un poco de cuello): cuadrado del ancho de la
-// cabeza, pegado arriba del personaje. Valores sobre el alto total del
-// sprite; los avatares y NPCs del juego tienen la cabeza en ~el 40% superior.
-const HEAD_CROP_HEIGHT = 0.44;
-const HEAD_CROP_TOP = 0.02;
+// ---------------------------------------------------------------------------
+// Retratos (cara + un poco de cuello) — UNA sola función para todos:
+// jugadores y mayordomo pasan su imagen completa a portraitFromCanvas.
+//
+// Las partes del avatar y los frames de NPC traen márgenes transparentes,
+// así que "la parte de arriba del sprite" no es la cabeza. Se busca la
+// silueta visible (alfa) y se recorta desde su punto más alto (pelo,
+// sombrero), centrado en la cabeza.
+// ---------------------------------------------------------------------------
+
 export const PORTRAIT_SIZE = 72;
 
-function headCropRect(width: number, height: number) {
-  const side = Math.max(1, Math.min(width, height * HEAD_CROP_HEIGHT));
-  return {
-    x: Math.max(0, (width - side) / 2),
-    y: Math.max(0, height * HEAD_CROP_TOP),
-    side,
-  };
+// Alto del recorte relativo al alto visible del personaje: cabeza + cuello.
+const HEAD_FRACTION = 0.42;
+// Aire por encima del pelo, relativo al lado del recorte.
+const HEAD_TOP_MARGIN = 0.06;
+const ALPHA_THRESHOLD = 16;
+
+function portraitFromCanvas(source: HTMLCanvasElement, size = PORTRAIT_SIZE): HTMLCanvasElement | null {
+  const ctx = source.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return null;
+  const { width, height } = source;
+
+  let top = -1;
+  let bottom = -1;
+  try {
+    const data = ctx.getImageData(0, 0, width, height).data;
+    const rowHasPixels = (y: number) => {
+      for (let x = 0; x < width; x++) {
+        if (data[(y * width + x) * 4 + 3] > ALPHA_THRESHOLD) return true;
+      }
+      return false;
+    };
+    for (let y = 0; y < height && top < 0; y++) if (rowHasPixels(y)) top = y;
+    for (let y = height - 1; y >= 0 && bottom < 0; y--) if (rowHasPixels(y)) bottom = y;
+
+    if (top < 0) return null;
+
+    const side = Math.max(8, Math.round((bottom - top + 1) * HEAD_FRACTION));
+    const cropTop = Math.max(0, Math.round(top - side * HEAD_TOP_MARGIN));
+
+    // Centro horizontal de la cabeza: promedio de los píxeles visibles
+    // dentro de la franja del recorte (no del cuerpo entero, que puede
+    // tener brazos o accesorios hacia un lado).
+    let sumX = 0;
+    let count = 0;
+    for (let y = cropTop; y < Math.min(height, cropTop + side); y++) {
+      for (let x = 0; x < width; x++) {
+        if (data[(y * width + x) * 4 + 3] > ALPHA_THRESHOLD) {
+          sumX += x;
+          count += 1;
+        }
+      }
+    }
+    const centerX = count > 0 ? sumX / count : width / 2;
+    const cropLeft = Math.round(centerX - side / 2);
+
+    return drawCrop(source, cropLeft, cropTop, side, size);
+  } catch {
+    // Imagen que no se puede leer (origen sin CORS): recorte proporcional.
+    const side = Math.max(8, Math.round(Math.min(width, height * HEAD_FRACTION)));
+    return drawCrop(source, Math.round((width - side) / 2), 0, side, size);
+  }
 }
 
-/**
- * Retrato a partir de un frame de spritesheet (mayordomo/mascota): recorta
- * cabeza y cuello del cuadro actual.
- */
-export function frameToCanvas(frame: Phaser.Textures.Frame | null | undefined, size = PORTRAIT_SIZE) {
-  if (!frame) return null;
+function drawCrop(source: HTMLCanvasElement, x: number, y: number, side: number, size: number) {
   const canvas = document.createElement("canvas");
   canvas.width = size;
   canvas.height = size;
   const ctx = canvas.getContext("2d");
   if (!ctx) return null;
   ctx.imageSmoothingEnabled = false;
-  const crop = headCropRect(frame.cutWidth, frame.cutHeight);
+  // x puede ser negativo (cabeza pegada al borde): drawImage recorta solo.
+  ctx.drawImage(source, x, y, side, side, 0, 0, size, size);
+  return canvas;
+}
+
+// Un frame de NPC siempre da el mismo retrato: se calcula una vez.
+const framePortraitCache = new Map<string, HTMLCanvasElement | null>();
+
+/** Retrato a partir de un frame de spritesheet (mayordomo/mascota). */
+export function frameToCanvas(frame: Phaser.Textures.Frame | null | undefined, size = PORTRAIT_SIZE) {
+  if (!frame) return null;
+  const key = `${frame.texture.key}:${frame.name}:${size}`;
+  if (framePortraitCache.has(key)) return framePortraitCache.get(key) ?? null;
+
+  const full = document.createElement("canvas");
+  full.width = frame.cutWidth;
+  full.height = frame.cutHeight;
+  const ctx = full.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return null;
+  ctx.imageSmoothingEnabled = false;
   ctx.drawImage(
     frame.source.image as CanvasImageSource,
-    frame.cutX + crop.x,
-    frame.cutY + crop.y,
-    crop.side,
-    crop.side,
+    frame.cutX,
+    frame.cutY,
+    frame.cutWidth,
+    frame.cutHeight,
     0,
     0,
-    size,
-    size,
+    frame.cutWidth,
+    frame.cutHeight,
   );
-  return canvas;
+
+  const portrait = portraitFromCanvas(full, size);
+  framePortraitCache.set(key, portrait);
+  return portrait;
 }
 
 /**
  * Retrato del avatar TAL COMO SE VE en la sala: dibuja el contenedor del
- * personaje (todas sus capas, colores y pose actuales) en una textura
- * temporal y recorta cabeza y cuello. Antes se apilaban las texturas
- * completas de cada parte reducidas a un círculo, y como muchas son hojas
- * con varios cuadros, la cara salía diminuta o no salía.
+ * personaje (todas sus capas, colores y pose) en una textura temporal y
+ * le aplica el mismo recorte que al mayordomo. El que llama lo cachea
+ * hasta el próximo cambio de avatar.
  */
 export function snapshotHead(
   scene: Phaser.Scene,
@@ -177,30 +243,21 @@ export function snapshotHead(
   const rt = scene.add.renderTexture(0, 0, width, height).setVisible(false);
   rt.draw(target, target.x - bounds.x, target.y - bounds.y);
 
-  const crop = headCropRect(width, height);
   return new Promise((resolve) => {
-    rt.snapshotArea(
-      Math.round(crop.x),
-      Math.round(crop.y),
-      Math.round(crop.side),
-      Math.round(crop.side),
-      (image) => {
-        rt.destroy();
-        if (!(image instanceof HTMLImageElement)) return resolve(null);
-        const draw = () => {
-          const canvas = document.createElement("canvas");
-          canvas.width = size;
-          canvas.height = size;
-          const ctx = canvas.getContext("2d");
-          if (!ctx) return resolve(null);
-          ctx.imageSmoothingEnabled = false;
-          ctx.drawImage(image, 0, 0, size, size);
-          resolve(canvas);
-        };
-        if (image.complete) draw();
-        else image.onload = draw;
-      },
-    );
+    rt.snapshot((image) => {
+      rt.destroy();
+      if (!(image instanceof HTMLImageElement)) return resolve(null);
+      const crop = () => {
+        const full = document.createElement("canvas");
+        full.width = width;
+        full.height = height;
+        const ctx = full.getContext("2d", { willReadFrequently: true });
+        if (!ctx) return resolve(null);
+        ctx.drawImage(image, 0, 0);
+        resolve(portraitFromCanvas(full, size));
+      };
+      if (image.complete) crop();
+      else image.onload = crop;
+    });
   });
 }
-

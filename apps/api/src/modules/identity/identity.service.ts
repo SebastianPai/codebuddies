@@ -38,6 +38,12 @@ const PREMIUM_CHAT_BUBBLE_THEMES = new Set([
   'emerald',
   'rose',
   'sunset',
+  'aurora',
+  'neon',
+  'galaxy',
+  'fire',
+  'holo',
+  'pixel',
 ]);
 
 // Un tema de burbuja también se puede comprar suelto: es un Item EFFECT cuyo

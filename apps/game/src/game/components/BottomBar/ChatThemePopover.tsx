@@ -5,14 +5,11 @@ import { Check, Lock } from "lucide-react";
 
 import styles from "./ChatThemePopover.module.css";
 import { CHAT_BUBBLE_THEMES } from "../../hud/nameplateStyles";
+import { themeSwatchStyle } from "../../hud/hudStyleUtils";
 import { useChatBubbleTheme } from "../../hooks/useChatBubbleTheme";
 import { useTranslation } from "../../../i18n/useTranslation";
 
 const CHAT_THEME_LIST = Object.values(CHAT_BUBBLE_THEMES);
-
-function hexOf(color: number) {
-  return `#${color.toString(16).padStart(6, "0")}`;
-}
 
 type Props = {
   x: number;
@@ -61,10 +58,7 @@ export default function ChatThemePopover({ x, y, onClose }: Props) {
               }`}
               disabled={saving}
               onClick={() => void selectTheme(theme.id, theme.tier)}
-              style={{
-                background: hexOf(theme.backgroundColor),
-                borderColor: hexOf(theme.borderColor),
-              }}
+              style={themeSwatchStyle(theme)}
               title={theme.label}
             >
               {locked ? (

@@ -378,6 +378,13 @@ const SELLABLE_CHAT_BUBBLES: Array<{ id: string; label: string; bg: string; bord
   { id: "emerald", label: "Esmeralda", bg: "#e8fff3", border: "#10b981", text: "#065f46" },
   { id: "rose", label: "Rosa", bg: "#ffe9f1", border: "#ec4899", text: "#9d174d" },
   { id: "sunset", label: "Atardecer", bg: "#fff0e0", border: "#f97316", text: "#9a3412" },
+  // Diseños especiales (en el juego llevan bordes degradados, brillo, etc.).
+  { id: "aurora", label: "Aurora", bg: "#0f172a", border: "#818cf8", text: "#e0e7ff" },
+  { id: "neon", label: "Neón", bg: "#0a0a12", border: "#22d3ee", text: "#cffafe" },
+  { id: "galaxy", label: "Galaxia", bg: "#1e1b4b", border: "#a78bfa", text: "#ede9fe" },
+  { id: "fire", label: "Fuego", bg: "#1c0a05", border: "#f97316", text: "#ffedd5" },
+  { id: "holo", label: "Holográfico", bg: "#f8fafc", border: "#c084fc", text: "#312e81" },
+  { id: "pixel", label: "Pixel", bg: "#fefce8", border: "#111827", text: "#111827" },
 ];
 
 type ItemEditorProps = {

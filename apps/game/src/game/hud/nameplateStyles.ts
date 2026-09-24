@@ -62,6 +62,12 @@ export interface ChatBubbleTheme {
   textColor: string;
   nameColor: string;
   gradientColors?: [number, number];
+  /**
+   * Diseño especial en CSS (clase fx_<variant> de domHud.module.css):
+   * bordes degradados animados, brillo, estrellas... Los colores de arriba
+   * quedan como base/fallback (colita, aro del retrato, muestras de color).
+   */
+  variant?: "aurora" | "neon" | "galaxy" | "fire" | "holo" | "pixel";
 }
 
 export const CHAT_BUBBLE_THEMES: Record<string, ChatBubbleTheme> = {
@@ -144,6 +150,116 @@ export const CHAT_BUBBLE_THEMES: Record<string, ChatBubbleTheme> = {
     borderColor: 0xf97316,
     textColor: "#9a3412",
     nameColor: "#ea580c",
+  },
+
+  // ---- Gratis: simples y limpios ----
+  mint: {
+    id: "mint",
+    label: "Menta",
+    tier: "free",
+    backgroundColor: 0xecfdf5,
+    backgroundAlpha: 0.97,
+    borderColor: 0x34d399,
+    textColor: "#064e3b",
+    nameColor: "#047857",
+  },
+  sky: {
+    id: "sky",
+    label: "Cielo",
+    tier: "free",
+    backgroundColor: 0xeff6ff,
+    backgroundAlpha: 0.97,
+    borderColor: 0x60a5fa,
+    textColor: "#1e3a8a",
+    nameColor: "#2563eb",
+  },
+  graphite: {
+    id: "graphite",
+    label: "Grafito",
+    tier: "free",
+    backgroundColor: 0x27272a,
+    backgroundAlpha: 0.96,
+    borderColor: 0x71717a,
+    textColor: "#f4f4f5",
+    nameColor: "#d4d4d8",
+  },
+  bubblegum: {
+    id: "bubblegum",
+    label: "Chicle",
+    tier: "free",
+    backgroundColor: 0xfdf2f8,
+    backgroundAlpha: 0.97,
+    borderColor: 0xf472b6,
+    textColor: "#831843",
+    nameColor: "#db2777",
+  },
+
+  // ---- Premium: diseños especiales (solo CSS, ver fx_* en domHud) ----
+  aurora: {
+    id: "aurora",
+    label: "Aurora",
+    tier: "premium",
+    backgroundColor: 0x0f172a,
+    backgroundAlpha: 0.92,
+    borderColor: 0x818cf8,
+    textColor: "#e0e7ff",
+    nameColor: "#a5b4fc",
+    variant: "aurora",
+  },
+  neon: {
+    id: "neon",
+    label: "Neón",
+    tier: "premium",
+    backgroundColor: 0x0a0a12,
+    backgroundAlpha: 0.94,
+    borderColor: 0x22d3ee,
+    textColor: "#cffafe",
+    nameColor: "#67e8f9",
+    variant: "neon",
+  },
+  galaxy: {
+    id: "galaxy",
+    label: "Galaxia",
+    tier: "premium",
+    backgroundColor: 0x1e1b4b,
+    backgroundAlpha: 0.95,
+    borderColor: 0xa78bfa,
+    textColor: "#ede9fe",
+    nameColor: "#c4b5fd",
+    variant: "galaxy",
+  },
+  fire: {
+    id: "fire",
+    label: "Fuego",
+    tier: "premium",
+    backgroundColor: 0x1c0a05,
+    backgroundAlpha: 0.94,
+    borderColor: 0xf97316,
+    textColor: "#ffedd5",
+    nameColor: "#fdba74",
+    variant: "fire",
+  },
+  holo: {
+    id: "holo",
+    label: "Holográfico",
+    tier: "premium",
+    backgroundColor: 0xf8fafc,
+    backgroundAlpha: 0.97,
+    borderColor: 0xc084fc,
+    textColor: "#312e81",
+    nameColor: "#7c3aed",
+    variant: "holo",
+  },
+  pixel: {
+    id: "pixel",
+    label: "Pixel",
+    tier: "premium",
+    backgroundColor: 0xfefce8,
+    backgroundAlpha: 1,
+    borderColor: 0x111827,
+    textColor: "#111827",
+    nameColor: "#b45309",
+    variant: "pixel",
   },
 };
 

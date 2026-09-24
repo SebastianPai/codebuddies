@@ -28,6 +28,28 @@ export function bubbleThemeVars(theme: ChatBubbleTheme): Record<string, string> 
   };
 }
 
+const VARIANT_SWATCH_BACKGROUND: Record<string, string> = {
+  aurora: "linear-gradient(135deg, #22d3ee, #818cf8, #f472b6)",
+  fire: "linear-gradient(135deg, #ef4444, #f97316, #facc15)",
+  galaxy:
+    "radial-gradient(1px 1px at 30% 30%, #fff 60%, transparent 61%), radial-gradient(1px 1px at 70% 65%, #fff 60%, transparent 61%), #1e1b4b",
+  holo: "linear-gradient(120deg, #fdf4ff, #ecfeff, #fefce8)",
+};
+
+/**
+ * Estilo de la muestra (botón chico) de un tema en los selectores de Ajustes
+ * y de la barra de chat: refleja el diseño especial, sin animación.
+ */
+export function themeSwatchStyle(theme: ChatBubbleTheme): Record<string, string> {
+  const hex = (color: number) => `#${color.toString(16).padStart(6, "0")}`;
+  return {
+    background: (theme.variant && VARIANT_SWATCH_BACKGROUND[theme.variant]) || hex(theme.backgroundColor),
+    borderColor: hex(theme.borderColor),
+    ...(theme.variant === "neon" ? { boxShadow: "0 0 8px rgba(34, 211, 238, 0.7)" } : {}),
+    ...(theme.variant === "pixel" ? { borderRadius: "2px" } : {}),
+  };
+}
+
 // Un tema de burbuja comprable es un Item EFFECT con effectKey
 // "bubble:<themeId>" (mismo prefijo que IdentityService en apps/api).
 export const CHAT_BUBBLE_EFFECT_PREFIX = "bubble:";

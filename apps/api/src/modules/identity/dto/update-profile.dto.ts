@@ -16,6 +16,18 @@ export const SUPPORTED_CHAT_BUBBLE_THEMES = [
   'emerald',
   'rose',
   'sunset',
+  // Gratis simples
+  'mint',
+  'sky',
+  'graphite',
+  'bubblegum',
+  // Premium con diseño especial (CSS en apps/game hud/domHud.module.css)
+  'aurora',
+  'neon',
+  'galaxy',
+  'fire',
+  'holo',
+  'pixel',
 ] as const;
 
 export class UpdateProfileDto {

@@ -112,7 +112,7 @@ describe('IdentityService', () => {
 
       const unlocked = await service.getUnlockedChatBubbleThemeIds('user-1');
 
-      expect(unlocked.sort()).toEqual(['classic', 'midnight']);
+      expect(unlocked.sort()).toEqual(['bubblegum', 'classic', 'graphite', 'midnight', 'mint', 'sky']);
     });
 
     it('un item comprado desbloquea solo ese tema', async () => {

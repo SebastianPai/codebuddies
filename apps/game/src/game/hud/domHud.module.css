@@ -201,6 +201,115 @@
   pointer-events: none;
 }
 
+/* ---------- Diseños especiales de burbuja (tema.variant) ----------
+   Solo CSS: degradados y una animación de background-position (la más
+   barata que hay, la resuelve el compositor). Una burbuja vive ~3s y hay
+   como mucho 3 por jugador, así que el costo es mínimo. */
+
+/* Borde degradado que fluye: fondo sólido en padding-box + degradado en
+   border-box con borde transparente. */
+.fx_aurora,
+.fx_fire {
+  border-color: transparent;
+  background:
+    linear-gradient(var(--cbh-bg), var(--cbh-bg)) padding-box,
+    var(--cbh-flow) border-box;
+  background-size:
+    100% 100%,
+    300% 100%;
+  animation:
+    cbhPop 170ms cubic-bezier(0.34, 1.56, 0.64, 1) both,
+    cbhBorderFlow 3s linear infinite;
+}
+
+.fx_aurora {
+  --cbh-flow: linear-gradient(90deg, #22d3ee, #818cf8, #f472b6, #34d399, #22d3ee);
+  box-shadow:
+    0 4px 14px rgba(0, 0, 0, 0.35),
+    0 0 14px rgba(129, 140, 248, 0.35);
+}
+
+.fx_fire {
+  --cbh-flow: linear-gradient(90deg, #ef4444, #f97316, #facc15, #f97316, #ef4444);
+  box-shadow:
+    0 4px 14px rgba(0, 0, 0, 0.35),
+    0 0 14px rgba(249, 115, 22, 0.45);
+}
+
+/* Neón: brillo estático (sin animación = sin costo por frame). */
+.fx_neon {
+  box-shadow:
+    0 0 0 1px rgba(34, 211, 238, 0.6),
+    0 0 12px rgba(34, 211, 238, 0.55),
+    inset 0 0 10px rgba(34, 211, 238, 0.2);
+}
+
+.fx_neon .message {
+  text-shadow: 0 0 6px rgba(103, 232, 249, 0.55);
+}
+
+/* Galaxia: estrellas estáticas dibujadas con degradados, sin imágenes. */
+.fx_galaxy {
+  background:
+    radial-gradient(1px 1px at 12% 30%, #fff 60%, transparent 61%),
+    radial-gradient(1px 1px at 38% 78%, #fff 60%, transparent 61%),
+    radial-gradient(1.5px 1.5px at 64% 22%, #e9d5ff 60%, transparent 61%),
+    radial-gradient(1px 1px at 86% 62%, #fff 60%, transparent 61%),
+    radial-gradient(1px 1px at 52% 50%, rgba(255, 255, 255, 0.7) 60%, transparent 61%),
+    radial-gradient(circle at 80% 0%, rgba(167, 139, 250, 0.35), transparent 60%),
+    var(--cbh-bg);
+  box-shadow:
+    0 4px 14px rgba(0, 0, 0, 0.35),
+    0 0 12px rgba(167, 139, 250, 0.35);
+}
+
+/* Holográfico: fondo iridiscente que se desplaza despacio. */
+.fx_holo {
+  background: linear-gradient(120deg, #fdf4ff, #ecfeff, #fefce8, #f0fdf4, #fdf4ff);
+  background-size: 300% 100%;
+  animation:
+    cbhPop 170ms cubic-bezier(0.34, 1.56, 0.64, 1) both,
+    cbhHoloShift 6s ease-in-out infinite alternate;
+}
+
+/* Pixel: esquinas rectas y sombra dura, estilo 8 bits. */
+.fx_pixel {
+  border-width: 3px;
+  border-radius: 0;
+  box-shadow: 4px 4px 0 #111827;
+}
+
+.fx_pixel .tail {
+  border-width: 3px;
+}
+
+.fx_pixel .face {
+  border-radius: 4px;
+  border-width: 3px;
+}
+
+@keyframes cbhBorderFlow {
+  from {
+    background-position:
+      0 0,
+      0% 0;
+  }
+  to {
+    background-position:
+      0 0,
+      300% 0;
+  }
+}
+
+@keyframes cbhHoloShift {
+  from {
+    background-position: 0% 0;
+  }
+  to {
+    background-position: 100% 0;
+  }
+}
+
 @keyframes cbhFadeIn {
   from {
     opacity: 0;
@@ -243,7 +352,10 @@
 @media (prefers-reduced-motion: reduce) {
   .hud,
   .bubble,
-  .premium::before {
+  .premium::before,
+  .fx_aurora,
+  .fx_fire,
+  .fx_holo {
     animation: none;
   }
 }

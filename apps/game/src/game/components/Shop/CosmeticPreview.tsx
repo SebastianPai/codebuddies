@@ -29,7 +29,10 @@ export default function CosmeticPreview({ username, effectId, bubbleThemeId, mes
   return (
     <div className={styles.scene} aria-hidden="true">
       <div className={styles.column}>
-        <div className={`${hud.bubble} ${hud.hasFace}`} style={bubbleThemeVars(theme) as CSSProperties}>
+        <div
+          className={`${hud.bubble} ${hud.hasFace} ${theme.variant ? hud[`fx_${theme.variant}`] : ""}`}
+          style={bubbleThemeVars(theme) as CSSProperties}
+        >
           <span className={`${hud.face} ${styles.face}`}>{initial}</span>
           <span className={hud.text}>
             <span className={`${hud.bubbleName} ${effect}`} style={effect ? undefined : { color: theme.nameColor }}>
