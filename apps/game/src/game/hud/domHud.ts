@@ -1,8 +1,10 @@
-import Phaser from "phaser";
-import { getEffectDefinition, VISUAL_EFFECTS } from "@codebuddies/visual-effects";
+import type Phaser from "phaser";
 
 import styles from "./domHud.module.css";
 import type { ChatBubbleTheme } from "./nameplateStyles";
+import { bubbleThemeVars, hexNumberToCss, nameEffectClass } from "./hudStyleUtils";
+
+export { nameEffectClass };
 
 // Helpers del HUD en HTML (nombre + burbujas) que comparten PlayerHUD y el
 // mayordomo (ButlerSystem). El texto con efecto usa las MISMAS clases CSS de
@@ -10,19 +12,6 @@ import type { ChatBubbleTheme } from "./nameplateStyles";
 // nombre se ve idéntico en la sala, el chat, el perfil y la tienda.
 
 export { styles as hudStyles };
-
-/** Clase CSS del efecto de nombre, o "" si no hay efecto (o es "common"). */
-export function nameEffectClass(effectId: string | null | undefined): string {
-  if (!effectId || effectId === "common" || !(effectId in VISUAL_EFFECTS)) return "";
-  return getEffectDefinition(effectId).textClassName;
-}
-
-function hexNumberToCss(color: number, alpha = 1): string {
-  const r = (color >> 16) & 0xff;
-  const g = (color >> 8) & 0xff;
-  const b = color & 0xff;
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
 
 /**
  * Ancla HTML de tamaño 0 que sigue a un punto del mundo (cámara y zoom los
@@ -56,9 +45,9 @@ export interface BubbleOptions {
 export function createBubbleElement({ message, theme, name, nameEffectId, face }: BubbleOptions) {
   const bubble = document.createElement("div");
   bubble.className = `${styles.bubble} ${theme.tier === "premium" ? styles.premium : ""}`;
-  bubble.style.setProperty("--cbh-bg", hexNumberToCss(theme.backgroundColor, theme.backgroundAlpha));
-  bubble.style.setProperty("--cbh-border", hexNumberToCss(theme.borderColor));
-  bubble.style.setProperty("--cbh-fg", theme.textColor);
+  for (const [prop, value] of Object.entries(bubbleThemeVars(theme))) {
+    bubble.style.setProperty(prop, value);
+  }
 
   if (face) {
     const canvas = document.createElement("canvas");

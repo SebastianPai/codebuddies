@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Socket } from "socket.io-client";
-import { ConciergeBell, Globe, Minus, PawPrint, Plus, Shirt, Sparkles } from "lucide-react";
+import { ConciergeBell, Globe, MessageSquare, Minus, PawPrint, Plus, Shirt, Sparkles } from "lucide-react";
 
 import styles from "./Shop.module.css";
 import { requestGameConfirm, showGameAlert } from "../../utils/dialog";
@@ -24,11 +24,17 @@ import {
   getFurnitureType,
   getItemRooms,
 } from "../../utils/itemTaxonomy";
+import CosmeticPreview from "./CosmeticPreview";
+import { bubbleThemeIdFromEffectKey } from "../../hud/hudStyleUtils";
+import { useNameEffect } from "../../hooks/useNameEffect";
+import { useChatBubbleTheme } from "../../hooks/useChatBubbleTheme";
 
 interface Props {
   socket: Socket | null;
   inventory?: any[];
   onClose?: () => void;
+  /** Para la vista previa de efectos y burbujas ("así se vería tu nombre"). */
+  username?: string;
 }
 
 type SortType = "new" | "old" | "cheap" | "expensive" | "popular";
@@ -38,6 +44,7 @@ type TabType =
   | "textures"
   | "backgrounds"
   | "effects"
+  | "bubbles"
   | "pets"
   | "butler";
 
@@ -59,8 +66,23 @@ function getRarityLabel(rarityKey: unknown, t: (key: string) => string): string 
   return t(RARITY_TRANSLATION_KEYS[key] ?? RARITY_TRANSLATION_KEYS.common);
 }
 
-export default function Shop({ socket, inventory = [], onClose }: Props) {
+export default function Shop({ socket, inventory = [], onClose, username = "" }: Props) {
   const t = useTranslation();
+  // Lo que el jugador usa hoy: la vista previa de un efecto se muestra con su
+  // burbuja actual, y la de una burbuja con su efecto de nombre actual.
+  const {
+    effectId: myEffectId,
+    unlockedEffectIds,
+    selectEffect,
+    refresh: refreshEffects,
+  } = useNameEffect();
+  const {
+    themeId: myBubbleThemeId,
+    isUnlocked: isBubbleUnlocked,
+    selectTheme: selectBubbleTheme,
+    refresh: refreshBubbles,
+  } = useChatBubbleTheme();
+  const previewName = username || t("commerce.shopPreviewNameFallback");
   const [items, setItems] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortType>("new");
@@ -149,6 +171,12 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
       if (typeof data?.itemId === "string" && data.itemId.startsWith("butler:")) {
         window.dispatchEvent(new CustomEvent("butler:changed"));
       }
+      // Efecto de nombre o burbuja recién comprados: pedir de nuevo qué está
+      // desbloqueado, así el botón pasa a "Usar" sin reabrir la tienda.
+      if (itemsRef.current.find((current) => current.id === data?.itemId)?.type === "EFFECT") {
+        void refreshEffects();
+        void refreshBubbles();
+      }
       const quantity = data?.quantity ?? 1;
       if (typeof data?.itemId === "string" && quantity > 1) {
         setQuantities((prev) => {
@@ -218,7 +246,7 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
       socket.off("shop:item:gifted", handleGifted);
       socket.off("shop:item:error", handleShopError);
     };
-  }, [socket, sort, giftTargetId, t]);
+  }, [socket, sort, giftTargetId, t, refreshEffects, refreshBubbles]);
 
   useEffect(() => {
     return () => {
@@ -396,13 +424,15 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
       const isWorld = item.type === "WORLD" || !!item.kind || !!item.worldData;
       const kind = item.kind || item.worldData?.kind;
       const isTexture = isWorld && (kind === "FLOOR" || kind === "WALL");
-      const isEffect = item.type === "EFFECT";
+      const isBubbleTheme = item.type === "EFFECT" && !!bubbleThemeIdFromEffectKey(item.effectKey);
+      const isEffect = item.type === "EFFECT" && !isBubbleTheme;
 
       if (activeTab === "avatar" && !isAvatar) return false;
       if (activeTab === "world" && (!isWorld || isTexture)) return false;
       if (activeTab === "textures" && !isTexture) return false;
       if (activeTab === "backgrounds" && item.type !== "BACKGROUND") return false;
       if (activeTab === "effects" && !isEffect) return false;
+      if (activeTab === "bubbles" && !isBubbleTheme) return false;
       if (activeTab === "pets" && item.type !== "PET") return false;
       if (activeTab === "butler" && item.type !== "BUTLER") return false;
 
@@ -527,6 +557,12 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
           <Sparkles size={14} /> {t("commerce.shopTabEffects")}
         </button>
         <button
+          className={`${styles.tab} ${activeTab === "bubbles" ? styles.active : ""}`}
+          onClick={() => changeTab("bubbles")}
+        >
+          <MessageSquare size={14} /> {t("commerce.shopTabBubbles")}
+        </button>
+        <button
           className={`${styles.tab} ${activeTab === "pets" ? styles.active : ""}`}
           onClick={() => changeTab("pets")}
         >
@@ -550,6 +586,8 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
                 ? t("commerce.shopBannerBackgrounds")
                 : activeTab === "effects"
                   ? t("commerce.shopBannerEffects")
+                  : activeTab === "bubbles"
+                    ? t("commerce.shopBannerBubbles")
                   : activeTab === "pets"
                     ? t("commerce.shopBannerPets")
                     : activeTab === "butler"
@@ -642,16 +680,39 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
           // Nombre real del item; si no tiene traducción, cae a la etiqueta
           // de categoría (slot/kind) como antes.
           const displayName = item.name || getLabel(item);
+          // Cosméticos (efecto de nombre o tema de burbuja): se ven con el
+          // nombre del jugador tal como quedaría en la sala.
+          const bubbleThemeId =
+            item.type === "EFFECT" ? bubbleThemeIdFromEffectKey(item.effectKey) : null;
+          const isNameEffect = item.type === "EFFECT" && !bubbleThemeId;
+          const isCosmetic = isNameEffect || !!bubbleThemeId;
+          const cosmeticUnlocked = isNameEffect
+            ? unlockedEffectIds.includes(item.effectKey)
+            : bubbleThemeId
+              ? isBubbleUnlocked(bubbleThemeId, "premium")
+              : false;
+          const cosmeticInUse = isNameEffect
+            ? myEffectId === item.effectKey
+            : bubbleThemeId
+              ? myBubbleThemeId === bubbleThemeId
+              : false;
 
           return (
             <ItemCard
               key={item.id}
               item={item}
               rarity={item.rarity}
-              effectPreview={item.type === "EFFECT" ? item.effectKey : undefined}
+              effectPreview={isNameEffect ? item.effectKey : undefined}
               preview={
                 item.type === "PET" || item.type === "BUTLER" ? (
                   <PetSpriteCell petSprite={item.petSprite} />
+                ) : isCosmetic ? (
+                  <CosmeticPreview
+                    username={previewName}
+                    effectId={isNameEffect ? item.effectKey : myEffectId}
+                    bubbleThemeId={bubbleThemeId ?? myBubbleThemeId}
+                    message={t("commerce.shopPreviewMessage")}
+                  />
                 ) : undefined
               }
               title={
@@ -827,6 +888,23 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
                             </div>
                           )}
                           <div className={styles.footerActions}>
+                            {isCosmetic && cosmeticUnlocked ? (
+                              // Ya lo tiene (comprado, Premium o gratis): no
+                              // tiene sentido volver a comprarlo, sí ponérselo.
+                              <Button
+                                variant={cosmeticInUse ? "secondary" : "primary"}
+                                size="sm"
+                                fullWidth
+                                disabled={cosmeticInUse}
+                                onClick={() =>
+                                  void (bubbleThemeId
+                                    ? selectBubbleTheme(bubbleThemeId, "premium")
+                                    : selectEffect(item.effectKey))
+                                }
+                              >
+                                {cosmeticInUse ? t("commerce.shopCosmeticInUse") : t("commerce.shopCosmeticUse")}
+                              </Button>
+                            ) : (
                             <Button
                               variant="primary"
                               size="sm"
@@ -846,6 +924,7 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
                                         ? t("commerce.shopBuyAnother")
                                         : t("commerce.shopBuy")}
                             </Button>
+                            )}
                             {item.type === "EFFECT" && (
                               <Button variant="secondary" size="sm" onClick={() => openGiftForm(item.id)}>
                                 {t("commerce.giftButton")}

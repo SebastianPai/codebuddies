@@ -66,7 +66,7 @@ export default function SettingsWindow({ username, onClose, onUsernameChanged }:
 
   const {
     themeId: chatThemeId,
-    isPremium,
+    isUnlocked: isChatThemeUnlocked,
     saving: savingTheme,
     error: chatThemeErrorCode,
     selectTheme: selectChatTheme,
@@ -290,7 +290,7 @@ export default function SettingsWindow({ username, onClose, onUsernameChanged }:
           <div className={styles.sectionBody}>
             <div className={styles.themeSwatchGrid}>
               {CHAT_THEME_LIST.map((theme) => {
-                const locked = theme.tier === "premium" && !isPremium;
+                const locked = !isChatThemeUnlocked(theme.id, theme.tier);
                 const selected = chatThemeId === theme.id;
                 return (
                   <button

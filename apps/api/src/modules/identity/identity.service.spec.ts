@@ -104,4 +104,54 @@ describe('IdentityService', () => {
       expect(gameGateway.broadcastNameEffectUpdate).not.toHaveBeenCalled();
     });
   });
+
+  describe('temas de burbuja comprables (items EFFECT "bubble:<id>")', () => {
+    it('sin Premium ni compras solo desbloquea los temas gratis', async () => {
+      prisma.user.findUnique.mockResolvedValue({ role: 'STUDENT' });
+      prisma.userItem.findMany.mockResolvedValue([]);
+
+      const unlocked = await service.getUnlockedChatBubbleThemeIds('user-1');
+
+      expect(unlocked.sort()).toEqual(['classic', 'midnight']);
+    });
+
+    it('un item comprado desbloquea solo ese tema', async () => {
+      prisma.user.findUnique.mockResolvedValue({ role: 'STUDENT' });
+      prisma.userItem.findMany.mockResolvedValue([{ item: { effectKey: 'bubble:gold' } }]);
+
+      const unlocked = await service.getUnlockedChatBubbleThemeIds('user-1');
+
+      expect(unlocked).toContain('gold');
+      expect(unlocked).not.toContain('violet');
+    });
+
+    it('Premium desbloquea todos los temas', async () => {
+      prisma.user.findUnique.mockResolvedValue({ role: 'STUDENT' });
+      prisma.userItem.findMany.mockResolvedValue([]);
+      premiumAccessService.hasPremiumAccess.mockResolvedValueOnce(true);
+
+      const unlocked = await service.getUnlockedChatBubbleThemeIds('user-1');
+
+      expect(unlocked).toEqual(expect.arrayContaining(['gold', 'violet', 'sunset']));
+    });
+
+    it('un item de burbuja no aparece como efecto de nombre', async () => {
+      prisma.user.findUnique.mockResolvedValue({ role: 'STUDENT' });
+      prisma.userItem.findMany.mockResolvedValue([{ item: { effectKey: 'bubble:gold' } }]);
+
+      const effects = await service.getUnlockedEffectIds('user-1');
+
+      expect(effects).not.toContain('bubble:gold');
+    });
+
+    it('rechaza elegir un tema premium que no se tiene', async () => {
+      prisma.user.findUnique.mockResolvedValue({ role: 'STUDENT' });
+      prisma.userItem.findMany.mockResolvedValue([]);
+
+      await expect(
+        service.updateProfile('user-1', { chatBubbleThemeId: 'gold' } as any),
+      ).rejects.toThrow(ForbiddenException);
+      expect(prisma.user.update).not.toHaveBeenCalled();
+    });
+  });
 });

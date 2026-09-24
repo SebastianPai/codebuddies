@@ -720,6 +720,7 @@ export default function Game() {
         <Shop
           socket={socket}
           inventory={inventory}
+          username={currentUser?.username}
           onClose={() => setShowShop(false)}
         />
       )}

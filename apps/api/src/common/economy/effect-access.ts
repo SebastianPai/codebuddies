@@ -42,3 +42,7 @@ export const SUPPORTED_NAME_EFFECTS = [
   ...PREMIUM_NAME_EFFECTS,
   ...OWNABLE_NAME_EFFECTS,
 ] as const;
+
+// Un tema de burbuja de chat comprable es un Item EFFECT con effectKey
+// "bubble:<themeId>" (ver IdentityService#getUnlockedChatBubbleThemeIds).
+export const CHAT_BUBBLE_EFFECT_PREFIX = 'bubble:';

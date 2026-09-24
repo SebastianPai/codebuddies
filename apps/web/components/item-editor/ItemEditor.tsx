@@ -364,7 +364,21 @@ const SLOT_LAYERS: Record<(typeof AVATAR_SLOTS)[number], number> = {
 };
 
 type EditorMode = "admin" | "creator";
-type ItemKind = "avatar" | "world" | "texture" | "effect";
+type ItemKind = "avatar" | "world" | "texture" | "effect" | "chatBubble";
+
+// Temas de burbuja que se pueden vender sueltos (espejo de los "premium" de
+// CHAT_BUBBLE_THEMES en apps/game/src/game/hud/nameplateStyles.ts). Se
+// guardan como Item EFFECT con effectKey "bubble:<id>"; Premium los sigue
+// incluyendo todos.
+const CHAT_BUBBLE_PREFIX = "bubble:";
+const SELLABLE_CHAT_BUBBLES: Array<{ id: string; label: string; bg: string; border: string; text: string }> = [
+  { id: "gold", label: "Oro", bg: "#fff7e0", border: "#d4af37", text: "#7a5b00" },
+  { id: "violet", label: "Violeta", bg: "#f3e8ff", border: "#9333ea", text: "#581c87" },
+  { id: "electricBlue", label: "Azul eléctrico", bg: "#e0f7ff", border: "#0ea5e9", text: "#075985" },
+  { id: "emerald", label: "Esmeralda", bg: "#e8fff3", border: "#10b981", text: "#065f46" },
+  { id: "rose", label: "Rosa", bg: "#ffe9f1", border: "#ec4899", text: "#9d174d" },
+  { id: "sunset", label: "Atardecer", bg: "#fff0e0", border: "#f97316", text: "#9a3412" },
+];
 
 type ItemEditorProps = {
   initial?: any;
@@ -387,6 +401,9 @@ const fieldClass =
 
 function getInitialKind(initial?: any): ItemKind {
   if (initial?.formCategory) return initial.formCategory;
+  if (typeof initial?.effectKey === "string" && initial.effectKey.startsWith(CHAT_BUBBLE_PREFIX)) {
+    return "chatBubble";
+  }
   if (initial?.type === "EFFECT" || initial?.effectKey) return "effect";
   if (initial?.type === "AVATAR_ITEM" || initial?.avatarData || initial?.slot) {
     return "avatar";
@@ -436,7 +453,14 @@ export default function ItemEditor({
     initial?.furnitureCategory ?? "DECORATION",
   );
   const [rarity, setRarity] = useState(initial?.rarity ?? 0);
-  const [effectKey, setEffectKey] = useState(initial?.effectKey ?? getOwnableEffectIds()[0]);
+  const initialIsBubble =
+    typeof initial?.effectKey === "string" && initial.effectKey.startsWith(CHAT_BUBBLE_PREFIX);
+  const [effectKey, setEffectKey] = useState(
+    initialIsBubble ? getOwnableEffectIds()[0] : initial?.effectKey ?? getOwnableEffectIds()[0],
+  );
+  const [bubbleThemeId, setBubbleThemeId] = useState(
+    initialIsBubble ? initial.effectKey.slice(CHAT_BUBBLE_PREFIX.length) : SELLABLE_CHAT_BUBBLES[0].id,
+  );
   const [coinsPrice, setCoinsPrice] = useState(initial?.coinsPrice ?? initial?.priceCoins ?? 100);
   const [gemsPrice, setGemsPrice] = useState(initial?.gemsPrice ?? 0);
   const [shopVisible, setShopVisible] = useState(initial?.shopVisible ?? mode === "admin");
@@ -565,7 +589,15 @@ export default function ItemEditor({
     if (!Number.isInteger(Number(maxStack)) || Number(maxStack) < 1) {
       nextErrors.push(t("items.invalidMaxStackError"));
     }
-    if (!preview && !initial?.imageUrl && !initial?.spriteUrl && !initial?.previewUrl) {
+    // Las burbujas se muestran con una vista previa en vivo en la tienda: la
+    // imagen es opcional.
+    if (
+      category !== "chatBubble" &&
+      !preview &&
+      !initial?.imageUrl &&
+      !initial?.spriteUrl &&
+      !initial?.previewUrl
+    ) {
       nextErrors.push(t("items.uploadSpriteRequiredError"));
     }
     if (category === "world") {
@@ -621,6 +653,15 @@ export default function ItemEditor({
           : compactTags(tags),
       colorable,
     };
+
+    if (category === "chatBubble") {
+      // Mismo camino que un efecto (Item EFFECT, sin validación de precio
+      // por rareza); el prefijo lo distingue en IdentityService y la tienda.
+      return {
+        ...baseData,
+        effectKey: `${CHAT_BUBBLE_PREFIX}${bubbleThemeId}`,
+      };
+    }
 
     if (category === "effect") {
       // Sin rareza real (ver Item.effectKey en schema.prisma) -- baseData
@@ -875,6 +916,7 @@ export default function ItemEditor({
               <option value="avatar">{t("items.avatar")}</option>
               <option value="texture">{t("items.texture")}</option>
               {mode === "admin" && <option value="effect">{t("items.effect")}</option>}
+              {mode === "admin" && <option value="chatBubble">{t("items.chatBubble")}</option>}
             </select>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
@@ -935,7 +977,17 @@ export default function ItemEditor({
         <LabeledField text={t("items.gems")} hint={t("items.gemsHint")}>
           <input type="number" min="0" value={gemsPrice} onChange={(event) => setGemsPrice(Number(event.target.value))} className={fieldClass} />
         </LabeledField>
-        {category === "effect" ? (
+        {category === "chatBubble" ? (
+          <LabeledField text={t("items.chatBubbleThemeLabel")} hint={t("items.chatBubbleThemeHint")}>
+            <select value={bubbleThemeId} onChange={(event) => setBubbleThemeId(event.target.value)} className={fieldClass}>
+              {SELLABLE_CHAT_BUBBLES.map((theme) => (
+                <option key={theme.id} value={theme.id}>
+                  {theme.label}
+                </option>
+              ))}
+            </select>
+          </LabeledField>
+        ) : category === "effect" ? (
           <LabeledField text={t("items.effectKeyLabel")} hint={t("items.effectKeyHint")}>
             <div className="flex items-center gap-2">
               <span
@@ -999,7 +1051,27 @@ export default function ItemEditor({
         </label>
       </section>
 
-      {category === "effect" ? (
+      {category === "chatBubble" ? (
+        <section className="rounded-3xl border border-zinc-800 bg-black/40 p-5">
+          <h3 className="text-xl font-black text-white">{t("items.chatBubbleItemTitle")}</h3>
+          <p className="mt-1 text-sm text-zinc-500">{t("items.chatBubbleItemDescription")}</p>
+          {(() => {
+            const theme =
+              SELLABLE_CHAT_BUBBLES.find((option) => option.id === bubbleThemeId) ?? SELLABLE_CHAT_BUBBLES[0];
+            return (
+              <div className="mt-4 flex justify-center rounded-2xl border border-zinc-800 bg-gradient-to-b from-[#2a2f3d] to-[#171a23] p-6">
+                <div
+                  className="rounded-2xl border-2 px-3 py-2 text-sm shadow-lg"
+                  style={{ background: theme.bg, borderColor: theme.border, color: theme.text }}
+                >
+                  <span className="block text-[11px] font-black">{name.trim() || "Usuario"}</span>
+                  <span>¡Hola!</span>
+                </div>
+              </div>
+            );
+          })()}
+        </section>
+      ) : category === "effect" ? (
         <section className="rounded-3xl border border-zinc-800 bg-black/40 p-5">
           <h3 className="text-xl font-black text-white">{t("items.effectItemTitle")}</h3>
           <p className="mt-1 text-sm text-zinc-500">{t("items.effectItemDescription")}</p>

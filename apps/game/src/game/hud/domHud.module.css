@@ -167,6 +167,9 @@
   font-size: 11px;
   font-weight: 800;
   white-space: nowrap;
+  /* Mismo contorno oscuro que el nombre sobre el personaje: se lee sobre
+     cualquier tema de burbuja (clara u oscura), con o sin efecto. */
+  filter: drop-shadow(0 0 0.6px #0b0f1a) drop-shadow(0 0 0.6px #0b0f1a);
 }
 
 .message {

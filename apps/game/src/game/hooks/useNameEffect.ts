@@ -9,7 +9,7 @@
 // packages/visual-effects/index.ts) así que en vez de un booleano isPremium
 // el server manda la lista completa de ids desbloqueados (unlockedEffectIds,
 // ya resuelve ADMIN/premium/items comprados).
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getCurrentUser } from "../network/auth";
 import { apiPatch } from "../network/http";
 
@@ -25,15 +25,18 @@ export function useNameEffect() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<"NOT_UNLOCKED" | "SAVE_ERROR" | null>(null);
 
-  useEffect(() => {
-    void getCurrentUser().then((user) => {
-      if (!user) return;
-      setUnlockedEffectIds(user.unlockedEffectIds ?? [DEFAULT_EFFECT]);
-      const remote = user.nameEffectId || DEFAULT_EFFECT;
-      setEffectId(remote);
-      window.localStorage.setItem(STORAGE_KEY, remote);
-    });
+  const refresh = useCallback(async () => {
+    const user = await getCurrentUser();
+    if (!user) return;
+    setUnlockedEffectIds(user.unlockedEffectIds ?? [DEFAULT_EFFECT]);
+    const remote = user.nameEffectId || DEFAULT_EFFECT;
+    setEffectId(remote);
+    window.localStorage.setItem(STORAGE_KEY, remote);
   }, []);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
 
   const selectEffect = async (id: string) => {
     setError(null);
@@ -59,5 +62,5 @@ export function useNameEffect() {
     }
   };
 
-  return { effectId, unlockedEffectIds, saving, error, selectEffect };
+  return { effectId, unlockedEffectIds, saving, error, selectEffect, refresh };
 }

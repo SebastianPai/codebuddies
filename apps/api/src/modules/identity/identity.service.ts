@@ -13,9 +13,13 @@ import { PremiumAccessService } from '../premium-access/premium-access.service';
 import { GameGateway } from '../game/game.gateway';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
-import { UpdateProfileDto } from './dto/update-profile.dto';
+import {
+  SUPPORTED_CHAT_BUBBLE_THEMES,
+  UpdateProfileDto,
+} from './dto/update-profile.dto';
 import { computeStreakUpdate } from '../../common/utils/streak.util';
 import {
+  CHAT_BUBBLE_EFFECT_PREFIX,
   FREE_NAME_EFFECTS,
   OWNABLE_NAME_EFFECTS,
   PREMIUM_NAME_EFFECTS,
@@ -35,6 +39,10 @@ const PREMIUM_CHAT_BUBBLE_THEMES = new Set([
   'rose',
   'sunset',
 ]);
+
+// Un tema de burbuja también se puede comprar suelto: es un Item EFFECT cuyo
+// effectKey es "bubble:<themeId>" (CHAT_BUBBLE_EFFECT_PREFIX, ver comentario
+// de ItemType.EFFECT en el schema). Premium sigue desbloqueando todos.
 
 type AuthUser = {
   id: string;
@@ -214,9 +222,48 @@ export class IdentityService {
       for (const id of PREMIUM_NAME_EFFECTS) unlocked.add(id);
     }
     for (const userItem of ownedEffectItems) {
-      if (userItem.item.effectKey) unlocked.add(userItem.item.effectKey);
+      const key = userItem.item.effectKey;
+      // Los items de burbuja comparten tipo EFFECT pero no son efectos de nombre.
+      if (key && !key.startsWith(CHAT_BUBBLE_EFFECT_PREFIX)) unlocked.add(key);
     }
 
+    return Array.from(unlocked);
+  }
+
+  async getUnlockedChatBubbleThemeIds(userId: string): Promise<string[]> {
+    const free = SUPPORTED_CHAT_BUBBLE_THEMES.filter(
+      (id) => !PREMIUM_CHAT_BUBBLE_THEMES.has(id),
+    );
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+    if (user?.role === Role.ADMIN) return [...SUPPORTED_CHAT_BUBBLE_THEMES];
+
+    const [isPremium, ownedBubbleItems] = await Promise.all([
+      this.hasPremium(userId),
+      this.prisma.userItem.findMany({
+        where: {
+          userId,
+          item: {
+            type: ItemType.EFFECT,
+            effectKey: { startsWith: CHAT_BUBBLE_EFFECT_PREFIX },
+          },
+        },
+        select: { item: { select: { effectKey: true } } },
+      }),
+    ]);
+
+    if (isPremium) return [...SUPPORTED_CHAT_BUBBLE_THEMES];
+
+    const unlocked = new Set<string>(free);
+    for (const userItem of ownedBubbleItems) {
+      const themeId = userItem.item.effectKey?.slice(CHAT_BUBBLE_EFFECT_PREFIX.length);
+      if (themeId && (SUPPORTED_CHAT_BUBBLE_THEMES as readonly string[]).includes(themeId)) {
+        unlocked.add(themeId);
+      }
+    }
     return Array.from(unlocked);
   }
 
@@ -227,9 +274,11 @@ export class IdentityService {
       dto.chatBubbleThemeId &&
       PREMIUM_CHAT_BUBBLE_THEMES.has(dto.chatBubbleThemeId)
     ) {
-      const premium = await this.hasPremium(userId);
-      if (!premium) {
-        throw new ForbiddenException('Este tema de chat requiere Premium');
+      const unlocked = await this.getUnlockedChatBubbleThemeIds(userId);
+      if (!unlocked.includes(dto.chatBubbleThemeId)) {
+        throw new ForbiddenException(
+          'Este tema de chat requiere Premium o comprarlo en la tienda',
+        );
       }
     }
 
@@ -325,9 +374,10 @@ export class IdentityService {
 
     if (!user) throw new UnauthorizedException('Usuario no encontrado');
 
-    const [isPremium, unlockedEffectIds] = await Promise.all([
+    const [isPremium, unlockedEffectIds, unlockedChatBubbleThemeIds] = await Promise.all([
       this.hasPremium(userId),
       this.getUnlockedEffectIds(userId),
+      this.getUnlockedChatBubbleThemeIds(userId),
     ]);
 
     return {
@@ -348,6 +398,7 @@ export class IdentityService {
       chatBubbleThemeId: user.chatBubbleThemeId,
       nameEffectId: user.nameEffectId,
       unlockedEffectIds,
+      unlockedChatBubbleThemeIds,
       isPremium,
       birthDate: user.birthDate,
       country: user.country,

@@ -26,7 +26,7 @@ type Props = {
 export default function ChatThemePopover({ x, y, onClose }: Props) {
   const t = useTranslation();
   const rootRef = useRef<HTMLDivElement>(null);
-  const { themeId, isPremium, saving, error, selectTheme } = useChatBubbleTheme();
+  const { themeId, isUnlocked, saving, error, selectTheme } = useChatBubbleTheme();
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
@@ -50,7 +50,7 @@ export default function ChatThemePopover({ x, y, onClose }: Props) {
 
       <div className={styles.grid}>
         {CHAT_THEME_LIST.map((theme) => {
-          const locked = theme.tier === "premium" && !isPremium;
+          const locked = !isUnlocked(theme.id, theme.tier);
           const selected = themeId === theme.id;
           return (
             <button

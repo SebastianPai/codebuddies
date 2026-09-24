@@ -264,5 +264,10 @@
   "autoMirrorHint": "Lade eine Seite hoch; die zweite wird durch Spiegeln erzeugt, damit sich das Objekt drehen lässt.",
   "autoMirrorWorking": "Gespiegelte Seite wird erzeugt...",
   "autoMirrorError": "Die gespiegelte Seite konnte nicht erzeugt werden. Versuche ein anderes Bild.",
-  "autoMirrorNeedsUpload": "Lade das einseitige Bild erneut hoch, um automatisch zu spiegeln."
+  "autoMirrorNeedsUpload": "Lade das einseitige Bild erneut hoch, um automatisch zu spiegeln.",
+  "chatBubble": "Chat-Sprechblase",
+  "chatBubbleThemeLabel": "Sprechblasen-Design",
+  "chatBubbleThemeHint": "Welche Sprechblasenfarbe dieses Item beim Kauf freischaltet. Premium enthält weiterhin alle.",
+  "chatBubbleItemTitle": "Chat-Sprechblase",
+  "chatBubbleItemDescription": "Ein Item, das dem Käufer (oder Beschenkten) ein Sprechblasen-Design freischaltet. Der Shop zeigt eine Live-Vorschau, das Bild ist optional."
 }

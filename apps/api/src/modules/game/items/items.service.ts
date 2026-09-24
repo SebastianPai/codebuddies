@@ -23,6 +23,17 @@ import {
 } from '../../../common/economy';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { RealtimeService } from '../../realtime/realtime.service';
+import { CHAT_BUBBLE_EFFECT_PREFIX } from '../../../common/economy/effect-access';
+
+// Texto del regalo en la notificación: un item EFFECT puede ser un efecto de
+// nombre o un tema de burbuja ("bubble:<id>", ver IdentityService).
+function describeGiftedItem(effectKey: string | null | undefined): string {
+  if (!effectKey) return 'un item';
+  if (effectKey.startsWith(CHAT_BUBBLE_EFFECT_PREFIX)) {
+    return `el tema de burbuja "${effectKey.slice(CHAT_BUBBLE_EFFECT_PREFIX.length)}"`;
+  }
+  return `el efecto de nombre "${effectKey}"`;
+}
 
 @Injectable()
 export class ItemsService {
@@ -974,7 +985,7 @@ export class ItemsService {
       userId: recipient.id,
       type: NotificationType.REWARD_GRANTED,
       title: 'Recibiste un regalo',
-      body: `${sender.username} te regaló ${item.effectKey ? `el efecto de nombre "${item.effectKey}"` : 'un item'}.`,
+      body: `${sender.username} te regaló ${describeGiftedItem(item.effectKey)}.`,
       metadata: { itemId, giftId: result.id, giftedBy: senderId },
     });
     this.realtimeService.emitToUser(recipient.id, {
