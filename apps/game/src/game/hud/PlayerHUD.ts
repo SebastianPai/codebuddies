@@ -151,7 +151,7 @@ export default class PlayerHUD {
 
   private applyNameEffect() {
     const effect = nameEffectClass(this.nameEffectId);
-    this.nameEl.className = `${styles.name} ${effect}`;
+    this.nameEl.className = effect || styles.nameDefault;
   }
 
   private setVisible(visible: boolean) {
