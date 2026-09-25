@@ -4,8 +4,16 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { BattlePassSeasonStatus, Prisma, RewardSourceType } from '@prisma/client';
+import {
+  BadgeAnimationDirection,
+  BadgeIconMode,
+  BadgeType,
+  BattlePassSeasonStatus,
+  Prisma,
+  RewardSourceType,
+} from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { PREMIUM_LOGO_BADGE_ID } from '../../badges/badges.constants';
 import { GamificationService, RewardConfig } from '../../gamification/gamification.service';
 import { PremiumAccessService } from '../../premium-access/premium-access.service';
 import { UpsertBattlePassSeasonDto } from '../dto/upsert-battle-pass-season.dto';
@@ -106,6 +114,25 @@ export class BattlePassService {
     const currentXp = progress?.xp ?? 0;
     const claimedTierIds = new Set(claims.map((c) => c.tierId));
 
+    // El logo Premium se muestra en su ticket tal como sale junto al nombre
+    // (mismo ícono/sprite que sube el admin en /admin/badges).
+    const premiumLogo = tiers.some((tier) => tier.itemId === PREMIUM_LOGO_BADGE_ID)
+      ? await this.prisma.badgeConfig.findUnique({
+          where: { type: BadgeType.PREMIUM },
+          select: { iconUrl: true, mode: true, size: true, frameCount: true, direction: true, frameRate: true },
+        })
+      : null;
+    // Sin fila de config todavía = ícono por defecto (el cliente dibuja la
+    // corona), pero igual marca el ticket como "logo Premium".
+    const premiumLogoIcon = premiumLogo ?? {
+      iconUrl: null,
+      mode: BadgeIconMode.STATIC,
+      size: 16,
+      frameCount: 6,
+      direction: BadgeAnimationDirection.PINGPONG,
+      frameRate: 10,
+    };
+
     const tierPayload = tiers.map((tier) => {
       const trackUnlocked = tier.track === 'FREE' || hasPremium;
       const levelReached = tier.level <= currentLevel;
@@ -119,6 +146,7 @@ export class BattlePassService {
         itemId: tier.itemId,
         label: tier.label,
         sortOrder: tier.sortOrder,
+        badgeIcon: tier.itemId === PREMIUM_LOGO_BADGE_ID ? premiumLogoIcon : null,
         levelReached,
         trackUnlocked,
         claimed,

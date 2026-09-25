@@ -179,7 +179,7 @@ export default function ProfileModal({ username, onClose, onOpenChat }: Props) {
         !loading && !error && profile ? (
           <>
             <RarityText effect={profile.nameEffectId}>{profile.username}</RarityText>
-            <UserBadges verified={profile.verified} isCreator={profile.isCreator} size={14} className={styles.titleBadges} />
+            <UserBadges verified={profile.verified} isCreator={profile.isCreator} premium={profile.premium ?? false} size={14} className={styles.titleBadges} />
           </>
         ) : (
           t("friends.profileTitle")

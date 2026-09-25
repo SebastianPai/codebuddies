@@ -3,11 +3,15 @@ import {
   BadgeAnimationDirection,
   BadgeIconMode,
   BadgeType,
+  PremiumSubscriptionStatus,
 } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SubscriptionsService } from '../subscriptions/services/subscriptions.service';
+import { PREMIUM_LOGO_BADGE_ID } from './badges.constants';
 
-export type BadgeStatus = { verified: boolean; isCreator: boolean };
+export type BadgeStatus = { verified: boolean; isCreator: boolean; premium: boolean };
+
+const NO_BADGES: BadgeStatus = { verified: false, isCreator: false, premium: false };
 
 // Cuántas insignias puede elegir mostrar el jugador a la vez, según su
 // nivel de cuenta: gratis solo 1 (tiene que elegir cuál), premium hasta 3,
@@ -15,13 +19,37 @@ export type BadgeStatus = { verified: boolean; isCreator: boolean };
 const FREE_MAX_BADGES = 1;
 const PREMIUM_MAX_BADGES = 3;
 // No literalmente "infinito" — Infinity no sobrevive un JSON.stringify (se
-// vuelve null). Como máximo hay 2 tipos de insignia hoy, así que cualquier
+// vuelve null). Como máximo hay 3 tipos de insignia hoy, así que cualquier
 // número por encima de eso ya es "sin límite" en la práctica.
 const ADMIN_MAX_BADGES = 99;
 
 // Orden de prioridad para autocompletar la selección de un jugador que
 // todavía no eligió nada explícitamente (selectedBadgeTypes vacío).
-const BADGE_PRIORITY: BadgeType[] = [BadgeType.VERIFIED, BadgeType.CREATOR];
+const BADGE_PRIORITY: BadgeType[] = [BadgeType.VERIFIED, BadgeType.CREATOR, BadgeType.PREMIUM];
+
+type BadgeFacts = { verified: boolean; publishedCount: number; premium: boolean };
+
+const CREATOR_PROFILE_SELECT = {
+  verified: true,
+  selectedBadgeTypes: true,
+  _count: { select: { contents: { where: { status: 'PUBLISHED' as const } } } },
+};
+
+function qualifyingBadges(facts: BadgeFacts): BadgeType[] {
+  return BADGE_PRIORITY.filter((type) => {
+    if (type === BadgeType.VERIFIED) return facts.verified;
+    if (type === BadgeType.CREATOR) return facts.publishedCount > 0;
+    return facts.premium;
+  });
+}
+
+function toStatus(visible: BadgeType[]): BadgeStatus {
+  return {
+    verified: visible.includes(BadgeType.VERIFIED),
+    isCreator: visible.includes(BadgeType.CREATOR),
+    premium: visible.includes(BadgeType.PREMIUM),
+  };
+}
 
 export type BadgeIconConfig = {
   iconUrl: string | null;
@@ -93,6 +121,7 @@ export class BadgesService {
     return {
       VERIFIED: build(BadgeType.VERIFIED),
       CREATOR: build(BadgeType.CREATOR),
+      PREMIUM: build(BadgeType.PREMIUM),
     };
   }
 
@@ -128,27 +157,46 @@ export class BadgesService {
     return qualifying;
   }
 
-  async getUserBadges(userId: string): Promise<BadgeStatus> {
-    const creatorProfile = await this.prisma.creatorProfile.findUnique({
-      where: { userId },
-      select: {
-        verified: true,
-        selectedBadgeTypes: true,
-        _count: { select: { contents: { where: { status: 'PUBLISHED' } } } },
-      },
+  // Premium activo (misma regla que PremiumAccessService) o el logo ganado
+  // en el Battle Pass. Por lotes para las listas (amigos, sala).
+  private async premiumUserIds(userIds: string[]): Promise<Set<string>> {
+    if (userIds.length === 0) return new Set();
+    const [subscriptions, owned] = await Promise.all([
+      this.prisma.premiumSubscription.findMany({
+        where: {
+          userId: { in: userIds },
+          status: PremiumSubscriptionStatus.ACTIVE,
+          expiresAt: { gt: new Date() },
+        },
+        select: { userId: true },
+      }),
+      this.prisma.userGamificationBadge.findMany({
+        where: { userId: { in: userIds }, badgeId: PREMIUM_LOGO_BADGE_ID },
+        select: { userId: true },
+      }),
+    ]);
+    return new Set([...subscriptions, ...owned].map((row) => row.userId));
+  }
+
+  private async loadBadgeState(userId: string) {
+    const [creatorProfile, premiumIds] = await Promise.all([
+      this.prisma.creatorProfile.findUnique({
+        where: { userId },
+        select: CREATOR_PROFILE_SELECT,
+      }),
+      this.premiumUserIds([userId]),
+    ]);
+    const qualifying = qualifyingBadges({
+      verified: !!creatorProfile?.verified,
+      publishedCount: creatorProfile?._count.contents ?? 0,
+      premium: premiumIds.has(userId),
     });
+    return { creatorProfile, qualifying };
+  }
 
-    if (!creatorProfile) return { verified: false, isCreator: false };
-
-    const qualifying = BADGE_PRIORITY.filter((type) =>
-      type === BadgeType.VERIFIED ? creatorProfile.verified : creatorProfile._count.contents > 0,
-    );
-    const visible = this.resolveVisibleBadges(qualifying, creatorProfile.selectedBadgeTypes);
-
-    return {
-      verified: visible.includes(BadgeType.VERIFIED),
-      isCreator: visible.includes(BadgeType.CREATOR),
-    };
+  async getUserBadges(userId: string): Promise<BadgeStatus> {
+    const { creatorProfile, qualifying } = await this.loadBadgeState(userId);
+    return toStatus(this.resolveVisibleBadges(qualifying, creatorProfile?.selectedBadgeTypes ?? []));
   }
 
   async getUserBadgesByUsername(username: string): Promise<BadgeStatus> {
@@ -157,7 +205,7 @@ export class BadgesService {
       select: { id: true },
     });
 
-    if (!user) return { verified: false, isCreator: false };
+    if (!user) return { ...NO_BADGES };
 
     return this.getUserBadges(user.id);
   }
@@ -171,34 +219,25 @@ export class BadgesService {
     const users = await this.prisma.user.findMany({
       where: { username: { in: uniqueUsernames } },
       select: {
+        id: true,
         username: true,
-        creatorProfile: {
-          select: {
-            verified: true,
-            selectedBadgeTypes: true,
-            _count: { select: { contents: { where: { status: 'PUBLISHED' } } } },
-          },
-        },
+        creatorProfile: { select: CREATOR_PROFILE_SELECT },
       },
     });
+    const premiumIds = await this.premiumUserIds(users.map((user) => user.id));
 
     const result: Record<string, BadgeStatus> = {};
-    for (const username of uniqueUsernames) result[username] = { verified: false, isCreator: false };
+    for (const username of uniqueUsernames) result[username] = { ...NO_BADGES };
 
     for (const user of users) {
-      if (!user.creatorProfile) continue;
-
-      const qualifying = BADGE_PRIORITY.filter((type) =>
-        type === BadgeType.VERIFIED
-          ? user.creatorProfile!.verified
-          : user.creatorProfile!._count.contents > 0,
+      const qualifying = qualifyingBadges({
+        verified: !!user.creatorProfile?.verified,
+        publishedCount: user.creatorProfile?._count.contents ?? 0,
+        premium: premiumIds.has(user.id),
+      });
+      result[user.username] = toStatus(
+        this.resolveVisibleBadges(qualifying, user.creatorProfile?.selectedBadgeTypes ?? []),
       );
-      const visible = this.resolveVisibleBadges(qualifying, user.creatorProfile.selectedBadgeTypes);
-
-      result[user.username] = {
-        verified: visible.includes(BadgeType.VERIFIED),
-        isCreator: visible.includes(BadgeType.CREATOR),
-      };
     }
 
     return result;
@@ -210,25 +249,11 @@ export class BadgesService {
   // acá el dueño ve TODO lo que califica más cuáles tiene elegidas y cuántas
   // puede elegir en total, para poder armar la pantalla de Ajustes.
   async getMyBadgeSettings(userId: string) {
-    const creatorProfile = await this.prisma.creatorProfile.findUnique({
-      where: { userId },
-      select: {
-        verified: true,
-        selectedBadgeTypes: true,
-        _count: { select: { contents: { where: { status: 'PUBLISHED' } } } },
-      },
-    });
-
-    const maxSelectable = await this.getMaxSelectableBadges(userId);
-
-    if (!creatorProfile) {
-      return { qualifying: [] as BadgeType[], selected: [] as BadgeType[], maxSelectable };
-    }
-
-    const qualifying = BADGE_PRIORITY.filter((type) =>
-      type === BadgeType.VERIFIED ? creatorProfile.verified : creatorProfile._count.contents > 0,
-    );
-    const selected = this.resolveVisibleBadges(qualifying, creatorProfile.selectedBadgeTypes);
+    const [{ creatorProfile, qualifying }, maxSelectable] = await Promise.all([
+      this.loadBadgeState(userId),
+      this.getMaxSelectableBadges(userId),
+    ]);
+    const selected = this.resolveVisibleBadges(qualifying, creatorProfile?.selectedBadgeTypes ?? []);
 
     return { qualifying, selected, maxSelectable };
   }

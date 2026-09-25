@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { PREMIUM_LOGO_BADGE_ID } from '../src/modules/badges/badges.constants';
 
 type Track = 'FREE' | 'PREMIUM';
 type BattlePassTierSeed = {
@@ -144,6 +145,22 @@ export async function seedBattlePass(prisma: PrismaClient) {
   tiers.push({ id: 'battle-pass-s1-premium-l10-badge', level: 10, track: 'PREMIUM', rewardType: 'BADGE', itemId: badges[2].id, label: 'Insignia: Battle Pass Oro', sortOrder: 1 });
   tiers.push({ id: 'battle-pass-s1-premium-l20-badge', level: 20, track: 'PREMIUM', rewardType: 'BADGE', itemId: badges[3].id, label: 'Insignia: Battle Pass Legendaria (Premium)', sortOrder: 1 });
   tiers.push({ id: 'battle-pass-s1-premium-l30-title', level: 30, track: 'PREMIUM', rewardType: 'TITLE', itemId: title.id, label: 'Título: Leyenda de Temporada 1', sortOrder: 1 });
+
+  // Primer regalo del track premium: el logo Premium junto al nombre (su
+  // imagen la sube el admin en /admin/badges). Mismos ids que la migración
+  // 20260924000000_badge_premium, así seed y migración no se duplican.
+  await prisma.gamificationBadge.upsert({
+    where: { id: PREMIUM_LOGO_BADGE_ID },
+    update: { active: true },
+    create: {
+      id: PREMIUM_LOGO_BADGE_ID,
+      name: 'Logo Premium',
+      description: 'Logo Premium junto al nombre. Primer regalo del track premium del Battle Pass.',
+      rarity: 'premium',
+      active: true,
+    },
+  });
+  tiers.push({ id: `battle-pass-premium-logo-${season.id}`, level: 1, track: 'PREMIUM', rewardType: 'BADGE', itemId: PREMIUM_LOGO_BADGE_ID, label: 'Insignia: Logo Premium', sortOrder: 1 });
 
   for (const tier of tiers) {
     await prisma.battlePassTier.upsert({

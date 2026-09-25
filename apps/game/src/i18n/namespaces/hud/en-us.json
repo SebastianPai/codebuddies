@@ -109,7 +109,8 @@
   },
   "badges": {
     "verified": "Verified",
-    "creator": "Creator"
+    "creator": "Creator",
+    "premium": "Premium"
   },
   "pet": {
     "title": "My pet",

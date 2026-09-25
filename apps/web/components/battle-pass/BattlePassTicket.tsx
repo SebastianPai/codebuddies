@@ -3,6 +3,7 @@
 import { motion, useReducedMotion } from "framer-motion";
 import { Award, Check, Coins, Crown, Gift, Lock, Zap } from "lucide-react";
 import { useTranslation } from "../../src/i18n/useTranslation";
+import { BadgeLogo } from "./BadgeLogo";
 import type { BattlePassTier } from "./battle-pass-types";
 
 const REWARD_ICON: Record<string, React.ReactNode> = {
@@ -19,7 +20,7 @@ function rewardLabel(t: ReturnType<typeof useTranslation>, tier: BattlePassTier)
     case "XP":
       return t("battlePass.rewardXp", { amount: tier.amount ?? 0 });
     case "BADGE":
-      return t("battlePass.rewardBadge");
+      return tier.badgeIcon ? t("battlePass.rewardPremiumLogo") : t("battlePass.rewardBadge");
     case "TITLE":
       return t("battlePass.rewardTitle");
     default:
@@ -40,6 +41,8 @@ export function BattlePassTicket({
   const reduceMotion = useReducedMotion();
   const locked = !tier.levelReached || !tier.trackUnlocked;
   const icon = REWARD_ICON[tier.rewardType] ?? <Gift size={18} />;
+  // El logo Premium se ve tal cual aun bloqueado: es la vitrina del regalo.
+  const logo = tier.badgeIcon;
 
   const stateClasses = tier.claimed
     ? "border-[rgb(var(--success))] bg-[rgb(var(--success)/0.08)]"
@@ -60,15 +63,30 @@ export function BattlePassTicket({
         {t("battlePass.levelShort")} {tier.level}
       </span>
 
-      <div
-        className={`flex h-11 w-11 items-center justify-center rounded-full ${
-          tier.claimed
-            ? "bg-[rgb(var(--success))] text-white"
-            : "bg-[rgb(var(--primary)/0.15)] text-[rgb(var(--primary))]"
-        }`}
-      >
-        {locked && !tier.claimed ? <Lock size={16} /> : tier.claimed ? <Check size={18} /> : icon}
-      </div>
+      {logo ? (
+        <div className="relative flex h-11 min-w-[2.75rem] items-center justify-center rounded-full bg-purple-500/15 px-2">
+          <BadgeLogo icon={logo} height={32} />
+          {(tier.claimed || (locked && !tier.claimed)) && (
+            <span
+              className={`absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full text-white ${
+                tier.claimed ? "bg-[rgb(var(--success))]" : "bg-zinc-700"
+              }`}
+            >
+              {tier.claimed ? <Check size={12} /> : <Lock size={10} />}
+            </span>
+          )}
+        </div>
+      ) : (
+        <div
+          className={`flex h-11 w-11 items-center justify-center rounded-full ${
+            tier.claimed
+              ? "bg-[rgb(var(--success))] text-white"
+              : "bg-[rgb(var(--primary)/0.15)] text-[rgb(var(--primary))]"
+          }`}
+        >
+          {locked && !tier.claimed ? <Lock size={16} /> : tier.claimed ? <Check size={18} /> : icon}
+        </div>
+      )}
 
       <p className="min-h-8 text-xs font-semibold text-[rgb(var(--text))]">{rewardLabel(t, tier)}</p>
 

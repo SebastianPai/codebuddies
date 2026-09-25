@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState, type CSSProperties } from "react";
-import { Award, BadgeCheck, Search, Upload, X } from "lucide-react";
+import { Award, BadgeCheck, Crown, Search, Upload, X } from "lucide-react";
 import { toast } from "react-toastify";
 import { api } from "../../../utils/api";
 
-type BadgeType = "VERIFIED" | "CREATOR";
+type BadgeType = "VERIFIED" | "CREATOR" | "PREMIUM";
 type IconMode = "STATIC" | "SPRITE";
 type AnimationDirection = "PINGPONG" | "LOOP";
 
@@ -21,6 +21,7 @@ type BadgeIconConfig = {
 type BadgeConfig = {
   VERIFIED: BadgeIconConfig;
   CREATOR: BadgeIconConfig;
+  PREMIUM: BadgeIconConfig;
 };
 
 type Creator = {
@@ -44,6 +45,12 @@ const BADGE_META: Record<BadgeType, { title: string; hint: string; defaultColor:
     hint: "Automático: se activa solo cuando el usuario publica su primer objeto en el Marketplace.",
     defaultColor: "#facc15",
     DefaultIcon: Award,
+  },
+  PREMIUM: {
+    title: "Premium",
+    hint: "Automático: Premium activo, o haber reclamado el primer regalo del track premium del Battle Pass (ese se queda aunque venza la suscripción).",
+    defaultColor: "#a855f7",
+    DefaultIcon: Crown,
   },
 };
 
@@ -178,20 +185,20 @@ export default function AdminBadgesPage() {
       <div>
         <h1 className="text-3xl font-black text-yellow-400">Insignias</h1>
         <p className="mt-1 text-sm text-zinc-400">
-          El ícono de verificado y de creador que aparece junto al nombre de un usuario en todo el juego. Podés dejar el
+          El ícono de verificado, creador y premium que aparece junto al nombre de un usuario en todo el juego. Podés dejar el
           ícono por defecto, subir una imagen fija, o subir una tira de varios cuadros para que se anime (para
           insignias pro/premium) — el preview de acá se anima igual que se ve en el juego.
         </p>
       </div>
 
       {loading || !config ? (
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
-          {[0, 1].map((index) => (
+        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {[0, 1, 2].map((index) => (
             <div key={index} className="h-64 animate-pulse rounded-xl border border-zinc-800 bg-zinc-900" />
           ))}
         </div>
       ) : (
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {(Object.keys(BADGE_META) as BadgeType[]).map((type) => (
             <BadgeCard
               key={type}

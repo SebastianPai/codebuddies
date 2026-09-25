@@ -78,6 +78,10 @@
   background: #facc15;
 }
 
+.badgePremium {
+  background: #a855f7;
+}
+
 .badgeImg {
   display: block;
   image-rendering: pixelated;

@@ -247,9 +247,16 @@ export default function SettingsWindow({ username, onClose, onUsernameChanged }:
                         <UserBadges
                           verified={type === "VERIFIED"}
                           isCreator={type === "CREATOR"}
+                          premium={type === "PREMIUM"}
                           size={18}
                         />
-                        {t(type === "VERIFIED" ? "settings.badgeLabelVerified" : "settings.badgeLabelCreator")}
+                        {t(
+                          type === "VERIFIED"
+                            ? "settings.badgeLabelVerified"
+                            : type === "CREATOR"
+                              ? "settings.badgeLabelCreator"
+                              : "settings.badgeLabelPremium",
+                        )}
                       </label>
                     );
                   })}

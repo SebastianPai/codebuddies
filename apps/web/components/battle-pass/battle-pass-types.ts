@@ -12,6 +12,17 @@ export type BattlePassRewardType =
   | "ROLE"
   | "CUSTOM";
 
+// Logo de insignia junto al nombre (mismo formato que /badges/config).
+// Solo viene en el ticket del logo Premium.
+export type BattlePassBadgeIcon = {
+  iconUrl: string | null;
+  mode: "STATIC" | "SPRITE";
+  size: number;
+  frameCount: number;
+  direction: "PINGPONG" | "LOOP";
+  frameRate: number;
+};
+
 export type BattlePassTier = {
   id: string;
   level: number;
@@ -21,6 +32,7 @@ export type BattlePassTier = {
   itemId?: string | null;
   label: string;
   sortOrder: number;
+  badgeIcon?: BattlePassBadgeIcon | null;
   levelReached: boolean;
   trackUnlocked: boolean;
   claimed: boolean;

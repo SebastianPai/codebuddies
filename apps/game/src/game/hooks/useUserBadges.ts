@@ -29,7 +29,7 @@ function fetchBadges(username: string): Promise<BadgeStatus> {
       badgeCache.set(username, status);
       return status;
     })
-    .catch(() => ({ verified: false, isCreator: false }) as BadgeStatus)
+    .catch(() => ({ verified: false, isCreator: false, premium: false }) as BadgeStatus)
     .finally(() => {
       inFlight.delete(username);
     });
@@ -54,7 +54,7 @@ export function notifyBadgesChanged(username?: string) {
 
 export function useUserBadges(username: string | undefined | null): BadgeStatus {
   const [status, setStatus] = useState<BadgeStatus>(
-    () => (username && badgeCache.get(username)) || { verified: false, isCreator: false },
+    () => (username && badgeCache.get(username)) || { verified: false, isCreator: false, premium: false },
   );
 
   useEffect(() => {

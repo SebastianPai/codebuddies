@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import ModularPlayer from "../players/ModularPlayer";
 import {
+  DEFAULT_BADGE_CONFIG,
   getBadgeConfigCached,
   getSpriteFrameAspect,
   getUserBadges,
@@ -40,7 +41,13 @@ export interface HUDConfig {
   nameEffectId?: string | null;
 }
 
-type BadgeKind = "VERIFIED" | "CREATOR";
+type BadgeKind = "VERIFIED" | "CREATOR" | "PREMIUM";
+
+const BADGE_DOT_CLASS: Record<BadgeKind, string> = {
+  VERIFIED: styles.badgeVerified,
+  CREATOR: styles.badgeCreator,
+  PREMIUM: styles.badgePremium,
+};
 
 // Desde el punto del sprite hasta la base del nombre (arriba de la cabeza).
 const HUD_OFFSET_Y = 42;
@@ -133,14 +140,22 @@ export default class PlayerHUD {
 
   private async loadBadges(username: string) {
     try {
-      const [{ verified, isCreator }, config] = await Promise.all([
+      const [{ verified, isCreator, premium }, config] = await Promise.all([
         getUserBadges(username),
         getBadgeConfigCached(),
       ]);
-      if (this.destroyed || (!verified && !isCreator)) return;
+      const kinds: BadgeKind[] = [];
+      if (verified) kinds.push("VERIFIED");
+      if (isCreator) kinds.push("CREATOR");
+      if (premium) kinds.push("PREMIUM");
+      if (this.destroyed || kinds.length === 0) return;
 
-      if (verified) this.badgesEl.appendChild(await this.buildBadge("VERIFIED", config.VERIFIED));
-      if (isCreator) this.badgesEl.appendChild(await this.buildBadge("CREATOR", config.CREATOR));
+      // En orden, aunque cada una tarde distinto en medir su sprite.
+      const badges = await Promise.all(
+        kinds.map((kind) => this.buildBadge(kind, config[kind] ?? DEFAULT_BADGE_CONFIG[kind])),
+      );
+      if (this.destroyed) return;
+      this.badgesEl.append(...badges);
     } catch {
       // sin insignias este ciclo, no es crítico
     }
@@ -149,7 +164,7 @@ export default class PlayerHUD {
   private async buildBadge(kind: BadgeKind, config: BadgeIconConfig): Promise<HTMLElement> {
     if (!config.iconUrl) {
       const dot = document.createElement("span");
-      dot.className = `${styles.badgeDot} ${kind === "VERIFIED" ? styles.badgeVerified : styles.badgeCreator}`;
+      dot.className = `${styles.badgeDot} ${BADGE_DOT_CLASS[kind]}`;
       return dot;
     }
 

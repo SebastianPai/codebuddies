@@ -24,6 +24,7 @@ export type PublicProfile = {
   mutualFriends: number;
   verified: boolean;
   isCreator: boolean;
+  premium?: boolean;
 };
 
 export type ProfileRoom = {

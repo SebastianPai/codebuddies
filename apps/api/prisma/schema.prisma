@@ -3349,9 +3349,14 @@ model CreatorProfile {
 // ícono opcional que el admin puede subir para reemplazar el ícono por
 // defecto de cada tipo — si iconUrl es null, el cliente usa su ícono lucide
 // por defecto.
+//
+// premium = automático: Premium activo, o tener la GamificationBadge
+// "badge-premium-logo" (regalo del nivel 1 del Battle Pass, que se conserva
+// aunque la suscripción venza). Ver BadgesService.
 enum BadgeType {
   VERIFIED
   CREATOR
+  PREMIUM
 }
 
 // STATIC = una sola imagen fija (insignias básicas).

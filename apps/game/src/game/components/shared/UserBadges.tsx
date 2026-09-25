@@ -1,6 +1,6 @@
 "use client";
 
-import { Award, BadgeCheck, type LucideIcon } from "lucide-react";
+import { Award, BadgeCheck, Crown, type LucideIcon } from "lucide-react";
 import { useBadgeConfig, useSpriteFrameAspect, useUserBadges } from "../../hooks/useUserBadges";
 import type { BadgeIconConfig } from "../../network/badges";
 import styles from "./UserBadges.module.css";
@@ -11,12 +11,14 @@ interface Props {
   username?: string | null;
   verified?: boolean;
   isCreator?: boolean;
+  premium?: boolean;
   size?: number;
   className?: string;
 }
 
 const VERIFIED_COLOR = "#3b82f6";
 const CREATOR_COLOR = "#facc15";
+const PREMIUM_COLOR = "#a855f7";
 
 const DEFAULT_ICON_CONFIG: BadgeIconConfig = {
   iconUrl: null,
@@ -27,19 +29,22 @@ const DEFAULT_ICON_CONFIG: BadgeIconConfig = {
   frameRate: 10,
 };
 
-// Insignias de verificado/creador junto al nombre de un usuario: se usa en
+// Insignias de verificado/creador/premium junto al nombre de un usuario: se usa en
 // cualquier lugar del juego donde aparece un username (chat, amigos, perfil,
 // dueño de sala...) en vez de repetir la lógica de ícono default-vs-imagen-
 // admin en cada componente.
-export default function UserBadges({ username, verified, isCreator, size = 14, className = "" }: Props) {
+export default function UserBadges({ username, verified, isCreator, premium, size = 14, className = "" }: Props) {
   const t = useTranslation();
   const fetched = useUserBadges(verified === undefined || isCreator === undefined ? username : null);
   const config = useBadgeConfig();
 
   const isVerified = verified ?? fetched.verified;
   const hasCreator = isCreator ?? fetched.isCreator;
+  // Con verified/isCreator explícitos no se hace fetch: premium sin pasar
+  // queda en false (fetched ya lo trae en false).
+  const hasPremium = premium ?? fetched.premium;
 
-  if (!isVerified && !hasCreator) return null;
+  if (!isVerified && !hasCreator && !hasPremium) return null;
 
   return (
     <span className={`${styles.badges} ${className}`}>
@@ -59,6 +64,15 @@ export default function UserBadges({ username, verified, isCreator, size = 14, c
           DefaultIcon={Award}
           color={CREATOR_COLOR}
           label={t("hud.badges.creator")}
+        />
+      )}
+      {hasPremium && (
+        <BadgeIcon
+          config={config?.PREMIUM ?? DEFAULT_ICON_CONFIG}
+          size={size}
+          DefaultIcon={Crown}
+          color={PREMIUM_COLOR}
+          label={t("hud.badges.premium")}
         />
       )}
     </span>
