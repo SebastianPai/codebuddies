@@ -8,6 +8,7 @@ import {
   BadgeAnimationDirection,
   BadgeIconMode,
   BadgeType,
+  BattlePassProgressMode,
   BattlePassSeasonStatus,
   Prisma,
   RewardSourceType,
@@ -24,6 +25,14 @@ import { UpsertBattlePassTierDto } from '../dto/upsert-battle-pass-tier.dto';
 // transacción ya abierta por el caller (ver ProgressService), sin duplicar
 // el write del progreso de Battle Pass en dos transacciones separadas.
 type PrismaExecutor = PrismaService | Prisma.TransactionClient;
+
+// El "día" del pase diario se corta a medianoche de Colombia (UTC-5, sin
+// horario de verano), no a medianoche UTC (las 7 p. m. allá).
+const DAY_OFFSET_MS = -5 * 60 * 60 * 1000;
+
+function todayKey(now = Date.now()): string {
+  return new Date(now + DAY_OFFSET_MS).toISOString().slice(0, 10);
+}
 
 const TIER_ORDER: Prisma.BattlePassTierOrderByWithRelationInput[] = [
   { level: 'asc' },
@@ -68,7 +77,7 @@ export class BattlePassService {
     if (amount <= 0) return;
 
     const season = await this.getActiveSeason(client);
-    if (!season) return;
+    if (!season || season.progressMode === BattlePassProgressMode.DAILY) return;
 
     const maxXp = season.xpPerLevel * season.totalLevels;
 
@@ -89,7 +98,40 @@ export class BattlePassService {
     });
   }
 
+  // Modo DAILY: el primer check-in de cada día (hora de Colombia) sube un
+  // nivel. Se llama al abrir el juego y al ver el pase; repetirlo el mismo
+  // día no hace nada. Los updateMany condicionales son la guarda contra dos
+  // llamadas simultáneas (solo una encuentra lastCheckInDay < hoy).
+  async checkIn(userId: string): Promise<void> {
+    const season = await this.getActiveSeason();
+    if (!season || season.progressMode !== BattlePassProgressMode.DAILY) return;
+
+    const today = todayKey();
+    const progress = await this.prisma.userBattlePassProgress.upsert({
+      where: { userId_seasonId: { userId, seasonId: season.id } },
+      update: {},
+      // Primer día de la temporada para este usuario = día 1 ya desbloqueado.
+      create: { userId, seasonId: season.id, lastCheckInDay: today },
+    });
+    if (progress.lastCheckInDay === today) return;
+
+    const advanced = await this.prisma.userBattlePassProgress.updateMany({
+      where: { id: progress.id, lastCheckInDay: { lt: today }, level: { lt: season.totalLevels } },
+      data: { lastCheckInDay: today, level: { increment: 1 } },
+    });
+    if (advanced.count > 0) return;
+
+    // Sin fila previa de check-in (progreso de la época XP) o ya en el
+    // último día: solo marca hoy.
+    await this.prisma.userBattlePassProgress.updateMany({
+      where: { id: progress.id, OR: [{ lastCheckInDay: null }, { lastCheckInDay: { lt: today } }] },
+      data: { lastCheckInDay: today },
+    });
+  }
+
   async getMyState(userId: string) {
+    await this.checkIn(userId);
+
     const season = await this.getActiveSeason();
     if (!season) {
       return { season: null, hasPremium: false, progress: null, tiers: [] };
@@ -162,6 +204,7 @@ export class BattlePassService {
       season,
       hasPremium,
       progress: {
+        mode: season.progressMode,
         xp: currentXp,
         level: currentLevel,
         xpPerLevel: season.xpPerLevel,
@@ -282,6 +325,7 @@ export class BattlePassService {
         endsAt: new Date(dto.endsAt),
         totalLevels: dto.totalLevels ?? 30,
         xpPerLevel: dto.xpPerLevel ?? 1000,
+        progressMode: dto.progressMode ?? BattlePassProgressMode.DAILY,
       },
     });
   }
@@ -301,6 +345,7 @@ export class BattlePassService {
         endsAt: dto.endsAt ? new Date(dto.endsAt) : undefined,
         totalLevels: dto.totalLevels,
         xpPerLevel: dto.xpPerLevel,
+        progressMode: dto.progressMode,
       },
     });
   }

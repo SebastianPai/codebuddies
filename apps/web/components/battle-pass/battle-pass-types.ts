@@ -52,6 +52,8 @@ export type BattlePassSeason = {
 };
 
 export type BattlePassProgress = {
+  /** DAILY: un nivel por cada día que el usuario entra. XP: por XP. */
+  mode?: "XP" | "DAILY";
   xp: number;
   level: number;
   xpPerLevel: number;

@@ -2340,6 +2340,14 @@ enum BattlePassTrack {
   PREMIUM
 }
 
+// XP: el nivel sube con XP de Battle Pass (lecciones/ejercicios).
+// DAILY: cada día distinto que el usuario entra se desbloquea el siguiente
+// (día 1, 2... totalLevels); faltar un día no hace perder nada.
+enum BattlePassProgressMode {
+  XP
+  DAILY
+}
+
 // Temporada del Battle Pass. Mismo shape que RankingSeason/ReferralSeason
 // (header con status + startAt/endAt) pero con su propio ciclo de vida
 // porque un Battle Pass necesita niveles/curva de XP propios, que esos dos
@@ -2357,6 +2365,7 @@ model BattlePassSeason {
   // un nivel. Curva constante en v1 -- suficiente para 30 niveles / 30 días
   // y fácil de auditar contra los topes de economía del diseño.
   xpPerLevel   Int                    @default(1000)
+  progressMode BattlePassProgressMode @default(DAILY)
   createdAt    DateTime               @default(now())
   updatedAt    DateTime               @updatedAt
 
@@ -2408,6 +2417,9 @@ model UserBattlePassProgress {
   seasonId  String
   xp        Int      @default(0)
   level     Int      @default(1)
+  // Modo DAILY: último día (YYYY-MM-DD, hora de Colombia) que contó. Si es
+  // anterior a hoy, el próximo check-in sube un nivel.
+  lastCheckInDay String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

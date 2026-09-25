@@ -1,4 +1,4 @@
-import { BattlePassSeasonStatus } from '@prisma/client';
+import { BattlePassProgressMode, BattlePassSeasonStatus } from '@prisma/client';
 
 export class UpsertBattlePassSeasonDto {
   name?: string;
@@ -9,4 +9,5 @@ export class UpsertBattlePassSeasonDto {
   endsAt?: string;
   totalLevels?: number;
   xpPerLevel?: number;
+  progressMode?: BattlePassProgressMode;
 }

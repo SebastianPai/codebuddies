@@ -75,9 +75,12 @@ export default function BattlePassPage() {
   const { season, progress, hasPremium, tiers } = data;
   const freeTiers = [...tiers].filter((tier) => tier.track === "FREE").sort((a, b) => a.level - b.level);
   const premiumTiers = [...tiers].filter((tier) => tier.track === "PREMIUM").sort((a, b) => a.level - b.level);
+  const daily = progress.mode === "DAILY";
   const levelPercentage = progress.isMaxLevel
     ? 100
-    : Math.min(100, Math.round((progress.xpIntoLevel / Math.max(progress.xpPerLevel, 1)) * 100));
+    : daily
+      ? Math.round((progress.level / Math.max(progress.totalLevels, 1)) * 100)
+      : Math.min(100, Math.round((progress.xpIntoLevel / Math.max(progress.xpPerLevel, 1)) * 100));
 
   return (
     <div className="py-8 text-[rgb(var(--text))]">
@@ -89,7 +92,7 @@ export default function BattlePassPage() {
               <h1 className="text-4xl font-black">{season.name}</h1>
             </div>
             <p className="mt-2 max-w-2xl text-sm text-[rgb(var(--secondary-text))]">
-              {t("battlePass.pageDescription")}
+              {t(daily ? "battlePass.pageDescriptionDaily" : "battlePass.pageDescription")}
             </p>
             <p className="mt-1 text-xs font-semibold text-[rgb(var(--secondary-text))]">
               {daysRemaining > 1
@@ -103,15 +106,17 @@ export default function BattlePassPage() {
           <div className="min-w-65 space-y-3">
             <div className="flex items-center justify-between gap-3 text-sm font-black">
               <span>
-                {t("battlePass.level")} {progress.level} / {progress.totalLevels}
+                {t(daily ? "battlePass.day" : "battlePass.level")} {progress.level} / {progress.totalLevels}
               </span>
               <span className="text-xs font-semibold text-[rgb(var(--secondary-text))]">
                 {progress.isMaxLevel
-                  ? t("battlePass.maxLevel")
-                  : t("battlePass.xpToNextLevel", {
-                      current: progress.xpIntoLevel,
-                      target: progress.xpPerLevel,
-                    })}
+                  ? t(daily ? "battlePass.allDaysUnlocked" : "battlePass.maxLevel")
+                  : daily
+                    ? t("battlePass.comeBackTomorrow", { day: progress.level + 1 })
+                    : t("battlePass.xpToNextLevel", {
+                        current: progress.xpIntoLevel,
+                        target: progress.xpPerLevel,
+                      })}
               </span>
             </div>
             <div
@@ -155,6 +160,7 @@ export default function BattlePassPage() {
       <BattlePassTrackSection
         title={t("battlePass.freeTrack")}
         tiers={freeTiers}
+        daily={daily}
         claimingId={claimingId}
         onClaim={(id) => void claim(id)}
       />
@@ -162,6 +168,7 @@ export default function BattlePassPage() {
       <BattlePassTrackSection
         title={t("battlePass.premiumTrack")}
         tiers={premiumTiers}
+        daily={daily}
         claimingId={claimingId}
         onClaim={(id) => void claim(id)}
         highlight
@@ -173,12 +180,14 @@ export default function BattlePassPage() {
 function BattlePassTrackSection({
   title,
   tiers,
+  daily,
   claimingId,
   onClaim,
   highlight,
 }: {
   title: string;
   tiers: BattlePassTier[];
+  daily: boolean;
   claimingId: string | null;
   onClaim: (id: string) => void;
   highlight?: boolean;
@@ -191,7 +200,7 @@ function BattlePassTrackSection({
       </div>
       <div className="flex gap-3 overflow-x-auto pb-3">
         {tiers.map((tier) => (
-          <BattlePassTicket key={tier.id} tier={tier} claiming={claimingId === tier.id} onClaim={onClaim} />
+          <BattlePassTicket key={tier.id} tier={tier} daily={daily} claiming={claimingId === tier.id} onClaim={onClaim} />
         ))}
       </div>
     </section>

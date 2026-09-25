@@ -30,10 +30,13 @@ function rewardLabel(t: ReturnType<typeof useTranslation>, tier: BattlePassTier)
 
 export function BattlePassTicket({
   tier,
+  daily = false,
   claiming,
   onClaim,
 }: {
   tier: BattlePassTier;
+  /** Pase por días: "Día N" en vez de "Nv. N". */
+  daily?: boolean;
   claiming: boolean;
   onClaim: (tierId: string) => void;
 }) {
@@ -60,7 +63,7 @@ export function BattlePassTicket({
       }`}
     >
       <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full border border-[rgb(var(--border))] bg-[rgb(var(--background))] px-2 py-0.5 text-[10px] font-black text-[rgb(var(--text))]">
-        {t("battlePass.levelShort")} {tier.level}
+        {t(daily ? "battlePass.day" : "battlePass.levelShort")} {tier.level}
       </span>
 
       {logo ? (
@@ -107,7 +110,7 @@ export function BattlePassTicket({
         <span className="text-[10px] text-[rgb(var(--secondary-text))]">{t("battlePass.lockedPremium")}</span>
       ) : (
         <span className="text-[10px] text-[rgb(var(--secondary-text))]">
-          {t("battlePass.lockedLevel", { level: tier.level })}
+          {t(daily ? "battlePass.lockedDay" : "battlePass.lockedLevel", { level: tier.level })}
         </span>
       )}
     </motion.div>

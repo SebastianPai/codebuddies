@@ -7,6 +7,7 @@ import { gameConfig } from "./config";
 import { getCurrentUser, redirectToWebLogin } from "./network/auth";
 import { createSocket } from "./network/socket";
 import { connectRealtime, disconnectRealtime } from "./network/realtime";
+import { checkInBattlePass } from "./network/battlePass";
 import { audioManager } from "./audio/AudioManager";
 import { useAvatar } from "./hooks/useAvatar";
 
@@ -156,6 +157,9 @@ export default function Game() {
       // =========================
 
       connectRealtime();
+
+      // Pase diario: cuenta el día de hoy (no bloquea el arranque).
+      void checkInBattlePass();
 
       // =========================
       // SOCKET GLOBAL

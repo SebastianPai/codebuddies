@@ -14,6 +14,13 @@ export class BattlePassController {
     return this.battlePassService.getMyState(user.userId);
   }
 
+  // El juego lo llama al abrir: cuenta el día en el pase diario.
+  @Post('check-in')
+  async checkIn(@CurrentUser() user: AuthUser) {
+    await this.battlePassService.checkIn(user.userId);
+    return { ok: true };
+  }
+
   @Post('claim/:tierId')
   claim(@Param('tierId') tierId: string, @CurrentUser() user: AuthUser) {
     return this.battlePassService.claimTier(user.userId, tierId);
