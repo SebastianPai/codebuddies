@@ -213,7 +213,7 @@ export class BubbleStack {
 export const PORTRAIT_SIZE = 72;
 
 // Alto del recorte relativo al alto visible del personaje: cabeza + cuello.
-const HEAD_FRACTION = 0.42;
+const HEAD_FRACTION = 0.5;
 // Aire por encima del pelo, relativo al lado del recorte.
 const HEAD_TOP_MARGIN = 0.06;
 const ALPHA_THRESHOLD = 16;
