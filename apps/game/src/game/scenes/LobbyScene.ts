@@ -208,6 +208,12 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
       const hadPreviousRoom = !!this.map;
 
       const loadNextRoom = () => {
+        // Nombres y burbujas son objetos aparte del sprite: se destruyen
+        // explícitamente (antes de vaciar la escena) o quedaban flotando como
+        // "usuarios duplicados".
+        this.otherPlayers?.getChildren().forEach((child: any) => child.hud?.destroy());
+        this.hud?.destroy();
+
         this.destroyCurrentMap();
 
         this.otherPlayers?.clear(true, true);
@@ -1128,6 +1134,16 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     // Mascota del jugador: se muestra siguiéndolo si la "sacó" a esta sala
     // (Pet.activeRoomId). Se resincroniza cuando el panel de mascota emite
     // "pet:changed" y al cerrar la escena se limpia.
+    //
+    // createWorld corre en CADA room:joined (cambio de sala y reconexión):
+    // sin destruir las instancias anteriores, su sync() pendiente terminaba
+    // creando otro sprite huérfano (mascota/mayordomo duplicados y
+    // congelados, sobre todo con red lenta).
+    window.removeEventListener("pet:changed", this.onPetChanged);
+    window.removeEventListener("butler:changed", this.onButlerChanged);
+    this.petSystem?.destroy();
+    this.butlerSystem?.destroy();
+
     this.petSystem = new PetSystem(this);
     void this.petSystem.sync();
     window.addEventListener("pet:changed", this.onPetChanged);
@@ -1217,6 +1233,8 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
 
     this.furniturePlacement.initialize();
 
+    // El HUD anterior (sala previa o antes de reconectar) no debe quedar vivo.
+    this.hud?.destroy();
     this.hud = new PlayerHUD({
       scene: this,
       playerSprite: this.player,

@@ -14,12 +14,13 @@ import {
   resolveChatBubbleTheme,
 } from "./nameplateStyles";
 import {
+  BUBBLE_LIFETIME_MS,
+  BubbleStack,
   createBubbleElement,
   createHudAnchor,
   hudStyles as styles,
   nameEffectClass,
   paintBubbleFace,
-  removeBubbleElement,
   snapshotHead,
 } from "./domHud";
 
@@ -40,10 +41,6 @@ export interface HUDConfig {
 }
 
 type BadgeKind = "VERIFIED" | "CREATOR";
-
-// Cuántos mensajes quedan visibles a la vez por jugador. Más que esto se ve
-// desordenado y, en una sala muy activa, acumula nodos sin sentido.
-const MAX_CHAT_STACK = 3;
 
 // Desde el punto del sprite hasta la base del nombre (arriba de la cabeza).
 const HUD_OFFSET_Y = 42;
@@ -67,7 +64,7 @@ export default class PlayerHUD {
 
   private element: Phaser.GameObjects.DOMElement;
   private root: HTMLDivElement;
-  private stack: HTMLDivElement;
+  private stack: BubbleStack;
   private nameEl: HTMLSpanElement;
   private badgesEl: HTMLSpanElement;
 
@@ -76,8 +73,6 @@ export default class PlayerHUD {
   private face: HTMLCanvasElement | null = null;
   private faceDirty = true;
   private faceCapture: Promise<HTMLCanvasElement | null> | null = null;
-  private bubbles: Array<{ el: HTMLElement; token: number }> = [];
-  private chatBubbleToken = 0;
   private destroyed = false;
 
   constructor(config: HUDConfig) {
@@ -92,8 +87,7 @@ export default class PlayerHUD {
     this.element = element;
     this.root = root;
 
-    this.stack = document.createElement("div");
-    this.stack.className = styles.stack;
+    this.stack = new BubbleStack();
 
     const plate = document.createElement("div");
     plate.className = styles.plate;
@@ -113,7 +107,7 @@ export default class PlayerHUD {
     this.badgesEl.className = styles.badges;
     plate.appendChild(this.badgesEl);
 
-    this.root.append(this.stack, plate);
+    this.root.append(this.stack.element, plate);
     this.applyNameEffect();
     this.setVisible(!!this.sprite);
 
@@ -222,15 +216,16 @@ export default class PlayerHUD {
     // dos nombres se cruzan.
     this.element.setDepth(Math.round(this.sprite.y));
     this.setVisible(true);
+    this.stack.update(this.scene.time.now);
   }
 
-  // Burbuja nueva abajo (pegada al nombre); las anteriores suben y se van
-  // desvaneciendo. themeId, si viene, es el tema que eligió el remitente.
-  showChat(message: string, duration = 3000, themeId?: string | null) {
+  // Burbuja nueva abajo (pegada al nombre); las anteriores suben en cascada
+  // y se desvanecen arriba (ver BubbleStack). themeId, si viene, es el tema
+  // que eligió el remitente.
+  showChat(message: string, duration = BUBBLE_LIFETIME_MS, themeId?: string | null) {
     if (!this.sprite || this.destroyed) return;
 
     const theme = themeId !== undefined ? resolveChatBubbleTheme(themeId) : this.chatBubbleTheme;
-    const token = ++this.chatBubbleToken;
 
     const el = createBubbleElement({
       message,
@@ -245,37 +240,13 @@ export default class PlayerHUD {
         if (face) paintBubbleFace(el, face);
       });
     }
-    this.stack.appendChild(el);
-    this.bubbles.push({ el, token });
-
-    // Límite duro: la más vieja se va sin animación.
-    while (this.bubbles.length > MAX_CHAT_STACK) {
-      this.bubbles.shift()?.el.remove();
-    }
-    this.applyStackFade();
+    this.stack.push(el, this.scene.time.now, duration);
     this.update();
-
-    this.scene.time.delayedCall(duration, () => {
-      const index = this.bubbles.findIndex((entry) => entry.token === token);
-      if (index === -1) return;
-      const [entry] = this.bubbles.splice(index, 1);
-      removeBubbleElement(entry.el);
-      this.applyStackFade();
-    });
-  }
-
-  // La más nueva 100% opaca, cada una más vieja un poco más tenue.
-  private applyStackFade() {
-    const newest = this.bubbles.length - 1;
-    this.bubbles.forEach((entry, index) => {
-      const age = newest - index;
-      entry.el.style.opacity = String(Math.max(0.3, 1 - age * 0.35));
-    });
   }
 
   destroy() {
     this.destroyed = true;
-    this.bubbles = [];
+    this.stack.clear();
     this.element.destroy();
   }
 

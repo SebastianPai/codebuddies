@@ -109,10 +109,95 @@ export function paintBubbleFace(bubble: HTMLElement, face: HTMLCanvasElement) {
   if (canvas) paintCanvas(canvas, face);
 }
 
-/** Saca una burbuja con transición y la elimina del DOM al terminar. */
-export function removeBubbleElement(bubble: HTMLElement) {
-  bubble.classList.add(styles.bubbleLeaving);
-  window.setTimeout(() => bubble.remove(), 220);
+// ---------------------------------------------------------------------------
+// Historial de burbujas en cascada (jugadores y mayordomo).
+//
+// Estilo Habbo: el mensaje nuevo aparece abajo (pegado al nombre) y empuja a
+// los anteriores hacia arriba sin que se encimen; aunque nadie escriba, todos
+// suben despacio y se desvanecen al llegar arriba o al terminar su vida.
+// Cada burbuja se mueve con la propiedad CSS `translate` (independiente de
+// la animación de entrada, que usa `transform`), actualizada desde update()
+// del HUD solo mientras hay burbujas vivas: como mucho MAX_BUBBLES nodos.
+// ---------------------------------------------------------------------------
+
+export const BUBBLE_LIFETIME_MS = 10000;
+const BUBBLE_FADE_MS = 1200;
+const BUBBLE_DRIFT_PX_PER_S = 7;
+const BUBBLE_GAP = 6;
+const BUBBLE_MAX_RISE = 260;
+const BUBBLE_TOP_FADE_PX = 60;
+const MAX_BUBBLES = 6;
+// Qué tan rápido alcanza cada burbuja su posición (0..1 por frame).
+const BUBBLE_EASE = 0.18;
+
+interface BubbleEntry {
+  el: HTMLElement;
+  bornAt: number;
+  lifetime: number;
+  y: number;
+  height: number;
+}
+
+export class BubbleStack {
+  private entries: BubbleEntry[] = [];
+  readonly element: HTMLDivElement;
+
+  constructor() {
+    this.element = document.createElement("div");
+    this.element.className = styles.stack;
+  }
+
+  get size() {
+    return this.entries.length;
+  }
+
+  push(el: HTMLElement, now: number, lifetime = BUBBLE_LIFETIME_MS) {
+    this.element.appendChild(el);
+    // Una sola lectura de layout por burbuja (al crearla), no por frame.
+    const height = el.offsetHeight;
+    this.entries.unshift({ el, bornAt: now, lifetime, y: 0, height });
+
+    while (this.entries.length > MAX_BUBBLES) {
+      this.entries.pop()?.el.remove();
+    }
+    this.update(now);
+  }
+
+  update(now: number) {
+    if (this.entries.length === 0) return;
+
+    let floor = -BUBBLE_GAP;
+    const alive: BubbleEntry[] = [];
+
+    for (const entry of this.entries) {
+      const age = now - entry.bornAt;
+      const drift = (age / 1000) * BUBBLE_DRIFT_PX_PER_S;
+      // Nunca por debajo de la burbuja más nueva que tiene debajo.
+      const target = Math.max(drift, floor + BUBBLE_GAP);
+      entry.y += (target - entry.y) * BUBBLE_EASE;
+      floor = entry.y + entry.height;
+
+      let opacity = Math.min(1, (entry.lifetime - age) / BUBBLE_FADE_MS);
+      const overTop = entry.y + entry.height - BUBBLE_MAX_RISE;
+      if (overTop > 0) opacity = Math.min(opacity, 1 - overTop / BUBBLE_TOP_FADE_PX);
+
+      if (opacity <= 0) {
+        entry.el.remove();
+        continue;
+      }
+
+      entry.el.style.translate = `-50% ${-entry.y.toFixed(1)}px`;
+      entry.el.style.opacity = opacity.toFixed(3);
+      alive.push(entry);
+    }
+
+    this.entries = alive;
+  }
+
+  clear() {
+    this.entries.forEach((entry) => entry.el.remove());
+    this.entries = [];
+  }
 }
 
 // ---------------------------------------------------------------------------

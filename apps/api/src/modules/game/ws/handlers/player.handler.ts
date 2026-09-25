@@ -280,6 +280,26 @@ export class PlayerHandler {
     }
   }
 
+  /**
+   * Quita de la lista de jugadores las entradas de conexiones ANTERIORES del
+   * mismo usuario (un reconnect llega antes de que el servidor note que el
+   * socket viejo murió). Sin esto el jugador se veía duplicado: su fantasma
+   * seguía en la sala hasta el timeout del socket viejo.
+   * Devuelve las entradas quitadas para avisar a sus salas.
+   */
+  purgeStalePlayers(userId: string, keepSocketId: string): Player[] {
+    const removed: Player[] = [];
+    for (const [socketId, owner] of this.socketToUserId) {
+      if (owner !== userId || socketId === keepSocketId) continue;
+      const stale = this.players[socketId];
+      if (stale) {
+        delete this.players[socketId];
+        removed.push(stale);
+      }
+    }
+    return removed;
+  }
+
   // ====================== DESCONEXIÓN ======================
   handleDisconnect(socket: Socket) {
     const expiryTimer = this.sessionExpiryTimers.get(socket.id);
@@ -290,7 +310,11 @@ export class PlayerHandler {
 
     const userId = this.socketToUserId.get(socket.id);
     if (userId) {
-      this.userToSocketId.delete(userId);
+      // Tras una reconexión el usuario ya apunta al socket NUEVO; si el viejo
+      // se cierra después, no debe borrar ese vínculo.
+      if (this.userToSocketId.get(userId) === socket.id) {
+        this.userToSocketId.delete(userId);
+      }
       this.socketToUserId.delete(socket.id);
     }
 

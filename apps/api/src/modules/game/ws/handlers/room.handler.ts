@@ -143,6 +143,12 @@ export class RoomHandler {
         return socket.emit('room:error', { message: 'Sala no encontrada' });
       }
 
+      // Fantasmas de una conexión anterior del mismo usuario (reconnect):
+      // se quitan y se avisa a su sala, o el jugador aparecía duplicado.
+      for (const stale of this.playerHandler.purgeStalePlayers(userId, socket.id)) {
+        server.to(stale.room).emit('playerDisconnected', stale.id);
+      }
+
       // Unirse a la sala Socket.IO
       socket.join(roomId);
       socket.data.currentRoom = roomId;

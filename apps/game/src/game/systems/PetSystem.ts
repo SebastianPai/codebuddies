@@ -35,6 +35,9 @@ export default class PetSystem {
   private lastX = 0;
   private lastY = 0;
   private syncing = false;
+  // Destruido mientras un sync() esperaba la red (cambio de sala o
+  // reconexión): al volver no debe crear una mascota huérfana.
+  private destroyed = false;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -42,12 +45,13 @@ export default class PetSystem {
 
   /** Lee /pets/me y decide si la mascota debe estar en esta sala. */
   async sync(): Promise<void> {
-    if (this.syncing) return;
+    if (this.syncing || this.destroyed) return;
     this.syncing = true;
     try {
       const roomId: string | null =
         (typeof window !== "undefined" && (window as any).currentRoomId) || null;
       const pet = await getMyPet().catch(() => null);
+      if (this.destroyed) return;
       this.pet = pet;
 
       const shouldShow = !!pet && !!roomId && pet.activeRoomId === roomId;
@@ -58,6 +62,7 @@ export default class PetSystem {
       if (this.sprite && this.species?.key === pet!.species) return; // ya está
 
       const list = await getPetSpeciesList().catch(() => [] as PetSpecies[]);
+      if (this.destroyed) return;
       const species = list.find((s) => s.key === pet!.species) ?? null;
       if (!species?.spriteSheetUrl) {
         this.despawn();
@@ -98,6 +103,7 @@ export default class PetSystem {
         }
       }),
     );
+    if (this.destroyed) return;
     this.textureKey = this.sheetKeys.get(species.spriteSheetUrl!);
     if (!this.textureKey) return;
 
@@ -120,6 +126,7 @@ export default class PetSystem {
   }
 
   destroy(): void {
+    this.destroyed = true;
     this.despawn();
     this.pet = null;
   }

@@ -4,10 +4,10 @@ import { getMyButler, getButlerCatalog, type ButlerNpc } from "../network/butler
 import type { PetAnimClip } from "../network/pets";
 import { resolveActorGroundPoint, syncActorDepth } from "../iso/IsoActorDepth";
 import {
+  BubbleStack,
   createBubbleElement,
   createHudAnchor,
   frameToCanvas,
-  removeBubbleElement,
 } from "../hud/domHud";
 import { resolveChatBubbleTheme } from "../hud/nameplateStyles";
 
@@ -31,7 +31,7 @@ const WALK_TIMEOUT_MS = 4500; // si no llegó en este tiempo, se rinde y para
 const REST_MIN_MS = 7000;
 const REST_MAX_MS = 12000;
 const GREETING_DELAY_MS = 700; // saluda poco después de aparecer
-const BUBBLE_MS = 5000; // cuánto dura una frase en pantalla
+const BUBBLE_MS = 9000; // cuánto dura una frase en pantalla (sube en cascada)
 const IDLE_LINE_MIN_MS = 16000;
 const IDLE_LINE_MAX_MS = 34000;
 
@@ -52,6 +52,7 @@ export default class ButlerSystem {
   private restThreshold = REST_MIN_MS;
   private resting = false;
   private syncing = false;
+  private destroyed = false;
 
   // Deambular
   private timer = 0; // reloj interno acumulado (ms)
@@ -69,9 +70,7 @@ export default class ButlerSystem {
   private nextIdleLineAt = 0;
   // Globo en HTML sobre el canvas (mismo sistema que las burbujas de los
   // jugadores, ver hud/domHud.ts): ancla que sigue al sprite + burbuja.
-  private hud?: { element: Phaser.GameObjects.DOMElement; root: HTMLDivElement };
-  private bubble?: HTMLElement;
-  private bubbleUntil = 0;
+  private hud?: { element: Phaser.GameObjects.DOMElement; root: HTMLDivElement; stack: BubbleStack };
   private butlerName = "";
 
   constructor(scene: Phaser.Scene) {
@@ -80,12 +79,15 @@ export default class ButlerSystem {
 
   /** Lee /butlers/me y decide si el mayordomo debe estar en esta sala. */
   async sync(): Promise<void> {
-    if (this.syncing) return;
+    if (this.syncing || this.destroyed) return;
     this.syncing = true;
     try {
       const roomId: string | null =
         (typeof window !== "undefined" && (window as any).currentRoomId) || null;
       const mine = await getMyButler().catch(() => null);
+      // Destruido mientras esperaba la red (cambio de sala/reconexión): no
+      // crear un mayordomo huérfano.
+      if (this.destroyed) return;
 
       const shouldShow = !!mine && !!roomId && mine.activeRoomId === roomId;
       if (!shouldShow) {
@@ -96,6 +98,7 @@ export default class ButlerSystem {
       if (this.sprite && this.npcKey === mine!.npcKey) return; // ya está
 
       const catalog = await getButlerCatalog().catch(() => [] as ButlerNpc[]);
+      if (this.destroyed) return;
       const npc = catalog.find((n) => n.key === mine!.npcKey) ?? null;
       if (!npc?.spriteSheetUrl) {
         this.despawn();
@@ -134,6 +137,7 @@ export default class ButlerSystem {
         }
       }),
     );
+    if (this.destroyed) return;
     this.textureKey = this.sheetKeys.get(npc.spriteSheetUrl!);
     if (!this.textureKey) return;
 
@@ -175,6 +179,7 @@ export default class ButlerSystem {
   }
 
   destroy(): void {
+    this.destroyed = true;
     this.despawn();
   }
 
@@ -274,18 +279,22 @@ export default class ButlerSystem {
     if (!this.sprite || !lines || lines.length === 0) return;
     const text = lines[Math.floor(Math.random() * lines.length)]?.trim();
     if (!text) return;
-    this.clearBubble();
 
-    this.hud ??= createHudAnchor(this.scene);
-    this.bubble = createBubbleElement({
+    if (!this.hud) {
+      const anchor = createHudAnchor(this.scene);
+      const stack = new BubbleStack();
+      anchor.root.appendChild(stack.element);
+      this.hud = { ...anchor, stack };
+    }
+    const bubble = createBubbleElement({
       message: text,
       // Tema oscuro fijo: se distingue de un jugador (que usa el suyo).
       theme: resolveChatBubbleTheme("midnight"),
       name: this.butlerName || this.npc?.name || undefined,
       face: frameToCanvas(this.sprite.frame),
     });
-    this.hud.root.appendChild(this.bubble);
-    this.bubbleUntil = this.timer + BUBBLE_MS;
+    // Mismo historial en cascada que los jugadores (BubbleStack).
+    this.hud.stack.push(bubble, this.scene.time.now, BUBBLE_MS);
     this.positionBubble();
   }
 
@@ -297,9 +306,7 @@ export default class ButlerSystem {
   }
 
   private clearBubble(): void {
-    if (this.bubble) removeBubbleElement(this.bubble);
-    this.bubble = undefined;
-    this.bubbleUntil = 0;
+    this.hud?.stack.clear();
   }
 
   // ---- Loop ------------------------------------------------------------
@@ -374,10 +381,10 @@ export default class ButlerSystem {
     this.lastY = this.sprite.y;
     syncActorDepth(this.scene, this.sprite);
 
-    // Globo de diálogo: sigue al sprite y se cierra al vencer.
-    if (this.bubble) {
-      if (this.timer >= this.bubbleUntil) this.clearBubble();
-      else this.positionBubble();
+    // Globos: siguen al sprite; la pila los hace subir y desvanecerse sola.
+    if (this.hud && this.hud.stack.size > 0) {
+      this.positionBubble();
+      this.hud.stack.update(this.scene.time.now);
     }
 
     const clip = this.pickClip(moving);

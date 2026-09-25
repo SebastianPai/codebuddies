@@ -98,3 +98,49 @@ describe('PlayerHandler — broadcastNameEffectUpdate', () => {
     expect(server.to).toHaveBeenCalledWith('room-only-mine');
   });
 });
+
+describe('PlayerHandler — reconexión (fantasmas del mismo usuario)', () => {
+  let handler: PlayerHandler;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        PlayerHandler,
+        { provide: JwtService, useValue: {} },
+        { provide: AvatarService, useValue: {} },
+        { provide: PlayerService, useValue: {} },
+        { provide: EnergyService, useValue: {} },
+        { provide: PrismaService, useValue: {} },
+      ],
+    }).compile();
+    handler = module.get<PlayerHandler>(PlayerHandler);
+  });
+
+  function seed(userId: string, socketId: string, room: string) {
+    (handler as any).socketToUserId.set(socketId, userId);
+    (handler as any).userToSocketId.set(userId, socketId);
+    handler.players[socketId] = { id: socketId, x: 0, y: 0, room, username: userId, avatar: {} as any };
+  }
+
+  it('purgeStalePlayers quita las entradas de sockets viejos del mismo usuario y conserva el actual', () => {
+    seed('user-1', 'old-socket', 'room-a');
+    seed('user-2', 'other-user', 'room-a');
+    seed('user-1', 'new-socket', 'room-a');
+
+    const removed = handler.purgeStalePlayers('user-1', 'new-socket');
+
+    expect(removed.map((p) => p.id)).toEqual(['old-socket']);
+    expect(handler.players['old-socket']).toBeUndefined();
+    expect(handler.players['new-socket']).toBeDefined();
+    expect(handler.players['other-user']).toBeDefined();
+  });
+
+  it('al cerrarse el socket viejo no borra el vínculo usuario→socket nuevo', () => {
+    seed('user-1', 'old-socket', 'room-a');
+    seed('user-1', 'new-socket', 'room-a');
+
+    handler.handleDisconnect({ id: 'old-socket', to: () => ({ emit: jest.fn() }) } as any);
+
+    expect((handler as any).userToSocketId.get('user-1')).toBe('new-socket');
+  });
+});
