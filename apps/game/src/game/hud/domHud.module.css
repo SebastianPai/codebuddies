@@ -151,8 +151,9 @@
   display: none;
 }
 
-/* Retrato superpuesto: sale por el borde izquierdo de la burbuja, con aro
-   del color del tema, mostrando cara y un poco de cuello. */
+/* Retrato superpuesto: la cabeza (cara y un poco de cuello) sale por el
+   borde izquierdo de la burbuja, sin fondo ni aro; solo la silueta con una
+   sombra que la despega de cualquier tema. */
 .hasFace {
   margin-left: 22px;
   padding-left: 28px;
@@ -162,14 +163,11 @@
   position: absolute;
   top: 50%;
   left: -22px;
-  width: 40px;
-  height: 40px;
-  border: 2px solid var(--cbh-border);
-  border-radius: 999px;
-  background: radial-gradient(circle at 50% 35%, #ffffff, #dfe6f1);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+  width: 44px;
+  height: 44px;
   transform: translateY(-50%);
   image-rendering: pixelated;
+  filter: drop-shadow(0 0 1px rgba(11, 15, 26, 0.9)) drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45));
 }
 
 .text {
@@ -284,11 +282,6 @@
 }
 
 .fx_pixel .tail {
-  border-width: 3px;
-}
-
-.fx_pixel .face {
-  border-radius: 4px;
   border-width: 3px;
 }
 
