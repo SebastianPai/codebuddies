@@ -7,7 +7,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SubscriptionsService } from '../subscriptions/services/subscriptions.service';
-import { PREMIUM_LOGO_BADGE_ID } from './badges.constants';
+import { PREMIUM_LOGO_BADGE_ID, PREMIUM_LOGO_DAYS } from './badges.constants';
 
 export type BadgeStatus = { verified: boolean; isCreator: boolean; premium: boolean };
 
@@ -158,7 +158,8 @@ export class BadgesService {
   }
 
   // Premium activo (misma regla que PremiumAccessService) o el logo ganado
-  // en el Battle Pass. Por lotes para las listas (amigos, sala).
+  // en el Battle Pass en los últimos PREMIUM_LOGO_DAYS días. Por lotes para
+  // las listas (amigos, sala).
   private async premiumUserIds(userIds: string[]): Promise<Set<string>> {
     if (userIds.length === 0) return new Set();
     const [subscriptions, owned] = await Promise.all([
@@ -171,7 +172,11 @@ export class BadgesService {
         select: { userId: true },
       }),
       this.prisma.userGamificationBadge.findMany({
-        where: { userId: { in: userIds }, badgeId: PREMIUM_LOGO_BADGE_ID },
+        where: {
+          userId: { in: userIds },
+          badgeId: PREMIUM_LOGO_BADGE_ID,
+          unlockedAt: { gt: new Date(Date.now() - PREMIUM_LOGO_DAYS * 24 * 60 * 60 * 1000) },
+        },
         select: { userId: true },
       }),
     ]);

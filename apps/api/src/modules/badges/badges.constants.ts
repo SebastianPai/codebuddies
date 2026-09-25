@@ -5,3 +5,7 @@
 // (ver migración 20260924000000_badge_premium): quien la tiene muestra el
 // logo Premium aunque su suscripción venza.
 export const PREMIUM_LOGO_BADGE_ID = 'badge-premium-logo';
+
+// El logo ganado en el pase es temporal: se ve estos días desde que se
+// reclamó (UserGamificationBadge.unlockedAt). Premium activo no vence así.
+export const PREMIUM_LOGO_DAYS = 30;

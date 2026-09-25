@@ -48,7 +48,7 @@ const BADGE_META: Record<BadgeType, { title: string; hint: string; defaultColor:
   },
   PREMIUM: {
     title: "Premium",
-    hint: "Automático: Premium activo, o haber reclamado el primer regalo del track premium del Battle Pass (ese se queda aunque venza la suscripción).",
+    hint: "Automático: Premium activo, o haber reclamado el primer regalo del track premium del Battle Pass (ese dura 30 días desde que se reclama).",
     defaultColor: "#a855f7",
     DefaultIcon: Crown,
   },

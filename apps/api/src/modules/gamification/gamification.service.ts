@@ -15,6 +15,7 @@ import { UpsertCatalogDto } from './dto/upsert-catalog.dto';
 import { UpsertMissionDto } from './dto/upsert-mission.dto';
 import { UpsertMissionCategoryDto } from './dto/upsert-mission-category.dto';
 import { UpsertRewardBundleDto } from './dto/upsert-reward-bundle.dto';
+import { PREMIUM_LOGO_BADGE_ID } from '../badges/badges.constants';
 
 export type RewardConfig = {
   type: GamificationRewardType | string;
@@ -707,7 +708,9 @@ export class GamificationService {
       if (rewardType === 'BADGE' && reward.itemId) {
         await tx.userGamificationBadge.upsert({
           where: { userId_badgeId: { userId, badgeId: reward.itemId } },
-          update: {},
+          // El logo Premium es temporal (cuenta desde unlockedAt): volver a
+          // ganarlo en otra temporada reinicia sus días.
+          update: reward.itemId === PREMIUM_LOGO_BADGE_ID ? { unlockedAt: new Date() } : {},
           create: { userId, badgeId: reward.itemId },
         });
       }
