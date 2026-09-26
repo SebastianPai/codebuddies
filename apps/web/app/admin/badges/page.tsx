@@ -70,6 +70,32 @@ const SPRITE_KEYFRAMES = `
 // cachea, igual que hace apps/game con useSpriteFrameAspect.
 const frameAspectCache = new Map<string, number>();
 
+// Cuántos cuadros tiene la tira si son cuadrados (ancho = N × alto). Con un
+// número equivocado cada paso de la animación muestra medio cuadro y medio
+// del siguiente, y el logo parece "deslizarse" en vez de cambiar de cuadro
+// (pasó con el logo Premium: una tira de 9 cuadros configurada como 8).
+function useDetectedFrameCount(url: string | null): number | null {
+  const [detected, setDetected] = useState<number | null>(null);
+  useEffect(() => {
+    setDetected(null);
+    if (!url) return;
+    let cancelled = false;
+    const img = new window.Image();
+    img.onload = () => {
+      const { naturalWidth: w, naturalHeight: h } = img;
+      if (cancelled || h <= 0) return;
+      const ratio = w / h;
+      const rounded = Math.round(ratio);
+      setDetected(rounded >= 2 && Math.abs(ratio - rounded) < 0.02 ? rounded : null);
+    };
+    img.src = url;
+    return () => {
+      cancelled = true;
+    };
+  }, [url]);
+  return detected;
+}
+
 function useFrameAspect(url: string | null, frameCount: number): number {
   const cacheKey = url ? `${url}::${frameCount}` : "";
   const [aspect, setAspect] = useState(() => (cacheKey ? frameAspectCache.get(cacheKey) ?? 1 : 1));
@@ -326,6 +352,9 @@ function BadgeCard({
     frameCount !== config.frameCount || direction !== config.direction || frameRate !== config.frameRate;
 
   const bigAspect = useFrameAspect(config.mode === "SPRITE" ? iconUrl : null, config.frameCount);
+  const detectedFrames = useDetectedFrameCount(iconUrl);
+  const framesMismatch =
+    config.mode === "SPRITE" && detectedFrames !== null && detectedFrames !== config.frameCount;
 
   return (
     <div className="rounded-xl border border-zinc-800 bg-[#0c0c0c] p-5">
@@ -433,12 +462,30 @@ function BadgeCard({
               <input
                 type="radio"
                 checked={config.mode === "SPRITE"}
-                onChange={() => onPatch({ mode: "SPRITE", frameCount, direction, frameRate })}
+                onChange={() =>
+                  onPatch({ mode: "SPRITE", frameCount: detectedFrames ?? frameCount, direction, frameRate })
+                }
                 className="accent-yellow-400"
               />
               Sprite animado (varios cuadros)
             </label>
           </div>
+
+          {framesMismatch && (
+            <div className="mt-4 flex flex-col gap-2 rounded-lg border border-yellow-500/50 bg-yellow-500/10 p-3 text-sm text-yellow-200 sm:flex-row sm:items-center sm:justify-between">
+              <span>
+                La imagen parece tener <b>{detectedFrames} cuadros</b> cuadrados, pero está configurada con{" "}
+                {config.frameCount}. Por eso la animación se ve desplazada.
+              </span>
+              <button
+                type="button"
+                onClick={() => onPatch({ frameCount: detectedFrames! })}
+                className="shrink-0 rounded-md bg-yellow-400 px-3 py-1.5 text-xs font-black text-black"
+              >
+                Usar {detectedFrames} cuadros
+              </button>
+            </div>
+          )}
 
           {config.mode === "SPRITE" && (
             <div className="mt-4 grid gap-3 md:grid-cols-3">

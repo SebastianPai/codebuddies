@@ -1,5 +1,7 @@
 import { Transform } from 'class-transformer';
 import {
+  Equals,
+  IsBoolean,
   IsEmail,
   IsOptional,
   IsString,
@@ -51,4 +53,18 @@ export class RegisterDto {
   @IsString()
   @MaxLength(64)
   referralCode?: string;
+
+  // Casilla obligatoria del registro: acepta Términos y Política de
+  // privacidad y autoriza el tratamiento de datos (Ley 1581 exige
+  // autorización previa, expresa e informada). Si es menor, declara contar
+  // con el permiso de su madre, padre o tutor.
+  @Equals(true, {
+    message: 'Debes aceptar los Términos y la Política de privacidad.',
+  })
+  acceptLegal: boolean;
+
+  // Marketing es opcional y va aparte (nunca pre-marcado).
+  @IsOptional()
+  @IsBoolean()
+  marketingOptIn?: boolean;
 }

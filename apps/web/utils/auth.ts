@@ -18,6 +18,10 @@ export interface User {
   unlockedEffectIds?: string[];
   isPremium?: boolean;
   uiLanguage?: string | null;
+  // Versión de Términos/Privacidad aceptada vs. la vigente (ver
+  // LegalUpdateNotice).
+  legalVersion?: string | null;
+  legalCurrentVersion?: string;
   // true solo en la respuesta donde el backend acaba de extender la racha
   // (ver IdentityService.applyDailyLoginStreak) -- nunca en un reinicio a 1.
   streakJustIncreased?: boolean;
@@ -70,12 +74,18 @@ export async function register(
   email: string,
   password: string,
   referralCode?: string,
+  consent: { acceptLegal: boolean; marketingOptIn: boolean } = {
+    acceptLegal: false,
+    marketingOptIn: false,
+  },
 ): Promise<AuthResponse> {
   const data = await api.post<AuthResponse>("/identity/register", {
     username,
     email,
     password,
     referralCode,
+    acceptLegal: consent.acceptLegal,
+    marketingOptIn: consent.marketingOptIn,
   });
   storeAuthSession(data);
   return data;

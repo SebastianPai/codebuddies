@@ -68,5 +68,23 @@
     "claimedLabel": "Claimed",
     "loadError": "We couldn't load your rewards.",
     "moreHint": "Everything you earn, in one place."
+  },
+  "page": {
+    "endsIn": "Ends in {time}",
+    "daysHours": "{d}d {h}h",
+    "hoursMinutes": "{h}h {m}m",
+    "today": "Today",
+    "jumpToday": "Go to today",
+    "claimAll": "Claim all ({count})",
+    "readyTitle": "You have rewards ready",
+    "nextUnlock": "Next unlock",
+    "tomorrow": "Tomorrow",
+    "daysUnlocked": "days unlocked",
+    "claimedCount": "rewards claimed",
+    "howItWorks": "Log in one day → the next one unlocks. Missing a day costs nothing: you continue where you left off.",
+    "previous": "Previous",
+    "next": "Next",
+    "premiumPitch": "Unlock the Premium row: more coins, exclusive cosmetics and the Premium logo next to your name.",
+    "empty": "No reward"
   }
 }

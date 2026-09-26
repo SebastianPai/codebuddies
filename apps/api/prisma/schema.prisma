@@ -609,8 +609,13 @@ model User {
   bestStreak             Int       @default(0)
   lastLoginAt            DateTime?
   lastLearningActivityAt DateTime?
-  marketingEmailsEnabled Boolean   @default(true)
+  // Marketing solo con consentimiento expreso (opt-in): Ley 1581 y RGPD.
+  marketingEmailsEnabled Boolean   @default(false)
   marketingEmailOptedAt  DateTime  @default(now())
+  // Prueba de la aceptación de Términos + autorización de tratamiento de
+  // datos (Decreto 1377/2013 art. 7: debe poder consultarse después).
+  legalAcceptedAt DateTime?
+  legalVersion    String?
 
   energyUpdatedAt DateTime @default(now())
   adsWatchedToday Int      @default(0)

@@ -68,5 +68,23 @@
     "claimedLabel": "Reclamado",
     "loadError": "No pudimos cargar tus recompensas.",
     "moreHint": "Todo lo que ganas, en un solo lugar."
+  },
+  "page": {
+    "endsIn": "Termina en {time}",
+    "daysHours": "{d} d {h} h",
+    "hoursMinutes": "{h} h {m} min",
+    "today": "Hoy",
+    "jumpToday": "Ir a hoy",
+    "claimAll": "Reclamar todo ({count})",
+    "readyTitle": "Tienes premios listos",
+    "nextUnlock": "Próximo desbloqueo",
+    "tomorrow": "Mañana",
+    "daysUnlocked": "días desbloqueados",
+    "claimedCount": "premios reclamados",
+    "howItWorks": "Entra un día → se desbloquea el siguiente. Si faltas no pierdes nada: sigues donde ibas.",
+    "previous": "Anterior",
+    "next": "Siguiente",
+    "premiumPitch": "Desbloquea la fila Premium: más monedas, cosméticos exclusivos y el logo Premium junto a tu nombre.",
+    "empty": "Sin premio"
   }
 }

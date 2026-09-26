@@ -2,7 +2,10 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@n
 import { Roles } from '../../identity/decorators/roles.decorator';
 import { JwtAuthGuard } from '../../identity/guards/jwt.guard';
 import { RolesGuard } from '../../identity/guards/roles.guard';
-import { UpsertBattlePassSeasonDto } from '../dto/upsert-battle-pass-season.dto';
+import {
+  CreateMonthlySeasonDto,
+  UpsertBattlePassSeasonDto,
+} from '../dto/upsert-battle-pass-season.dto';
 import { UpsertBattlePassTierDto } from '../dto/upsert-battle-pass-tier.dto';
 import { BattlePassService } from '../services/battle-pass.service';
 
@@ -20,6 +23,18 @@ export class BattlePassAdminController {
   @Get('seasons/:id')
   getSeason(@Param('id') id: string) {
     return this.battlePassService.getSeasonForAdmin(id);
+  }
+
+  // Temporada de un mes calendario (día 1 -> último día, un día de premios
+  // por cada día del mes).
+  @Post('seasons/monthly')
+  createMonthlySeason(@Body() dto: CreateMonthlySeasonDto) {
+    return this.battlePassService.createMonthlySeason(dto);
+  }
+
+  @Get('reward-catalog')
+  getRewardCatalog() {
+    return this.battlePassService.getRewardCatalog();
   }
 
   @Post('seasons')

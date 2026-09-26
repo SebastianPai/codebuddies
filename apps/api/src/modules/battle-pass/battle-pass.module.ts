@@ -5,11 +5,12 @@ import { PremiumAccessModule } from '../premium-access/premium-access.module';
 import { BattlePassAdminController } from './controllers/battle-pass-admin.controller';
 import { BattlePassController } from './controllers/battle-pass.controller';
 import { BattlePassService } from './services/battle-pass.service';
+import { BattlePassJobsService } from './services/battle-pass-jobs.service';
 
 @Module({
   imports: [PrismaModule, GamificationModule, PremiumAccessModule],
   controllers: [BattlePassController, BattlePassAdminController],
-  providers: [BattlePassService],
+  providers: [BattlePassService, BattlePassJobsService],
   exports: [BattlePassService],
 })
 export class BattlePassModule {}

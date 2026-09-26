@@ -23,7 +23,7 @@ export const TERMS: LegalDocSet = {
         list: [
           "Debes dar datos verdaderos y mantener segura tu contraseña. Eres responsable de lo que ocurra con tu cuenta.",
           "La cuenta es personal: no la vendas, prestes ni compartas.",
-          "Si tienes menos de 14 años (16 en la UE), necesitas la autorización de tu madre, padre o tutor, que acepta estas condiciones en tu nombre.",
+          "Si tienes menos de 14 años (16 en la UE), necesitas la autorización de tu madre, padre o tutor, que acepta estas condiciones en tu nombre. Si tienes menos de 13, la cuenta debe crearla y supervisarla un adulto responsable o tu colegio, y las compras siempre las hace un adulto.",
           `Puedes pedir el cierre de tu cuenta en cualquier momento escribiendo a ${E}.`,
         ],
       },
@@ -80,6 +80,22 @@ export const TERMS: LegalDocSet = {
         ],
       },
       {
+        id: "marketplace",
+        title: "7 bis. Creadores del marketplace",
+        list: [
+          "Si publicas objetos en el marketplace declaras que son de tu autoría o que tienes permiso para usarlos, y que no infringen derechos de terceros ni estas normas.",
+          "Las ganancias de creador se acreditan en monedas de CodeBuddies dentro de la plataforma; no son dinero, salario ni una relación laboral, salvo que firmemos un acuerdo aparte.",
+          "Podemos revisar, rechazar, despublicar o ajustar el precio de objetos que incumplan estas condiciones, y retener ganancias obtenidas con fraude.",
+        ],
+      },
+      {
+        id: "infracciones",
+        title: "7 ter. Reporte de infracciones de derechos de autor",
+        paragraphs: [
+          `Si crees que un contenido de CodeBuddies infringe tus derechos, envía a ${E}: tus datos de contacto, la obra protegida, el enlace al contenido y una declaración de que la información es cierta y de que eres titular o representante. Retiraremos el contenido infractor sin demora y avisaremos a quien lo publicó, que podrá responder. Las cuentas que infrinjan de forma reiterada serán cerradas.`,
+        ],
+      },
+      {
         id: "publicidad",
         title: "8. Publicidad",
         paragraphs: [
@@ -110,10 +126,29 @@ export const TERMS: LegalDocSet = {
         ],
       },
       {
+        id: "consumidor",
+        title: "11 bis. Tus derechos como consumidor",
+        paragraphs: [
+          "Si estás en Colombia, te protege el Estatuto del Consumidor (Ley 1480 de 2011): tienes derecho de retracto dentro de los 5 días hábiles siguientes a la compra (art. 47), salvo en bienes o servicios que por su naturaleza ya se consumieron o entregaron, y a la reversión del pago en los casos del art. 51 (fraude, operación no solicitada, producto no recibido o defectuoso), que puedes pedir dentro de los 5 días hábiles siguientes a conocer el hecho. Nuestra Política de reembolsos es más amplia: 14 días.",
+          "Si estás en la Unión Europea, el checkout de Paddle te pide consentimiento expreso para empezar a disfrutar el contenido digital de inmediato y te informa sobre tu derecho de desistimiento de 14 días.",
+        ],
+      },
+      {
         id: "cambios",
         title: "12. Cambios",
         paragraphs: [
           "Podemos actualizar estas condiciones. Si el cambio es importante te avisaremos con antelación por correo o en la plataforma. Si sigues usando CodeBuddies después de la fecha de entrada en vigor, se entiende que los aceptas; si no estás de acuerdo, puedes cerrar tu cuenta.",
+        ],
+      },
+      {
+        id: "generales",
+        title: "13. Disposiciones generales",
+        list: [
+          "Si un juez declara inválida alguna cláusula, las demás siguen vigentes.",
+          "Estas condiciones, junto con la Política de privacidad, la Política de reembolsos y la Política de cookies, son el acuerdo completo entre tú y CodeBuddies.",
+          "No puedes ceder tu cuenta ni estos derechos a otra persona. Nosotros podemos cederlos si CodeBuddies se reorganiza o se vende, manteniendo tus derechos.",
+          "Que no exijamos una cláusula en un momento no significa que renunciemos a ella.",
+          `Peticiones, quejas y reclamos (PQR): ${E}. Respondemos en máximo 15 días hábiles.`,
         ],
       },
     ],
@@ -137,7 +172,7 @@ export const TERMS: LegalDocSet = {
         list: [
           "You must provide accurate information and keep your password safe. You are responsible for activity on your account.",
           "Your account is personal: do not sell, lend or share it.",
-          "If you are under 14 (16 in the EU), you need permission from a parent or guardian, who accepts these terms on your behalf.",
+          "If you are under 14 (16 in the EU), you need permission from a parent or guardian, who accepts these terms on your behalf. If you are under 13, the account must be created and supervised by a responsible adult or your school, and purchases are always made by an adult.",
           `You can ask us to close your account at any time by writing to ${E}.`,
         ],
       },
@@ -194,6 +229,22 @@ export const TERMS: LegalDocSet = {
         ],
       },
       {
+        id: "marketplace",
+        title: "7a. Marketplace creators",
+        list: [
+          "If you publish items on the marketplace you represent that you created them or have permission to use them, and that they do not infringe third-party rights or these rules.",
+          "Creator earnings are credited as CodeBuddies coins within the platform; they are not money, salary or an employment relationship unless we sign a separate agreement.",
+          "We may review, reject, unpublish or adjust the price of items that breach these terms, and withhold earnings obtained through fraud.",
+        ],
+      },
+      {
+        id: "infringement",
+        title: "7b. Copyright infringement notices",
+        paragraphs: [
+          `If you believe content on CodeBuddies infringes your rights, send to ${E}: your contact details, the protected work, the link to the content and a statement that the information is accurate and that you are the owner or authorized representative. We will promptly remove infringing content and notify the uploader, who may respond. Repeat infringers' accounts will be closed.`,
+        ],
+      },
+      {
         id: "ads",
         title: "8. Advertising",
         paragraphs: [
@@ -224,10 +275,29 @@ export const TERMS: LegalDocSet = {
         ],
       },
       {
+        id: "consumer",
+        title: "11a. Your consumer rights",
+        paragraphs: [
+          "If you are in Colombia, the Consumer Statute (Law 1480 of 2011) gives you a right of withdrawal within 5 business days of purchase (art. 47), except for goods or services already consumed or delivered by their nature, and a payment reversal in the cases of art. 51 (fraud, unsolicited transaction, product not received or defective), which you may request within 5 business days of learning of the event. Our Refund policy is broader: 14 days.",
+          "If you are in the European Union, Paddle's checkout asks for your express consent to start using digital content immediately and informs you about your 14-day right of withdrawal.",
+        ],
+      },
+      {
         id: "changes",
         title: "12. Changes",
         paragraphs: [
           "We may update these terms. If a change is significant we will notify you in advance by email or within the platform. If you keep using CodeBuddies after the effective date, you accept them; if you disagree, you can close your account.",
+        ],
+      },
+      {
+        id: "general",
+        title: "13. General provisions",
+        list: [
+          "If a court finds any clause invalid, the rest remain in force.",
+          "These terms, together with the Privacy policy, Refund policy and Cookie policy, are the entire agreement between you and CodeBuddies.",
+          "You may not assign your account or these rights to someone else. We may assign them if CodeBuddies is reorganized or sold, preserving your rights.",
+          "Not enforcing a clause at a given time does not mean we waive it.",
+          `Requests, complaints and claims: ${E}. We reply within 15 business days.`,
         ],
       },
     ],
@@ -308,6 +378,22 @@ export const TERMS: LegalDocSet = {
         ],
       },
       {
+        id: "marktplatz",
+        title: "7a. Marktplatz-Creator",
+        list: [
+          "Wer Objekte im Marktplatz veröffentlicht, versichert, sie selbst erstellt zu haben oder zur Nutzung berechtigt zu sein, und dass sie keine Rechte Dritter oder diese Regeln verletzen.",
+          "Creator-Einnahmen werden als CodeBuddies-Münzen auf der Plattform gutgeschrieben; sie sind weder Geld noch Lohn noch ein Arbeitsverhältnis, sofern keine gesonderte Vereinbarung besteht.",
+          "Wir können Objekte, die gegen diese Bedingungen verstoßen, prüfen, ablehnen, depublizieren oder im Preis anpassen und durch Betrug erlangte Einnahmen einbehalten.",
+        ],
+      },
+      {
+        id: "urheberrecht",
+        title: "7b. Meldung von Urheberrechtsverletzungen",
+        paragraphs: [
+          `Wenn du glaubst, dass Inhalte auf CodeBuddies deine Rechte verletzen, sende an ${E}: deine Kontaktdaten, das geschützte Werk, den Link zum Inhalt und die Erklärung, dass die Angaben zutreffen und du Rechteinhaber oder Vertreter bist. Wir entfernen rechtsverletzende Inhalte unverzüglich und informieren die hochladende Person, die antworten kann. Konten mit wiederholten Verstößen werden geschlossen.`,
+        ],
+      },
+      {
         id: "werbung",
         title: "8. Werbung",
         paragraphs: [
@@ -338,10 +424,29 @@ export const TERMS: LegalDocSet = {
         ],
       },
       {
+        id: "verbraucher",
+        title: "11a. Deine Verbraucherrechte",
+        paragraphs: [
+          "In der Europäischen Union holt der Paddle-Checkout deine ausdrückliche Zustimmung ein, digitale Inhalte sofort zu nutzen, und informiert dich über dein 14-tägiges Widerrufsrecht.",
+          "In Kolumbien gilt das Verbraucherstatut (Gesetz 1480 von 2011) mit Widerrufsrecht innerhalb von 5 Werktagen (Art. 47) und Zahlungsrückabwicklung in den Fällen des Art. 51. Unsere Rückerstattungsrichtlinie geht darüber hinaus: 14 Tage.",
+        ],
+      },
+      {
         id: "aenderungen",
         title: "12. Änderungen",
         paragraphs: [
           "Wir können diese Bedingungen aktualisieren. Über wesentliche Änderungen informieren wir dich vorab per E-Mail oder auf der Plattform. Nutzt du CodeBuddies nach dem Inkrafttreten weiter, gelten sie als akzeptiert; bist du nicht einverstanden, kannst du dein Konto schließen.",
+        ],
+      },
+      {
+        id: "allgemein",
+        title: "13. Allgemeine Bestimmungen",
+        list: [
+          "Ist eine Klausel unwirksam, bleiben die übrigen wirksam.",
+          "Diese Bedingungen bilden zusammen mit der Datenschutzerklärung, der Rückerstattungs- und der Cookie-Richtlinie die gesamte Vereinbarung zwischen dir und CodeBuddies.",
+          "Du darfst dein Konto oder diese Rechte nicht übertragen. Wir dürfen sie bei einer Umstrukturierung oder einem Verkauf von CodeBuddies unter Wahrung deiner Rechte übertragen.",
+          "Wenn wir eine Klausel zeitweise nicht durchsetzen, verzichten wir nicht auf sie.",
+          `Anfragen und Beschwerden: ${E}. Wir antworten innerhalb von 15 Werktagen.`,
         ],
       },
     ],

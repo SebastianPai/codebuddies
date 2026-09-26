@@ -68,5 +68,23 @@
     "claimedLabel": "Abgeholt",
     "loadError": "Deine Belohnungen konnten nicht geladen werden.",
     "moreHint": "Alles, was du verdienst, an einem Ort."
+  },
+  "page": {
+    "endsIn": "Endet in {time}",
+    "daysHours": "{d} T {h} Std",
+    "hoursMinutes": "{h} Std {m} Min",
+    "today": "Heute",
+    "jumpToday": "Zu heute",
+    "claimAll": "Alle abholen ({count})",
+    "readyTitle": "Belohnungen bereit",
+    "nextUnlock": "Nächste Freischaltung",
+    "tomorrow": "Morgen",
+    "daysUnlocked": "Tage freigeschaltet",
+    "claimedCount": "Belohnungen abgeholt",
+    "howItWorks": "Einen Tag einloggen → der nächste wird freigeschaltet. Verpasst du einen Tag, verlierst du nichts.",
+    "previous": "Zurück",
+    "next": "Weiter",
+    "premiumPitch": "Schalte die Premium-Reihe frei: mehr Münzen, exklusive Kosmetik und das Premium-Logo neben deinem Namen.",
+    "empty": "Keine Belohnung"
   }
 }

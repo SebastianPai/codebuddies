@@ -15,6 +15,7 @@ import { GameGateway } from '../game/game.gateway';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { isDisposableEmail, isWeakPassword } from './auth-rules';
+import { LEGAL_VERSION } from '../../config/legal';
 import {
   SUPPORTED_CHAT_BUBBLE_THEMES,
   UpdateProfileDto,
@@ -119,6 +120,10 @@ export class IdentityService {
             streak: 1,
             bestStreak: 1,
             lastLoginAt: now,
+            legalAcceptedAt: now,
+            legalVersion: LEGAL_VERSION,
+            marketingEmailsEnabled: dto.marketingOptIn === true,
+            marketingEmailOptedAt: now,
           },
           select: this.authUserSelect(),
         });
@@ -427,6 +432,18 @@ export class IdentityService {
     });
   }
 
+  // Aceptación de la versión vigente de los documentos legales por parte de
+  // cuentas creadas antes (o de un cambio posterior). Queda registrada con
+  // fecha como prueba de la autorización.
+  async acceptLegal(userId: string) {
+    const now = new Date();
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { legalAcceptedAt: now, legalVersion: LEGAL_VERSION },
+    });
+    return { legalAcceptedAt: now, legalVersion: LEGAL_VERSION };
+  }
+
   async getProfile(userId: string) {
     const { streakJustIncreased } = await this.applyDailyLoginStreak(userId);
     this.refreshMissionsInBackground(userId);
@@ -437,6 +454,8 @@ export class IdentityService {
         ...this.authUserSelect(),
         birthDate: true,
         country: true,
+        legalAcceptedAt: true,
+        legalVersion: true,
         _count: {
           select: {
             completions: true,
@@ -478,6 +497,9 @@ export class IdentityService {
       isPremium,
       birthDate: user.birthDate,
       country: user.country,
+      legalAcceptedAt: user.legalAcceptedAt,
+      legalVersion: user.legalVersion,
+      legalCurrentVersion: LEGAL_VERSION,
       completions: user._count.completions,
       certificates: user._count.certificates,
       enrollments: user._count.enrollments,

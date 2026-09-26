@@ -33,6 +33,8 @@ export type BattlePassTier = {
   label: string;
   sortOrder: number;
   badgeIcon?: BattlePassBadgeIcon | null;
+  // Solo premios que son un Item (ropa, mueble, nombre o burbuja de chat).
+  item?: { id: string; imageUrl: string | null; type: string | null; effectKey: string | null; rarity: number } | null;
   levelReached: boolean;
   trackUnlocked: boolean;
   claimed: boolean;

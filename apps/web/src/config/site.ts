@@ -12,4 +12,4 @@ export const SITE_DESCRIPTION =
 
 // Contacto que aparece en el footer y en las políticas legales (soporte,
 // privacidad y reembolsos).
-export const SUPPORT_EMAIL = "codebudies.ceo@gmail.com";
+export const SUPPORT_EMAIL = "codebuddies.ceo@gmail.com";

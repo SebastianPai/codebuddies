@@ -8,6 +8,7 @@ async function errorsFor(input: Partial<RegisterDto>) {
     username: 'coder_01',
     email: 'coder@example.com',
     password: 'Segura#2026',
+    acceptLegal: true,
     ...input,
   });
   const errors = await validate(dto);
@@ -47,6 +48,10 @@ describe('reglas de registro', () => {
     'más_de_veinte_caracteres',
   ])('rechaza el usuario inválido %s', async (username) => {
     expect(await errorsFor({ username })).toContain('username');
+  });
+
+  it('exige aceptar Términos y Privacidad (casilla obligatoria)', async () => {
+    expect(await errorsFor({ acceptLegal: false })).toContain('acceptLegal');
   });
 
   it('detecta correos temporales y contraseñas obvias', () => {

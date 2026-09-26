@@ -20,6 +20,12 @@ const RELATED: Array<{ href: string; label: Record<LegalLang, string> }> = [
   { href: "/cookies", label: { es: "Política de cookies", en: "Cookie policy", de: "Cookie-Richtlinie" } },
 ];
 
+// Los títulos se numeran al renderizar (el número escrito en el texto se
+// ignora), así agregar una sección no desordena la numeración.
+function sectionTitle(title: string, index: number) {
+  return `${index + 1}. ${title.replace(/^\d+\s?(?:bis|ter|[a-z])?\.\s+/, "")}`;
+}
+
 function toLegalLang(lang: string | undefined): LegalLang {
   if (lang === "de") return "de";
   if (lang?.startsWith("en")) return "en";
@@ -74,10 +80,10 @@ export function LegalDocument({
               {ui.contents}
             </summary>
             <ol className="mt-3 space-y-1.5 text-sm">
-              {doc.sections.map((section) => (
+              {doc.sections.map((section, index) => (
                 <li key={section.id}>
                   <a href={`#${section.id}`} className="block hover:text-[rgb(var(--primary))]">
-                    {section.title}
+                    {sectionTitle(section.title, index)}
                   </a>
                 </li>
               ))}
@@ -86,9 +92,11 @@ export function LegalDocument({
         </nav>
 
         <div className="min-w-0 space-y-10 leading-7">
-          {doc.sections.map((section) => (
+          {doc.sections.map((section, index) => (
             <section key={section.id} id={section.id} className="scroll-mt-28">
-              <h2 className="mb-3 text-xl font-black text-[rgb(var(--text))] sm:text-2xl">{section.title}</h2>
+              <h2 className="mb-3 text-xl font-black text-[rgb(var(--text))] sm:text-2xl">
+                {sectionTitle(section.title, index)}
+              </h2>
               {section.paragraphs?.map((paragraph, index) => (
                 <p key={index} className="mt-3 first:mt-0">
                   {paragraph}

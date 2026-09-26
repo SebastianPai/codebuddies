@@ -37,6 +37,9 @@ export default function RegisterPage() {
     referralCode: "",
   });
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  // Casilla obligatoria (nunca pre-marcada) y marketing aparte, opcional.
+  const [acceptLegal, setAcceptLegal] = useState(false);
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -98,6 +101,10 @@ export default function RegisterPage() {
       setError(t("auth.validation.fixErrors"));
       return;
     }
+    if (!acceptLegal) {
+      setError(t("auth.consent.required"));
+      return;
+    }
     setSubmitting(true);
     try {
       await register(
@@ -105,6 +112,7 @@ export default function RegisterPage() {
         normalizeEmail(formData.email),
         formData.password,
         formData.referralCode.trim() || undefined,
+        { acceptLegal, marketingOptIn },
       );
       trackEvent("sign_up", {
         method: "email",
@@ -137,21 +145,6 @@ export default function RegisterPage() {
             </p>
           </div>
 
-          <p className="text-xs text-[rgb(var(--secondary-text))] mt-6 leading-relaxed">
-            {t("auth.registerIntro")}{" "}
-            <Link href="/terms" className="text-[rgb(var(--primary))]">
-              {t("auth.terms")}
-            </Link>
-            , la{" "}
-            <Link href="/privacy" className="text-[rgb(var(--primary))]">
-              {t("auth.privacy")}
-            </Link>{" "}
-            y la{" "}
-            <Link href="/refund-policy" className="text-[rgb(var(--primary))]">
-              {t("auth.refunds")}
-            </Link>
-            .
-          </p>
 
           {/* TOGGLE PESTAÑA */}
           <div className="flex mb-10 border-b-2 border-[rgb(var(--border))]">
@@ -258,6 +251,41 @@ export default function RegisterPage() {
               value={formData.referralCode}
               onChange={handleChange}
             />
+
+            <div className="space-y-3">
+              <label className="flex cursor-pointer items-start gap-3 text-xs leading-relaxed text-[rgb(var(--secondary-text))]">
+                <input
+                  type="checkbox"
+                  checked={acceptLegal}
+                  onChange={(e) => {
+                    setAcceptLegal(e.target.checked);
+                    if (error) setError(null);
+                  }}
+                  aria-invalid={submitAttempted && !acceptLegal}
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-[rgb(var(--primary))]"
+                />
+                <span>
+                  {t("auth.consent.legalPrefix")}{" "}
+                  <Link href="/terms" target="_blank" className="font-bold text-[rgb(var(--primary))] underline underline-offset-2">
+                    {t("auth.consent.terms")}
+                  </Link>{" "}
+                  {t("auth.consent.and")}{" "}
+                  <Link href="/privacy" target="_blank" className="font-bold text-[rgb(var(--primary))] underline underline-offset-2">
+                    {t("auth.consent.privacy")}
+                  </Link>
+                  {t("auth.consent.legalSuffix")}
+                </span>
+              </label>
+              <label className="flex cursor-pointer items-start gap-3 text-xs leading-relaxed text-[rgb(var(--secondary-text))]">
+                <input
+                  type="checkbox"
+                  checked={marketingOptIn}
+                  onChange={(e) => setMarketingOptIn(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-[rgb(var(--primary))]"
+                />
+                <span>{t("auth.consent.marketing")}</span>
+              </label>
+            </div>
 
             {error && (
               <div role="alert" className="bg-[rgb(var(--error))]/10 border-l-4 border-[rgb(var(--error))] p-3">

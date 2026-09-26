@@ -66,6 +66,13 @@ export const REFUND_POLICY: LegalDocSet = {
           "Tienes un derecho legal de desistimiento de 14 días para contratos a distancia. Al empezar a usar un contenido digital de inmediato (por ejemplo, activar Premium o emitir un certificado) aceptas que ese derecho puede perderse para lo ya entregado, en los términos de la Directiva 2011/83/UE. Esta política nunca limita los derechos que te da la ley.",
         ],
       },
+      {
+        id: "colombia",
+        title: "8. Consumidores en Colombia",
+        paragraphs: [
+          "Además de esta política, conservas el derecho de retracto de 5 días hábiles (Ley 1480, art. 47) y el derecho a pedir la reversión del pago con tarjeta en los casos del art. 51 (fraude, operación no solicitada, producto no recibido o defectuoso) dentro de los 5 días hábiles siguientes a conocer el hecho, avisándonos a nosotros y al emisor de tu medio de pago.",
+        ],
+      },
     ],
   },
   en: {
@@ -130,6 +137,13 @@ export const REFUND_POLICY: LegalDocSet = {
           "You have a statutory 14-day right of withdrawal for distance contracts. By starting to use digital content immediately (for example, activating Premium or issuing a certificate) you acknowledge that this right may be lost for what has already been supplied, under Directive 2011/83/EU. This policy never limits your statutory rights.",
         ],
       },
+      {
+        id: "colombia",
+        title: "8. Consumers in Colombia",
+        paragraphs: [
+          "In addition to this policy, you keep the 5-business-day right of withdrawal (Law 1480, art. 47) and the right to request a card payment reversal in the cases of art. 51 (fraud, unsolicited transaction, product not received or defective) within 5 business days of learning of the event, notifying both us and your card issuer.",
+        ],
+      },
     ],
   },
   de: {
@@ -192,6 +206,13 @@ export const REFUND_POLICY: LegalDocSet = {
         title: "7. Widerrufsrecht für Verbraucher in der EU",
         paragraphs: [
           "Dir steht ein gesetzliches 14-tägiges Widerrufsrecht für Fernabsatzverträge zu. Wenn du digitale Inhalte sofort nutzt (z. B. Premium aktivierst oder ein Zertifikat ausstellen lässt), erkennst du an, dass dieses Recht für bereits bereitgestellte Leistungen gemäß Richtlinie 2011/83/EU erlöschen kann. Diese Richtlinie schränkt deine gesetzlichen Rechte nie ein.",
+        ],
+      },
+      {
+        id: "kolumbien",
+        title: "8. Verbraucher in Kolumbien",
+        paragraphs: [
+          "Zusätzlich zu dieser Richtlinie gilt das 5-tägige Widerrufsrecht (Gesetz 1480, Art. 47) und das Recht auf Zahlungsrückabwicklung in den Fällen des Art. 51 innerhalb von 5 Werktagen, nachdem du vom Vorfall erfahren hast.",
         ],
       },
     ],

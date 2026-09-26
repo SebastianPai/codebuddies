@@ -45,6 +45,15 @@ export const PRIVACY_POLICY: LegalDocSet = {
         ],
       },
       {
+        id: "autorizacion",
+        title: "Cómo obtenemos tu autorización",
+        paragraphs: [
+          "Al crear tu cuenta marcas una casilla con la que aceptas esta política y autorizas el tratamiento de tus datos para las finalidades descritas. Guardamos la fecha y la versión que aceptaste, como exige el Decreto 1377 de 2013.",
+          "La autorización para correos promocionales es aparte, opcional y nunca viene pre-marcada. Todo correo promocional incluye un enlace para darte de baja con un clic, y también puedes desactivarlos en Ajustes.",
+          "No te pedimos datos sensibles (salud, origen étnico, orientación, biometría, opiniones políticas o religiosas). Si alguna vez lo hiciéramos, responder sería facultativo.",
+        ],
+      },
+      {
         id: "compartir",
         title: "4. Con quién compartimos tus datos",
         paragraphs: [
@@ -80,18 +89,20 @@ export const PRIVACY_POLICY: LegalDocSet = {
       },
       {
         id: "derechos",
-        title: "7. Tus derechos",
+        title: "7. Tus derechos y cómo ejercerlos",
         paragraphs: [
-          `Puedes conocer, actualizar, rectificar y suprimir tus datos, pedir una copia en un formato portable, oponerte a ciertos usos, limitar el tratamiento y revocar en cualquier momento las autorizaciones que nos diste. Escríbenos a ${E} desde el correo de tu cuenta.`,
-          "Respondemos consultas en un máximo de 10 días hábiles y reclamos en un máximo de 15 días hábiles, como indica la ley colombiana (en la UE, en un máximo de un mes).",
-          "Si no quedas conforme con nuestra respuesta, puedes presentar una queja ante la Superintendencia de Industria y Comercio (SIC) de Colombia o, si vives en la UE, ante la autoridad de protección de datos de tu país.",
+          "Como titular puedes: conocer, actualizar y rectificar tus datos; pedir prueba de la autorización que nos diste; saber qué uso les damos; revocar la autorización o pedir la supresión cuando no exista un deber legal o contractual de conservarlos; acceder gratis a ellos; pedir una copia portable; y presentar quejas ante la Superintendencia de Industria y Comercio (SIC).",
+          `Canal de atención: ${E}. Escríbenos desde el correo de tu cuenta (o acredita tu identidad o representación) indicando qué pides. El equipo de CodeBuddies es el área responsable de atender estas solicitudes.`,
+          "Consultas: respondemos en máximo 10 días hábiles; si no es posible, te avisamos el motivo y respondemos en máximo 5 días hábiles más (Ley 1581, art. 14).",
+          "Reclamos (corrección, actualización, supresión o incumplimiento): respondemos en máximo 15 días hábiles, prorrogables hasta 8 días hábiles más con aviso. Si el reclamo está incompleto te pediremos completarlo dentro de los 5 días siguientes; si pasan 2 meses sin respuesta, se entiende desistido (Ley 1581, art. 15).",
+          "Antes de acudir a la SIC debes haber agotado este trámite con nosotros (requisito de procedibilidad). En la Unión Europea respondemos en máximo un mes y puedes reclamar ante la autoridad de protección de datos de tu país.",
         ],
       },
       {
         id: "menores",
         title: "8. Menores de edad",
         paragraphs: [
-          "CodeBuddies es una plataforma educativa que pueden usar menores. Si tienes menos de 14 años (o menos de 16 en la UE), necesitas la autorización de tu madre, padre o tutor para crear una cuenta. Si un colegio u organización gestiona el acceso, también pueden aplicarse sus propias reglas.",
+          "CodeBuddies es una plataforma educativa que pueden usar menores. Si tienes menos de 14 años (o menos de 16 en la UE), necesitas la autorización de tu madre, padre o tutor para crear una cuenta; si tienes menos de 13, la cuenta debe crearla y supervisarla tu madre, padre, tutor o tu colegio. Tratamos los datos de menores respetando su interés superior y sus derechos fundamentales (Ley 1581, art. 7). Si un colegio u organización gestiona el acceso, también pueden aplicarse sus propias reglas.",
           `Si eres madre, padre o tutor y crees que un menor nos dio datos sin tu autorización, escríbenos a ${E} y los eliminaremos.`,
         ],
       },
@@ -114,6 +125,13 @@ export const PRIVACY_POLICY: LegalDocSet = {
         title: "11. Cambios en esta política",
         paragraphs: [
           "Podemos actualizar esta política. Si el cambio es importante te avisaremos por correo o dentro de la plataforma antes de que entre en vigor. La fecha de la última actualización aparece arriba.",
+        ],
+      },
+      {
+        id: "vigencia",
+        title: "12. Vigencia",
+        paragraphs: [
+          "Esta política rige desde el 26 de septiembre de 2026. Las bases de datos se mantendrán mientras CodeBuddies preste el servicio y existan las finalidades descritas, sin perjuicio de los plazos de conservación indicados arriba.",
         ],
       },
     ],
@@ -159,6 +177,15 @@ export const PRIVACY_POLICY: LegalDocSet = {
         ],
       },
       {
+        id: "authorization",
+        title: "How we obtain your authorization",
+        paragraphs: [
+          "When you create your account you tick a box accepting this policy and authorizing the processing of your data for the purposes described. We store the date and the version you accepted, as required by Colombian Decree 1377 of 2013.",
+          "Consent to promotional emails is separate, optional and never pre-ticked. Every promotional email includes a one-click unsubscribe link, and you can also turn them off in Settings.",
+          "We do not ask for sensitive data (health, ethnic origin, orientation, biometrics, political or religious views). If we ever did, answering would be optional.",
+        ],
+      },
+      {
         id: "sharing",
         title: "4. Who we share your data with",
         paragraphs: [
@@ -194,18 +221,18 @@ export const PRIVACY_POLICY: LegalDocSet = {
       },
       {
         id: "rights",
-        title: "7. Your rights",
+        title: "7. Your rights and how to exercise them",
         paragraphs: [
-          `You can access, update, correct and delete your data, request a copy in a portable format, object to certain uses, restrict processing and withdraw any consent at any time. Write to ${E} from your account's email address.`,
-          "We answer requests within 10 business days and complaints within 15 business days, as required by Colombian law (within one month in the EU).",
-          "If you are not satisfied with our answer, you can file a complaint with Colombia's Superintendence of Industry and Commerce (SIC) or, if you live in the EU, with your country's data protection authority.",
+          "You can: access, update and correct your data; request proof of the authorization you gave us; know how we use it; withdraw your authorization or request deletion when there is no legal or contractual duty to keep it; access it free of charge; request a portable copy; and file complaints with Colombia's Superintendence of Industry and Commerce (SIC) or your EU data protection authority.",
+          `Contact channel: ${E}. Write from your account's email (or prove your identity or representation) stating your request. The CodeBuddies team is responsible for handling these requests.`,
+          "Inquiries: answered within 10 business days, extendable by 5 more with notice. Complaints (correction, update, deletion or breach): answered within 15 business days, extendable by 8 more with notice. If a complaint is incomplete we will ask you to complete it within 5 days; after 2 months without a reply it is considered withdrawn (Colombian Law 1581, arts. 14–15). In the EU we reply within one month.",
         ],
       },
       {
         id: "minors",
         title: "8. Minors",
         paragraphs: [
-          "CodeBuddies is an educational platform that minors may use. If you are under 14 (under 16 in the EU), you need permission from a parent or guardian to create an account. If a school or organization manages access, its own rules may also apply.",
+          "CodeBuddies is an educational platform that minors may use. If you are under 14 (under 16 in the EU), you need permission from a parent or guardian to create an account; if you are under 13, the account must be created and supervised by a parent, guardian or your school. If a school or organization manages access, its own rules may also apply.",
           `If you are a parent or guardian and believe a minor gave us data without your permission, write to ${E} and we will delete it.`,
         ],
       },
@@ -228,6 +255,13 @@ export const PRIVACY_POLICY: LegalDocSet = {
         title: "11. Changes to this policy",
         paragraphs: [
           "We may update this policy. If a change is significant we will notify you by email or within the platform before it takes effect. The date of the last update appears above.",
+        ],
+      },
+      {
+        id: "validity",
+        title: "12. Effective date",
+        paragraphs: [
+          "This policy is effective from September 26, 2026. Databases are kept while CodeBuddies provides the service and the purposes described exist, subject to the retention periods above.",
         ],
       },
     ],
@@ -273,6 +307,15 @@ export const PRIVACY_POLICY: LegalDocSet = {
         ],
       },
       {
+        id: "einwilligung",
+        title: "Wie wir deine Einwilligung einholen",
+        paragraphs: [
+          "Bei der Kontoerstellung setzt du ein Häkchen, mit dem du diese Erklärung akzeptierst und in die Verarbeitung deiner Daten zu den beschriebenen Zwecken einwilligst. Wir speichern Datum und Version deiner Zustimmung.",
+          "Die Einwilligung in Werbe-E-Mails ist davon getrennt, freiwillig und nie vorausgewählt. Jede Werbe-E-Mail enthält einen Link zur Abmeldung mit einem Klick; du kannst sie auch in den Einstellungen deaktivieren.",
+          "Wir fragen keine besonderen Kategorien personenbezogener Daten ab (Gesundheit, Herkunft, Orientierung, Biometrie, politische oder religiöse Ansichten).",
+        ],
+      },
+      {
         id: "weitergabe",
         title: "4. Weitergabe von Daten",
         paragraphs: [
@@ -308,11 +351,11 @@ export const PRIVACY_POLICY: LegalDocSet = {
       },
       {
         id: "rechte",
-        title: "7. Deine Rechte",
+        title: "7. Deine Rechte und wie du sie ausübst",
         paragraphs: [
-          `Du hast das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch sowie das Recht, erteilte Einwilligungen jederzeit zu widerrufen. Schreib dazu von der E-Mail-Adresse deines Kontos an ${E}.`,
-          "Wir antworten innerhalb eines Monats (in Kolumbien: Anfragen innerhalb von 10 und Beschwerden innerhalb von 15 Werktagen).",
-          "Du kannst dich außerdem bei der Datenschutz-Aufsichtsbehörde deines Landes beschweren (in Kolumbien bei der Superintendencia de Industria y Comercio, SIC).",
+          "Du hast das Recht auf Auskunft, Berichtigung und Aktualisierung, auf einen Nachweis deiner Einwilligung, auf Information über die Nutzung, auf Widerruf der Einwilligung und Löschung (soweit keine Aufbewahrungspflicht besteht), auf kostenlosen Zugang, auf Datenübertragbarkeit sowie auf Beschwerde bei der Aufsichtsbehörde deines Landes (in Kolumbien: Superintendencia de Industria y Comercio, SIC).",
+          `Kontakt: ${E}. Schreib von der E-Mail-Adresse deines Kontos (oder weise deine Identität bzw. Vertretung nach) und beschreibe dein Anliegen. Zuständig ist das CodeBuddies-Team.`,
+          "Wir antworten innerhalb eines Monats. Nach kolumbianischem Recht gelten für Anfragen 10 Werktage (verlängerbar um 5) und für Beschwerden 15 Werktage (verlängerbar um 8).",
         ],
       },
       {
@@ -342,6 +385,13 @@ export const PRIVACY_POLICY: LegalDocSet = {
         title: "11. Änderungen",
         paragraphs: [
           "Wir können diese Erklärung aktualisieren. Bei wesentlichen Änderungen informieren wir dich vorab per E-Mail oder auf der Plattform. Das Datum der letzten Aktualisierung steht oben.",
+        ],
+      },
+      {
+        id: "geltung",
+        title: "12. Geltung",
+        paragraphs: [
+          "Diese Erklärung gilt ab dem 26. September 2026. Die Datenbanken bestehen, solange CodeBuddies den Dienst anbietet und die beschriebenen Zwecke fortbestehen, vorbehaltlich der oben genannten Speicherfristen.",
         ],
       },
     ],
