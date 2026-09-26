@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { sileo } from "sileo";
 import { Bomb } from "lucide-react";
-import { Company } from "./types";
+import type { CompanyView } from "./types";
 import { deleteCodeStudioCompany } from "../../network/codestudio";
 import Modal from "../shared/Modal";
 import Button from "../shared/Button";
@@ -11,7 +11,7 @@ import { useTranslation } from "../../../i18n/useTranslation";
 import "./DeleteCompanyModal.css";
 
 type Props = {
-  company: Company;
+  company: Pick<CompanyView, "id" | "name">;
   onClose: () => void;
   // Se llama recién DESPUÉS de que el borrado en el backend confirmó éxito
   // (no antes) — CodeStudio.tsx la usa para soltar la selección actual y
@@ -53,14 +53,14 @@ export default function DeleteCompanyModal({ company, onClose, onDeleted }: Prop
     try {
       await deleteCodeStudioCompany(company.id);
       sileo.success({
-        title: t("codestudioMisc.deleteCompany.toastTitle"),
-        description: t("codestudioMisc.deleteCompany.toastDescription", { name: company.name }),
+        title: t("codestudio.deleteCompany.toastTitle"),
+        description: t("codestudio.deleteCompany.toastDescription", { name: company.name }),
       });
       onDeleted();
     } catch (err) {
       sileo.error({
-        title: t("codestudioMisc.deleteCompany.errorToastTitle"),
-        description: err instanceof Error ? err.message : t("codestudioMisc.deleteCompany.errorToastDescription"),
+        title: t("codestudio.deleteCompany.errorToastTitle"),
+        description: err instanceof Error ? err.message : t("codestudio.deleteCompany.errorToastDescription"),
       });
       setDeleting(false);
       setCountdown(null);
@@ -91,12 +91,12 @@ export default function DeleteCompanyModal({ company, onClose, onDeleted }: Prop
   };
 
   return (
-    <Modal title={t("codestudioMisc.deleteCompany.title", { name: company.name })} onClose={onClose}>
+    <Modal title={t("codestudio.deleteCompany.title", { name: company.name })} onClose={onClose}>
       {countdown === null ? (
         <div className="cs-delete-body">
-          <p className="cs-delete-warning">{t("codestudioMisc.deleteCompany.warning")}</p>
+          <p className="cs-delete-warning">{t("codestudio.deleteCompany.warning")}</p>
           <p className="cs-delete-instruction">
-            {t("codestudioMisc.deleteCompany.instruction", { name: company.name })}
+            {t("codestudio.deleteCompany.instruction", { name: company.name })}
           </p>
           <input
             autoFocus
@@ -111,13 +111,13 @@ export default function DeleteCompanyModal({ company, onClose, onDeleted }: Prop
             }}
             placeholder={company.name}
           />
-          {mismatchError && <p className="cs-delete-error">{t("codestudioMisc.deleteCompany.nameMismatch")}</p>}
+          {mismatchError && <p className="cs-delete-error">{t("codestudio.deleteCompany.nameMismatch")}</p>}
           <div className="cs-delete-actions">
             <Button variant="secondary" onClick={onClose}>
               {t("common.cancel")}
             </Button>
             <Button variant="danger" onClick={startCountdown} disabled={!input.trim()}>
-              {t("codestudioMisc.deleteCompany.confirmButton")}
+              {t("codestudio.deleteCompany.confirmButton")}
             </Button>
           </div>
         </div>
@@ -126,7 +126,7 @@ export default function DeleteCompanyModal({ company, onClose, onDeleted }: Prop
           <div key={countdown} className="cs-delete-countdown-number">
             {countdown > 0 ? countdown : <Bomb size={44} />}
           </div>
-          <p>{deleting ? t("codestudioMisc.deleteCompany.deleting") : t("codestudioMisc.deleteCompany.countingDown")}</p>
+          <p>{deleting ? t("codestudio.deleteCompany.deleting") : t("codestudio.deleteCompany.countingDown")}</p>
           {countdown > 0 && (
             <button type="button" className="cs-delete-abort" onClick={abortCountdown}>
               {t("common.cancel")}

@@ -1,4 +1,4 @@
-import { IsString, MinLength } from 'class-validator';
+import { IsString, MaxLength, MinLength } from 'class-validator';
 
 export class CreateCodeStudioCompanyDto {
   @IsString()
@@ -6,5 +6,6 @@ export class CreateCodeStudioCompanyDto {
 
   @IsString()
   @MinLength(3)
+  @MaxLength(40)
   name!: string;
 }

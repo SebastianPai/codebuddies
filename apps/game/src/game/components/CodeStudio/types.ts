@@ -1,186 +1,262 @@
 import {
-  BarChart3,
-  Building2,
-  Code2,
+  Bug,
   DollarSign,
-  FlaskConical,
   GitBranch,
   LayoutDashboard,
-  LayoutGrid,
-  ListChecks,
   Megaphone,
   Server,
   Settings,
   Trophy,
-  UserCheck,
+  Award,
   Users,
   type LucideIcon,
 } from "lucide-react";
 
-export type Company = {
+// Espejo de la respuesta de la API (codestudio.service.ts → buildView y
+// codestudio-catalog.service.ts → catalog). Si cambias uno, cambia el otro.
+
+export type Severity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+
+export type FeatureEffects = Partial<
+  Record<
+    | "growth"
+    | "viral"
+    | "retention"
+    | "arpu"
+    | "conversion"
+    | "satisfaction"
+    | "load"
+    | "capacity"
+    | "latency"
+    | "stability"
+    | "quality"
+    | "security"
+    | "cacDiscount",
+    number
+  >
+>;
+
+export type CatalogFeature = {
   id: string;
+  slug: string;
   name: string;
-  status: string;
-  cash: number;
-  valuation: number;
-  reputation?: number;
-  innovation?: number;
-  activeUsers: number;
-  totalUsers: number;
-  revenue: number;
-  expenses: number;
-  satisfaction: number;
-  bugs: number;
-  latency: number;
-  stability: number;
-  rating: number;
-  appType: { name: string; color?: string; icon?: string };
-  modules: Array<{ moduleId: string; module: { id: string; slug: string; name: string; category: string; effects?: any } }>;
-  development: Array<{
-    id: string;
-    status: string;
-    progress: number;
-    spentSeconds?: number;
-    requiredSeconds?: number;
-    module: { id: string; name: string; category?: string; cost?: number; effects?: any };
-  }>;
-  infrastructure: Array<{
-    level: number;
-    capacity?: number;
-    latency?: number;
-    stability?: number;
-    cost?: number;
-    infrastructureType: { id: string; name: string; category?: string };
-  }>;
-  employees: Array<{
-    id: string;
-    name: string;
-    avatar?: string;
-    age?: number;
-    level: number;
-    motivation?: number;
-    stress?: number;
-    salary?: number;
-    productivity?: number;
-    speed?: number;
-    quality?: number;
-    employeeType: { slug: string; name: string; category?: string };
-  }>;
-  bugReports: Array<{
-    id: string;
-    kind: string;
-    title: string;
-    description: string;
-    severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
-    status: "OPEN" | "FIXED";
-    fixCost: number;
-    createdAt: string;
-  }>;
-  marketingSummary: Array<{
-    channel: string;
-    gainedUsers: number;
-    spent: number;
-    runs: number;
-  }>;
-  technologies: Array<{
-    id: string;
-    unlockedAt: string;
-    technology: { id: string; slug: string; name: string; category: string };
-  }>;
-  snapshots: Array<{
-    activeUsers: number;
-    newUsers?: number;
-    lostUsers?: number;
-    revenue: number;
-    expenses: number;
-    retention?: number;
-    conversion?: number;
-    errors?: number;
-    latency?: number;
-    rating: number;
-    createdAt: string;
-  }>;
-  events?: Array<{ id: string; title: string; description?: string; createdAt: string; effects?: any }>;
+  description: string | null;
+  branch: string;
+  lesson: string;
+  cost: number;
+  devSeconds: number;
+  difficulty: number;
+  requires: string[];
+  minStage: number;
+  effects: FeatureEffects;
 };
 
 export type Catalog = {
-  appTypes: Array<{ id: string; name: string; description?: string; icon?: string; color?: string; category: string; difficulty: number }>;
-  modules: Array<{
+  appTypes: Array<{
     id: string;
     slug: string;
     name: string;
+    icon: string | null;
+    color: string | null;
     category: string;
-    cost: number;
-    developmentSeconds: number;
     difficulty: number;
-    effects?: any;
-    requirements?: { requires?: string[] };
+    description: string | null;
+    minFounderLevel: number;
+    startingCash: number;
   }>;
-  campaigns?: Array<{ id: string; name: string; channel: string; baseCost: number; effects?: any }>;
-  technologies?: Array<{
+  branches: Array<{ key: string; name: string; description: string }>;
+  features: CatalogFeature[];
+  roles: Array<{
     id: string;
     slug: string;
     name: string;
-    description?: string;
+    description: string | null;
     category: string;
-    cost: number;
-    order: number;
-    effects?: { stability?: number; latency?: number };
-    requirements?: { requires?: string[] };
+    salary: number;
+    hireCost: number;
+    devPower: number;
+    canFixBugs: boolean;
   }>;
-  research?: Array<{ id: string; name: string; cost: number; durationSeconds: number }>;
-  employees?: Array<{ id: string; slug: string; name: string; category: string; salary: number; icon?: string }>;
-  infrastructure?: Array<{ id: string; slug: string; name: string; category: string; baseCost: number; icon?: string }>;
+  hosting: Array<{
+    id: string;
+    slug: string;
+    name: string;
+    description: string | null;
+    install: number;
+    monthly: number;
+    capacity: number;
+    latency: number;
+    stability: number;
+    maxLevel: number;
+    minStage: number;
+  }>;
+  channels: Array<{ id: string; slug: string; name: string; channel: string; baseCost: number; minStage: number }>;
+  budgetMultipliers: number[];
+  stages: Array<{ index: number; name: string; tagline: string; reward: { cash: number; xp: number; coins: number } }>;
+  milestones: Array<{ key: string; name: string; description: string; xp: number; coins: number }>;
+  fundingRounds: Array<{ index: number; name: string; minStage: number; minRaise: number; equity: number }>;
+  priceLevels: Array<{ value: number; label: string }>;
 };
 
-export type StudioState = {
-  companies: Company[];
-  catalog: Catalog;
+export type Profile = {
+  xp: number;
+  level: number;
+  levelXp: number;
+  nextLevelXp: number;
+  startingCashBonus: number;
+  companiesFounded: number;
+  bankruptcies: number;
+  bugsDiagnosed: number;
+  bugsFirstTry: number;
+  bestValuation: number;
+  milestones: Array<{ key: string; at: string }>;
+  totalMilestones: number;
 };
 
-export type ViewKey =
-  | "dashboard"
-  | "company"
-  | "apps"
-  | "development"
-  | "roadmap"
-  | "backlog"
-  | "employees"
-  | "clients"
-  | "marketing"
-  | "infrastructure"
-  | "research"
-  | "finance"
-  | "analytics"
-  | "ranking"
-  | "settings";
+export type CompanySummary = {
+  id: string;
+  name: string;
+  status: string;
+  stage: number;
+  valuation: number;
+  activeUsers: number;
+  cash: number;
+  failedAt: string | null;
+  appType: { name: string; color: string | null; icon: string | null; slug: string };
+};
 
-export type BacklogPriority = "Urgente" | "Alta" | "Media" | "Baja";
+export type StudioState = { companies: CompanySummary[]; catalog: Catalog; profile: Profile };
 
-// Qué guía de ExplainerTour mostrar al navegar a una vista desde
-// TutorialPanel — "elegí primera feature"/"contratá"/"instalá infra" son
-// los tres pasos donde el jugador reportó no entender qué hacer, así que
-// además de cambiar de vista se le explica el concepto con un par de
-// slides antes de dejarlo interactuar solo.
-export type GuideKey = "feature" | "hire" | "infra";
+export type Metrics = {
+  launched: boolean;
+  dailyRevenue: number;
+  dailyCosts: number;
+  dailyProfit: number;
+  dailySalaries: number;
+  dailyInfra: number;
+  dailyNewUsers: number;
+  dailyLostUsers: number;
+  churn: number;
+  arpu: number;
+  ltv: number;
+  load: number;
+  capacity: number;
+  utilization: number;
+  runwayDays: number | null;
+  devPower: number;
+  maxParallel: number;
+  quality: number;
+  security: number;
+  cacDiscount: number;
+  satisfactionTarget: number;
+  supportGap: number;
+};
 
-// labelKey en vez de un label literal — este array es una constante de
-// módulo (no un componente), así que no puede llamar a useTranslation() acá;
-// CodeStudio.tsx resuelve el texto real con t(item.labelKey) al renderizar.
+export type TreeState = "installed" | "developing" | "queued" | "available" | "locked" | "locked-stage";
+
+export type StageGoal = {
+  label: string;
+  current: number;
+  target: number;
+  kind: "min" | "max" | "flag";
+  format: "users" | "money" | "rating" | "percent" | "flag";
+  met: boolean;
+};
+
+export type PublicBug = {
+  id: string;
+  title: string;
+  severity: Severity;
+  symptom: string;
+  evidence: string[];
+  options: Array<{ key: string; label: string }>;
+  attempts: number;
+  consultantCost: number;
+  diagnoseCost: number;
+  wrongCost: number;
+  xpReward: number;
+  assignedEmployeeId: string | null;
+  fixSecondsLeft: number | null;
+  employeeFixSeconds: number;
+  createdAt: string;
+};
+
+export type ChannelQuote = {
+  id: string;
+  slug: string;
+  name: string;
+  channel: string;
+  minStage: number;
+  locked: boolean;
+  fit: number;
+  fatigue: number;
+  quotes: Array<{ multiplier: number; cost: number; users: number; cac: number }>;
+};
+
+export type ActivityEvent = { id: string; title: string; description: string | null; kind: string; tone: "good" | "bad" | "neutral"; createdAt: string };
+
+export type CompanyView = {
+  id: string;
+  name: string;
+  status: "IDEA" | "BUILDING" | "LIVE" | "PAUSED" | "FAILED";
+  appType: { id: string; slug: string; name: string; color: string | null; icon: string | null; description: string | null };
+  cash: number;
+  valuation: number;
+  activeUsers: number;
+  totalUsers: number;
+  satisfaction: number;
+  rating: number;
+  reputation: number;
+  techDebt: number;
+  stability: number;
+  latency: number;
+  founderEquity: number;
+  priceLevel: number;
+  debtDays: number;
+  daysUntilBankruptcy: number | null;
+  gameDays: number;
+  failedAt: string | null;
+  failureReason: string | null;
+  metrics: Metrics;
+  stage: {
+    index: number;
+    name: string;
+    tagline: string;
+    goals: StageGoal[];
+    next: { name: string; reward: { cash: number; xp: number; coins: number } } | null;
+  };
+  tree: Array<{ slug: string; state: TreeState; fit: number; missing: string[] }>;
+  legacyFeatures: Array<{ name: string; category: string }>;
+  development: Array<{ id: string; slug: string; name: string; progress: number; queued: boolean; remainingSeconds: number | null; refund: number }>;
+  employees: Array<{ id: string; name: string; roleSlug: string; roleName: string; salary: number; severance: number; canFixBugs: boolean; busy: boolean }>;
+  hosting: Array<{ typeId: string; slug: string; name: string; level: number; maxLevel: number; capacity: number; monthly: number; upgradeCost: number; legacy: boolean }>;
+  bugs: PublicBug[];
+  pendingDecision: { id: string; title: string; description: string | null; choices: Array<{ key: string; label: string; hint: string }>; daysLeft: number } | null;
+  events: ActivityEvent[];
+  snapshots: Array<{ activeUsers: number; revenue: number; expenses: number; rating: number; createdAt: string }>;
+  marketing: { channels: ChannelQuote[]; summary: Array<{ channel: string; gainedUsers: number; spent: number; runs: number }> };
+  funding: { name: string; raise: number; equity: number; minStage: number; minStageName: string; available: boolean; minRating: number } | null;
+  profile: Profile;
+};
+
+export type BugFixResult =
+  | { correct: true; feedback: string; lesson: string; preventHint: string | null; xp: number; cost: number; firstTry: boolean }
+  | { correct: false; feedback: string; cost: number }
+  | { assigned: true; seconds: number }
+  | { paid: number };
+
+export type ViewKey = "panel" | "tree" | "bugs" | "team" | "infra" | "marketing" | "finance" | "career" | "ranking" | "settings";
+
+// labelKey y no texto: CodeStudio.tsx lo resuelve con t() al renderizar.
 export const nav: Array<{ key: ViewKey; labelKey: string; icon: LucideIcon }> = [
-  { key: "dashboard", labelKey: "codestudioGeneral.nav.dashboard", icon: LayoutDashboard },
-  { key: "company", labelKey: "codestudioGeneral.nav.company", icon: Building2 },
-  { key: "apps", labelKey: "codestudioGeneral.nav.apps", icon: LayoutGrid },
-  { key: "development", labelKey: "codestudioGeneral.nav.development", icon: Code2 },
-  { key: "roadmap", labelKey: "codestudioGeneral.nav.roadmap", icon: GitBranch },
-  { key: "backlog", labelKey: "codestudioGeneral.nav.backlog", icon: ListChecks },
-  { key: "employees", labelKey: "codestudioGeneral.nav.employees", icon: Users },
-  { key: "clients", labelKey: "codestudioGeneral.nav.clients", icon: UserCheck },
-  { key: "marketing", labelKey: "codestudioGeneral.nav.marketing", icon: Megaphone },
-  { key: "infrastructure", labelKey: "codestudioGeneral.nav.infrastructure", icon: Server },
-  { key: "research", labelKey: "codestudioGeneral.nav.research", icon: FlaskConical },
-  { key: "finance", labelKey: "codestudioGeneral.nav.finance", icon: DollarSign },
-  { key: "analytics", labelKey: "codestudioGeneral.nav.analytics", icon: BarChart3 },
-  { key: "ranking", labelKey: "codestudioGeneral.nav.ranking", icon: Trophy },
-  { key: "settings", labelKey: "codestudioGeneral.nav.settings", icon: Settings },
+  { key: "panel", labelKey: "codestudio.nav.panel", icon: LayoutDashboard },
+  { key: "tree", labelKey: "codestudio.nav.tree", icon: GitBranch },
+  { key: "bugs", labelKey: "codestudio.nav.bugs", icon: Bug },
+  { key: "team", labelKey: "codestudio.nav.team", icon: Users },
+  { key: "infra", labelKey: "codestudio.nav.infra", icon: Server },
+  { key: "marketing", labelKey: "codestudio.nav.marketing", icon: Megaphone },
+  { key: "finance", labelKey: "codestudio.nav.finance", icon: DollarSign },
+  { key: "career", labelKey: "codestudio.nav.career", icon: Award },
+  { key: "ranking", labelKey: "codestudio.nav.ranking", icon: Trophy },
+  { key: "settings", labelKey: "codestudio.nav.settings", icon: Settings },
 ];

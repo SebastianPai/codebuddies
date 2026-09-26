@@ -1,5 +1,6 @@
 import { getSharedAuthToken, redirectToWebLogin } from "./auth";
 import { getApiUrl } from "../../config/env";
+import type { BugFixResult, CompanyView, StudioState } from "../components/CodeStudio/types";
 
 const API_URL = getApiUrl();
 
@@ -33,71 +34,68 @@ async function request<T>(path: string, options: RequestInit = {}) {
 
   if (!res.ok) {
     const error = await res.json().catch(() => ({}));
-    throw new Error(error.message || "CodeStudio no pudo completar la accion");
+    const message = Array.isArray(error.message) ? error.message.join(" ") : error.message;
+    throw new Error(message || "CodeStudio no pudo completar la acción");
   }
 
   return res.json() as Promise<T>;
 }
 
-export function getCodeStudio() {
-  return request<any>("/codestudio/me");
-}
+const post = <T>(path: string, body?: unknown) =>
+  request<T>(path, { method: "POST", body: body === undefined ? undefined : JSON.stringify(body) });
 
-export function createCodeStudioCompany(appTypeId: string, name: string) {
-  return request<any>("/codestudio/companies", {
-    method: "POST",
-    body: JSON.stringify({ appTypeId, name }),
-  });
-}
+export const getCodeStudio = () => request<StudioState>("/codestudio/me");
 
-export function startCodeStudioDevelopment(companyId: string, moduleId: string) {
-  return request<any>(`/codestudio/companies/${companyId}/development`, {
-    method: "POST",
-    body: JSON.stringify({ moduleId }),
-  });
-}
+// Lo llama el cliente cada ~10s: cada llamada avanza la simulación.
+export const getCodeStudioCompany = (companyId: string) => request<CompanyView>(`/codestudio/companies/${companyId}`);
 
-export function hireCodeStudioEmployee(companyId: string, employeeTypeId: string) {
-  return request<any>(`/codestudio/companies/${companyId}/employees`, {
-    method: "POST",
-    body: JSON.stringify({ employeeTypeId }),
-  });
-}
+export const getCodeStudioRanking = () => request<RankingRow[]>("/codestudio/ranking");
 
-export function installCodeStudioInfrastructure(companyId: string, infrastructureTypeId: string) {
-  return request<any>(`/codestudio/companies/${companyId}/infrastructure`, {
-    method: "POST",
-    body: JSON.stringify({ infrastructureTypeId }),
-  });
-}
+export const createCodeStudioCompany = (appTypeId: string, name: string) =>
+  post<CompanyView>("/codestudio/companies", { appTypeId, name });
 
-export function deleteCodeStudioCompany(companyId: string) {
-  return request<{ id: string; name: string }>(`/codestudio/companies/${companyId}`, {
-    method: "DELETE",
-  });
-}
+export const deleteCodeStudioCompany = (companyId: string) =>
+  request<{ id: string; name: string }>(`/codestudio/companies/${companyId}`, { method: "DELETE" });
 
-export function fixCodeStudioBug(companyId: string, bugId: string, method: "cash" | "employee", employeeId?: string) {
-  return request<any>(`/codestudio/companies/${companyId}/bugs/${bugId}/fix`, {
-    method: "POST",
-    body: JSON.stringify({ method, employeeId }),
-  });
-}
+export const startCodeStudioDevelopment = (companyId: string, moduleId: string) =>
+  post<CompanyView>(`/codestudio/companies/${companyId}/development`, { moduleId });
 
-export function launchCodeStudioCampaign(companyId: string, campaignId: string) {
-  return request<any>(`/codestudio/companies/${companyId}/campaigns`, {
-    method: "POST",
-    body: JSON.stringify({ campaignId }),
-  });
-}
+export const cancelCodeStudioDevelopment = (companyId: string, taskId: string) =>
+  request<CompanyView>(`/codestudio/companies/${companyId}/development/${taskId}`, { method: "DELETE" });
 
-export function unlockCodeStudioTechnology(companyId: string, technologyId: string) {
-  return request<any>(`/codestudio/companies/${companyId}/technologies`, {
-    method: "POST",
-    body: JSON.stringify({ technologyId }),
-  });
-}
+export const hireCodeStudioEmployee = (companyId: string, employeeTypeId: string) =>
+  post<CompanyView>(`/codestudio/companies/${companyId}/employees`, { employeeTypeId });
 
-export function getCodeStudioRanking() {
-  return request<any[]>("/codestudio/ranking");
-}
+export const fireCodeStudioEmployee = (companyId: string, employeeId: string) =>
+  request<CompanyView>(`/codestudio/companies/${companyId}/employees/${employeeId}`, { method: "DELETE" });
+
+export const installCodeStudioInfrastructure = (companyId: string, infrastructureTypeId: string) =>
+  post<CompanyView>(`/codestudio/companies/${companyId}/infrastructure`, { infrastructureTypeId });
+
+export const launchCodeStudioCampaign = (companyId: string, campaignId: string, multiplier: number) =>
+  post<CompanyView>(`/codestudio/companies/${companyId}/campaigns`, { campaignId, multiplier });
+
+export const fixCodeStudioBug = (
+  companyId: string,
+  bugId: string,
+  body: { method: "diagnose" | "employee" | "cash"; optionKey?: string; employeeId?: string },
+) => post<{ result: BugFixResult; company: CompanyView }>(`/codestudio/companies/${companyId}/bugs/${bugId}/fix`, body);
+
+export const chooseCodeStudioDecision = (companyId: string, eventId: string, choice: string) =>
+  post<CompanyView>(`/codestudio/companies/${companyId}/decisions/${eventId}`, { choice });
+
+export const raiseCodeStudioFunding = (companyId: string) => post<CompanyView>(`/codestudio/companies/${companyId}/funding`);
+
+export const setCodeStudioPricing = (companyId: string, level: number) =>
+  post<CompanyView>(`/codestudio/companies/${companyId}/pricing`, { level });
+
+export type RankingRow = {
+  id: string;
+  name: string;
+  valuation: number;
+  activeUsers: number;
+  stage: number;
+  founderEquity: number;
+  appType?: { name?: string; color?: string | null } | null;
+  user?: { username?: string } | null;
+};

@@ -751,6 +751,8 @@ model User {
   marketplaceReviews       MarketplaceReviewComment[]    @relation("MarketplaceReviewAdmin")
   marketplaceWalletMoves   CreatorWalletMovement[]
   codeStudioCompanies      CodeStudioCompany[]
+  codeStudioProfile        CodeStudioProfile?
+  codeStudioMilestones     CodeStudioMilestone[]
 
   battlePassProgress UserBattlePassProgress[]
   battlePassClaims   BattlePassClaim[]
@@ -4024,14 +4026,16 @@ model CodeStudioCompany {
   name         String
   status       CodeStudioCompanyStatus @default(IDEA)
   level        Int                     @default(1)
-  cash         Int                     @default(5000)
+  // Float (double) y no Int: una empresa exitosa pasa los $2.147M que
+  // aguanta un INTEGER de Postgres (la meta final es $1.000M de valuación).
+  cash         Float                   @default(5000)
   reputation   Float                   @default(5)
   innovation   Float                   @default(1)
-  valuation    Int                     @default(0)
+  valuation    Float                   @default(0)
   activeUsers  Int                     @default(0)
   totalUsers   Int                     @default(0)
-  revenue      Int                     @default(0)
-  expenses     Int                     @default(0)
+  revenue      Float                   @default(0)
+  expenses     Float                   @default(0)
   satisfaction Float                   @default(75)
   bugs         Float                   @default(0)
   latency      Float                   @default(120)
@@ -4046,8 +4050,30 @@ model CodeStudioCompany {
   // Cooldown para los eventos de mercado reales (CodeStudioEventTemplate,
   // revivido en Fase 1) — evita que roleen todo el tiempo.
   lastMarketEventAt DateTime?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+
+  // ── CodeStudio v2 ──────────────────────────────────────────────────────
+  // Etapa del camino (content/progression.ts): solo sube.
+  stage          Int       @default(0)
+  // % de la empresa que sigue siendo del fundador (baja con cada ronda).
+  founderEquity  Float     @default(100)
+  fundingRound   Int       @default(0)
+  // Días de juego seguidos con caja negativa; a los 7 la empresa quiebra.
+  debtDays       Float     @default(0)
+  // Días de juego simulados (1 minuto real = 1 día).
+  gameDays       Float     @default(0)
+  // Nivel de precio elegido en Finanzas (0.6 muy barato … 1.6 premium).
+  priceLevel     Float     @default(1)
+  // Día de juego en que toca el próximo evento de mercado.
+  nextEventDay   Float     @default(8)
+  lastSnapshotAt DateTime?
+  failedAt       DateTime?
+  failureReason  String?
+  // 1 = creada con la economía vieja (se convierte una vez al simularse por
+  // primera vez con v2), 2 = v2.
+  simVersion     Int       @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   user    User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   appType CodeStudioAppType @relation(fields: [appTypeId], references: [id])
@@ -4206,9 +4232,50 @@ model CodeStudioBug {
   createdAt   DateTime              @default(now())
   fixedAt     DateTime?
 
+  // v2: escenario de diagnóstico (content/bugs.ts), intentos fallidos, y
+  // arreglo en curso por un empleado técnico (termina en fixReadyAt).
+  scenarioKey        String?
+  attempts           Int       @default(0)
+  assignedEmployeeId String?
+  fixReadyAt         DateTime?
+  resolution         String?
+
   company CodeStudioCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@index([companyId, status])
+}
+
+// Carrera del fundador en CodeStudio (una por usuario, sobrevive a las
+// quiebras): XP/nivel de fundador y estadísticas. El nivel desbloquea tipos
+// de app y da más caja inicial (content/progression.ts).
+model CodeStudioProfile {
+  id               String   @id @default(uuid())
+  userId           String   @unique
+  xp               Int      @default(0)
+  companiesFounded Int      @default(0)
+  bankruptcies     Int      @default(0)
+  bugsDiagnosed    Int      @default(0)
+  bugsFirstTry     Int      @default(0)
+  bestValuation    Float    @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Logros únicos por usuario (content/progression.ts → MILESTONES). El
+// @@unique es lo que garantiza que las coins se paguen UNA sola vez aunque
+// lleguen dos requests a la vez.
+model CodeStudioMilestone {
+  id        String   @id @default(uuid())
+  userId    String
+  key       String
+  companyId String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
 }
 
 // Mejoras desbloqueables de un objeto del mundo con `behavior` (ver

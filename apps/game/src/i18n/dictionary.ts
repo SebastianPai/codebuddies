@@ -3,6 +3,10 @@
 // puedan agregar/traducir la suya sin pisarse entre sí. Este archivo es el
 // único lugar que las une todas; si agregás un namespace nuevo, sumalo acá.
 
+import codestudioEs from "./namespaces/codestudio/es.json";
+import codestudioEn from "./namespaces/codestudio/en-us.json";
+import codestudioDe from "./namespaces/codestudio/de.json";
+
 import commonEs from "./namespaces/common/es.json";
 import commonEn from "./namespaces/common/en-us.json";
 import commonDe from "./namespaces/common/de.json";
@@ -55,18 +59,6 @@ import hudEs from "./namespaces/hud/es.json";
 import hudEn from "./namespaces/hud/en-us.json";
 import hudDe from "./namespaces/hud/de.json";
 
-import codestudioGeneralEs from "./namespaces/codestudioGeneral/es.json";
-import codestudioGeneralEn from "./namespaces/codestudioGeneral/en-us.json";
-import codestudioGeneralDe from "./namespaces/codestudioGeneral/de.json";
-
-import codestudioOpsEs from "./namespaces/codestudioOps/es.json";
-import codestudioOpsEn from "./namespaces/codestudioOps/en-us.json";
-import codestudioOpsDe from "./namespaces/codestudioOps/de.json";
-
-import codestudioMiscEs from "./namespaces/codestudioMisc/es.json";
-import codestudioMiscEn from "./namespaces/codestudioMisc/en-us.json";
-import codestudioMiscDe from "./namespaces/codestudioMisc/de.json";
-
 import editworldEs from "./namespaces/editworld/es.json";
 import editworldEn from "./namespaces/editworld/en-us.json";
 import editworldDe from "./namespaces/editworld/de.json";
@@ -86,9 +78,7 @@ export const dictionary = {
     buildmode: buildmodeEs,
     pc: pcEs,
     hud: hudEs,
-    codestudioGeneral: codestudioGeneralEs,
-    codestudioOps: codestudioOpsEs,
-    codestudioMisc: codestudioMiscEs,
+    codestudio: codestudioEs,
     editworld: editworldEs,
   },
   "en-us": {
@@ -105,9 +95,7 @@ export const dictionary = {
     buildmode: buildmodeEn,
     pc: pcEn,
     hud: hudEn,
-    codestudioGeneral: codestudioGeneralEn,
-    codestudioOps: codestudioOpsEn,
-    codestudioMisc: codestudioMiscEn,
+    codestudio: codestudioEn,
     editworld: editworldEn,
   },
   de: {
@@ -124,9 +112,7 @@ export const dictionary = {
     buildmode: buildmodeDe,
     pc: pcDe,
     hud: hudDe,
-    codestudioGeneral: codestudioGeneralDe,
-    codestudioOps: codestudioOpsDe,
-    codestudioMisc: codestudioMiscDe,
+    codestudio: codestudioDe,
     editworld: editworldDe,
   },
 };
