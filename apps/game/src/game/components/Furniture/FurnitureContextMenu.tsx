@@ -1,11 +1,16 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { RotateCw, Trash2, Move, Copy, CopyPlus, Power, DoorOpen } from "lucide-react";
+import { RotateCw, Trash2, Move, Copy, CopyPlus, Power, DoorOpen, Sparkles } from "lucide-react";
+import type { UpgradesTarget } from "./ItemUpgradesModal";
 import styles from "./FurnitureContextMenu.module.css";
 import Button from "../shared/Button";
 import { useTranslation } from "../../../i18n/useTranslation";
 import { EffectivePermissions, NO_PERMISSIONS } from "../../types/permissions";
+import {
+  emitRoomItemInteraction,
+  type RoomItemInteraction,
+} from "../../network/roomItemInteractions";
 
 interface Props {
   furniture: any;
@@ -13,6 +18,8 @@ interface Props {
   y: number;
   permissions?: EffectivePermissions;
   onClose: () => void;
+  /** Abre el panel de mejoras (solo objetos con comportamiento). */
+  onOpenUpgrades?: (target: UpgradesTarget) => void;
 }
 
 // Antes esto era un panel centrado de 420px que tapaba media pantalla al
@@ -30,6 +37,7 @@ export default function FurnitureContextMenu({
   y,
   permissions = NO_PERMISSIONS,
   onClose,
+  onOpenUpgrades,
 }: Props) {
   const t = useTranslation();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -61,13 +69,11 @@ export default function FurnitureContextMenu({
     : [];
   const state = furniture?.state ?? {};
 
-  const interact = (interaction: string) => {
-    const socket = (window as any).phaserSocket;
-    if (!socket || !furniture?.roomItemId) return;
-    socket.emit("room:item:interact", {
-      roomItemId: furniture.roomItemId,
-      interaction,
-    });
+  // Misma ruta exacta que el click izquierdo sobre el sprite: un solo
+  // `room:item:interact` con el mismo payload (ver roomItemInteractions.ts).
+  const interact = (interaction: RoomItemInteraction) => {
+    if (!furniture?.roomItemId) return;
+    emitRoomItemInteraction(furniture.roomItemId, interaction);
     onClose();
   };
 
@@ -148,6 +154,24 @@ export default function FurnitureContextMenu({
           <Button variant="primary" size="sm" fullWidth onClick={() => interact("OPEN")}>
             <DoorOpen size={13} />{" "}
             {state.open ? t("buildmode.interactClose") : t("buildmode.interactOpen")}
+          </Button>
+        )}
+        {worldData?.behavior && onOpenUpgrades && (furniture?.item?.id || furniture?.itemId) && (
+          <Button
+            variant="secondary"
+            size="sm"
+            fullWidth
+            onClick={() => {
+              onOpenUpgrades({
+                itemId: furniture.item?.id ?? furniture.itemId,
+                name,
+                imageUrl: furniture.item?.imageUrl ?? null,
+                ownerId: furniture.ownerId ?? "",
+              });
+              onClose();
+            }}
+          >
+            <Sparkles size={13} /> {t("buildmode.upgradesButton")}
           </Button>
         )}
         {permissions.canMoveObjects && (

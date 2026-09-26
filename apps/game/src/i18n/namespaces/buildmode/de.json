@@ -74,5 +74,18 @@
   "placingRemaining": "noch {count}",
   "placingHintClick": "Klicken zum Platzieren",
   "placingHintRotate": "drehen",
-  "placingHintFinish": "beenden"
+  "placingHintFinish": "beenden",
+  "upgradesButton": "Upgrades",
+  "upgradesTitle": "Objekt-Upgrades",
+  "upgradesSubtitle": "Schalte neue Funktionen frei. Einmal kaufen, gilt für alle deine Exemplare.",
+  "upgradesOthersHint": "Dieses Objekt gehört einem anderen Spieler: im Raum gelten die Upgrades des Besitzers. Deine Käufe gelten für deine eigenen Exemplare.",
+  "upgradesLoading": "Upgrades werden geladen…",
+  "upgradesLoadError": "Upgrades konnten nicht geladen werden.",
+  "upgradesEmpty": "Dieses Objekt hat noch keine Upgrades.",
+  "upgradeUnlocks": "Schaltet frei",
+  "upgradeOwned": "Besitzt du",
+  "upgradeNeedItem": "Objekt benötigt",
+  "upgradeNeedsPrevious": "Vorheriges benötigt",
+  "upgradeBought": "Upgrade \"{name}\" freigeschaltet!",
+  "upgradeBuyError": "Upgrade konnte nicht gekauft werden."
 }

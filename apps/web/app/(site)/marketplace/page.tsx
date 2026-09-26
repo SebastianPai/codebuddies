@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Heart } from "lucide-react";
+import { Heart, Sparkles, Zap } from "lucide-react";
 import { api } from "../../../utils/api";
 import CachedImage from "../../../components/shared/CachedImage";
 import { useTranslation } from "../../../src/i18n/useTranslation";
@@ -22,6 +22,11 @@ type MarketplaceItem = {
   ratingAverage: number;
   salesCount: number;
   favoritesCount: number;
+  // Objeto con comportamiento (se puede clickear/animar en el juego) y sus
+  // mejoras desbloqueables.
+  interactive?: boolean;
+  upgradeCount?: number;
+  upgradeMinPrice?: number | null;
   creator: {
     verified: boolean;
     user: { username: string; avatarUrl?: string };
@@ -125,9 +130,9 @@ export default function MarketplacePage() {
   };
 
   return (
-    <main className="min-h-screen bg-[rgb(var(--background))] px-6 py-10 text-[rgb(var(--text))]">
+    <main className="min-h-screen bg-[rgb(var(--background))] py-6 text-[rgb(var(--text))] sm:py-10">
       <section className="mx-auto max-w-7xl space-y-8">
-        <div className="overflow-hidden rounded-[32px] border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-8 shadow-2xl">
+        <div className="overflow-hidden rounded-[32px] border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 shadow-2xl sm:p-8">
           <p className="text-xs font-black uppercase tracking-[0.25em] text-[rgb(var(--primary))]">
             {t("site.creativeCommunityLabel")}
           </p>
@@ -136,6 +141,10 @@ export default function MarketplacePage() {
               <h1 className="text-4xl font-black tracking-tight md:text-6xl">Marketplace</h1>
               <p className="mt-3 max-w-2xl text-[rgb(var(--secondary-text))]">
                 {t("site.marketplaceDescription")}
+              </p>
+              <p className="mt-2 flex max-w-2xl items-start gap-2 text-sm text-[rgb(var(--secondary-text))]">
+                <Sparkles size={15} className="mt-0.5 shrink-0 text-[rgb(var(--primary))]" />
+                {t("site.marketplaceHowUpgrades")}
               </p>
             </div>
             <Link href="/creator/marketplace" className="rounded-2xl bg-[rgb(var(--button))] px-5 py-3 text-center font-black text-[rgb(var(--button-text))] transition hover:brightness-110">
@@ -186,19 +195,24 @@ export default function MarketplacePage() {
         )}
 
         {loading ? (
-          <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {Array.from({ length: 8 }).map((_, index) => (
               <Skeleton key={index} className="h-72" />
             ))}
           </div>
         ) : error && !items.length ? null : items.length ? (
-          <div className="grid gap-5 md:grid-cols-3 xl:grid-cols-4">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {items.map((item) => {
               const isFavorite = favoriteIds.has(item.id);
 
               return (
                 <article key={item.id} className="group overflow-hidden rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] transition hover:-translate-y-1 hover:border-[rgb(var(--primary)/0.6)]">
                   <div className="relative grid h-44 place-items-center bg-gradient-to-br from-zinc-900 to-black">
+                    {item.interactive && (
+                      <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-[rgb(var(--primary))] px-2.5 py-1 text-[11px] font-black text-black">
+                        <Zap size={12} /> {t("site.marketplaceInteractive")}
+                      </span>
+                    )}
                     <button
                       onClick={() => void toggleFavorite(item)}
                       aria-label={isFavorite ? t("site.removeFavoriteAria") : t("site.addFavoriteAria")}
@@ -231,6 +245,14 @@ export default function MarketplacePage() {
                         {item.priceCoins} Coins
                       </span>
                     </div>
+                    {!!item.upgradeCount && (
+                      <p className="flex items-center gap-1.5 rounded-xl border border-[rgb(var(--primary)/0.35)] bg-[rgb(var(--primary)/0.08)] px-3 py-2 text-xs font-bold">
+                        <Sparkles size={13} className="text-[rgb(var(--primary))]" />
+                        {item.upgradeCount === 1
+                          ? t("site.marketplaceUpgradesOne", { price: item.upgradeMinPrice ?? 0 })
+                          : t("site.marketplaceUpgrades", { count: item.upgradeCount, price: item.upgradeMinPrice ?? 0 })}
+                      </p>
+                    )}
                     <div className="flex justify-between text-xs text-[rgb(var(--secondary-text))]">
                       <span>{item.ratingAverage.toFixed(1)} {t("site.ratingUnit")}</span>
                       <span>{item.salesCount} {t("site.salesUnit")}</span>

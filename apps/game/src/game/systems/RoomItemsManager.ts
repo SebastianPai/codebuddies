@@ -11,6 +11,10 @@ import { pointerToScreenPosition } from "../utils/pointerToScreenPosition";
 import IsoGrid from "../iso/IsoGrid";
 import { depthFromGroundPoint } from "../iso/IsoDepth";
 import { FLOOR_SURFACE_DEPTH, WALL_SURFACE_DEPTH } from "../utils/depth";
+import { loadTextureOnce } from "../utils/phaserAssetCache";
+import WorldObjectAnimator from "./WorldObjectAnimator";
+import { emitRoomItemInteraction } from "../network/roomItemInteractions";
+import type { RemoteStateUpdate } from "@codebuddies/world-objects";
 
 /**
  * Payload de un room item tal como lo entrega el servidor (evento
@@ -45,6 +49,23 @@ export const ITEM_INTERACTIVE_CONFIG = {
   useHandCursor: true,
 } as const;
 
+/**
+ * ¿Es el botón izquierdo?
+ *
+ * Phaser dispara `pointerdown` con cualquier botón, así que sin esto el click
+ * derecho también interactuaría. El derecho cae al camino de siempre
+ * (seleccionar + menú), que es como se sigue llegando al menú de un objeto
+ * interactivo en modo juego.
+ *
+ * Un puntero táctil no tiene `leftButtonDown`; en ese caso se toma como
+ * izquierdo, que es lo que un toque representa.
+ */
+function isLeftButton(pointer: { leftButtonDown?: () => boolean }): boolean {
+  return typeof pointer?.leftButtonDown === "function"
+    ? pointer.leftButtonDown()
+    : true;
+}
+
 export default class RoomItemsManager {
   private scene: Phaser.Scene;
   private grid: IsoGrid;
@@ -56,9 +77,32 @@ export default class RoomItemsManager {
   // otro o al deseleccionar (Escape / clic en otro lado / cerrar el menú).
   private selectedId: string | null = null;
 
+  /**
+   * Ejecutor visual de los objetos con `behavior`. Sólo dibuja: qué estado
+   * tiene un objeto lo decide el servidor. Los objetos de siempre
+   * (`behavior = null`) no se registran siquiera y siguen exactamente igual.
+   */
+  private animator: WorldObjectAnimator;
+
   constructor(scene: Phaser.Scene, grid: IsoGrid) {
     this.scene = scene;
     this.grid = grid;
+    this.animator = new WorldObjectAnimator(scene.textures as any, (url) =>
+      loadTextureOnce(scene, url),
+    );
+  }
+
+  /**
+   * Un tick del bucle de la escena para las animaciones de world objects.
+   * Sólo recorre los objetos con animación activa (ver WorldObjectAnimator).
+   */
+  update(now = Date.now()) {
+    this.animator.update(now);
+  }
+
+  /** Refleja en pantalla lo que difundió el servidor en `room:item:state`. */
+  applyRemoteBehaviorState(id: string, update: RemoteStateUpdate) {
+    this.animator.applyRemoteState(id, update, Date.now());
   }
 
   private get elevationStep() {
@@ -189,6 +233,10 @@ export default class RoomItemsManager {
       sprite.setInteractive(ITEM_INTERACTIVE_CONFIG);
       // Estado inicial (ej: la TV ya estaba encendida al entrar a la sala).
       this.applyItemState(id);
+      // Objetos con `behavior`: el animator resuelve el frame inicial, que
+      // puede ser una transición a medias si alguien la disparó hace un
+      // instante. Para los objetos de siempre devuelve false y no hace nada.
+      this.animator.register(worldObject, Date.now());
     }
 
     if (!isSurface) {
@@ -212,6 +260,23 @@ export default class RoomItemsManager {
           // personaje sale a caminar hacia el mueble clickeado a la vez que
           // se selecciona.
           event.stopPropagation();
+
+          // ── click izquierdo en MODO JUEGO sobre un objeto interactivo ──
+          //
+          // Se pide la interacción y NO se toca nada en pantalla: no hay
+          // actualización optimista. El objeto sólo se mueve cuando vuelve
+          // `room:item:state`, que es lo que hace que todos los jugadores de
+          // la sala vean exactamente la misma transición.
+          //
+          // El resto de los casos caen al comportamiento de siempre:
+          //   · modo construcción  → seleccionar (mover / rotar / recoger)
+          //   · botón derecho      → seleccionar, así el menú sigue siendo
+          //                          alcanzable en un objeto interactivo
+          //   · objeto sin CLICK   → seleccionar, igual que antes
+          if (this.canInteractByClick(id, worldObject) && isLeftButton(pointer)) {
+            emitRoomItemInteraction(id, "CLICK");
+            return;
+          }
 
           this.selectItem(id);
 
@@ -264,6 +329,28 @@ export default class RoomItemsManager {
     applySpriteOffset(worldObject.sprite, worldData, worldObject.rotation);
 
     this.updateSingleItemDepth(worldObject);
+  }
+
+  /**
+   * ¿Un click izquierdo sobre este objeto debe INTERACTUAR en vez de abrir el
+   * menú de edición?
+   *
+   * Se piden las tres condiciones que el servidor exige, en el mismo orden, para
+   * no mandar peticiones que sabemos que va a rechazar con un error visible:
+   * el objeto es interactivo, admite CLICK, y su behavior declara alguna
+   * transición de click.
+   *
+   * Y nunca en modo construcción: ahí el click izquierdo sigue siendo
+   * "seleccionar para mover / rotar / recoger", que es el trabajo del editor.
+   */
+  private canInteractByClick(id: string, worldObject: WorldObject): boolean {
+    if ((this.scene as any).isBuildModeActive?.()) return false;
+
+    const worldData = worldObject.item?.worldData;
+    if (!worldData?.isInteractable) return false;
+    if (!worldData.interactionTypes?.includes("CLICK")) return false;
+
+    return this.animator.respondsToTrigger(id, "CLICK");
   }
 
   // Solo resalta el sprite (tint); no abre ningún modal por sí solo — quién
@@ -381,6 +468,7 @@ export default class RoomItemsManager {
       worldObject.sprite.destroy();
     }
 
+    this.animator.unregister(id);
     this.items.delete(id);
     this.invalidateOccupancy();
 
@@ -592,6 +680,7 @@ export default class RoomItemsManager {
       }
     });
 
+    this.animator.destroy();
     this.items.clear();
     this.invalidateOccupancy();
     this.selectedId = null;

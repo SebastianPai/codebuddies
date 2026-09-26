@@ -5,6 +5,8 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { PremiumAccessService } from '../../premium-access/premium-access.service';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { RealtimeService } from '../../realtime/realtime.service';
+import { Prisma } from '@prisma/client';
+import { TV_BEHAVIOR } from '@codebuddies/world-objects';
 
 describe('ItemsService', () => {
   let service: ItemsService;
@@ -310,6 +312,116 @@ describe('ItemsService', () => {
       expect(findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: expect.objectContaining({ shopVisible: true }) }),
       );
+    });
+  });
+  // ───────────────────────── behavior (world objects) ─────────────────────
+  //
+  // El `behavior` es la máquina de estados declarativa del objeto. Lo que se
+  // fija acá es la semántica de las tres entradas posibles, porque de eso
+  // depende la compatibilidad: ausente = no tocar, null = limpiar, objeto =
+  // validar en estricto.
+  describe('behavior de world items', () => {
+    const worldItemDto = {
+      name: 'TV',
+      kind: 'FURNITURE',
+      width: 512,
+      height: 128,
+      coinsPrice: 100,
+      rarity: 0,
+      directions: 4,
+    } as never;
+
+    function prismaWithWorldItem() {
+      const store = prisma as unknown as Record<string, any>;
+      store.item.create = jest.fn().mockResolvedValue({ id: 'item-tv' });
+      store.item.findUnique = jest.fn().mockResolvedValue({ id: 'item-tv' });
+      store.item.update = jest.fn().mockResolvedValue({ id: 'item-tv' });
+      store.language = { findUnique: jest.fn().mockResolvedValue({ id: 'lang-es' }) };
+      store.itemTranslation = { create: jest.fn(), upsert: jest.fn() };
+      store.worldItemData = {
+        create: jest.fn(),
+        update: jest.fn(),
+        findUnique: jest.fn().mockResolvedValue({
+          itemId: 'item-tv',
+          width: 512,
+          height: 128,
+          footprintWidth: 1,
+          footprintHeight: 1,
+          directions: 4,
+          footprints: null,
+          surfaces: null,
+        }),
+      };
+      return store;
+    }
+
+    it('createItem sin behavior no escribe la columna', async () => {
+      const store = prismaWithWorldItem();
+
+      await service.createItem(worldItemDto);
+
+      const data = store.worldItemData.create.mock.calls[0][0].data;
+      expect(data.kind).toBe('FURNITURE');
+      // Item estático: exactamente como se creaban antes de que el behavior
+      // existiera.
+      expect('behavior' in data).toBe(false);
+    });
+
+    it('createItem con behavior válido lo persiste normalizado', async () => {
+      const store = prismaWithWorldItem();
+
+      await service.createItem({ ...(worldItemDto as object), behavior: TV_BEHAVIOR } as never);
+
+      const data = store.worldItemData.create.mock.calls[0][0].data;
+      expect(data.behavior).toEqual(TV_BEHAVIOR);
+    });
+
+    it('createItem con behavior inválido falla con 400', async () => {
+      prismaWithWorldItem();
+
+      await expect(
+        service.createItem({
+          ...(worldItemDto as object),
+          behavior: { version: 1, initialState: 'NOPE', states: [], animations: [], transitions: [] },
+        } as never),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('updateItem sin behavior no toca la columna', async () => {
+      const store = prismaWithWorldItem();
+
+      await service.updateItem('item-tv', { isCollidable: true } as never);
+
+      const data = store.worldItemData.update.mock.calls[0][0].data;
+      expect(data.isCollidable).toBe(true);
+      expect('behavior' in data).toBe(false);
+    });
+
+    it('updateItem con behavior lo actualiza', async () => {
+      const store = prismaWithWorldItem();
+
+      await service.updateItem('item-tv', { behavior: TV_BEHAVIOR } as never);
+
+      expect(store.worldItemData.update.mock.calls[0][0].data.behavior).toEqual(TV_BEHAVIOR);
+    });
+
+    it('updateItem con behavior: null lo limpia', async () => {
+      const store = prismaWithWorldItem();
+
+      await service.updateItem('item-tv', { behavior: null } as never);
+
+      expect(store.worldItemData.update.mock.calls[0][0].data.behavior).toBe(Prisma.JsonNull);
+    });
+
+    it('el behavior nunca se filtra al update del Item', async () => {
+      // `updateItem` pasa el resto del DTO (`...itemData`) directo a
+      // prisma.item.update. Si `behavior` viajara ahí, Prisma fallaría con un
+      // campo desconocido sobre la tabla Item.
+      const store = prismaWithWorldItem();
+
+      await service.updateItem('item-tv', { behavior: TV_BEHAVIOR } as never);
+
+      expect(store.item.update.mock.calls[0][0].data.behavior).toBeUndefined();
     });
   });
 });

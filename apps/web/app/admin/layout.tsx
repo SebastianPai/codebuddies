@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "../../hooks/useAuth";
 import Link from "next/link";
 import {
+  History,
   Ticket,
   LayoutDashboard,
   BookOpen,
@@ -317,6 +318,11 @@ export default function AdminLayout({
             href: "/admin/rankings",
             label: t("admin.rankingsStubTitle"),
             icon: <BarChart3 size={18} />,
+          },
+          {
+            href: "/admin/history",
+            label: "Historial",
+            icon: <History size={18} />,
           },
           {
             href: "/admin/audit-log",

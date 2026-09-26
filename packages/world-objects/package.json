@@ -1,0 +1,26 @@
+{
+  "name": "@codebuddies/world-objects",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Declarative behavior contract and state machine for interactive World Objects, shared by apps/api, apps/web and apps/game",
+  "main": "./dist/index.js",
+  "types": "./index.ts",
+  "exports": {
+    ".": {
+      "types": "./index.ts",
+      "require": "./dist/index.js",
+      "default": "./index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepare": "tsc -p tsconfig.build.json",
+    "test": "../../apps/api/node_modules/.bin/jest --config jest.config.js",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "license": "UNLICENSED",
+  "packageManager": "pnpm@10.30.2",
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  }
+}

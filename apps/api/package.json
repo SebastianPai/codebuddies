@@ -9,8 +9,8 @@
     "node": "20.x"
   },
   "scripts": {
-    "dev": "nest start --watch",
-    "build": "nest build",
+    "dev": "pnpm --filter @codebuddies/world-objects run build && nest start --watch",
+    "build": "pnpm --filter @codebuddies/world-objects run build && nest build",
     "start": "node dist/main",
     "start:debug": "nest start --debug --watch",
     "postinstall": "prisma generate",
@@ -30,6 +30,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1006.0",
+    "@codebuddies/world-objects": "workspace:*",
     "@game/core": "workspace:*",
     "@google-cloud/translate": "^9.3.0",
     "@nestjs/common": "^11.0.1",

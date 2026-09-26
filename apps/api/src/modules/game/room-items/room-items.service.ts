@@ -11,13 +11,30 @@ import {
   resolveEffectivePermissions,
 } from '../rooms/room-permissions.util';
 import { resolveDirectionalFootprints } from '../items/engine-data.util';
+import {
+  buildPersistedState,
+  effectiveStateKey,
+  isTransitionInFlight,
+  readBehavior,
+  applyLockedStates,
+  readPersistedState,
+  resolveTrigger,
+  toRemoteUpdate,
+  writePersistedState,
+  type RemoteStateUpdate,
+} from '@codebuddies/world-objects';
+
+import {
+  lockedStatesForOwner,
+  lockedStatesForPairs,
+} from '../../item-upgrades/item-upgrades.util';
 
 @Injectable()
 export class RoomItemsService {
   constructor(private prisma: PrismaService) {}
 
   async getRoomItems(roomId: string) {
-    return this.prisma.roomItem.findMany({
+    const roomItems = await this.prisma.roomItem.findMany({
       where: {
         roomId,
       },
@@ -34,6 +51,35 @@ export class RoomItemsService {
           },
         },
       },
+    });
+    return this.withEffectiveBehaviors(roomItems);
+  }
+
+  // Cada objeto viaja con el behavior EFECTIVO de su dueño: los estados de
+  // mejoras que no compró quedan inalcanzables (ver
+  // packages/world-objects/upgrades.ts). Es solo para que el juego muestre
+  // bien qué se puede clickear; la validación real es resolveBehaviorClick.
+  private async withEffectiveBehaviors<
+    T extends { userId: string; itemId: string; item: { worldData: { behavior?: unknown } | null } },
+  >(roomItems: T[]): Promise<T[]> {
+    const withBehavior = roomItems.filter((ri) => ri.item.worldData?.behavior);
+    if (withBehavior.length === 0) return roomItems;
+    const locked = await lockedStatesForPairs(
+      this.prisma,
+      withBehavior.map((ri) => ({ ownerId: ri.userId, itemId: ri.itemId })),
+    );
+    if (locked.size === 0) return roomItems;
+    return roomItems.map((ri) => {
+      const states = locked.get(`${ri.userId}:${ri.itemId}`);
+      const behavior = states?.length ? readBehavior(ri.item.worldData?.behavior) : null;
+      if (!behavior || !states?.length) return ri;
+      return {
+        ...ri,
+        item: {
+          ...ri.item,
+          worldData: { ...ri.item.worldData, behavior: applyLockedStates(behavior, states) },
+        },
+      };
     });
   }
 
@@ -702,6 +748,13 @@ export class RoomItemsService {
         ? (roomItem.state as Record<string, unknown>)
         : {};
 
+    // CLICK es el único camino que pasa por la máquina declarativa. Todo lo
+    // demás — TOGGLE, OPEN, SIT, LIE, DRINK, TELEPORT — sigue exactamente por
+    // donde iba, sin un solo cambio.
+    if (interaction === InteractionType.CLICK) {
+      return this.resolveBehaviorClick(roomItem, currentState);
+    }
+
     let nextState: Record<string, unknown> = currentState;
 
     if (interaction === InteractionType.TOGGLE) {
@@ -721,6 +774,115 @@ export class RoomItemsService {
     });
 
     return { roomItem: updated, state: nextState, interaction };
+  }
+
+  /**
+   * CLICK resuelto contra `WorldItemData.behavior`.
+   *
+   * ─────────────────────────────────────────────────────────────────────
+   * EL SERVIDOR ES LA ÚNICA FUENTE DE VERDAD
+   *
+   * El cliente sólo dice "hice click". Quién decide que de OFF se pasa a ON, y
+   * por qué animación, es esto. Toda la lógica de la máquina vive en
+   * @codebuddies/world-objects — el MISMO módulo que ejecuta el juego, así que
+   * no hay dos implementaciones que se puedan desincronizar.
+   *
+   * ─────────────────────────────────────────────────────────────────────
+   * LO QUE SE PERSISTE NO ES "EL ESTADO"
+   *
+   * Es el estado estable MÁS la transición en curso con su instante de
+   * arranque (ver persistence.ts). Guardar `ON` de una vez haría que quien
+   * entre durante los ~400 ms de `turn_on` viera la TV ya encendida mientras
+   * quien la clickeó la ve encenderse.
+   *
+   * La animación NO se reproduce acá: el servidor sólo dice cuál hay que
+   * reproducir y desde cuándo.
+   */
+  private async resolveBehaviorClick(
+    roomItem: {
+      id: string;
+      userId: string;
+      itemId: string;
+      item: { worldData: { behavior?: unknown } | null };
+    },
+    currentState: Record<string, unknown>,
+  ) {
+    const fullBehavior = readBehavior(roomItem.item.worldData?.behavior);
+    // Mejoras: los estados que el dueño del objeto no desbloqueó no se
+    // pueden alcanzar (la TV sin "Encendido" no prende). Se decide acá, en
+    // el servidor, así que no se puede saltar desde el cliente.
+    const behavior = fullBehavior
+      ? applyLockedStates(
+          fullBehavior,
+          await lockedStatesForOwner(this.prisma, roomItem.userId, roomItem.itemId),
+        )
+      : null;
+
+    if (!behavior) {
+      throw new BadRequestException(
+        'Este objeto no tiene un comportamiento configurado',
+      );
+    }
+
+    const now = Date.now();
+    const persisted = readPersistedState(currentState);
+
+    // ── anti click-spam, del lado del servidor ──
+    //
+    // Mientras una transición no terminó, los clicks siguientes no hacen nada.
+    // Sale del dato persistido y no de un contador en memoria, así que vale
+    // para TODOS los jugadores de la sala a la vez (no sólo para el socket que
+    // clickeó), sobrevive a un reinicio del proceso y no se puede saltar
+    // desde el cliente. Un bucle (`onComplete: REPEAT`) no bloquea, o el
+    // objeto quedaría inutilizable para siempre.
+    if (isTransitionInFlight(behavior, persisted, now)) {
+      return this.unchangedBehaviorResult(roomItem, currentState, persisted);
+    }
+
+    const fromState = effectiveStateKey(behavior, persisted, now);
+    const resolution = resolveTrigger(behavior, fromState, 'CLICK');
+
+    // No hay transición para (estado, CLICK): no-op seguro. No es un error —
+    // un objeto en un estado sin salidas simplemente no reacciona — así que no
+    // se escribe ni se difunde nada.
+    if (!resolution) {
+      return this.unchangedBehaviorResult(roomItem, currentState, persisted);
+    }
+
+    const nextPersisted = buildPersistedState(resolution, fromState, now);
+    const nextState = writePersistedState(currentState, nextPersisted);
+
+    const updated = await this.prisma.roomItem.update({
+      where: { id: roomItem.id },
+      data: { state: nextState as any },
+      include: { item: { include: { worldData: true } } },
+    });
+
+    return {
+      roomItem: updated,
+      state: nextState,
+      interaction: InteractionType.CLICK,
+      changed: true,
+      // Lo que el cliente necesita para animar: estado final, animación de
+      // paso y cuándo arrancó. Es exactamente la forma que consume
+      // `applyRemoteState()`.
+      behavior: toRemoteUpdate(nextPersisted),
+    };
+  }
+
+  /** Resultado de un CLICK que no cambió nada: no se escribe ni se difunde. */
+  private unchangedBehaviorResult(
+    roomItem: { id: string },
+    currentState: Record<string, unknown>,
+    persisted: ReturnType<typeof readPersistedState>,
+  ) {
+    return {
+      roomItem: roomItem as any,
+      state: currentState,
+      interaction: InteractionType.CLICK,
+      changed: false,
+      behavior: persisted ? toRemoteUpdate(persisted) : (null as RemoteStateUpdate | null),
+    };
   }
 
   async removeItem(userId: string, roomItemId: string) {

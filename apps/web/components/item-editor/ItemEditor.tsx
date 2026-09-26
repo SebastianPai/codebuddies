@@ -16,6 +16,14 @@ import FootprintEditor, {
   type SpriteOffsetSync,
 } from "./FootprintEditor";
 import AvatarItemPreview from "./AvatarItemPreview";
+import BehaviorEditor from "./BehaviorEditor";
+import {
+  draftFromBehavior,
+  draftToPayload,
+  validateDraft,
+  type BehaviorDraft,
+} from "./behavior-draft";
+import { draftFingerprint } from "./behavior-guidance";
 import CachedImage from "../shared/CachedImage";
 import { Tooltip } from "../../src/shared/ui";
 import { useTranslation } from "../../src/i18n/useTranslation";
@@ -542,6 +550,46 @@ export default function ItemEditor({
     () => initialSpriteOffsetSync(initial),
   );
 
+  // Comportamiento declarativo del world object (estados / animaciones /
+  // transiciones). El draft es el estado del formulario; toda la lógica y la
+  // validación viven en behavior-draft.ts, que delega en el paquete
+  // compartido — acá no hay ni una regla propia.
+  const initialBehavior = initial?.behavior ?? initial?.worldData?.behavior ?? null;
+  const hadBehavior = initialBehavior !== null && initialBehavior !== undefined;
+  const [behaviorDraft, setBehaviorDraft] = useState<BehaviorDraft>(() =>
+    draftFromBehavior(initialBehavior),
+  );
+
+  /**
+   * Huella del comportamiento tal como se cargó (o tal como se guardó por
+   * última vez).
+   *
+   * Configurar estados, subir frames y encadenar interacciones es lo más caro
+   * de rehacer de todo este formulario, así que un cierre de pestaña por
+   * descuido tiene que avisar. La comparación la hace `draftFingerprint`, que
+   * ignora los ids de fila (son de React y cambian solos).
+   */
+  const [savedBehaviorPrint, setSavedBehaviorPrint] = useState(() =>
+    draftFingerprint(draftFromBehavior(initialBehavior)),
+  );
+  const behaviorDirty = draftFingerprint(behaviorDraft) !== savedBehaviorPrint;
+  // `draftToPayload` respeta la semántica de PATCH del backend:
+  // undefined = no tocar la columna · null = borrarla · objeto = guardarlo.
+  const behavior = draftToPayload(behaviorDraft, hadBehavior);
+
+  /**
+   * Prefijo de almacenamiento de los atlas de animación.
+   *
+   * Un item ya creado usa su propio id; un borrador del creador todavía no
+   * tiene uno, así que se genera uno estable para esta sesión de edición. La
+   * ruta es sólo un prefijo en R2, no identifica nada más.
+   */
+  const assetFolderIdRef = useRef<string | null>(null);
+  if (!assetFolderIdRef.current) {
+    assetFolderIdRef.current =
+      initial?.id ?? initial?.itemId ?? `draft-${Math.random().toString(36).slice(2, 10)}`;
+  }
+
   const [file, setFile] = useState<File | null>(null);
   // Autoespejo: mirrorSource es la imagen de UNA cara que subió el usuario;
   // `file` pasa a ser la hoja de 2 caras generada a partir de ella.
@@ -554,6 +602,8 @@ export default function ItemEditor({
   const [isDragging, setIsDragging] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  /** El último guardado salió bien. Antes terminaba sin decir nada. */
+  const [justSaved, setJustSaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const itemSpriteInputRef = useRef<HTMLInputElement>(null);
 
@@ -612,6 +662,17 @@ export default function ItemEditor({
       if (!footprints.NORTH?.occupied?.length) nextErrors.push(t("items.footprintTileRequiredError"));
       if (!footprints.NORTH?.origin) nextErrors.push(t("items.originRequiredError"));
       if (isInteractable && !kind) nextErrors.push(t("items.interactionTypeRequiredError"));
+
+      // La validación definitiva es la del paquete compartido, exactamente la
+      // misma que corre la API al guardar: lo que no pasa acá tampoco pasaría
+      // allá, y con el mismo mensaje.
+      // Una línea por error: concatenados con " · " salía un párrafo ilegible
+      // justo cuando el creador necesita leer qué arreglar.
+      const behaviorCheck = validateDraft(behaviorDraft);
+      if (!behaviorCheck.ok) {
+        nextErrors.push(t("items.behaviorInvalid"));
+        behaviorCheck.errors.forEach((error) => nextErrors.push(`· ${error}`));
+      }
     }
     if (category === "avatar" && !slot) nextErrors.push(t("items.avatarSlotRequiredError"));
     setErrors(nextErrors);
@@ -730,6 +791,11 @@ export default function ItemEditor({
       surfaces,
       spriteOffsets,
       spriteOffsetSync,
+      // Sólo se manda si el item YA tenía uno: sin la clave, el backend deja
+      // la columna intacta (ver buildBehaviorData).
+      // `undefined` = no tocar la columna; `null` = borrarla. Se compara
+      // contra undefined y no por veracidad, porque `null` SI debe viajar.
+      ...(behavior !== undefined ? { behavior } : {}),
     };
   };
 
@@ -798,17 +864,38 @@ export default function ItemEditor({
           canBeStacked,
           stackHeight: Number(stackHeight),
           maxStackHeight: Number(maxStackHeight),
+          ...(behavior !== undefined ? { behavior } : {}),
         },
         item: { rarity, colorable, category: itemCategory, tags: compactTags(tags) },
       },
     };
   };
 
+  /**
+   * Aviso del navegador al cerrar con comportamiento sin guardar.
+   *
+   * Sólo mira el comportamiento: es la parte del formulario que no se puede
+   * reconstruir en dos minutos (estados, atlas subidos, interacciones). El
+   * navegador muestra su propio texto, no se puede personalizar.
+   */
+  useEffect(() => {
+    if (!behaviorDirty || readOnly) return undefined;
+
+    const handler = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [behaviorDirty, readOnly]);
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (readOnly || !onSubmit) return;
     if (!validate()) return;
     setIsSaving(true);
+    setJustSaved(false);
     setErrors([]);
     try {
       const imageUrl = await uploadImage();
@@ -821,6 +908,10 @@ export default function ItemEditor({
           ? buildCreatorPayload(imageUrl, uploadedItemSpriteUrl)
           : buildAdminPayload(imageUrl),
       );
+      // Lo guardado pasa a ser la referencia: a partir de acá ya no hay
+      // cambios pendientes que avisar.
+      setSavedBehaviorPrint(draftFingerprint(behaviorDraft));
+      setJustSaved(true);
     } catch (error) {
       setErrors([error instanceof Error ? error.message : t("items.saveItemErrorFallback")]);
     } finally {
@@ -1408,9 +1499,37 @@ export default function ItemEditor({
             faceCount={directions}
             spriteOffsets={spriteOffsets}
           />
+
+          {/* Comportamiento: sólo para world items. Las texturas de suelo y
+              pared, los items de avatar y los efectos no tienen estados. El
+              `readOnly` lo aplica igualmente el <fieldset disabled> de arriba;
+              se pasa además para ocultar los botones de acción. */}
+          <BehaviorEditor
+            draft={behaviorDraft}
+            onChange={setBehaviorDraft}
+            assetFolderId={assetFolderIdRef.current!}
+            directions={directions}
+            readOnly={readOnly}
+            t={t}
+          />
         </section>
       )}
       </fieldset>
+
+      {!readOnly && justSaved && !behaviorDirty && (
+        <p
+          role="status"
+          className="rounded-2xl border border-emerald-900/50 bg-emerald-950/20 p-4 text-sm text-emerald-200"
+        >
+          {t("admin.changesSaved")}
+        </p>
+      )}
+
+      {!readOnly && behaviorDirty && (
+        <p className="rounded-2xl border border-amber-900/60 bg-amber-950/20 p-4 text-sm text-amber-200">
+          {t("items.behaviorUnsavedBadge")}
+        </p>
+      )}
 
       {!readOnly && (
         <button

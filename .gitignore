@@ -51,3 +51,8 @@ Thumbs.db
 .claude/
 .agents/
 .codex/
+
+# Playwright (Fase 11)
+test-results/
+playwright-report/
+e2e/.qa-created.json

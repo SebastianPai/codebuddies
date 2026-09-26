@@ -74,5 +74,18 @@
   "placingRemaining": "{count} left",
   "placingHintClick": "Click to place",
   "placingHintRotate": "rotate",
-  "placingHintFinish": "finish"
+  "placingHintFinish": "finish",
+  "upgradesButton": "Upgrades",
+  "upgradesTitle": "Item upgrades",
+  "upgradesSubtitle": "Unlock new features. Buy once, they apply to all your copies.",
+  "upgradesOthersHint": "This item belongs to another player: in the room it works with its owner's upgrades. Upgrades you buy apply to your own copies.",
+  "upgradesLoading": "Loading upgrades…",
+  "upgradesLoadError": "We couldn't load the upgrades.",
+  "upgradesEmpty": "This item has no upgrades yet.",
+  "upgradeUnlocks": "Unlocks",
+  "upgradeOwned": "Owned",
+  "upgradeNeedItem": "You need the item",
+  "upgradeNeedsPrevious": "Requires the previous one",
+  "upgradeBought": "Upgrade \"{name}\" unlocked!",
+  "upgradeBuyError": "Couldn't buy the upgrade."
 }

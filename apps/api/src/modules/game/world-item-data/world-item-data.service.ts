@@ -5,6 +5,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { UpdateWorldItemDto } from './dto/update-world-item.dto';
 import { buildWorldEngineData } from '../items/engine-data.util';
 import { buildSpriteOffsetData } from '../items/sprite-offset.util';
+import { buildBehaviorData } from '../items/world-behavior.util';
 
 @Injectable()
 export class WorldItemDataService {
@@ -72,6 +73,18 @@ export class WorldItemDataService {
     }
 
     const data: Record<string, any> = { ...dto };
+
+    // `behavior` NO puede viajar por el spread de arriba: el DTO sólo verifica
+    // que sea un objeto, y esta columna la lee el motor del juego. Se saca del
+    // spread y se reescribe con el validador estricto, que rechaza enums
+    // inválidos, referencias a animaciones/estados que no existen, límites
+    // excedidos y cualquier propiedad desconocida.
+    //
+    // `buildBehaviorData` devuelve {} si el DTO no trae el campo, así que un
+    // PATCH que sólo cambia (por ejemplo) `isCollidable` deja el behavior
+    // intacto. Un `null` explícito sí lo limpia.
+    delete data.behavior;
+    Object.assign(data, buildBehaviorData(dto.behavior));
 
     // Nunca confiar en el valor crudo: rango, "entero", sync y escalares
     // legacy los reimpone el backend. `exists` cubre el update parcial.

@@ -80,6 +80,16 @@ export default class FurnitureSocketSystem {
     }
 
     this.roomItems.applyItemState(data.roomItemId);
+
+    // Objetos con `behavior`: el servidor manda el estado FINAL más la
+    // animación de paso y el instante en que la resolvió. Acá NO se resuelve
+    // ninguna transición — eso ya lo hizo la API — sólo se le pasa el dato al
+    // animator, que calcula el frame desde `at` y por eso un evento que llega
+    // tarde reanuda la animación en vez de reiniciarla.
+    if (data.behavior) {
+      this.roomItems.applyRemoteBehaviorState(data.roomItemId, data.behavior);
+    }
+
     audioManager.play("click");
   };
 

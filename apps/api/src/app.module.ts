@@ -1,6 +1,9 @@
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { ItemUpgradesModule } from './modules/item-upgrades/item-upgrades.module';
+import { EventLogModule } from './modules/event-log/event-log.module';
+import { HttpEventLogInterceptor } from './modules/event-log/event-log.interceptors';
 import { UserAwareThrottlerGuard } from './common/guards/user-aware-throttler.guard';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -69,6 +72,8 @@ import { ScheduleModule } from '@nestjs/schedule';
     // sin ninguna fricción.
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
     PrismaModule,
+    ItemUpgradesModule,
+    EventLogModule,
     CacheModule,
     MetricsModule,
     IdentityModule,
@@ -130,6 +135,11 @@ import { ScheduleModule } from '@nestjs/schedule';
     {
       provide: APP_GUARD,
       useClass: UserAwareThrottlerGuard,
+    },
+    // Historial completo para el admin (ver modules/event-log).
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: HttpEventLogInterceptor,
     },
   ],
 })

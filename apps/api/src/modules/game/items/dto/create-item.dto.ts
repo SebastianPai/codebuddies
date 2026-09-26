@@ -215,4 +215,16 @@ export class CreateItemDto {
     rowIndex?: number;
     animation?: string;
   };
+
+  // Comportamiento declarativo del world object: estados, animaciones y
+  // transiciones. Acá sólo se comprueba que sea un objeto (o que venga null
+  // para limpiarlo); la validación de verdad — enums, referencias cruzadas,
+  // límites, propiedades desconocidas — la hace
+  // normalizeBehaviorForWrite() con @codebuddies/world-objects, que es el
+  // mismo validador que usa el resto de la app. Ver world-behavior.util.ts.
+  //
+  // Ausente = no se toca la columna · null = se limpia (objeto estático).
+  @IsOptional()
+  @IsObject()
+  behavior?: Record<string, any> | null;
 }

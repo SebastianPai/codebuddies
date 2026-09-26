@@ -31,6 +31,7 @@ import Shop from "./components/Shop/Shop";
 import MarketplaceWindow from "./components/Marketplace/MarketplaceWindow";
 import Inventory from "./components/Inventory/Inventory";
 import FurnitureContextMenu from "./components/Furniture/FurnitureContextMenu";
+import ItemUpgradesModal, { type UpgradesTarget } from "./components/Furniture/ItemUpgradesModal";
 import PlayerQuickMenu from "./components/PlayerQuickMenu/PlayerQuickMenu";
 import BuildModePanel from "./components/BuildMode/BuildModePanel";
 import GameDialog from "./components/GameDialog/GameDialog";
@@ -98,6 +99,7 @@ export default function Game() {
   const joinTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [selectedFurniture, setSelectedFurniture] = useState<any>(null);
+  const [upgradesTarget, setUpgradesTarget] = useState<UpgradesTarget | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<{ username: string; x: number; y: number } | null>(null);
   const [buildMode, setBuildMode] = useState(false);
   const [dialog, setDialog] = useState<GameDialogRequest | null>(null);
@@ -804,10 +806,21 @@ export default function Game() {
           x={selectedFurniture.x}
           y={selectedFurniture.y}
           permissions={myPermissions}
+          onOpenUpgrades={setUpgradesTarget}
           onClose={() => {
             setSelectedFurniture(null);
             window.dispatchEvent(new CustomEvent("room:item:deselected"));
           }}
+        />
+      )}
+
+      {upgradesTarget && (
+        <ItemUpgradesModal
+          target={upgradesTarget}
+          currentUserId={currentUser?.userId ?? currentUser?.id ?? null}
+          onClose={() => setUpgradesTarget(null)}
+          // Refresca monedas en el HUD tras comprar.
+          onPurchased={() => (window as any).phaserSocket?.emit("player:stats:get")}
         />
       )}
 

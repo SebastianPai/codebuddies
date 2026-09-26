@@ -1055,7 +1055,26 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     return null;
   }
 
+  /**
+   * ¿Está abierto el modo construcción?
+   *
+   * La fuente de verdad es el estado `buildMode` de Game.tsx, que llega por el
+   * evento `build:mode:set` que ya existía; acá sólo se guarda para poder
+   * consultarlo. No hay un booleano global nuevo.
+   *
+   * Lo lee RoomItemsManager para decidir qué hace el click izquierdo: en
+   * construcción sigue seleccionando el mueble (mover / rotar / recoger) y en
+   * modo juego interactúa con él.
+   */
+  private buildModeActive = false;
+
+  isBuildModeActive() {
+    return this.buildModeActive;
+  }
+
   private setBuildMode(active: boolean) {
+    this.buildModeActive = active;
+
     const hudContainer = (this.hud as any)?.container;
     if (hudContainer?.setVisible) {
       hudContainer.setVisible(!active);
@@ -1134,7 +1153,6 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     // Mascota del jugador: se muestra siguiéndolo si la "sacó" a esta sala
     // (Pet.activeRoomId). Se resincroniza cuando el panel de mascota emite
     // "pet:changed" y al cerrar la escena se limpia.
-    //
     // createWorld corre en CADA room:joined (cambio de sala y reconexión):
     // sin destruir las instancias anteriores, su sync() pendiente terminaba
     // creando otro sprite huérfano (mascota/mayordomo duplicados y
@@ -1741,6 +1759,10 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
   update() {
     this.buildSystem?.update(this.input.activePointer);
     this.updateBuildPreviewTint(this.input.activePointer);
+    // Animaciones de world objects. Recibe el reloj de PARED, no el delta: el
+    // frame se deriva del `at` que mandó el servidor, así que todos los
+    // clientes ven el mismo frame aunque sus bucles vayan desfasados.
+    this.roomItems?.update(Date.now());
     this.petSystem?.update(this.game.loop.delta);
     this.butlerSystem?.update(this.game.loop.delta);
     if (!this.player || !this.isoGrid || !this.navGrid) return;

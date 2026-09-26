@@ -16,6 +16,10 @@ import { CreateItemDto } from './dto/create-item.dto';
 import { UpdateItemDto } from './dto/update-item.dto';
 import { buildWorldEngineData } from './engine-data.util';
 import { buildSpriteOffsetData } from './sprite-offset.util';
+import {
+  buildBehaviorData,
+  buildInteractionTypesData,
+} from './world-behavior.util';
 import { PremiumAccessService } from '../../premium-access/premium-access.service';
 import {
   RARITY_DEFINITIONS,
@@ -98,6 +102,7 @@ export class ItemsService {
       spriteOffsetY = 0,
       spriteOffsets,
       spriteOffsetSync,
+      behavior,
     } = dto;
 
     if (slot && kind) {
@@ -229,6 +234,10 @@ export class ItemsService {
         faceCount: directions,
       });
 
+      // Sin behavior en el DTO no se escribe la columna: el item nace
+      // estático, que es el comportamiento de siempre.
+      const behaviorData = buildBehaviorData(behavior);
+
       await this.prisma.worldItemData.create({
         data: {
           itemId: item.id,
@@ -260,6 +269,15 @@ export class ItemsService {
             spriteOffsetX,
             spriteOffsetY,
           }),
+          ...behaviorData,
+          // Un behavior recién creado con click no sirve de nada si nadie
+          // marcó "Interactuable" con CLICK en interactionTypes (columna que
+          // hoy sólo edita /admin/world-items/:id): ver
+          // `buildInteractionTypesData` en world-behavior.util.ts.
+          ...buildInteractionTypesData(
+            'behavior' in behaviorData ? behaviorData.behavior : undefined,
+            { isInteractable, interactionTypes: [] },
+          ),
         },
       });
     }
@@ -392,6 +410,7 @@ export class ItemsService {
       spriteOffsetY,
       spriteOffsets,
       spriteOffsetSync,
+      behavior,
       name,
       description,
       languageCode,
@@ -451,6 +470,31 @@ export class ItemsService {
     if (syncDirections !== undefined) worldData.syncDirections = syncDirections;
     if (footprints !== undefined) worldData.footprints = footprints;
     if (surfaces !== undefined) worldData.surfaces = surfaces;
+    // `behavior` ausente del DTO ⇒ la columna NO se toca (update parcial):
+    // editar el precio de una TV no puede borrarle su máquina de estados.
+    // `null` explícito sí la limpia y devuelve el objeto a estático.
+    const behaviorUpdateData = buildBehaviorData(behavior);
+    Object.assign(worldData, behaviorUpdateData);
+
+    if ('behavior' in behaviorUpdateData) {
+      // Sólo se consulta lo mínimo (2 columnas) y sólo cuando de verdad se
+      // está escribiendo `behavior` en este PATCH — el resto de los guardados
+      // (precio, descripción…) no pagan esta lectura extra. Ver
+      // `buildInteractionTypesData` en world-behavior.util.ts: por qué hace
+      // falta esto y no sólo el `behavior`.
+      const currentFlags = await this.prisma.worldItemData.findUnique({
+        where: { itemId: id },
+        select: { isInteractable: true, interactionTypes: true },
+      });
+
+      Object.assign(
+        worldData,
+        buildInteractionTypesData(behaviorUpdateData.behavior, {
+          isInteractable: isInteractable ?? currentFlags?.isInteractable,
+          interactionTypes: currentFlags?.interactionTypes,
+        }),
+      );
+    }
     if (
       spriteOffsetX !== undefined ||
       spriteOffsetY !== undefined ||
