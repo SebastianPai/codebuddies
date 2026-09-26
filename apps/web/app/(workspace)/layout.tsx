@@ -1,4 +1,10 @@
+import type { Metadata } from "next";
 import Navbar from "../../components/Navbar";
+
+export const metadata: Metadata = {
+  title: "Editor de código",
+  robots: { index: false, follow: false },
+};
 
 export default function SiteLayout({
   children,

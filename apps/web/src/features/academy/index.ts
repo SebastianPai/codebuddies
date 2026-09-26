@@ -28,3 +28,4 @@ export { CalloutBlock } from "./components/callout-block";
 export { CodeBlock } from "./components/code-block";
 export { LessonContentRenderer } from "./components/lesson-content-renderer";
 export { Markdown } from "./components/markdown";
+export { ExerciseLockedState } from "./components/exercise-locked-state";

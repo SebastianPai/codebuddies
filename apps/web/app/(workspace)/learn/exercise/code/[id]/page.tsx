@@ -14,7 +14,6 @@ import {
   CheckCircle,
   Eye,
   Sparkles,
-  Lock,
 } from "lucide-react";
 
 import { Group, Panel, Separator } from "react-resizable-panels";
@@ -27,7 +26,9 @@ import {
   type LessonContentDoc,
 } from "@/features/academy";
 import { useTranslation } from "../../../../../../src/i18n/useTranslation";
-import { exercisePath } from "@/shared/utils/exercise-path";
+import { exercisePath, lessonPath, nextStepPath } from "@/shared/utils/exercise-path";
+import { ExerciseLockedState } from "@/features/academy";
+import { trackEvent } from "../../../../../../components/analytics/events";
 import { useApiLang } from "@/shared/hooks/use-api-lang";
 import { useReward } from "../../../../../../contexts/RewardContext";
 import { useTrackToolUsed, trackToolAction, trackCodeStarted, trackCodeResult } from "../../../../../../components/analytics/tool-tracking";
@@ -525,6 +526,13 @@ try {
 
       const xp = res.xpAdded ?? exercise.experience ?? 0;
       const coins = res.coinsAdded ?? exercise.coins ?? 0;
+      if (!completed) {
+        trackEvent("exercise_complete", {
+          exercise_id: exercise.id,
+          exercise_type: "CODE",
+          course_id: exercise.courseId,
+        });
+      }
       setCompleted(true);
       setXpGained(xp);
       setCoinsGained(coins);
@@ -561,27 +569,13 @@ try {
   }
 
   if (exercise.locked) {
-    const progression = exercise.lockedReason === "progression";
     return (
-      <div className="fixed inset-0 bg-[#070707] flex flex-col items-center justify-center gap-6 text-center px-6">
-        <Lock className="text-yellow-400" size={48} />
-        <p className="max-w-md text-white">
-          {progression
-            ? t("site.academyLesson.lockedProgressionBody")
-            : t("site.exerciseLockedMessage")}
-        </p>
-        <Link
-          href={
-            progression && exercise.courseId
-              ? `/courses/${exercise.courseId}`
-              : "/premium"
-          }
-          className="rounded-lg bg-yellow-400 px-6 py-3 font-black text-black"
-        >
-          {progression
-            ? t("site.academyLesson.backToCourse")
-            : t("site.premiumTitle")}
-        </Link>
+      <div className="min-h-screen bg-[rgb(var(--background))]">
+        <ExerciseLockedState
+          courseId={exercise.courseId}
+          lockedReason={exercise.lockedReason}
+          lockedStep={exercise.lockedStep}
+        />
       </div>
     );
   }
@@ -741,9 +735,12 @@ try {
                   router.push(
                     exercisePath(exercise.prevExerciseId, exercise.prevExerciseType),
                   );
+                } else if (exercise.courseId && exercise.lessonId) {
+                  // Primer ejercicio: "atrás" es la teoría de la lección.
+                  router.push(lessonPath(exercise.courseId, exercise.lessonId));
                 }
               }}
-              disabled={!exercise.prevExerciseId}
+              disabled={!exercise.prevExerciseId && !exercise.courseId}
               className="
                 h-12
                 px-6
@@ -794,13 +791,10 @@ try {
             <button
               onClick={() => {
                 if (!completed) return;
-                if (exercise.nextExerciseId && exercise.nextExerciseType) {
-                  router.push(
-                    exercisePath(exercise.nextExerciseId, exercise.nextExerciseType),
-                  );
-                } else {
-                  router.push("/dashboard");
-                }
+                router.push(
+                  nextStepPath(exercise) ??
+                    (exercise.courseId ? `/courses/${exercise.courseId}` : "/courses"),
+                );
               }}
               disabled={!completed}
               className="
@@ -822,7 +816,9 @@ try {
               "
             >
               {completed && !exercise.nextExerciseId
-                ? t("site.courseCompleteButton")
+                ? exercise.nextLessonId
+                  ? t("site.academyLesson.nextLesson")
+                  : t("site.courseCompleteButton")
                 : t("common.next")}
               <ChevronRight size={16} />
             </button>

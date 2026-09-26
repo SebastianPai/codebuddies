@@ -102,35 +102,84 @@ export class BattlePassService {
   // nivel. Se llama al abrir el juego y al ver el pase; repetirlo el mismo
   // día no hace nada. Los updateMany condicionales son la guarda contra dos
   // llamadas simultáneas (solo una encuentra lastCheckInDay < hoy).
-  async checkIn(userId: string): Promise<void> {
+  //
+  // Devuelve true si esta llamada desbloqueó un día nuevo (para que la web
+  // muestre el aviso de "recompensa nueva" solo cuando corresponde).
+  async checkIn(userId: string): Promise<boolean> {
     const season = await this.getActiveSeason();
-    if (!season || season.progressMode !== BattlePassProgressMode.DAILY) return;
+    if (!season || season.progressMode !== BattlePassProgressMode.DAILY) return false;
 
     const today = todayKey();
-    const progress = await this.prisma.userBattlePassProgress.upsert({
+    const existing = await this.prisma.userBattlePassProgress.upsert({
       where: { userId_seasonId: { userId, seasonId: season.id } },
       update: {},
-      // Primer día de la temporada para este usuario = día 1 ya desbloqueado.
+      // Primer día de la temporada para este usuario = día 1 ya desbloqueado
+      // (queda como recompensa reclamable, así que el hub igual lo avisa).
       create: { userId, seasonId: season.id, lastCheckInDay: today },
     });
-    if (progress.lastCheckInDay === today) return;
+    if (existing.lastCheckInDay === today) return false;
 
     const advanced = await this.prisma.userBattlePassProgress.updateMany({
-      where: { id: progress.id, lastCheckInDay: { lt: today }, level: { lt: season.totalLevels } },
+      where: { id: existing.id, lastCheckInDay: { lt: today }, level: { lt: season.totalLevels } },
       data: { lastCheckInDay: today, level: { increment: 1 } },
     });
-    if (advanced.count > 0) return;
+    if (advanced.count > 0) return true;
 
     // Sin fila previa de check-in (progreso de la época XP) o ya en el
     // último día: solo marca hoy.
     await this.prisma.userBattlePassProgress.updateMany({
-      where: { id: progress.id, OR: [{ lastCheckInDay: null }, { lastCheckInDay: { lt: today } }] },
+      where: { id: existing.id, OR: [{ lastCheckInDay: null }, { lastCheckInDay: { lt: today } }] },
       data: { lastCheckInDay: today },
     });
+    return false;
   }
 
-  async getMyState(userId: string) {
-    await this.checkIn(userId);
+  // Resumen liviano para el hub de recompensas de la web (burbuja al iniciar
+  // sesión): cuenta el día, y junta lo reclamable del pase + la racha. La
+  // web lo pide una vez por sesión, así que evita el payload completo.
+  async getHub(userId: string) {
+    const unlockedToday = await this.checkIn(userId);
+    const [state, streak] = await Promise.all([
+      this.getMyState(userId, { skipCheckIn: true }),
+      this.gamificationService.getStreakRewards(userId),
+    ]);
+
+    const battlePass =
+      state.season && state.progress
+        ? {
+            seasonName: state.season.name,
+            endsAt: state.season.endsAt,
+            mode: state.progress.mode,
+            level: state.progress.level,
+            totalLevels: state.progress.totalLevels,
+            isMaxLevel: state.progress.isMaxLevel,
+            hasPremium: state.hasPremium,
+            claimable: state.tiers.filter((tier) => tier.claimable),
+            // Lo que se desbloquea al siguiente nivel/día (para el "mañana").
+            next: state.tiers.filter(
+              (tier) => tier.level === state.progress!.level + 1,
+            ),
+            // Premium visible aunque no se tenga: es el gancho para suscribirse.
+            lockedPremium: state.hasPremium
+              ? 0
+              : state.tiers.filter(
+                  (tier) => tier.track === 'PREMIUM' && tier.levelReached && !tier.claimed,
+                ).length,
+          }
+        : null;
+
+    return {
+      unlockedToday,
+      battlePass,
+      streak,
+      claimableCount:
+        (battlePass?.claimable.length ?? 0) +
+        streak.milestones.filter((m) => m.status === 'CLAIMABLE').length,
+    };
+  }
+
+  async getMyState(userId: string, options: { skipCheckIn?: boolean } = {}) {
+    if (!options.skipCheckIn) await this.checkIn(userId);
 
     const season = await this.getActiveSeason();
     if (!season) {

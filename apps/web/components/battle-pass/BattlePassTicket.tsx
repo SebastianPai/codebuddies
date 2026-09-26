@@ -13,7 +13,10 @@ const REWARD_ICON: Record<string, React.ReactNode> = {
   TITLE: <Crown size={18} />,
 };
 
-function rewardLabel(t: ReturnType<typeof useTranslation>, tier: BattlePassTier): string {
+export function rewardLabel(
+  t: ReturnType<typeof useTranslation>,
+  tier: Pick<BattlePassTier, "rewardType" | "amount" | "badgeIcon" | "label">,
+): string {
   switch (tier.rewardType) {
     case "COINS":
       return t("battlePass.rewardCoins", { amount: tier.amount ?? 0 });

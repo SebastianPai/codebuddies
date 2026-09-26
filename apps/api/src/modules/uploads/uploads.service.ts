@@ -4,6 +4,7 @@ import {
   DetectedImage,
   detectImage,
   generateFileName,
+  optimizeImage,
 } from '../utils/image.processor';
 
 // Sólo letras, números, guiones y slash simple entre segmentos — bloquea "../" y rutas absolutas.
@@ -31,10 +32,15 @@ export class UploadsService {
       );
     }
 
-    const filename = generateFileName(file.originalname, detected.format);
+    const optimized = await optimizeImage(file.buffer, detected, folder);
+    const filename = generateFileName(file.originalname, optimized.format);
     const path = `${folder}/${filename}`;
 
-    const url = await this.storage.upload(file.buffer, path, detected.mimetype);
+    const url = await this.storage.upload(
+      optimized.buffer,
+      path,
+      optimized.mimetype,
+    );
 
     return url;
   }

@@ -26,6 +26,8 @@ export type RewardConfig = {
   payload?: Prisma.InputJsonValue;
 };
 
+const STREAK_CONDITIONS = new Set(['MAINTAIN_STREAK', 'CONNECT_STREAK', 'LOGIN_DAYS']);
+
 @Injectable()
 export class GamificationService {
   constructor(
@@ -63,40 +65,71 @@ export class GamificationService {
 
     if (!user) throw new NotFoundException('User not found');
 
+    // Antes: por CADA misión se leía el usuario, se calculaba la condición,
+    // se buscaba el progreso y se hacía un upsert — y esto corre en cada
+    // GET /identity/me. Ahora: el progreso se lee en una sola consulta, cada
+    // condición distinta se calcula una vez, y solo se escribe si algo
+    // cambió.
+    const existingRows = missions.length
+      ? await this.prisma.userMissionProgress.findMany({
+          where: { userId, missionId: { in: missions.map((mission) => mission.id) } },
+        })
+      : [];
+    const existingByKey = new Map(
+      existingRows.map((row) => [`${row.missionId}:${row.periodKey}`, row]),
+    );
+    const conditionValues = new Map<string, Promise<number>>();
+    const valueFor = (condition: string) => {
+      const key = condition.trim().toUpperCase();
+      let value = conditionValues.get(key);
+      if (!value) {
+        value = this.resolveConditionValue(userId, condition);
+        conditionValues.set(key, value);
+      }
+      return value;
+    };
+
     const items = await Promise.all(
       missions.map(async (mission) => {
         const periodKey = this.getPeriodKey(mission.cadence);
-        const currentValue = await this.resolveConditionValue(userId, mission.condition);
-        const status = this.resolveStatus(
-          currentValue,
-          mission.requiredValue,
-          await this.findExistingProgress(userId, mission.id, periodKey),
-        );
+        const existing = existingByKey.get(`${mission.id}:${periodKey}`) ?? null;
+        const currentValue = await valueFor(mission.condition);
+        const status = this.resolveStatus(currentValue, mission.requiredValue, existing);
 
-        const progress = await this.prisma.userMissionProgress.upsert({
-          where: {
-            userId_missionId_periodKey: {
-              userId,
-              missionId: mission.id,
-              periodKey,
-            },
-          },
-          update: {
-            currentValue,
-            targetValue: mission.requiredValue,
-            status,
-            completedAt: status === 'COMPLETED' ? new Date() : undefined,
-          },
-          create: {
-            userId,
-            missionId: mission.id,
-            periodKey,
-            currentValue,
-            targetValue: mission.requiredValue,
-            status,
-            completedAt: status === 'COMPLETED' ? new Date() : undefined,
-          },
-        });
+        const unchanged =
+          existing &&
+          existing.currentValue === currentValue &&
+          existing.targetValue === mission.requiredValue &&
+          existing.status === status;
+
+        const progress = unchanged
+          ? existing
+          : await this.prisma.userMissionProgress.upsert({
+              where: {
+                userId_missionId_periodKey: {
+                  userId,
+                  missionId: mission.id,
+                  periodKey,
+                },
+              },
+              update: {
+                currentValue,
+                targetValue: mission.requiredValue,
+                status,
+                // Conserva la fecha real en que se completó.
+                completedAt:
+                  status === 'COMPLETED' ? (existing?.completedAt ?? new Date()) : undefined,
+              },
+              create: {
+                userId,
+                missionId: mission.id,
+                periodKey,
+                currentValue,
+                targetValue: mission.requiredValue,
+                status,
+                completedAt: status === 'COMPLETED' ? new Date() : undefined,
+              },
+            });
 
         return this.mapMission(mission, progress);
       }),
@@ -205,7 +238,9 @@ export class GamificationService {
         let userAchievement = unlockedById.get(achievement.id);
 
         if (!userAchievement && currentValue >= achievement.requiredValue) {
-          userAchievement = await this.unlockAchievement(userId, achievement.id);
+          userAchievement = await this.unlockAchievement(userId, achievement.id, {
+            conditionVerified: true,
+          });
           unlockedById.set(achievement.id, userAchievement);
         }
 
@@ -231,40 +266,121 @@ export class GamificationService {
     };
   }
 
-  async unlockAchievement(userId: string, achievementId: string) {
+  // Antes esto (expuesto como PATCH /achievements/:id/unlock) no verificaba
+  // la condición y, como el upsert no cortaba el flujo, volvía a entregar
+  // las recompensas en CADA llamada: monedas/XP infinitos. Ahora exige la
+  // condición cumplida y solo entrega la primera vez (el INSERT único es la
+  // guarda ante llamadas simultáneas).
+  async unlockAchievement(
+    userId: string,
+    achievementId: string,
+    options: { conditionVerified?: boolean } = {},
+  ) {
     const achievement = await this.prisma.gamificationAchievement.findUnique({
       where: { id: achievementId },
     });
     if (!achievement) throw new NotFoundException('Achievement not found');
 
-    const { unlocked, notification } = await this.prisma.$transaction(async (tx) => {
-      const unlocked = await tx.userGamificationAchievement.upsert({
-        where: { userId_achievementId: { userId, achievementId } },
-        update: {},
-        create: { userId, achievementId },
-      });
-
-      const granted = await this.grantRewards(tx, userId, 'ACHIEVEMENT', achievement.id, achievement.name, achievement.rewards);
-      const notification = await tx.notification.create({
-        data: {
-          userId,
-          type: NotificationType.ACHIEVEMENT_UNLOCKED,
-          title: 'Logro desbloqueado',
-          body: achievement.name,
-          metadata: {
-            category: 'ACHIEVEMENTS',
-            achievementId: achievement.id,
-            link: '/achievements',
-            rewards: this.summarizeRewards(granted),
-          },
-        },
-      });
-
-      return { unlocked, notification };
+    const alreadyUnlocked = await this.prisma.userGamificationAchievement.findUnique({
+      where: { userId_achievementId: { userId, achievementId } },
     });
+    if (alreadyUnlocked) return alreadyUnlocked;
 
-    this.notificationsService.emitCreated(notification);
-    return unlocked;
+    if (!options.conditionVerified) {
+      const currentValue = await this.resolveConditionValue(userId, achievement.condition);
+      if (currentValue < achievement.requiredValue) {
+        throw new BadRequestException('Achievement requirements not met yet');
+      }
+    }
+
+    const result = await this.prisma
+      .$transaction(async (tx) => {
+        const unlocked = await tx.userGamificationAchievement.create({
+          data: { userId, achievementId },
+        });
+
+        const granted = await this.grantRewards(tx, userId, 'ACHIEVEMENT', achievement.id, achievement.name, achievement.rewards);
+        const notification = await tx.notification.create({
+          data: {
+            userId,
+            type: NotificationType.ACHIEVEMENT_UNLOCKED,
+            title: 'Logro desbloqueado',
+            body: achievement.name,
+            metadata: {
+              category: 'ACHIEVEMENTS',
+              achievementId: achievement.id,
+              link: '/achievements',
+              rewards: this.summarizeRewards(granted),
+            },
+          },
+        });
+
+        return { unlocked, notification };
+      })
+      .catch((error: unknown) => {
+        // Otra petición lo desbloqueó en paralelo: no se entrega dos veces.
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+          return null;
+        }
+        throw error;
+      });
+
+    if (!result) {
+      return this.prisma.userGamificationAchievement.findUniqueOrThrow({
+        where: { userId_achievementId: { userId, achievementId } },
+      });
+    }
+
+    this.notificationsService.emitCreated(result.notification);
+    return result.unlocked;
+  }
+
+  // Recompensas por racha para el hub de recompensas: los logros cuya
+  // condición es la racha (administrables en /admin/gamification). Solo
+  // lectura y pocas consultas — se pide en cada inicio de sesión.
+  async getStreakRewards(userId: string) {
+    const [user, achievements] = await Promise.all([
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { streak: true, bestStreak: true },
+      }),
+      this.prisma.gamificationAchievement.findMany({
+        where: { visible: true },
+        orderBy: [{ requiredValue: 'asc' }, { sortOrder: 'asc' }],
+      }),
+    ]);
+    if (!user) throw new NotFoundException('User not found');
+
+    const streakAchievements = achievements.filter((achievement) =>
+      STREAK_CONDITIONS.has(achievement.condition.trim().toUpperCase()),
+    );
+    const unlocked = streakAchievements.length
+      ? await this.prisma.userGamificationAchievement.findMany({
+          where: {
+            userId,
+            achievementId: { in: streakAchievements.map((a) => a.id) },
+          },
+          select: { achievementId: true },
+        })
+      : [];
+    const unlockedIds = new Set(unlocked.map((item) => item.achievementId));
+
+    return {
+      current: user.streak,
+      best: user.bestStreak,
+      milestones: streakAchievements.map((achievement) => ({
+        id: achievement.id,
+        name: achievement.name,
+        description: achievement.description,
+        requiredValue: achievement.requiredValue,
+        rewards: this.normalizeRewards(achievement.rewards),
+        status: unlockedIds.has(achievement.id)
+          ? ('CLAIMED' as const)
+          : user.streak >= achievement.requiredValue
+            ? ('CLAIMABLE' as const)
+            : ('LOCKED' as const),
+      })),
+    };
   }
 
   async getRewardCenter(userId: string, query: { sourceType?: string; rewardType?: string; page?: string; pageSize?: string }) {

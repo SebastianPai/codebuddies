@@ -8,6 +8,8 @@ import {
   Req,
   UseGuards,
   ForbiddenException,
+  BadRequestException,
+  Headers,
 } from '@nestjs/common';
 import { Role } from '@prisma/client';
 import { JwtAuthGuard } from '../identity/guards/jwt.guard';
@@ -26,15 +28,26 @@ import type { AuthenticatedRequest } from '../../common/types/authenticated-requ
 export class ProgressController {
   constructor(private progressService: ProgressService) {}
 
+  // Desde el cliente solo se marca la TEORÍA de una lección como leída. Los
+  // ejercicios se completan exclusivamente vía /exercises/:id/quiz/answer y
+  // /exercises/:id/code/submit, que corrigen server-side — antes este
+  // endpoint aceptaba un exerciseId y regalaba XP sin resolver nada.
   @Post()
   async create(
     @Req() req: AuthenticatedRequest,
     @Body() dto: CreateProgressDto,
+    @Headers('x-admin-bypass-locks') bypassLocks?: string,
   ) {
+    if (!dto.lessonId || dto.exerciseId || dto.courseId) {
+      throw new BadRequestException(
+        'Solo se puede registrar la lectura de una lección (lessonId)',
+      );
+    }
     return this.progressService.createProgress(
       req.user.userId,
-      dto,
+      { lessonId: dto.lessonId },
       req.user.role,
+      { bypassLocks: bypassLocks === '1' },
     );
   }
 

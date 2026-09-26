@@ -1,5 +1,6 @@
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
+import RewardsHub from "../../components/rewards-hub/RewardsHub";
 
 export default function SiteLayout({
   children,
@@ -15,6 +16,7 @@ export default function SiteLayout({
       </main>
 
       <Footer />
+      <RewardsHub />
     </>
   );
 }

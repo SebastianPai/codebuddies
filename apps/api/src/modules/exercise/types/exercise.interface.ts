@@ -19,6 +19,13 @@ export interface BaseExercise {
   nextExerciseType?: 'QUIZ' | 'CODE' | 'LIVE' | null;
   prevExerciseId?: string | null;
   prevExerciseType?: 'QUIZ' | 'CODE' | 'LIVE' | null;
+  // Al terminar la lección, la siguiente parada es la teoría de esta lección.
+  nextLessonId?: string | null;
+  // Qué falta hacer para abrir este ejercicio (teoría o ejercicio anterior).
+  lockedStep?:
+    | { kind: 'theory'; lessonId: string }
+    | { kind: 'exercise'; lessonId: string; exerciseId: string; exerciseType: string }
+    | null;
 }
 
 export interface QuizQuestion {

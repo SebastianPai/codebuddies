@@ -2103,6 +2103,9 @@ model ExerciseAttempt {
   correct          Boolean
   score            Int?
   timeSpentSeconds Int?
+  // Solo QUIZ: qué pregunta se respondió. El quiz se completa cuando TODAS
+  // sus preguntas tienen al menos un intento correcto.
+  questionIndex    Int?
   createdAt        DateTime @default(now())
 
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)

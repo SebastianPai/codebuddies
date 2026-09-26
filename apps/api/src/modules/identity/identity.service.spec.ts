@@ -13,6 +13,7 @@ describe('IdentityService', () => {
   const prisma = {
     user: {
       findUnique: jest.fn(),
+      findFirst: jest.fn().mockResolvedValue(null),
       update: jest.fn(),
     },
     userItem: {

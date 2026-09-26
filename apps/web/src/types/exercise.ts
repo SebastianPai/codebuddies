@@ -16,7 +16,15 @@ export interface BaseExercise {
   nextExerciseType?: "QUIZ" | "CODE" | "LIVE" | null;
   prevExerciseId?: string | null;
   prevExerciseType?: "QUIZ" | "CODE" | "LIVE" | null;
+  // Terminada la lección, la siguiente parada es la teoría de esta lección.
+  nextLessonId?: string | null;
+  // Qué falta para abrir el ejercicio (leer la teoría o uno anterior).
+  lockedStep?: ExerciseLockedStep | null;
 }
+
+export type ExerciseLockedStep =
+  | { kind: "theory"; lessonId: string }
+  | { kind: "exercise"; lessonId: string; exerciseId: string; exerciseType: string };
 
 // Pregunta individual dentro de un quiz
 export interface QuizQuestion {

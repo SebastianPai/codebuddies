@@ -1,4 +1,5 @@
 import Script from "next/script";
+import { CONSENT_DEFAULT_SNIPPET } from "../consent/consent-snippet";
 
 // Google Tag Manager -- inerte hasta que se cargue el container ID real
 // como config var de Heroku (NEXT_PUBLIC_GTM_CONTAINER_ID, formato
@@ -10,6 +11,18 @@ import Script from "next/script";
 // Y a través de GTM al mismo tiempo duplicaría los pageviews. Si en algún
 // momento se agrega una GA4 Configuration tag dentro del container de GTM,
 // eso alcanza, no hace falta tocar este archivo.
+// Consent Mode v2: tiene que correr ANTES que GTM y AdSense (ver
+// components/consent). Va aparte de GTM porque AdSense también lo necesita
+// aunque no haya container de GTM configurado.
+export function ConsentDefaults() {
+  return (
+    // eslint-disable-next-line @next/next/no-before-interactive-script-outside-document -- root layout (equivalente de _document en App Router).
+    <Script id="consent-defaults" strategy="beforeInteractive">
+      {CONSENT_DEFAULT_SNIPPET}
+    </Script>
+  );
+}
+
 export function GoogleTagManagerHead() {
   const containerId = process.env.NEXT_PUBLIC_GTM_CONTAINER_ID;
   if (!containerId) return null;

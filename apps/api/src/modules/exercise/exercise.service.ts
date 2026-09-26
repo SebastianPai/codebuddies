@@ -280,10 +280,21 @@ export class ExerciseService {
         role,
         bypass: bypassLocks,
       });
-    const locked = premiumLocked || progressionLocked;
+    // Dentro de la lección: teoría leída + ejercicios anteriores completos.
+    const lockedStep =
+      progressionLocked || completed
+        ? null
+        : await this.premiumAccessService.getExerciseStepLock({
+            lessonId: exercise.lessonId,
+            exerciseId: exercise.id,
+            userId,
+            role,
+            bypass: bypassLocks,
+          });
+    const locked = premiumLocked || progressionLocked || !!lockedStep;
     const lockedReason = premiumLocked
       ? ('premium' as const)
-      : progressionLocked
+      : progressionLocked || lockedStep
         ? ('progression' as const)
         : undefined;
 
@@ -310,6 +321,7 @@ export class ExerciseService {
       completed,
       locked,
       lockedReason,
+      lockedStep,
       status: exercise.status,
       ...adjacent,
     };
@@ -363,12 +375,12 @@ export class ExerciseService {
     }
   }
 
-  // El botón "siguiente ejercicio" del frontend dependía de un
-  // nextExerciseId/prevExerciseId que el backend nunca calculaba (siempre
-  // undefined) — por eso nunca avanzaba tras completar un ejercicio, sin
-  // importar el tipo. Busca el siguiente/anterior dentro de la misma
-  // lección por `order`, y si es el primero/último, cruza a la lección
-  // siguiente/anterior del curso.
+  // Navegación lineal del curso: siguiente/anterior dentro de la misma
+  // lección por `order`. Al terminar la lección NO se salta directo al primer
+  // ejercicio de la siguiente (eso se comía la teoría): se devuelve
+  // `nextLessonId` para que el front mande a leer la lección siguiente, que
+  // es la que desbloquea sus ejercicios. Antes del primer ejercicio, "atrás"
+  // es la teoría de la propia lección (el front ya tiene lessonId).
   private async getAdjacentExerciseIds(
     exercise: { id: string; lessonId: string },
     courseId: string,
@@ -378,6 +390,7 @@ export class ExerciseService {
     nextExerciseType: 'QUIZ' | 'CODE' | 'LIVE' | null;
     prevExerciseId: string | null;
     prevExerciseType: 'QUIZ' | 'CODE' | 'LIVE' | null;
+    nextLessonId: string | null;
   }> {
     const statusFilter = isAdmin ? {} : { status: 'PUBLISHED' as const };
 
@@ -388,37 +401,22 @@ export class ExerciseService {
     });
 
     const index = siblings.findIndex((e) => e.id === exercise.id);
-    let next = index >= 0 ? siblings[index + 1] : undefined;
-    let prev = index >= 0 ? siblings[index - 1] : undefined;
+    const next = index >= 0 ? siblings[index + 1] : undefined;
+    const prev = index > 0 ? siblings[index - 1] : undefined;
 
-    if (!next || !prev) {
-      const lessons = await this.prisma.lesson.findMany({
-        where: { courseId, ...statusFilter },
-        orderBy: { order: 'asc' },
-        select: { id: true },
+    let nextLessonId: string | null = null;
+    if (!next) {
+      const current = await this.prisma.lesson.findUnique({
+        where: { id: exercise.lessonId },
+        select: { order: true },
       });
-      const lessonIndex = lessons.findIndex((l) => l.id === exercise.lessonId);
-
-      if (!next && lessonIndex >= 0) {
-        for (let i = lessonIndex + 1; i < lessons.length && !next; i += 1) {
-          next =
-            (await this.prisma.exercise.findFirst({
-              where: { lessonId: lessons[i].id, ...statusFilter },
-              orderBy: { order: 'asc' },
-              select: { id: true, type: true },
-            })) ?? undefined;
-        }
-      }
-
-      if (!prev && lessonIndex > 0) {
-        for (let i = lessonIndex - 1; i >= 0 && !prev; i -= 1) {
-          prev =
-            (await this.prisma.exercise.findFirst({
-              where: { lessonId: lessons[i].id, ...statusFilter },
-              orderBy: { order: 'desc' },
-              select: { id: true, type: true },
-            })) ?? undefined;
-        }
+      if (current) {
+        const nextLesson = await this.prisma.lesson.findFirst({
+          where: { courseId, ...statusFilter, order: { gt: current.order } },
+          orderBy: { order: 'asc' },
+          select: { id: true },
+        });
+        nextLessonId = nextLesson?.id ?? null;
       }
     }
 
@@ -427,6 +425,7 @@ export class ExerciseService {
       nextExerciseType: next?.type ?? null,
       prevExerciseId: prev?.id ?? null,
       prevExerciseType: prev?.type ?? null,
+      nextLessonId,
     };
   }
 
@@ -481,6 +480,19 @@ export class ExerciseService {
     ) {
       throw new ForbiddenException('Completá la lección anterior primero');
     }
+    const stepLock = await this.premiumAccessService.getExerciseStepLock({
+      lessonId: exercise.lessonId,
+      exerciseId: exercise.id,
+      userId,
+      role,
+    });
+    if (stepLock) {
+      throw new ForbiddenException(
+        stepLock.kind === 'theory'
+          ? 'Leé la teoría de la lección primero'
+          : 'Completá el ejercicio anterior primero',
+      );
+    }
 
     const lang = dto.lang || 'es';
     const translation =
@@ -534,6 +546,7 @@ export class ExerciseService {
         correct: isCorrect,
         score: quizScore,
         timeSpentSeconds: dto.timeSpentSeconds ?? null,
+        questionIndex: dto.questionIndex,
       },
     });
 
@@ -543,7 +556,27 @@ export class ExerciseService {
       alreadyCompleted?: boolean;
     } | null = null;
 
+    // Antes cualquier respuesta correcta (p. ej. la pregunta 1 de 5)
+    // completaba el ejercicio entero. Ahora solo se completa cuando cada
+    // pregunta del quiz tiene al menos un intento correcto.
+    const totalQuestions = quizBlocks.length;
+    let solvedQuestions = 0;
     if (isCorrect) {
+      const solved = await this.prisma.exerciseAttempt.findMany({
+        where: {
+          userId,
+          exerciseId: exercise.id,
+          correct: true,
+          questionIndex: { not: null, lt: totalQuestions },
+        },
+        select: { questionIndex: true },
+        distinct: ['questionIndex'],
+      });
+      solvedQuestions = solved.length;
+    }
+    const quizComplete = isCorrect && solvedQuestions >= totalQuestions;
+
+    if (quizComplete) {
       const attempts = await this.prisma.exerciseAttempt.count({
         where: { userId, exerciseId: exercise.id },
       });
@@ -564,7 +597,9 @@ export class ExerciseService {
       correct: isCorrect,
       correctOptions,
       explanation: question.explanation || '',
-      completed: isCorrect,
+      completed: quizComplete,
+      solvedQuestions,
+      totalQuestions,
       xpAdded: completion?.xpAdded ?? 0,
       coinsAdded: completion?.coinsAdded ?? 0,
     };
@@ -630,6 +665,19 @@ export class ExerciseService {
       })
     ) {
       throw new ForbiddenException('Completá la lección anterior primero');
+    }
+    const stepLock = await this.premiumAccessService.getExerciseStepLock({
+      lessonId: exercise.lessonId,
+      exerciseId: exercise.id,
+      userId,
+      role,
+    });
+    if (stepLock) {
+      throw new ForbiddenException(
+        stepLock.kind === 'theory'
+          ? 'Leé la teoría de la lección primero'
+          : 'Completá el ejercicio anterior primero',
+      );
     }
 
     const codeEntry = (exercise.codes as any)?.[0] as

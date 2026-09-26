@@ -14,6 +14,13 @@ export class BattlePassController {
     return this.battlePassService.getMyState(user.userId);
   }
 
+  // Hub de recompensas de la web: cuenta el día y resume lo reclamable del
+  // pase y de la racha.
+  @Get('hub')
+  getHub(@CurrentUser() user: AuthUser) {
+    return this.battlePassService.getHub(user.userId);
+  }
+
   // El juego lo llama al abrir: cuenta el día en el pase diario.
   @Post('check-in')
   async checkIn(@CurrentUser() user: AuthUser) {

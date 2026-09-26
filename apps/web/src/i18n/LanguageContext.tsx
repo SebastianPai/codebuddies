@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { dictionary } from "./dictionary";
 import { api } from "../shared/api/client";
+import { getCurrentUser } from "../../utils/auth";
 import { trackLanguage } from "./language-analytics";
 
 export type Lang = "es" | "en-us" | "de";
@@ -54,10 +55,11 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     // La cuenta manda sobre el cache local: si el usuario ya eligió un
     // idioma desde apps/game (o desde otro dispositivo), se aplica acá
     // apenas responde /identity/me. Falla en silencio si no hay sesión.
-    api
-      .get<{ uiLanguage?: string }>("/identity/me")
+    // Comparte la petición/cache de /identity/me con useAuth (utils/auth).
+    const hasSession = Boolean(localStorage.getItem("token")?.trim());
+    (hasSession ? getCurrentUser() : Promise.resolve(null))
       .then((profile) => {
-        const remote = migrateLegacyLang(profile.uiLanguage);
+        const remote = migrateLegacyLang(profile?.uiLanguage ?? undefined);
         if (remote && remote !== saved) {
           resolved = remote;
           setLang(remote);

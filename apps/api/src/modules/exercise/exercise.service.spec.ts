@@ -14,6 +14,7 @@ describe('ExerciseService', () => {
     exerciseAttempt: {
       create: jest.fn(),
       count: jest.fn().mockResolvedValue(1),
+      findMany: jest.fn().mockResolvedValue([{ questionIndex: 0 }]),
     },
   };
   const progressService = {
@@ -26,6 +27,7 @@ describe('ExerciseService', () => {
     isLessonLocked: jest.fn().mockResolvedValue(false),
     isLessonProgressionLocked: jest.fn().mockResolvedValue(false),
     getProgressionLockedLessonIds: jest.fn().mockResolvedValue(new Set<string>()),
+    getExerciseStepLock: jest.fn().mockResolvedValue(null),
   };
 
   const quizExercise = {
@@ -118,6 +120,58 @@ describe('ExerciseService', () => {
     expect(result.completed).toBe(false);
     expect(result.xpAdded).toBe(0);
     expect(progressService.createProgress).not.toHaveBeenCalled();
+  });
+
+  it('submitQuizAnswer does not complete a multi-question quiz until every question is solved', async () => {
+    const twoQuestions = {
+      ...quizExercise,
+      translations: [
+        {
+          language: { code: 'es' },
+          content: {
+            questions: [
+              ...quizExercise.translations[0].content.questions,
+              {
+                question: '¿Cuánto es 3 + 3?',
+                options: ['6', '7'],
+                correct: [0],
+                isMultiple: false,
+                explanation: '',
+              },
+            ],
+          },
+        },
+      ],
+    };
+    prisma.exercise.findUnique.mockResolvedValue(twoQuestions as any);
+    prisma.exerciseAttempt.findMany.mockResolvedValueOnce([{ questionIndex: 0 }]);
+
+    const result = await service.submitQuizAnswer('user-1', 'exercise-1', {
+      questionIndex: 0,
+      selectedOptions: [1],
+    } as any);
+
+    expect(result.correct).toBe(true);
+    expect(result.completed).toBe(false);
+    expect(result.solvedQuestions).toBe(1);
+    expect(result.totalQuestions).toBe(2);
+    expect(progressService.createProgress).not.toHaveBeenCalled();
+  });
+
+  it('submitQuizAnswer rejects an exercise whose previous step is pending', async () => {
+    prisma.exercise.findUnique.mockResolvedValue(quizExercise as any);
+    premiumAccessService.getExerciseStepLock.mockResolvedValueOnce({
+      kind: 'theory',
+      lessonId: 'lesson-1',
+    });
+
+    await expect(
+      service.submitQuizAnswer('user-1', 'exercise-1', {
+        questionIndex: 0,
+        selectedOptions: [1],
+      } as any),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(prisma.exerciseAttempt.create).not.toHaveBeenCalled();
   });
 
   it('submitQuizAnswer throws NotFoundException for a missing exercise', async () => {

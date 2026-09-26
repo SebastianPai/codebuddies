@@ -77,19 +77,30 @@ export class MessagesService {
       orderBy: { updatedAt: 'desc' },
     });
 
-    return Promise.all(conversations.map(async (conversation) => {
-      const me = conversation.participants.find((item) => item.userId === userId);
+    // Un solo query para los no leídos de todas las conversaciones (antes
+    // era un COUNT por conversación: N+1 en cada carga del inbox, y el inbox
+    // se recarga seguido).
+    const unreadRows = conversations.length
+      ? await this.prisma.$queryRaw<{ conversationId: string; count: number }[]>`
+          SELECT m."conversationId", COUNT(*)::int AS count
+          FROM "Message" m
+          JOIN "ConversationParticipant" p
+            ON p."conversationId" = m."conversationId" AND p."userId" = ${userId}
+          WHERE m."senderId" <> ${userId}
+            AND (p."lastReadAt" IS NULL OR m."createdAt" > p."lastReadAt")
+          GROUP BY m."conversationId"
+        `
+      : [];
+    const unreadByConversation = new Map(
+      unreadRows.map((row) => [row.conversationId, Number(row.count)]),
+    );
+
+    return conversations.map((conversation) => {
       const partner = conversation.participants.find(
         (item) => item.userId !== userId,
       )?.user;
       const lastMessage = conversation.messages[0] ?? null;
-      const unreadCount = await this.prisma.message.count({
-        where: {
-          conversationId: conversation.id,
-          senderId: { not: userId },
-          ...(me?.lastReadAt ? { createdAt: { gt: me.lastReadAt } } : {}),
-        },
-      });
+      const unreadCount = unreadByConversation.get(conversation.id) ?? 0;
 
       return {
         ...conversation,
@@ -99,7 +110,7 @@ export class MessagesService {
           ? { ...partner, online: this.realtimeService.isOnline(partner.id) }
           : null,
       };
-    }));
+    });
   }
 
   requests(userId: string) {
@@ -143,14 +154,17 @@ export class MessagesService {
   async listMessages(userId: string, conversationId: string) {
     await this.assertParticipant(userId, conversationId);
     await this.markDelivered(userId, conversationId);
-    return this.prisma.message.findMany({
+    // Los ÚLTIMOS 100 (antes eran los primeros 100 en orden asc: en un chat
+    // largo los mensajes nuevos directamente no aparecían).
+    const latest = await this.prisma.message.findMany({
       where: { conversationId },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: 'desc' },
       take: 100,
       include: {
         sender: { select: { id: true, username: true, avatarUrl: true, nameEffectId: true } },
       },
     });
+    return latest.reverse();
   }
 
   async send(userId: string, conversationId: string, body: string) {

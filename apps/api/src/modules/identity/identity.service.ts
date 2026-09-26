@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -13,6 +14,7 @@ import { PremiumAccessService } from '../premium-access/premium-access.service';
 import { GameGateway } from '../game/game.gateway';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { isDisposableEmail, isWeakPassword } from './auth-rules';
 import {
   SUPPORTED_CHAT_BUBBLE_THEMES,
   UpdateProfileDto,
@@ -83,6 +85,26 @@ export class IdentityService {
   ) {}
 
   async register(dto: RegisterDto) {
+    if (isDisposableEmail(dto.email)) {
+      throw new BadRequestException(
+        'No se permiten correos temporales. Usá tu correo personal.',
+      );
+    }
+    if (isWeakPassword(dto.password, { username: dto.username, email: dto.email })) {
+      throw new BadRequestException(
+        'Esa contraseña es muy fácil de adivinar. Evitá tu usuario, tu correo o claves comunes.',
+      );
+    }
+    // Las cuentas viejas pueden tener el correo con mayúsculas: evitar un
+    // duplicado "Foo@x.com" / "foo@x.com".
+    const emailTaken = await this.prisma.user.findFirst({
+      where: { email: { equals: dto.email, mode: 'insensitive' } },
+      select: { id: true },
+    });
+    if (emailTaken) {
+      throw new ConflictException('Ya existe una cuenta con ese correo.');
+    }
+
     const hashed = await bcrypt.hash(dto.password, 10);
 
     let user;
@@ -136,15 +158,24 @@ export class IdentityService {
   }
 
   async login(dto: LoginDto) {
-    const user = await this.prisma.user.findUnique({
-      where: { email: dto.email },
-      select: {
-        ...this.authUserSelect(),
-        password: true,
-        suspended: true,
-        suspendedReason: true,
-      },
-    });
+    const loginSelect = {
+      ...this.authUserSelect(),
+      password: true,
+      suspended: true,
+      suspendedReason: true,
+    };
+    // El DTO ya normaliza a minúsculas; las cuentas creadas antes de eso
+    // pueden tener mayúsculas guardadas, así que se cae a una búsqueda sin
+    // distinguir mayúsculas.
+    const user =
+      (await this.prisma.user.findUnique({
+        where: { email: dto.email },
+        select: loginSelect,
+      })) ??
+      (await this.prisma.user.findFirst({
+        where: { email: { equals: dto.email, mode: 'insensitive' } },
+        select: loginSelect,
+      }));
 
     if (!user) throw new UnauthorizedException('Credenciales invalidas');
 
@@ -200,13 +231,20 @@ export class IdentityService {
   // una sola lista de ids que este usuario puede usar hoy como Name Effect
   // -- fuente de verdad para el gate de updateProfile y para lo que
   // getProfile expone al frontend (así el picker no repite esta lógica).
-  async getUnlockedEffectIds(userId: string): Promise<string[]> {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { role: true },
-    });
+  async getUnlockedEffectIds(
+    userId: string,
+    known?: { role: Role; isPremium: boolean },
+  ): Promise<string[]> {
+    const role =
+      known?.role ??
+      (
+        await this.prisma.user.findUnique({
+          where: { id: userId },
+          select: { role: true },
+        })
+      )?.role;
 
-    if (user?.role === Role.ADMIN) {
+    if (role === Role.ADMIN) {
       return [
         ...FREE_NAME_EFFECTS,
         ...PREMIUM_NAME_EFFECTS,
@@ -217,7 +255,7 @@ export class IdentityService {
     const unlocked = new Set<string>(FREE_NAME_EFFECTS);
 
     const [isPremium, ownedEffectItems] = await Promise.all([
-      this.hasPremium(userId),
+      known ? known.isPremium : this.hasPremium(userId),
       this.prisma.userItem.findMany({
         where: { userId, item: { type: ItemType.EFFECT } },
         select: { item: { select: { effectKey: true } } },
@@ -236,19 +274,26 @@ export class IdentityService {
     return Array.from(unlocked);
   }
 
-  async getUnlockedChatBubbleThemeIds(userId: string): Promise<string[]> {
+  async getUnlockedChatBubbleThemeIds(
+    userId: string,
+    known?: { role: Role; isPremium: boolean },
+  ): Promise<string[]> {
     const free = SUPPORTED_CHAT_BUBBLE_THEMES.filter(
       (id) => !PREMIUM_CHAT_BUBBLE_THEMES.has(id),
     );
 
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { role: true },
-    });
-    if (user?.role === Role.ADMIN) return [...SUPPORTED_CHAT_BUBBLE_THEMES];
+    const role =
+      known?.role ??
+      (
+        await this.prisma.user.findUnique({
+          where: { id: userId },
+          select: { role: true },
+        })
+      )?.role;
+    if (role === Role.ADMIN) return [...SUPPORTED_CHAT_BUBBLE_THEMES];
 
     const [isPremium, ownedBubbleItems] = await Promise.all([
-      this.hasPremium(userId),
+      known ? known.isPremium : this.hasPremium(userId),
       this.prisma.userItem.findMany({
         where: {
           userId,
@@ -358,9 +403,33 @@ export class IdentityService {
     }
   }
 
+  // Última vez que se refrescó el progreso de misiones por usuario (ver
+  // getProfile). En memoria a propósito: es solo un freno de frecuencia.
+  private readonly missionRefreshAt = new Map<string, number>();
+
+  // /identity/me se llama en cada carga de página: refrescar TODAS las
+  // misiones acá (una tanda de consultas y escrituras por misión) era el
+  // endpoint más caro de la app. Ahora corre en segundo plano y como mucho
+  // una vez cada 10 minutos por usuario; la página de misiones igual lo
+  // recalcula al abrirse.
+  private refreshMissionsInBackground(userId: string) {
+    const now = Date.now();
+    const last = this.missionRefreshAt.get(userId) ?? 0;
+    if (now - last < 10 * 60 * 1000) return;
+    this.missionRefreshAt.set(userId, now);
+    if (this.missionRefreshAt.size > 10_000) {
+      for (const [id, at] of this.missionRefreshAt) {
+        if (now - at > 10 * 60 * 1000) this.missionRefreshAt.delete(id);
+      }
+    }
+    void this.gamificationService.getMissionsForUser(userId).catch((error) => {
+      this.logger.warn(`No se pudo refrescar misiones de ${userId}: ${String(error)}`);
+    });
+  }
+
   async getProfile(userId: string) {
     const { streakJustIncreased } = await this.applyDailyLoginStreak(userId);
-    await this.gamificationService.getMissionsForUser(userId);
+    this.refreshMissionsInBackground(userId);
 
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -380,10 +449,11 @@ export class IdentityService {
 
     if (!user) throw new UnauthorizedException('Usuario no encontrado');
 
-    const [isPremium, unlockedEffectIds, unlockedChatBubbleThemeIds] = await Promise.all([
-      this.hasPremium(userId),
-      this.getUnlockedEffectIds(userId),
-      this.getUnlockedChatBubbleThemeIds(userId),
+    const isPremium = await this.hasPremium(userId);
+    const known = { role: user.role, isPremium };
+    const [unlockedEffectIds, unlockedChatBubbleThemeIds] = await Promise.all([
+      this.getUnlockedEffectIds(userId, known),
+      this.getUnlockedChatBubbleThemeIds(userId, known),
     ]);
 
     return {
@@ -458,8 +528,16 @@ export class IdentityService {
     });
 
     if (!update) {
-      // Ya se contó actividad hoy — igual actualizamos lastLoginAt (es
-      // informativo, no maneja la racha) sin tocar streak/bestStreak.
+      // Ya se contó actividad hoy. lastLoginAt es informativo: no hace
+      // falta escribirlo en cada /me (se llama en cada carga de página),
+      // alcanza con refrescarlo cada 5 minutos.
+      const { lastLearningActivityAt: _ignored, ...current } = user;
+      if (
+        user.lastLoginAt &&
+        now.getTime() - new Date(user.lastLoginAt).getTime() < 5 * 60 * 1000
+      ) {
+        return { user: current, streakJustIncreased: false };
+      }
       const unchanged = await this.prisma.user.update({
         where: { id: userId },
         data: { lastLoginAt: now },

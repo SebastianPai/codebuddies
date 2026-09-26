@@ -29,6 +29,8 @@ export interface ContinueLearningCourse {
   completedExercises: number;
   progressPercent: number;
   lastActivityAt: string;
+  // Siguiente paso: si nextExercise es null, toca leer la lección nextLessonId.
+  nextLessonId?: string | null;
   nextExercise: { id: string; type: string; lessonId: string } | null;
 }
 

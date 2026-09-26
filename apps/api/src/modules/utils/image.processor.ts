@@ -49,3 +49,72 @@ export function generateFileName(original: string, forcedExt?: string) {
 
   return `${Date.now()}-${random}.${ext}`;
 }
+
+// ---- Compresión al subir ---------------------------------------------------
+// Fotos/portadas (cursos, miniaturas de salas): se achican a 1920 px como
+// máximo y se guardan en WebP, que pesa bastante menos que PNG/JPEG. Todo lo
+// demás (sprites, atlas, fondos del juego, insignias, logos del tema) se
+// optimiza SIN pérdida y sin cambiar dimensiones: el juego calcula frames y
+// posiciones por píxel, redimensionarlos rompería las animaciones.
+// GIF queda intacto (puede ser animado). Si el resultado no pesa menos que
+// el original, se sube el original.
+const PHOTO_FOLDERS = new Set(['courses', 'room-thumbnails']);
+const PHOTO_MAX_SIDE = 1920;
+
+export interface OptimizedImage {
+  buffer: Buffer;
+  format: string;
+  mimetype: string;
+}
+
+export async function optimizeImage(
+  buffer: Buffer,
+  detected: DetectedImage,
+  folder: string,
+): Promise<OptimizedImage> {
+  const original = { buffer, format: detected.format, mimetype: detected.mimetype };
+  if (detected.format === 'gif') return original;
+
+  const rootFolder = folder.split('/')[0];
+  try {
+    let candidate: OptimizedImage;
+    if (PHOTO_FOLDERS.has(rootFolder)) {
+      candidate = {
+        buffer: await sharp(buffer)
+          .rotate() // respeta la orientación EXIF de fotos de celular
+          .resize({
+            width: PHOTO_MAX_SIDE,
+            height: PHOTO_MAX_SIDE,
+            fit: 'inside',
+            withoutEnlargement: true,
+          })
+          .webp({ quality: 82, effort: 4 })
+          .toBuffer(),
+        format: 'webp',
+        mimetype: 'image/webp',
+      };
+    } else if (detected.format === 'png') {
+      candidate = {
+        buffer: await sharp(buffer)
+          .png({ compressionLevel: 9, adaptiveFiltering: true, effort: 8 })
+          .toBuffer(),
+        format: 'png',
+        mimetype: 'image/png',
+      };
+    } else if (detected.format === 'webp') {
+      candidate = {
+        buffer: await sharp(buffer).webp({ lossless: true, effort: 5 }).toBuffer(),
+        format: 'webp',
+        mimetype: 'image/webp',
+      };
+    } else {
+      // JPEG fuera de las carpetas de fotos: recomprimirlo perdería
+      // calidad; solo se sube tal cual.
+      return original;
+    }
+    return candidate.buffer.length < buffer.length ? candidate : original;
+  } catch {
+    // Nunca bloquear una subida por la optimización.
+    return original;
+  }
+}

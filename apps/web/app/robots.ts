@@ -1,6 +1,5 @@
 import type { MetadataRoute } from "next";
-
-const SITE_URL = "https://codebuddies.app";
+import { SITE_URL } from "@/config/site";
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -11,14 +10,25 @@ export default function robots(): MetadataRoute.Robots {
         // Áreas privadas/autenticadas sin valor de indexación.
         disallow: [
           "/admin",
-          "/admin/*",
           "/dashboard",
           "/settings",
           "/messages",
           "/notifications",
+          "/account",
+          "/friends",
+          "/referrals",
+          "/rewards",
+          "/missions",
+          "/achievements",
+          "/battle-pass",
+          "/creator",
+          "/learn",
+          "/welcome",
+          "/dev",
         ],
       },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,
+    host: SITE_URL,
   };
 }
