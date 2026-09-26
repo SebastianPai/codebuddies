@@ -314,5 +314,11 @@
     "toastDescription": "\"{name}\" no longer exists.",
     "errorToastTitle": "Couldn't delete",
     "errorToastDescription": "Try again in a few seconds."
+  },
+  "daily": {
+    "title": "Today's missions ({done}/{total})",
+    "resets": "New ones in {hours}h {minutes}m",
+    "bonus": "Complete all 3: +{xp} XP and {coins} extra coins",
+    "bonusDone": "Daily bonus collected! Come back tomorrow for more."
   }
 }

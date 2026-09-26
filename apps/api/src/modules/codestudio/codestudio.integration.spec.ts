@@ -123,11 +123,11 @@ run('CodeStudio v2 contra Postgres real', () => {
     expect(view.cash).toBeLessThan(cashBeforeFire);
 
     // Bug: diagnóstico equivocado cuesta, el correcto da XP y coins.
-    await prisma.codeStudioBug.create({
+    const inserted = await prisma.codeStudioBug.create({
       data: { companyId: created.id, kind: 'release', scenarioKey: 'n-plus-one', title: 'N+1', description: 'x', severity: 'MEDIUM', fixCost: 450 },
     });
     view = await service.getCompany(userId, created.id);
-    const bug = view.bugs.find((entry) => entry.title === 'N+1')!;
+    const bug = view.bugs.find((entry) => entry.id === inserted.id)!;
     expect(bug.options.length).toBe(4);
     expect(JSON.stringify(bug)).not.toContain('correct');
     const wrong = await service.fixBug(userId, created.id, bug.id, { method: 'diagnose', optionKey: 'bigger-server' });
@@ -142,11 +142,10 @@ run('CodeStudio v2 contra Postgres real', () => {
 
     // Logro repetido no vuelve a pagar coins.
     const coinsCheckpoint = coinsAfter;
-    await prisma.codeStudioBug.create({
+    const spam = await prisma.codeStudioBug.create({
       data: { companyId: created.id, kind: 'release', scenarioKey: 'emails-spam', title: 'Spam', description: 'x', severity: 'LOW', fixCost: 200 },
     });
-    view = await service.getCompany(userId, created.id);
-    await service.fixBug(userId, created.id, view.bugs.find((entry) => entry.title === 'Spam')!.id, { method: 'diagnose', optionKey: 'dns' });
+    await service.fixBug(userId, created.id, spam.id, { method: 'diagnose', optionKey: 'dns' });
     expect((await prisma.user.findUniqueOrThrow({ where: { id: userId } })).coins).toBe(coinsCheckpoint);
 
     // Decisión pendiente → elegir.
@@ -169,7 +168,8 @@ run('CodeStudio v2 contra Postgres real', () => {
     expect(view.pendingDecision?.id).toBe(decision.id);
     const usersBefore = view.activeUsers;
     view = await service.chooseDecision(userId, created.id, decision.id, { choice: 'accept' });
-    expect(view.pendingDecision).toBeNull();
+    // Puede aparecer otra decisión real en el mismo tick; esta ya no está.
+    expect(view.pendingDecision?.id).not.toBe(decision.id);
     expect(view.activeUsers).toBeGreaterThanOrEqual(usersBefore + 80);
     await expect(service.chooseDecision(userId, created.id, decision.id, { choice: 'accept' })).rejects.toThrow(/Ya tomaste/);
 
@@ -207,5 +207,36 @@ run('CodeStudio v2 contra Postgres real', () => {
     expect(studio.companies.length).toBe(2);
     const ranking = (await service.ranking()) as Array<{ id: string }>;
     expect(ranking.some((row) => row.id === created.id)).toBe(false);
+  });
+
+  it('misiones diarias: pagan una sola vez y el bono llega al completar las 3', async () => {
+    const before = await rewards.getProfile(userId);
+    expect(before.daily.missions).toHaveLength(3);
+    const coinsBefore = (await prisma.user.findUniqueOrThrow({ where: { id: userId } })).coins;
+    const huge = { features: 99, bugs: 99, hires: 99, campaigns: 99, decisions: 99, newUsers: 1e6, revenue: 1e6, days: 999, stages: 9 };
+    await prisma.$transaction((tx) => rewards.bumpDaily(tx, userId, huge, null));
+    const after = await rewards.getProfile(userId);
+    expect(after.daily.missions.every((mission) => mission.done)).toBe(true);
+    expect(after.daily.bonus.done).toBe(true);
+    // Solo pagan las que no estaban cumplidas antes (la partida anterior
+    // del test ya pudo completar alguna de verdad).
+    const pendingBefore = before.daily.missions.filter((mission) => !mission.done);
+    const expectedCoins = pendingBefore.reduce((sum, mission) => sum + mission.coins, 0) + (before.daily.bonus.done ? 0 : after.daily.bonus.coins);
+    const coinsAfter = (await prisma.user.findUniqueOrThrow({ where: { id: userId } })).coins;
+    expect(coinsAfter - coinsBefore).toBe(expectedCoins);
+    // Repetir no paga de nuevo.
+    await prisma.$transaction((tx) => rewards.bumpDaily(tx, userId, huge, null));
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: userId } })).coins).toBe(coinsAfter);
+  });
+
+  it('responde en inglés y alemán', async () => {
+    const delivery = await prisma.codeStudioAppType.findUniqueOrThrow({ where: { slug: 'delivery' } });
+    const english = await service.createCompany(userId, { appTypeId: delivery.id, name: 'English Co' }, 'en');
+    expect(english.events.some((event) => event.title === 'Welcome, CEO')).toBe(true);
+    expect(english.stage.name).toBe('Idea');
+    expect(english.stage.goals[0].label).toBe('Ship the Core feature');
+    const catalog = await service.catalog('de');
+    expect(catalog.features.find((feature) => feature.slug === 'auth')?.name).toBe('Registrierung und Login');
+    await expect(service.startDevelopment(userId, english.id, { moduleId: await featureId('core-feature') }, 'en')).rejects.toThrow(/First you need/);
   });
 });

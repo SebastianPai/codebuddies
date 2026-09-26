@@ -314,5 +314,11 @@
     "toastDescription": "\"{name}\" ya no existe.",
     "errorToastTitle": "No se pudo eliminar",
     "errorToastDescription": "Intenta de nuevo en unos segundos."
+  },
+  "daily": {
+    "title": "Misiones de hoy ({done}/{total})",
+    "resets": "Nuevas en {hours} h {minutes} min",
+    "bonus": "Completa las 3: +{xp} XP y {coins} coins extra",
+    "bonusDone": "¡Bono diario cobrado! Vuelve mañana por más."
   }
 }

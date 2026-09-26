@@ -35,11 +35,12 @@ import FailedView from "./FailedView";
 import FoundingModal from "./FoundingModal";
 import DecisionModal from "./DecisionModal";
 import { useTranslation } from "../../../i18n/useTranslation";
+import { useLanguage } from "../../../i18n/LanguageContext";
 
 const POLL_MS = 10_000;
 const SELECTED_KEY = "cs-selected-company";
 // Eventos que merecen un toast al aparecer (el resto solo va al feed).
-const TOAST_KINDS = new Set(["milestone", "stage", "level-up", "bug", "market", "release", "failure", "bug-fixed"]);
+const TOAST_KINDS = new Set(["milestone", "stage", "level-up", "bug", "market", "release", "failure"]);
 
 function readSelected() {
   try {
@@ -59,6 +60,7 @@ function saveSelected(id: string) {
 
 export default function CodeStudio() {
   const t = useTranslation();
+  const { lang } = useLanguage();
   const [studio, setStudio] = useState<StudioState | null>(null);
   const [company, setCompany] = useState<CompanyView | null>(null);
   const [selectedId, setSelectedId] = useState("");
@@ -115,9 +117,11 @@ export default function CodeStudio() {
     }
   }, []);
 
+  // El contenido viene traducido del servidor: si el jugador cambia de
+  // idioma, se vuelve a pedir el catálogo y la empresa en el idioma nuevo.
   useEffect(() => {
     void loadStudio();
-  }, [loadStudio]);
+  }, [loadStudio, lang]);
 
   // Poll de la empresa abierta: cada llamada avanza la simulación en el
   // servidor. Se pausa si la pestaña no está visible (ahorra servidor y la
@@ -149,7 +153,7 @@ export default function CodeStudio() {
       window.clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [selectedId, applyCompany]);
+  }, [selectedId, applyCompany, lang]);
 
   // Abre la decisión sola la primera vez que aparece.
   const lastDecisionRef = useRef<string | null>(null);

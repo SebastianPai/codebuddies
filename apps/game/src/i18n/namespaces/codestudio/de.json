@@ -314,5 +314,11 @@
     "toastDescription": "\"{name}\" existiert nicht mehr.",
     "errorToastTitle": "Löschen fehlgeschlagen",
     "errorToastDescription": "Versuch es in ein paar Sekunden noch einmal."
+  },
+  "daily": {
+    "title": "Heutige Missionen ({done}/{total})",
+    "resets": "Neue in {hours} Std. {minutes} Min.",
+    "bonus": "Schaffe alle 3: +{xp} XP und {coins} Extra-Coins",
+    "bonusDone": "Tagesbonus kassiert! Komm morgen für mehr wieder."
   }
 }

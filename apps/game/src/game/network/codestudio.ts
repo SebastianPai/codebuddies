@@ -16,9 +16,21 @@ function handleUnauthorized() {
   redirectToWebLogin();
 }
 
+// El contenido del juego (features, bugs, eventos) y los mensajes vienen
+// del servidor ya traducidos: se pide en el idioma elegido en el juego
+// (mismo valor que guarda LanguageContext en localStorage "lang").
+function currentLang() {
+  try {
+    return (typeof window !== "undefined" && window.localStorage.getItem("lang")) || "es";
+  } catch {
+    return "es";
+  }
+}
+
 async function request<T>(path: string, options: RequestInit = {}) {
   const token = getSharedAuthToken();
-  const res = await fetch(`${API_URL}${path}`, {
+  const separator = path.includes("?") ? "&" : "?";
+  const res = await fetch(`${API_URL}${path}${separator}lang=${encodeURIComponent(currentLang())}`, {
     ...options,
     credentials: "include",
     headers: {

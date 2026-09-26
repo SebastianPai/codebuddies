@@ -53,6 +53,7 @@ import {
   PRICE_LEVELS,
   pickWeighted,
 } from './content/events';
+import { Lang, Localized, MSG, contentFor, localizeScenario, pick, stageText } from './content/i18n';
 import { CreateCodeStudioCompanyDto } from './dto/create-codestudio-company.dto';
 import { StartDevelopmentDto } from './dto/start-development.dto';
 import { HireEmployeeDto } from './dto/hire-employee.dto';
@@ -93,11 +94,10 @@ const KEEP_EVENTS = 100;
 const MIN_SIM_SECONDS = 3;
 
 // Error interno para abortar una transacción de simulación cuando otra
-// request ya simuló este mismo intervalo (ver guard en simulateCompany).
+// request ya simuló este mismo intervalo (ver guard en runSimulation).
 class SimulationRaceError extends Error {}
 
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, Number.isFinite(value) ? value : min));
-const money = (value: number) => `$${Math.round(value).toLocaleString('es-CO')}`;
 
 @Injectable()
 export class CodeStudioService {
@@ -112,13 +112,13 @@ export class CodeStudioService {
 
   // ─── Lectura ────────────────────────────────────────────────────────────
 
-  catalog() {
-    return this.catalogService.catalog();
+  catalog(lang: Lang = 'es') {
+    return this.catalogService.catalog(lang);
   }
 
   // Liviano a propósito: lista de empresas SIN simular (la que el jugador
   // está mirando se simula al pedirla con getCompany) + catálogo + carrera.
-  async myStudio(userId: string) {
+  async myStudio(userId: string, lang: Lang = 'es') {
     const [companies, catalog, profile] = await Promise.all([
       this.prisma.codeStudioCompany.findMany({
         where: { userId },
@@ -135,56 +135,68 @@ export class CodeStudioService {
           appType: { select: { name: true, color: true, icon: true, slug: true } },
         },
       }),
-      this.catalogService.catalog(),
-      this.rewards.getProfile(userId),
+      this.catalogService.catalog(lang),
+      this.rewards.getProfile(userId, lang),
     ]);
-    return { companies, catalog, profile };
+    const t = contentFor(lang);
+    return {
+      companies: companies.map((company) => ({
+        ...company,
+        appType: { ...company.appType, name: t?.appTypes[company.appType.slug]?.name ?? company.appType.name },
+      })),
+      catalog,
+      profile,
+    };
   }
 
-  async getCompany(userId: string, companyId: string) {
-    await this.simulateCompany(userId, companyId);
-    return this.buildView(userId, companyId);
+  async getCompany(userId: string, companyId: string, lang: Lang = 'es') {
+    await this.simulateCompany(userId, companyId, lang);
+    return this.buildView(userId, companyId, lang);
   }
 
-  async ranking() {
-    if (this.rankingCache && Date.now() - this.rankingCache.at < 30_000) return this.rankingCache.rows;
-    const rows = await this.prisma.codeStudioCompany.findMany({
-      where: { status: { not: CodeStudioCompanyStatus.FAILED } },
-      take: 50,
-      orderBy: [{ valuation: 'desc' }, { activeUsers: 'desc' }],
-      select: {
-        id: true,
-        name: true,
-        valuation: true,
-        activeUsers: true,
-        stage: true,
-        founderEquity: true,
-        appType: { select: { name: true, color: true } },
-        user: { select: { username: true, avatarUrl: true } },
-      },
-    });
-    this.rankingCache = { at: Date.now(), rows };
-    return rows;
+  async ranking(lang: Lang = 'es') {
+    if (!this.rankingCache || Date.now() - this.rankingCache.at >= 30_000) {
+      const rows = await this.prisma.codeStudioCompany.findMany({
+        where: { status: { not: CodeStudioCompanyStatus.FAILED } },
+        take: 50,
+        orderBy: [{ valuation: 'desc' }, { activeUsers: 'desc' }],
+        select: {
+          id: true,
+          name: true,
+          valuation: true,
+          activeUsers: true,
+          stage: true,
+          founderEquity: true,
+          appType: { select: { name: true, color: true, slug: true } },
+          user: { select: { username: true, avatarUrl: true } },
+        },
+      });
+      this.rankingCache = { at: Date.now(), rows };
+    }
+    const t = contentFor(lang);
+    return (this.rankingCache.rows as Array<{ appType: { name: string; slug: string; color: string | null } }>).map((row) => ({
+      ...row,
+      appType: { ...row.appType, name: t?.appTypes[row.appType.slug]?.name ?? row.appType.name },
+    }));
   }
 
   // ─── Crear / borrar ─────────────────────────────────────────────────────
 
-  async createCompany(userId: string, dto: CreateCodeStudioCompanyDto) {
+  async createCompany(userId: string, dto: CreateCodeStudioCompanyDto, lang: Lang = 'es') {
     const name = dto.name.trim();
-    if (name.length < 3 || name.length > 40) throw new BadRequestException('El nombre debe tener entre 3 y 40 caracteres');
+    if (name.length < 3 || name.length > 40) throw new BadRequestException(pick(MSG.nameLength(), lang));
     const appType = await this.prisma.codeStudioAppType.findUnique({ where: { id: dto.appTypeId } });
-    if (!appType || !appType.active) throw new BadRequestException('Ese tipo de app no está disponible');
+    if (!appType || !appType.active) throw new BadRequestException(pick(MSG.appTypeUnavailable(), lang));
 
-    const profile = await this.rewards.getProfile(userId);
+    const profile = await this.rewards.getProfile(userId, lang);
     const appProfile = (appType.simulationProfile ?? {}) as Record<string, any>;
     const minLevel = Number(appProfile.minFounderLevel ?? 1);
     if (profile.level < minLevel) {
-      throw new BadRequestException(`${appType.name} se desbloquea con nivel de fundador ${minLevel}. Tú eres nivel ${profile.level}.`);
+      const appName = contentFor(lang)?.appTypes[appType.slug]?.name ?? appType.name;
+      throw new BadRequestException(pick(MSG.appTypeLocked(appName, minLevel, profile.level), lang));
     }
     const alive = await this.prisma.codeStudioCompany.count({ where: { userId, status: { not: CodeStudioCompanyStatus.FAILED } } });
-    if (alive >= MAX_ALIVE_COMPANIES) {
-      throw new BadRequestException(`Puedes tener hasta ${MAX_ALIVE_COMPANIES} empresas activas a la vez. Cierra una desde Ajustes.`);
-    }
+    if (alive >= MAX_ALIVE_COMPANIES) throw new BadRequestException(pick(MSG.tooManyCompanies(MAX_ALIVE_COMPANIES), lang));
 
     const cash = Number(appProfile.startingCash ?? 6000) + startingCashBonus(profile.level);
     const company = await this.prisma.$transaction(async (tx) => {
@@ -205,24 +217,17 @@ export class CodeStudioService {
           lastSimulatedAt: new Date(),
         },
       });
-      await tx.codeStudioEventLog.create({
-        data: {
-          companyId: created.id,
-          title: 'Bienvenido, CEO',
-          description: `Tienes ${money(cash)} y una idea. Construye tu MVP en el Árbol: Landing page → Registro y login → Funcionalidad principal. Cada minuto real es un día en tu startup.`,
-          effects: { kind: 'info', tone: 'neutral' },
-        },
-      });
-      await this.rewards.addXp(tx, userId, 0, null, { companiesFounded: 1 });
-      await this.rewards.grantMilestone(tx, userId, 'first-company', created.id);
+      await this.log(tx, created.id, MSG.welcomeTitle(), MSG.welcomeText(cash), 'info', 'neutral', lang);
+      await this.rewards.addXp(tx, userId, 0, null, { companiesFounded: 1 }, lang);
+      await this.rewards.grantMilestone(tx, userId, 'first-company', created.id, lang);
       return created;
     });
     this.rankingCache = null;
-    return this.buildView(userId, company.id);
+    return this.buildView(userId, company.id, lang);
   }
 
-  async deleteCompany(userId: string, companyId: string) {
-    const company = await this.requireOwned(userId, companyId);
+  async deleteCompany(userId: string, companyId: string, lang: Lang = 'es') {
+    const company = await this.requireOwned(userId, companyId, lang);
     await this.prisma.codeStudioCompany.delete({ where: { id: company.id } });
     this.rankingCache = null;
     return { id: company.id, name: company.name };
@@ -230,28 +235,26 @@ export class CodeStudioService {
 
   // ─── Acciones del jugador ───────────────────────────────────────────────
 
-  async startDevelopment(userId: string, companyId: string, dto: StartDevelopmentDto) {
-    const company = await this.requireAlive(userId, companyId);
+  async startDevelopment(userId: string, companyId: string, dto: StartDevelopmentDto, lang: Lang = 'es') {
+    const company = await this.requireAlive(userId, companyId, lang);
     const module = await this.prisma.codeStudioModule.findUnique({ where: { id: dto.moduleId } });
-    if (!module || !module.active || !(module.metadata as { v2?: boolean } | null)?.v2) throw new NotFoundException('Esa feature no está disponible');
-    if (company.modules.some((entry) => entry.moduleId === module.id)) throw new BadRequestException('Ya construiste esta feature');
-    if (company.development.some((task) => task.moduleId === module.id)) throw new BadRequestException('Esta feature ya está en desarrollo');
-    if (company.development.length >= MAX_DEVELOPMENT_QUEUE) {
-      throw new BadRequestException(`Tu equipo ya tiene ${MAX_DEVELOPMENT_QUEUE} features en cola. Espera a que terminen o contrata más gente.`);
-    }
+    if (!module || !module.active || !(module.metadata as { v2?: boolean } | null)?.v2) throw new NotFoundException(pick(MSG.featureUnavailable(), lang));
+    if (company.modules.some((entry) => entry.moduleId === module.id)) throw new BadRequestException(pick(MSG.featureInstalled(), lang));
+    if (company.development.some((task) => task.moduleId === module.id)) throw new BadRequestException(pick(MSG.featureInProgress(), lang));
+    if (company.development.length >= MAX_DEVELOPMENT_QUEUE) throw new BadRequestException(pick(MSG.queueFull(MAX_DEVELOPMENT_QUEUE), lang));
     const requirements = (module.requirements ?? {}) as { requires?: string[]; minStage?: number };
     if ((requirements.minStage ?? 0) > company.stage) {
-      throw new BadRequestException(`Se desbloquea en la etapa ${STAGES[requirements.minStage ?? 0]?.name ?? requirements.minStage}.`);
+      throw new BadRequestException(pick(MSG.unlocksAtStage(stageText(requirements.minStage ?? 0, lang).name), lang));
     }
     const installed = new Set(company.modules.map((entry) => entry.module.slug));
     const missing = (requirements.requires ?? []).filter((slug) => !installed.has(slug));
     if (missing.length > 0) {
-      const names = FEATURES.filter((feature) => missing.includes(feature.slug)).map((feature) => feature.name);
-      throw new BadRequestException(`Primero necesitas: ${names.join(', ')}`);
+      const names = missing.map((slug) => this.featureName(slug, lang));
+      throw new BadRequestException(pick(MSG.needsFirst(names.join(', ')), lang));
     }
 
     await this.prisma.$transaction(async (tx) => {
-      await this.spend(tx, company.id, module.cost);
+      await this.spend(tx, company.id, module.cost, lang);
       await tx.codeStudioDevelopmentTask.create({
         data: {
           companyId: company.id,
@@ -265,33 +268,33 @@ export class CodeStudioService {
         await tx.codeStudioCompany.update({ where: { id: company.id }, data: { status: CodeStudioCompanyStatus.BUILDING } });
       }
     });
-    return this.getCompany(userId, companyId);
+    return this.getCompany(userId, companyId, lang);
   }
 
   // Cancelar devuelve la mitad: el trabajo hecho no se recupera.
-  async cancelDevelopment(userId: string, companyId: string, taskId: string) {
-    const company = await this.requireAlive(userId, companyId);
+  async cancelDevelopment(userId: string, companyId: string, taskId: string, lang: Lang = 'es') {
+    const company = await this.requireAlive(userId, companyId, lang);
     const task = company.development.find((entry) => entry.id === taskId);
-    if (!task) throw new NotFoundException('Esa tarea no está en desarrollo');
+    if (!task) throw new NotFoundException(pick(MSG.taskNotFound(), lang));
     const refund = Math.round(task.module.cost * 0.5);
     await this.prisma.$transaction(async (tx) => {
       await tx.codeStudioDevelopmentTask.update({ where: { id: task.id }, data: { status: CodeStudioDevelopmentStatus.CANCELLED } });
       await tx.codeStudioCompany.update({ where: { id: company.id }, data: { cash: { increment: refund } } });
-      await this.log(tx, company.id, `Cancelaste ${task.module.name}`, `Recuperaste ${money(refund)} (la mitad). El trabajo hecho se pierde.`, 'info', 'neutral');
+      await this.log(tx, company.id, MSG.cancelledTitle(this.featureName(task.module.slug, lang)), MSG.cancelledText(refund), 'info', 'neutral', lang);
     });
-    return this.getCompany(userId, companyId);
+    return this.getCompany(userId, companyId, lang);
   }
 
-  async hireEmployee(userId: string, companyId: string, dto: HireEmployeeDto) {
-    const company = await this.requireAlive(userId, companyId);
+  async hireEmployee(userId: string, companyId: string, dto: HireEmployeeDto, lang: Lang = 'es') {
+    const company = await this.requireAlive(userId, companyId, lang);
     const type = await this.prisma.codeStudioEmployeeType.findUnique({ where: { id: dto.employeeTypeId } });
-    if (!type || !type.active) throw new NotFoundException('Ese rol no está disponible');
-    if (company.employees.length >= MAX_EMPLOYEES) throw new BadRequestException(`Máximo ${MAX_EMPLOYEES} empleados`);
+    if (!type || !type.active) throw new NotFoundException(pick(MSG.roleUnavailable(), lang));
+    if (company.employees.length >= MAX_EMPLOYEES) throw new BadRequestException(pick(MSG.maxEmployees(MAX_EMPLOYEES), lang));
     const bonus = Math.round(type.salary * HIRE_BONUS_FACTOR);
     const stats = (type.baseStats ?? {}) as Record<string, number>;
 
     await this.prisma.$transaction(async (tx) => {
-      await this.spend(tx, company.id, bonus);
+      await this.spend(tx, company.id, bonus, lang);
       const employee = await tx.codeStudioEmployee.create({
         data: {
           companyId: company.id,
@@ -306,25 +309,19 @@ export class CodeStudioService {
           quality: Number(stats.quality ?? 1),
         },
       });
-      await this.log(
-        tx,
-        company.id,
-        `Contrataste a ${employee.name} (${type.name})`,
-        `Bono de contratación ${money(bonus)}. Sueldo: ${money(type.salary)}/mes (${money(type.salary / 30)} por día).`,
-        'team',
-        'neutral',
-      );
-      await this.rewards.grantMilestone(tx, userId, 'first-hire', company.id);
+      await this.log(tx, company.id, MSG.hiredTitle(employee.name, this.roleName(type.slug, type.name, lang)), MSG.hiredText(bonus, type.salary), 'team', 'neutral', lang);
+      await this.rewards.grantMilestone(tx, userId, 'first-hire', company.id, lang);
+      await this.rewards.bumpDaily(tx, userId, { hires: 1 }, company.id, lang);
     });
-    return this.getCompany(userId, companyId);
+    return this.getCompany(userId, companyId, lang);
   }
 
   // Despedir cuesta medio sueldo de indemnización — aunque no tengas caja
   // (puede dejarte en rojo): a veces es la única forma de sobrevivir.
-  async fireEmployee(userId: string, companyId: string, employeeId: string) {
-    const company = await this.requireAlive(userId, companyId);
+  async fireEmployee(userId: string, companyId: string, employeeId: string, lang: Lang = 'es') {
+    const company = await this.requireAlive(userId, companyId, lang);
     const employee = company.employees.find((entry) => entry.id === employeeId);
-    if (!employee) throw new NotFoundException('Empleado no encontrado');
+    if (!employee) throw new NotFoundException(pick(MSG.employeeNotFound(), lang));
     const severance = Math.round(employee.salary * SEVERANCE_FACTOR);
     await this.prisma.$transaction(async (tx) => {
       await tx.codeStudioBug.updateMany({
@@ -336,33 +333,27 @@ export class CodeStudioService {
         where: { id: company.id },
         data: { cash: { decrement: severance }, expenses: { increment: severance } },
       });
-      await this.log(
-        tx,
-        company.id,
-        `${employee.name} dejó la empresa`,
-        `Indemnización: ${money(severance)}. Ahorras ${money(employee.salary)}/mes.`,
-        'team',
-        'neutral',
-      );
+      await this.log(tx, company.id, MSG.firedTitle(employee.name), MSG.firedText(severance, employee.salary), 'team', 'neutral', lang);
     });
-    return this.getCompany(userId, companyId);
+    return this.getCompany(userId, companyId, lang);
   }
 
-  async installInfrastructure(userId: string, companyId: string, dto: InstallInfrastructureDto) {
-    const company = await this.requireAlive(userId, companyId);
+  async installInfrastructure(userId: string, companyId: string, dto: InstallInfrastructureDto, lang: Lang = 'es') {
+    const company = await this.requireAlive(userId, companyId, lang);
     const type = await this.prisma.codeStudioInfrastructureType.findUnique({ where: { id: dto.infrastructureTypeId } });
-    if (!type || !type.active) throw new NotFoundException('Ese servidor no está disponible');
+    if (!type || !type.active) throw new NotFoundException(pick(MSG.hostingUnavailable(), lang));
     const scaling = (type.scaling ?? {}) as Record<string, number>;
     if (Number(scaling.minStage ?? 0) > company.stage) {
-      throw new BadRequestException(`Se desbloquea en la etapa ${STAGES[Number(scaling.minStage)]?.name ?? scaling.minStage}.`);
+      throw new BadRequestException(pick(MSG.unlocksAtStage(stageText(Number(scaling.minStage), lang).name), lang));
     }
     const existing = company.infrastructure.find((item) => item.infrastructureTypeId === type.id);
     const nextLevel = (existing?.level ?? 0) + 1;
-    if (nextLevel > Number(scaling.maxLevel ?? 5)) throw new BadRequestException('Ya está al nivel máximo');
+    if (nextLevel > Number(scaling.maxLevel ?? 5)) throw new BadRequestException(pick(MSG.maxLevel(), lang));
     const cost = type.baseCost * nextLevel;
+    const typeName = contentFor(lang)?.hosting[type.slug]?.name ?? type.name;
 
     await this.prisma.$transaction(async (tx) => {
-      await this.spend(tx, company.id, cost);
+      await this.spend(tx, company.id, cost, lang);
       const data = {
         level: nextLevel,
         capacity: Number(scaling.capacity ?? 0) * nextLevel,
@@ -375,32 +366,31 @@ export class CodeStudioService {
       await this.log(
         tx,
         company.id,
-        existing ? `${type.name} mejorado a nivel ${nextLevel}` : `${type.name} instalado`,
-        `Capacidad +${Number(scaling.capacity ?? 0).toLocaleString('es-CO')} usuarios. Cuesta ${money(Number(scaling.monthly ?? 0))}/mes por nivel.`,
+        existing ? MSG.hostingUpgraded(typeName, nextLevel) : MSG.hostingInstalled(typeName),
+        MSG.hostingText(Number(scaling.capacity ?? 0), Number(scaling.monthly ?? 0)),
         'infra',
         'neutral',
+        lang,
       );
     });
-    return this.getCompany(userId, companyId);
+    return this.getCompany(userId, companyId, lang);
   }
 
-  async launchCampaign(userId: string, companyId: string, dto: LaunchCampaignDto) {
-    const company = await this.requireAlive(userId, companyId);
+  async launchCampaign(userId: string, companyId: string, dto: LaunchCampaignDto, lang: Lang = 'es') {
+    const company = await this.requireAlive(userId, companyId, lang);
     const campaign = await this.prisma.codeStudioCampaign.findUnique({ where: { id: dto.campaignId } });
-    if (!campaign || !campaign.active) throw new NotFoundException('Esa campaña no está disponible');
+    if (!campaign || !campaign.active) throw new NotFoundException(pick(MSG.campaignUnavailable(), lang));
     const multiplier = dto.multiplier ?? 1;
-    if (!(CAMPAIGN_BUDGET_MULTIPLIERS as readonly number[]).includes(multiplier)) throw new BadRequestException('Presupuesto inválido');
+    if (!(CAMPAIGN_BUDGET_MULTIPLIERS as readonly number[]).includes(multiplier)) throw new BadRequestException(pick(MSG.invalidBudget(), lang));
     const minStage = Number((campaign.config as { minStage?: number } | null)?.minStage ?? 1);
-    if (minStage > company.stage) throw new BadRequestException(`Se desbloquea en la etapa ${STAGES[minStage]?.name}.`);
-    if (company.infrastructure.length === 0 || company.modules.length === 0) {
-      throw new BadRequestException('Tu app no está en línea: los usuarios llegarían a una página caída. Instala un servidor primero.');
-    }
+    if (minStage > company.stage) throw new BadRequestException(pick(MSG.unlocksAtStage(stageText(minStage, lang).name), lang));
+    if (company.infrastructure.length === 0 || company.modules.length === 0) throw new BadRequestException(pick(MSG.appOffline(), lang));
 
     const quote = await this.quoteCampaign(company, campaign.slug, multiplier);
-    if (!quote) throw new BadRequestException('No se pudo cotizar la campaña');
+    if (!quote) throw new BadRequestException(pick(MSG.quoteFailed(), lang));
 
     await this.prisma.$transaction(async (tx) => {
-      await this.spend(tx, company.id, quote.cost);
+      await this.spend(tx, company.id, quote.cost, lang);
       await tx.codeStudioCompany.update({
         where: { id: company.id },
         data: { activeUsers: { increment: quote.users }, totalUsers: { increment: quote.users } },
@@ -411,28 +401,30 @@ export class CodeStudioService {
       const metrics = this.metricsOf(company);
       const verdict =
         metrics.ltv > 0 && quote.cac > metrics.ltv
-          ? `Cada usuario te costó ${money(quote.cac)} pero solo te deja ~${money(metrics.ltv)} en su vida (LTV). Estás comprando usuarios a pérdida.`
+          ? MSG.campaignLosing(quote.cost, quote.cac, metrics.ltv)
           : metrics.ltv > 0
-            ? `Cada usuario te costó ${money(quote.cac)} y te deja ~${money(metrics.ltv)} (LTV). Buen negocio.`
-            : 'Todavía no cobras nada: estos usuarios no te dejan dinero hasta que tengas monetización.';
-      await this.log(tx, company.id, `Campaña en ${campaign.name}: +${quote.users} usuarios`, `Pagaste ${money(quote.cost)}. ${verdict}`, 'marketing', 'neutral');
-      await this.rewards.grantMilestone(tx, userId, 'first-campaign', company.id);
+            ? MSG.campaignWinning(quote.cost, quote.cac, metrics.ltv)
+            : MSG.campaignNoRevenue(quote.cost);
+      await this.log(tx, company.id, MSG.campaignTitle(campaign.name, quote.users), verdict, 'marketing', 'neutral', lang);
+      await this.rewards.grantMilestone(tx, userId, 'first-campaign', company.id, lang);
+      await this.rewards.bumpDaily(tx, userId, { campaigns: 1, newUsers: quote.users }, company.id, lang);
     });
-    return this.getCompany(userId, companyId);
+    return this.getCompany(userId, companyId, lang);
   }
 
-  async fixBug(userId: string, companyId: string, bugId: string, dto: FixBugDto) {
-    const company = await this.requireAlive(userId, companyId);
+  async fixBug(userId: string, companyId: string, bugId: string, dto: FixBugDto, lang: Lang = 'es') {
+    const company = await this.requireAlive(userId, companyId, lang);
     const bug = company.bugReports.find((entry) => entry.id === bugId);
-    if (!bug) throw new NotFoundException('Ese bug no existe o ya está resuelto');
-    if (bug.assignedEmployeeId) throw new BadRequestException('Alguien de tu equipo ya está trabajando en este bug');
-    const scenario = bug.scenarioKey ? BUG_SCENARIO_BY_KEY.get(bug.scenarioKey) : undefined;
+    if (!bug) throw new NotFoundException(pick(MSG.bugNotFound(), lang));
+    if (bug.assignedEmployeeId) throw new BadRequestException(pick(MSG.bugTaken(), lang));
+    const base = bug.scenarioKey ? BUG_SCENARIO_BY_KEY.get(bug.scenarioKey) : undefined;
+    const scenario = base ? localizeScenario(base, lang) : undefined;
     const weight = BUG_SEVERITY_WEIGHT[bug.severity];
 
     if (dto.method === 'diagnose') {
-      if (!scenario) throw new BadRequestException('Este bug es del sistema anterior: arréglalo con tu equipo o una consultora.');
+      if (!scenario) throw new BadRequestException(pick(MSG.bugLegacy(), lang));
       const option = scenario.options.find((entry) => entry.key === dto.optionKey);
-      if (!option) throw new BadRequestException('Elige una de las opciones');
+      if (!option) throw new BadRequestException(pick(MSG.pickOption(), lang));
 
       if (!option.correct) {
         const cost = Math.round(bug.fixCost * WRONG_DIAGNOSIS_COST_FACTOR);
@@ -447,160 +439,134 @@ export class CodeStudioService {
             },
           });
         });
-        return { result: { correct: false, feedback: option.feedback, cost }, company: await this.getCompany(userId, companyId) };
+        return { result: { correct: false, feedback: option.feedback, cost }, company: await this.getCompany(userId, companyId, lang) };
       }
 
       const cost = Math.round(bug.fixCost * DIAGNOSE_COST_FACTOR);
       const firstTry = bug.attempts === 0;
       const xp = weight * 12 * (firstTry ? 2 : 1);
       await this.prisma.$transaction(async (tx) => {
-        await this.spend(tx, company.id, cost, `Necesitas ${money(cost)} para que tu equipo aplique el arreglo.`);
+        await this.spend(tx, company.id, cost, lang, MSG.diagnoseNeedsCash(cost));
         await tx.codeStudioBug.update({ where: { id: bug.id }, data: { status: CodeStudioBugStatus.FIXED, fixedAt: new Date(), resolution: 'diagnose' } });
         await tx.codeStudioCompany.update({ where: { id: company.id }, data: { reputation: clamp(company.reputation + 1, 0, 100) } });
-        await this.log(
-          tx,
-          company.id,
-          `Bug resuelto: ${bug.title}`,
-          `${scenario.lesson}${scenario.preventHint ? ` ${scenario.preventHint}` : ''} (+${xp} XP)`,
-          'bug-fixed',
-          'good',
-        );
-        await this.rewards.addXp(tx, userId, xp, company.id, { bugsDiagnosed: 1, ...(firstTry ? { bugsFirstTry: 1 } : {}) });
-        await this.rewards.grantMilestone(tx, userId, 'first-bug-diagnosed', company.id);
+        await this.log(tx, company.id, MSG.bugFixedTitle(scenario.title), MSG.bugFixedText(scenario.lesson, scenario.preventHint ?? '', xp), 'bug-fixed', 'good', lang);
+        await this.rewards.addXp(tx, userId, xp, company.id, { bugsDiagnosed: 1, ...(firstTry ? { bugsFirstTry: 1 } : {}) }, lang);
+        await this.rewards.grantMilestone(tx, userId, 'first-bug-diagnosed', company.id, lang);
         const profile = await tx.codeStudioProfile.findUnique({ where: { userId }, select: { bugsFirstTry: true } });
-        if ((profile?.bugsFirstTry ?? 0) >= 10) await this.rewards.grantMilestone(tx, userId, 'bug-hunter', company.id);
+        if ((profile?.bugsFirstTry ?? 0) >= 10) await this.rewards.grantMilestone(tx, userId, 'bug-hunter', company.id, lang);
+        await this.rewards.bumpDaily(tx, userId, { bugs: 1 }, company.id, lang);
       });
       return {
         result: { correct: true, feedback: option.feedback, lesson: scenario.lesson, preventHint: scenario.preventHint ?? null, xp, cost, firstTry },
-        company: await this.getCompany(userId, companyId),
+        company: await this.getCompany(userId, companyId, lang),
       };
     }
 
     if (dto.method === 'employee') {
       const employee = company.employees.find((entry) => entry.id === dto.employeeId);
-      if (!employee) throw new NotFoundException('Empleado no encontrado');
+      if (!employee) throw new NotFoundException(pick(MSG.employeeNotFound(), lang));
       if (!BUG_CAPABLE_ROLES.has(employee.employeeType.slug)) {
-        throw new BadRequestException(`${employee.employeeType.name} no tiene el perfil técnico. Necesitas Backend, FullStack, DevOps, QA o Data Scientist.`);
+        throw new BadRequestException(pick(MSG.notTechnical(this.roleName(employee.employeeType.slug, employee.employeeType.name, lang)), lang));
       }
-      if (company.bugReports.some((entry) => entry.assignedEmployeeId === employee.id)) {
-        throw new BadRequestException(`${employee.name} ya está arreglando otro bug`);
-      }
+      if (company.bugReports.some((entry) => entry.assignedEmployeeId === employee.id)) throw new BadRequestException(pick(MSG.employeeBusy(employee.name), lang));
       const seconds = weight * EMPLOYEE_FIX_SECONDS_PER_WEIGHT;
       await this.prisma.codeStudioBug.update({
         where: { id: bug.id },
         data: { assignedEmployeeId: employee.id, fixReadyAt: new Date(Date.now() + seconds * 1000) },
       });
-      return { result: { assigned: true, seconds }, company: await this.getCompany(userId, companyId) };
+      return { result: { assigned: true, seconds }, company: await this.getCompany(userId, companyId, lang) };
     }
 
     // Consultora: rápido y caro, pero no aprendes nada (sin XP).
     await this.prisma.$transaction(async (tx) => {
-      await this.spend(tx, company.id, bug.fixCost);
+      await this.spend(tx, company.id, bug.fixCost, lang);
       await tx.codeStudioBug.update({ where: { id: bug.id }, data: { status: CodeStudioBugStatus.FIXED, fixedAt: new Date(), resolution: 'cash' } });
-      await this.log(
-        tx,
-        company.id,
-        `Una consultora arregló: ${bug.title}`,
-        `Pagaste ${money(bug.fixCost)}. ${scenario ? `Te dejaron una nota: "${scenario.lesson}"` : ''}`,
-        'bug-fixed',
-        'neutral',
-      );
+      await this.log(tx, company.id, MSG.consultantTitle(scenario?.title ?? bug.title), MSG.consultantText(bug.fixCost, scenario?.lesson ?? ''), 'bug-fixed', 'neutral', lang);
     });
-    return { result: { paid: bug.fixCost }, company: await this.getCompany(userId, companyId) };
+    return { result: { paid: bug.fixCost }, company: await this.getCompany(userId, companyId, lang) };
   }
 
-  async chooseDecision(userId: string, companyId: string, eventId: string, dto: ChooseDecisionDto) {
-    const company = await this.requireAlive(userId, companyId);
+  async chooseDecision(userId: string, companyId: string, eventId: string, dto: ChooseDecisionDto, lang: Lang = 'es') {
+    const company = await this.requireAlive(userId, companyId, lang);
     const event = await this.prisma.codeStudioEventLog.findUnique({ where: { id: eventId } });
     const effects = (event?.effects ?? {}) as Record<string, any>;
-    if (!event || event.companyId !== company.id || effects.kind !== 'decision') throw new NotFoundException('Esa decisión no existe');
-    if (effects.status !== 'pending') throw new BadRequestException('Ya tomaste esta decisión');
+    if (!event || event.companyId !== company.id || effects.kind !== 'decision') throw new NotFoundException(pick(MSG.decisionNotFound(), lang));
+    if (effects.status !== 'pending') throw new BadRequestException(pick(MSG.decisionTaken(), lang));
     const definition = DECISION_BY_KEY.get(effects.key);
-    if (!definition) throw new BadRequestException('Decisión desconocida');
-    if (!(effects.choices ?? []).some((choice: { key: string }) => choice.key === dto.choice)) throw new BadRequestException('Opción inválida');
+    if (!definition) throw new BadRequestException(pick(MSG.decisionUnknown(), lang));
+    if (!(effects.choices ?? []).some((choice: { key: string }) => choice.key === dto.choice)) throw new BadRequestException(pick(MSG.invalidChoice(), lang));
 
-    const ctx = this.eventContext(company);
+    const ctx = this.eventContext(company, lang);
     const blocked = definition.canChoose?.(ctx, effects.params ?? {}, dto.choice);
-    if (blocked) throw new BadRequestException(blocked);
+    if (blocked) throw new BadRequestException(pick(blocked, lang));
     const outcome = definition.resolve(ctx, effects.params ?? {}, dto.choice, Math.random);
 
     await this.prisma.$transaction(async (tx) => {
       // Guard: si dos clicks llegan juntos, solo el primero resuelve.
       const claimed = await tx.codeStudioEventLog.updateMany({
         where: { id: event.id, effects: { path: ['status'], equals: 'pending' } },
-        data: { effects: { ...effects, status: 'resolved', choice: dto.choice, outcome: outcome.message } },
+        data: { effects: { ...effects, status: 'resolved', choice: dto.choice, outcome: pick(outcome.message, lang) } },
       });
-      if (claimed.count === 0) throw new BadRequestException('Ya tomaste esta decisión');
-      await this.applyOutcome(tx, company, outcome);
-      await this.rewards.addXp(tx, userId, 10, company.id);
+      if (claimed.count === 0) throw new BadRequestException(pick(MSG.decisionTaken(), lang));
+      await this.applyOutcome(tx, company, outcome, lang);
+      await this.rewards.addXp(tx, userId, 10, company.id, {}, lang);
+      await this.rewards.bumpDaily(tx, userId, { decisions: 1, newUsers: Math.max(0, outcome.users ?? 0) }, company.id, lang);
     });
-    return this.getCompany(userId, companyId);
+    return this.getCompany(userId, companyId, lang);
   }
 
-  async raiseFunding(userId: string, companyId: string) {
-    const company = await this.requireAlive(userId, companyId);
+  async raiseFunding(userId: string, companyId: string, lang: Lang = 'es') {
+    const company = await this.requireAlive(userId, companyId, lang);
     const offer = fundingOffer(company.fundingRound, company.valuation);
-    if (!offer) throw new BadRequestException('Ya levantaste todas las rondas disponibles');
-    if (company.stage < offer.minStage) throw new BadRequestException(`Los inversores de ${offer.name} esperan que llegues a la etapa ${STAGES[offer.minStage].name}.`);
-    if (company.rating < FUNDING_MIN_RATING) {
-      throw new BadRequestException(`Ningún inversor apuesta por una app con rating ${company.rating.toFixed(1)}. Súbelo a ${FUNDING_MIN_RATING}+.`);
-    }
+    if (!offer) throw new BadRequestException(pick(MSG.noMoreRounds(), lang));
+    if (company.stage < offer.minStage) throw new BadRequestException(pick(MSG.investorsWantStage(offer.name, stageText(offer.minStage, lang).name), lang));
+    if (company.rating < FUNDING_MIN_RATING) throw new BadRequestException(pick(MSG.investorsWantRating(company.rating.toFixed(1), FUNDING_MIN_RATING), lang));
     const newEquity = company.founderEquity * (1 - offer.equity / 100);
     await this.prisma.$transaction(async (tx) => {
       const updated = await tx.codeStudioCompany.updateMany({
         where: { id: company.id, fundingRound: company.fundingRound },
         data: { cash: { increment: offer.raise }, fundingRound: { increment: 1 }, founderEquity: newEquity },
       });
-      if (updated.count === 0) throw new BadRequestException('Esa ronda ya se cerró');
-      await this.log(
-        tx,
-        company.id,
-        `Ronda ${offer.name} cerrada: +${money(offer.raise)}`,
-        `Vendiste el ${offer.equity}% de la empresa. Ahora eres dueño del ${newEquity.toFixed(1)}%. Más caja para crecer, pero cada ronda te diluye.`,
-        'finance',
-        'good',
-      );
-      await this.rewards.grantMilestone(tx, userId, 'first-funding', company.id);
+      if (updated.count === 0) throw new BadRequestException(pick(MSG.roundClosed(), lang));
+      await this.log(tx, company.id, MSG.roundTitle(offer.name, offer.raise), MSG.roundText(offer.equity, newEquity.toFixed(1)), 'finance', 'good', lang);
+      await this.rewards.grantMilestone(tx, userId, 'first-funding', company.id, lang);
     });
-    return this.getCompany(userId, companyId);
+    return this.getCompany(userId, companyId, lang);
   }
 
-  async setPricing(userId: string, companyId: string, dto: SetPricingDto) {
-    const company = await this.requireAlive(userId, companyId);
+  async setPricing(userId: string, companyId: string, dto: SetPricingDto, lang: Lang = 'es') {
+    const company = await this.requireAlive(userId, companyId, lang);
     const level = PRICE_LEVELS.find((entry) => entry.value === dto.level);
-    if (!level) throw new BadRequestException('Nivel de precio inválido');
+    if (!level) throw new BadRequestException(pick(MSG.invalidPrice(), lang));
     await this.prisma.$transaction(async (tx) => {
       await tx.codeStudioCompany.update({ where: { id: company.id }, data: { priceLevel: level.value } });
       await this.log(
         tx,
         company.id,
-        `Nuevo precio: ${level.label}`,
-        level.value > 1
-          ? 'Cobras más por usuario, pero algunos se irán y llegarán menos.'
-          : level.value < 1
-            ? 'Cobras menos por usuario, pero se quedan más y llegan más.'
-            : 'Precio de mercado.',
+        MSG.priceTitle(pick(level.label, lang)),
+        level.value > 1 ? MSG.priceUp() : level.value < 1 ? MSG.priceDown() : MSG.priceNormal(),
         'finance',
         'neutral',
+        lang,
       );
     });
-    return this.getCompany(userId, companyId);
+    return this.getCompany(userId, companyId, lang);
   }
 
   // ─── Simulación ─────────────────────────────────────────────────────────
 
-  private async simulateCompany(userId: string, companyId: string) {
-    const company = await this.requireOwned(userId, companyId);
+  private async simulateCompany(userId: string, companyId: string, lang: Lang) {
+    const company = await this.requireOwned(userId, companyId, lang);
     if (company.status === CodeStudioCompanyStatus.FAILED) return;
     if (company.simVersion < 2) {
-      await this.convertLegacyCompany(company);
+      await this.convertLegacyCompany(company, lang);
       return;
     }
     const elapsed = (Date.now() - company.lastSimulatedAt.getTime()) / 1000;
     if (elapsed < MIN_SIM_SECONDS) return;
 
     try {
-      await this.prisma.$transaction(async (tx) => this.runSimulation(tx, userId, company, Math.min(elapsed, MAX_ELAPSED_SECONDS)), {
+      await this.prisma.$transaction(async (tx) => this.runSimulation(tx, userId, company, Math.min(elapsed, MAX_ELAPSED_SECONDS), lang), {
         timeout: 15_000,
       });
     } catch (error) {
@@ -609,7 +575,7 @@ export class CodeStudioService {
     }
   }
 
-  private async runSimulation(tx: Tx, userId: string, company: LoadedCompany, elapsed: number) {
+  private async runSimulation(tx: Tx, userId: string, company: LoadedCompany, elapsed: number, lang: Lang) {
     const now = new Date();
     // Guard optimista: si otra request ya simuló desde que leímos, nos
     // vamos sin tocar nada (evita simular el mismo intervalo dos veces).
@@ -623,16 +589,18 @@ export class CodeStudioService {
     for (const bug of company.bugReports.filter((entry) => entry.fixReadyAt && entry.fixReadyAt <= now)) {
       const employee = company.employees.find((entry) => entry.id === bug.assignedEmployeeId);
       await tx.codeStudioBug.update({ where: { id: bug.id }, data: { status: CodeStudioBugStatus.FIXED, fixedAt: now, resolution: 'employee' } });
-      const scenario = bug.scenarioKey ? BUG_SCENARIO_BY_KEY.get(bug.scenarioKey) : undefined;
+      const base = bug.scenarioKey ? BUG_SCENARIO_BY_KEY.get(bug.scenarioKey) : undefined;
+      const scenario = base ? localizeScenario(base, lang) : undefined;
       await this.log(
         tx,
         company.id,
-        `${employee?.name ?? 'Tu equipo'} arregló: ${bug.title}`,
-        scenario ? `Lo que aprendió el equipo: ${scenario.lesson}` : 'Bug resuelto.',
+        MSG.employeeFixedTitle(employee?.name ?? pick(MSG.yourTeam(), lang), scenario?.title ?? bug.title),
+        MSG.employeeFixedText(scenario?.lesson ?? ''),
         'bug-fixed',
         'good',
+        lang,
       );
-      await this.rewards.addXp(tx, userId, BUG_SEVERITY_WEIGHT[bug.severity] * 3, company.id);
+      await this.rewards.addXp(tx, userId, BUG_SEVERITY_WEIGHT[bug.severity] * 3, company.id, {}, lang);
     }
     const openBugs = company.bugReports.filter((entry) => !(entry.fixReadyAt && entry.fixReadyAt <= now));
 
@@ -654,12 +622,13 @@ export class CodeStudioService {
       newUsers: result.deltas.newUsers,
     };
     let openCount = openBugs.length;
+    let released = 0;
     const openKeys = new Set(openBugs.map((bug) => bug.scenarioKey).filter(Boolean) as string[]);
     const spawn = async (trigger: BugTrigger, releasedSlug?: string) => {
       if (openCount >= MAX_OPEN_BUGS) return;
       const scenario = pickScenario(trigger, { installed, openKeys }, Math.random, releasedSlug);
       if (!scenario) return;
-      await this.createBug(tx, company.id, scenario, company.stage);
+      await this.createBug(tx, company.id, scenario, company.stage, lang);
       openKeys.add(scenario.key);
       openCount++;
     };
@@ -677,23 +646,24 @@ export class CodeStudioService {
         },
       });
       if (!update.completed) continue;
+      released++;
       await tx.codeStudioCompanyModule.upsert({
         where: { companyId_moduleId: { companyId: company.id, moduleId: task.moduleId } },
         update: {},
         create: { companyId: company.id, moduleId: task.moduleId },
       });
       installed.add(task.module.slug);
-      const lesson = (task.module.metadata as { lesson?: string } | null)?.lesson;
+      const lesson = contentFor(lang)?.features[task.module.slug]?.lesson ?? (task.module.metadata as { lesson?: string } | null)?.lesson ?? '';
       const xp = task.module.difficulty ** 2 * 4;
-      await this.log(tx, company.id, `En producción: ${task.module.name}`, `${lesson ?? ''} (+${xp} XP)`.trim(), 'release', 'good');
-      await this.rewards.addXp(tx, userId, xp, company.id);
-      await this.rewards.grantMilestone(tx, userId, 'first-feature', company.id);
+      await this.log(tx, company.id, MSG.releaseTitle(this.featureName(task.module.slug, lang, task.module.name)), MSG.releaseText(lesson, xp), 'release', 'good', lang);
+      await this.rewards.addXp(tx, userId, xp, company.id, {}, lang);
+      await this.rewards.grantMilestone(tx, userId, 'first-feature', company.id, lang);
       if (Math.random() < releaseBugChance(update.difficulty, metrics.quality, profile.bugSeverityFactor)) {
         await spawn('release', task.module.slug);
       }
       const branch = FEATURES.find((feature) => feature.slug === task.module.slug)?.branch;
       if (branch && FEATURES.filter((feature) => feature.branch === branch).every((feature) => installed.has(feature.slug))) {
-        await this.rewards.grantMilestone(tx, userId, 'full-branch', company.id);
+        await this.rewards.grantMilestone(tx, userId, 'full-branch', company.id, lang);
       }
     }
 
@@ -709,7 +679,7 @@ export class CodeStudioService {
     const pending = await tx.codeStudioEventLog.findFirst({
       where: { companyId: company.id, effects: { path: ['status'], equals: 'pending' } },
     });
-    const ctx = this.eventContext(company, metrics, installed);
+    const ctx = this.eventContext(company, lang, metrics, installed);
     if (pending) {
       const effects = pending.effects as Record<string, any>;
       if (gameDays >= Number(effects.expiresAtDay ?? 0)) {
@@ -718,11 +688,11 @@ export class CodeStudioService {
           const outcome = definition.resolve(ctx, effects.params ?? {}, definition.defaultChoice, Math.random);
           await tx.codeStudioEventLog.update({
             where: { id: pending.id },
-            data: { effects: { ...effects, status: 'expired', choice: definition.defaultChoice, outcome: outcome.message } },
+            data: { effects: { ...effects, status: 'expired', choice: definition.defaultChoice, outcome: pick(outcome.message, lang) } },
           });
           this.foldOutcome(next, outcome);
-          await this.applySideEffects(tx, company, outcome);
-          await this.log(tx, company.id, `No decidiste a tiempo: ${definition.name}`, outcome.message, 'market', outcome.tone);
+          await this.applySideEffects(tx, company, outcome, lang);
+          await this.log(tx, company.id, MSG.decisionExpired(pick(definition.name, lang)), outcome.message, 'market', outcome.tone, lang);
         }
       }
     } else if (gameDays >= nextEventDay && company.stage >= 1) {
@@ -734,15 +704,15 @@ export class CodeStudioService {
         await tx.codeStudioEventLog.create({
           data: {
             companyId: company.id,
-            title: decision.name,
-            description: built.description,
+            title: pick(decision.name, lang),
+            description: pick(built.description, lang),
             effects: {
               kind: 'decision',
               tone: 'neutral',
               status: 'pending',
               key: decision.key,
               params: built.params,
-              choices: built.choices,
+              choices: built.choices.map((choice) => ({ key: choice.key, label: pick(choice.label, lang), hint: pick(choice.hint, lang) })),
               expiresAtDay: gameDays + DECISION_TTL_DAYS,
             },
           },
@@ -752,8 +722,8 @@ export class CodeStudioService {
         if (passive) {
           const outcome = passive.resolve(ctx, Math.random);
           this.foldOutcome(next, outcome);
-          await this.applySideEffects(tx, company, outcome);
-          await this.log(tx, company.id, passive.name, outcome.message, 'market', outcome.tone);
+          await this.applySideEffects(tx, company, outcome, lang);
+          await this.log(tx, company.id, passive.name, outcome.message, 'market', outcome.tone, lang);
         }
       }
     }
@@ -762,16 +732,9 @@ export class CodeStudioService {
     const finalCash = company.cash + next.cash;
     const debtDays = finalCash < 0 ? company.debtDays + days : 0;
     if (company.debtDays === 0 && debtDays > 0) {
-      await this.log(
-        tx,
-        company.id,
-        'Números rojos',
-        `Tu caja está en negativo. Tienes ${BANKRUPTCY_DEBT_DAYS} días (minutos) para volver a positivo o la empresa quiebra. Opciones: despedir gente, subir precios, levantar inversión o vender más.`,
-        'finance',
-        'bad',
-      );
+      await this.log(tx, company.id, MSG.debtTitle(), MSG.debtText(BANKRUPTCY_DEBT_DAYS), 'finance', 'bad', lang);
     }
-    if (company.debtDays > 1 && debtDays === 0) await this.rewards.grantMilestone(tx, userId, 'survived-debt', company.id);
+    if (company.debtDays > 1 && debtDays === 0) await this.rewards.grantMilestone(tx, userId, 'survived-debt', company.id, lang);
     const failed = debtDays >= BANKRUPTCY_DEBT_DAYS;
 
     // Etapas.
@@ -789,19 +752,34 @@ export class CodeStudioService {
     const newStage = failed ? company.stage : evaluateStage(company.stage, stageMetrics);
     for (let reached = company.stage + 1; reached <= newStage; reached++) {
       const stage = STAGES[reached];
+      const text = stageText(reached, lang);
       next.cash += stage.reward.cash;
       await this.log(
         tx,
         company.id,
-        `¡Nueva etapa: ${stage.name}!`,
-        `${stage.tagline}${stage.reward.cash > 0 ? ` Una aceleradora te premia con ${money(stage.reward.cash)}.` : ''}`,
+        MSG.stageTitle(text.name),
+        `${text.tagline}${stage.reward.cash > 0 ? pick(MSG.stageReward(stage.reward.cash), lang) : ''}`,
         'stage',
         'good',
+        lang,
       );
-      await this.rewards.grantRepeatable(tx, userId, `stage-${reached}`, company.id);
+      await this.rewards.grantRepeatable(tx, userId, `stage-${reached}`, company.id, lang);
     }
-    if (metrics.dailyRevenue > 0) await this.grantOnce(tx, userId, 'first-revenue', company.id, stats);
-    if (metrics.dailyProfit > 0 && company.employees.length >= 2) await this.grantOnce(tx, userId, 'first-profitable-day', company.id, stats);
+    if (metrics.dailyRevenue > 0) await this.grantOnce(tx, userId, 'first-revenue', company.id, stats, lang);
+    if (metrics.dailyProfit > 0 && company.employees.length >= 2) await this.grantOnce(tx, userId, 'first-profitable-day', company.id, stats, lang);
+    await this.rewards.bumpDaily(
+      tx,
+      userId,
+      {
+        features: released,
+        newUsers: Math.max(0, next.newUsers),
+        revenue: result.deltas.revenue,
+        days,
+        stages: newStage - company.stage,
+      },
+      company.id,
+      lang,
+    );
 
     const activeUsers = Math.max(0, company.activeUsers + next.users);
     const status = failed
@@ -811,6 +789,7 @@ export class CodeStudioService {
         : company.modules.length > 0 || company.development.length > 0
           ? CodeStudioCompanyStatus.BUILDING
           : CodeStudioCompanyStatus.IDEA;
+    const postMortem = failed ? this.postMortem(company, metrics, lang) : null;
 
     await tx.codeStudioCompany.update({
       where: { id: company.id },
@@ -834,14 +813,16 @@ export class CodeStudioService {
         status,
         tickCount: { increment: 1 },
         stats: { ...stats, ...metrics } as Prisma.InputJsonValue,
-        ...(failed ? { failedAt: now, failureReason: this.postMortem(company, metrics) } : {}),
+        ...(failed ? { failedAt: now, failureReason: postMortem } : {}),
       },
     });
 
     if (failed) {
-      await this.log(tx, company.id, 'Tu startup quebró', this.postMortem(company, metrics), 'failure', 'bad');
-      await this.rewards.addXp(tx, userId, 0, company.id, { bankruptcies: 1 });
-      await this.rewards.grantMilestone(tx, userId, 'first-bankruptcy', company.id);
+      await tx.codeStudioEventLog.create({
+        data: { companyId: company.id, title: pick(MSG.failedTitle(), lang), description: postMortem, effects: { kind: 'failure', tone: 'bad' } },
+      });
+      await this.rewards.addXp(tx, userId, 0, company.id, { bankruptcies: 1 }, lang);
+      await this.rewards.grantMilestone(tx, userId, 'first-bankruptcy', company.id, lang);
     }
     if (result.state.valuation > 0) {
       await tx.codeStudioProfile.updateMany({
@@ -876,7 +857,7 @@ export class CodeStudioService {
   // Empresas creadas con la economía vieja: se convierten una sola vez.
   // Se conserva todo lo construido; la caja negativa se perdona para que la
   // nueva regla de quiebra no las mate apenas entren.
-  private async convertLegacyCompany(company: LoadedCompany) {
+  private async convertLegacyCompany(company: LoadedCompany, lang: Lang) {
     await this.prisma.$transaction(async (tx) => {
       const updated = await tx.codeStudioCompany.updateMany({
         where: { id: company.id, simVersion: { lt: 2 } },
@@ -895,26 +876,19 @@ export class CodeStudioService {
         where: { companyId: company.id, status: CodeStudioBugStatus.OPEN, scenarioKey: null },
         data: { status: CodeStudioBugStatus.FIXED, fixedAt: new Date(), resolution: 'migration' },
       });
-      await this.log(
-        tx,
-        company.id,
-        'CodeStudio 2.0',
-        'Llegó una economía nueva: 1 minuto = 1 día, sin monetización no hay ingresos, si la caja queda en rojo 7 días quiebras, y los bugs se resuelven diagnosticándolos. Tus features anteriores siguen instaladas; el nuevo Árbol está en la pestaña Árbol.',
-        'info',
-        'neutral',
-      );
+      await this.log(tx, company.id, MSG.legacyTitle(), MSG.legacyText(), 'info', 'neutral', lang);
     });
   }
 
   // ─── Vista para el cliente ──────────────────────────────────────────────
 
-  private async buildView(userId: string, companyId: string) {
-    const company = await this.requireOwned(userId, companyId);
+  private async buildView(userId: string, companyId: string, lang: Lang) {
+    const company = await this.requireOwned(userId, companyId, lang);
     const [events, snapshots, catalog, profile, campaignSummary] = await Promise.all([
       this.prisma.codeStudioEventLog.findMany({ where: { companyId }, orderBy: { createdAt: 'desc' }, take: 30 }),
       this.prisma.codeStudioAnalyticsSnapshot.findMany({ where: { companyId }, orderBy: { createdAt: 'desc' }, take: 40 }),
-      this.catalogService.catalog(),
-      this.rewards.getProfile(userId),
+      this.catalogService.catalog(lang),
+      this.rewards.getProfile(userId, lang),
       this.prisma.codeStudioCampaignRun.groupBy({
         by: ['channel'],
         where: { companyId },
@@ -927,6 +901,7 @@ export class CodeStudioService {
     const installed = new Set(company.modules.map((entry) => entry.module.slug));
     const developing = new Map(company.development.map((task, index) => [task.module.slug, { task, index }]));
     const now = Date.now();
+    const t = contentFor(lang);
 
     const stageMetrics: StageMetrics = {
       activeUsers: company.activeUsers,
@@ -939,7 +914,9 @@ export class CodeStudioService {
       installedSlugs: installed,
       hasInfrastructure: company.infrastructure.length > 0,
     };
-    const stage = STAGES[Math.min(company.stage, MAX_STAGE)];
+    const stageIndex = Math.min(company.stage, MAX_STAGE);
+    const stage = STAGES[stageIndex];
+    const stageLabels = stageText(stageIndex, lang);
     const nextStage = company.stage < MAX_STAGE ? STAGES[company.stage + 1] : null;
 
     const tree = catalog.features.map((feature) => {
@@ -959,7 +936,7 @@ export class CodeStudioService {
       return { slug: feature.slug, state, fit: appProfile.featureFit[feature.slug] ?? 1, missing };
     });
 
-    const quotesByChannel = await this.campaignQuotes(company);
+    const quotesByChannel = await this.campaignQuotes(company, lang);
     const offer = fundingOffer(company.fundingRound, company.valuation);
     const pending = events.find((event) => (event.effects as Record<string, any> | null)?.status === 'pending');
     const pendingEffects = (pending?.effects ?? {}) as Record<string, any>;
@@ -972,10 +949,10 @@ export class CodeStudioService {
       appType: {
         id: company.appType.id,
         slug: company.appType.slug,
-        name: company.appType.name,
+        name: t?.appTypes[company.appType.slug]?.name ?? company.appType.name,
         color: company.appType.color,
         icon: company.appType.icon,
-        description: company.appType.description,
+        description: t?.appTypes[company.appType.slug]?.description ?? company.appType.description,
       },
       cash: company.cash,
       valuation: company.valuation,
@@ -997,10 +974,13 @@ export class CodeStudioService {
       metrics,
       stage: {
         index: company.stage,
-        name: stage.name,
-        tagline: stage.tagline,
-        goals: company.stage < MAX_STAGE ? stageProgress(company.stage, stageMetrics) : [],
-        next: nextStage ? { name: nextStage.name, reward: nextStage.reward } : null,
+        name: stageLabels.name,
+        tagline: stageLabels.tagline,
+        goals:
+          company.stage < MAX_STAGE
+            ? stageProgress(company.stage, stageMetrics).map((goal, position) => ({ ...goal, label: stageLabels.goals[position] ?? goal.label }))
+            : [],
+        next: nextStage ? { name: stageText(nextStage.index, lang).name, reward: nextStage.reward } : null,
       },
       tree,
       legacyFeatures: company.modules
@@ -1009,7 +989,7 @@ export class CodeStudioService {
       development: company.development.map((task, index) => ({
         id: task.id,
         slug: task.module.slug,
-        name: task.module.name,
+        name: this.featureName(task.module.slug, lang, task.module.name),
         progress: task.progress,
         queued: index >= metrics.maxParallel,
         remainingSeconds:
@@ -1022,7 +1002,7 @@ export class CodeStudioService {
         id: employee.id,
         name: employee.name,
         roleSlug: employee.employeeType.slug,
-        roleName: employee.employeeType.name,
+        roleName: this.roleName(employee.employeeType.slug, employee.employeeType.name, lang),
         salary: employee.salary,
         severance: Math.round(employee.salary * SEVERANCE_FACTOR),
         canFixBugs: BUG_CAPABLE_ROLES.has(employee.employeeType.slug),
@@ -1033,7 +1013,7 @@ export class CodeStudioService {
         return {
           typeId: item.infrastructureTypeId,
           slug: item.infrastructureType.slug,
-          name: item.infrastructureType.name,
+          name: t?.hosting[item.infrastructureType.slug]?.name ?? item.infrastructureType.name,
           level: item.level,
           maxLevel: Number(scaling.maxLevel ?? 5),
           capacity: Number(scaling.capacity ?? 0) * item.level,
@@ -1042,7 +1022,7 @@ export class CodeStudioService {
           legacy: !item.infrastructureType.active,
         };
       }),
-      bugs: company.bugReports.map((bug) => this.publicBug(bug, company.stage, now)),
+      bugs: company.bugReports.map((bug) => this.publicBug(bug, now, lang)),
       pendingDecision: pending
         ? {
             id: pending.id,
@@ -1084,7 +1064,7 @@ export class CodeStudioService {
             raise: offer.raise,
             equity: offer.equity,
             minStage: offer.minStage,
-            minStageName: STAGES[offer.minStage].name,
+            minStageName: stageText(offer.minStage, lang).name,
             available: company.stage >= offer.minStage && company.rating >= FUNDING_MIN_RATING,
             minRating: FUNDING_MIN_RATING,
           }
@@ -1096,11 +1076,12 @@ export class CodeStudioService {
   // Las opciones correctas y sus explicaciones NO viajan al cliente hasta
   // que el jugador responde: si no, el mini-juego se resuelve abriendo las
   // devtools.
-  private publicBug(bug: LoadedCompany['bugReports'][number], stage: number, now: number) {
-    const scenario = bug.scenarioKey ? BUG_SCENARIO_BY_KEY.get(bug.scenarioKey) : undefined;
+  private publicBug(bug: LoadedCompany['bugReports'][number], now: number, lang: Lang) {
+    const base = bug.scenarioKey ? BUG_SCENARIO_BY_KEY.get(bug.scenarioKey) : undefined;
+    const scenario = base ? localizeScenario(base, lang) : undefined;
     return {
       id: bug.id,
-      title: bug.title,
+      title: scenario?.title ?? bug.title,
       severity: bug.severity,
       symptom: scenario?.symptom ?? bug.description,
       evidence: scenario?.evidence ?? [],
@@ -1114,11 +1095,18 @@ export class CodeStudioService {
       fixSecondsLeft: bug.fixReadyAt ? Math.max(0, Math.ceil((bug.fixReadyAt.getTime() - now) / 1000)) : null,
       employeeFixSeconds: BUG_SEVERITY_WEIGHT[bug.severity] * EMPLOYEE_FIX_SECONDS_PER_WEIGHT,
       createdAt: bug.createdAt,
-      stage,
     };
   }
 
   // ─── Helpers ────────────────────────────────────────────────────────────
+
+  private featureName(slug: string, lang: Lang, fallback?: string) {
+    return contentFor(lang)?.features[slug]?.name ?? FEATURES.find((feature) => feature.slug === slug)?.name ?? fallback ?? slug;
+  }
+
+  private roleName(slug: string, fallback: string, lang: Lang) {
+    return contentFor(lang)?.roles[slug]?.name ?? fallback;
+  }
 
   private engineInput(company: LoadedCompany, openBugs: LoadedCompany['bugReports'], elapsedSeconds: number): EngineInput {
     const busy = new Set(openBugs.map((bug) => bug.assignedEmployeeId).filter(Boolean) as string[]);
@@ -1182,7 +1170,12 @@ export class CodeStudioService {
     return this.engine.simulate(this.engineInput(company, company.bugReports, 0)).metrics;
   }
 
-  private eventContext(company: LoadedCompany, metrics = this.metricsOf(company), installed = new Set(company.modules.map((entry) => entry.module.slug))): EventContext {
+  private eventContext(
+    company: LoadedCompany,
+    lang: Lang,
+    metrics = this.metricsOf(company),
+    installed = new Set(company.modules.map((entry) => entry.module.slug)),
+  ): EventContext {
     const profile = resolveProfile((company.appType.simulationProfile ?? {}) as Record<string, any>);
     return {
       stage: company.stage,
@@ -1195,7 +1188,12 @@ export class CodeStudioService {
       hostingSlugs: new Set(company.infrastructure.map((item) => item.infrastructureType.slug)),
       hasMonetization: metrics.arpu > 0,
       activeTaskCount: company.development.length,
-      employees: company.employees.map((employee) => ({ id: employee.id, name: employee.name, salary: employee.salary, roleName: employee.employeeType.name })),
+      employees: company.employees.map((employee) => ({
+        id: employee.id,
+        name: employee.name,
+        salary: employee.salary,
+        roleName: this.roleName(employee.employeeType.slug, employee.employeeType.name, lang),
+      })),
       channelFit: (slug) => profile.channelEffectiveness[slug] ?? 1,
     };
   }
@@ -1216,8 +1214,8 @@ export class CodeStudioService {
     });
   }
 
-  private async campaignQuotes(company: LoadedCompany) {
-    const catalog = await this.catalogService.catalog();
+  private async campaignQuotes(company: LoadedCompany, lang: Lang) {
+    const catalog = await this.catalogService.catalog(lang);
     const recent = await this.prisma.codeStudioCampaignRun.groupBy({
       by: ['campaignId'],
       where: { companyId: company.id, createdAt: { gte: new Date(Date.now() - CAMPAIGN_FATIGUE_WINDOW_MS) } },
@@ -1250,19 +1248,22 @@ export class CodeStudioService {
     }));
   }
 
-  private async createBug(tx: Tx, companyId: string, scenario: BugScenario, stage: number) {
+  // El título se guarda en el idioma de quien estaba jugando (la vista lo
+  // re-traduce desde el escenario si cambia de idioma después).
+  private async createBug(tx: Tx, companyId: string, scenario: BugScenario, stage: number, lang: Lang) {
+    const text = localizeScenario(scenario, lang);
     await tx.codeStudioBug.create({
       data: {
         companyId,
         kind: scenario.trigger,
         scenarioKey: scenario.key,
-        title: scenario.title,
-        description: scenario.symptom,
+        title: text.title,
+        description: text.symptom,
         severity: scenario.severity as CodeStudioBugSeverity,
         fixCost: consultantFixCost(scenario.severity, stage),
       },
     });
-    await this.log(tx, companyId, `Nuevo bug: ${scenario.title}`, `${scenario.symptom} Diagnostícalo en la pestaña Bugs.`, 'bug', 'bad');
+    await this.log(tx, companyId, MSG.newBugTitle(text.title), MSG.newBugText(text.symptom), 'bug', 'bad', lang);
   }
 
   // Suma los efectos "de estado" de un evento al tick que se está por
@@ -1277,7 +1278,7 @@ export class CodeStudioService {
   }
 
   // Para decisiones tomadas por el jugador (fuera del tick).
-  private async applyOutcome(tx: Tx, company: LoadedCompany, outcome: EventOutcome) {
+  private async applyOutcome(tx: Tx, company: LoadedCompany, outcome: EventOutcome, lang: Lang) {
     const users = Math.max(-company.activeUsers, outcome.users ?? 0);
     await tx.codeStudioCompany.update({
       where: { id: company.id },
@@ -1291,11 +1292,11 @@ export class CodeStudioService {
         bugs: clamp(company.bugs + (outcome.techDebt ?? 0), 0, 100),
       },
     });
-    await this.applySideEffects(tx, company, outcome);
-    await this.log(tx, company.id, 'Decisión tomada', outcome.message, 'market', outcome.tone);
+    await this.applySideEffects(tx, company, outcome, lang);
+    await this.log(tx, company.id, MSG.decisionTakenLog(), outcome.message, 'market', outcome.tone, lang);
   }
 
-  private async applySideEffects(tx: Tx, company: LoadedCompany, outcome: EventOutcome) {
+  private async applySideEffects(tx: Tx, company: LoadedCompany, outcome: EventOutcome, lang: Lang) {
     if (outcome.taskProgressBoost) {
       for (const task of company.development) {
         const spentSeconds = Math.min(task.requiredSeconds, Math.round(task.spentSeconds + task.requiredSeconds * outcome.taskProgressBoost));
@@ -1321,31 +1322,27 @@ export class CodeStudioService {
     if (outcome.spawnBugKey) {
       const scenario = BUG_SCENARIO_BY_KEY.get(outcome.spawnBugKey);
       const alreadyOpen = company.bugReports.some((bug) => bug.scenarioKey === outcome.spawnBugKey);
-      if (scenario && !alreadyOpen && company.bugReports.length < MAX_OPEN_BUGS) await this.createBug(tx, company.id, scenario, company.stage);
+      if (scenario && !alreadyOpen && company.bugReports.length < MAX_OPEN_BUGS) await this.createBug(tx, company.id, scenario, company.stage, lang);
     }
   }
 
   // Logros que se chequean en cada tick: stats.granted evita pegarle a la
   // base 6 veces por minuto una vez que ya se otorgaron.
-  private async grantOnce(tx: Tx, userId: string, key: string, companyId: string, stats: Record<string, any>) {
-    const granted: string[] = Array.isArray(stats.granted) ? stats.granted : [];
+  private async grantOnce(tx: Tx, userId: string, key: string, companyId: string, stats: Record<string, any>, lang: Lang) {
+    const granted: string[] = Array.isArray(stats.granted) ? (stats.granted as string[]) : [];
     if (granted.includes(key)) return;
-    await this.rewards.grantMilestone(tx, userId, key, companyId);
+    await this.rewards.grantMilestone(tx, userId, key, companyId, lang);
     stats.granted = [...granted, key];
   }
 
-  private postMortem(company: LoadedCompany, metrics: EngineMetrics) {
-    const reasons: string[] = [
-      `Gastabas ${money(metrics.dailyCosts)} por día (sueldos ${money(metrics.dailySalaries)}, servidores ${money(metrics.dailyInfra)}) y entraban ${money(metrics.dailyRevenue)}.`,
-    ];
-    if (metrics.arpu === 0) reasons.push('Nunca construiste una forma de cobrar: sin la rama Monetización, los usuarios no dejan dinero.');
-    if (company.employees.length >= 3 && metrics.dailyRevenue < metrics.dailySalaries * 0.5) {
-      reasons.push('Contrataste más rápido de lo que crecían tus ingresos. Cada sueldo es un compromiso diario.');
-    }
-    if (metrics.churn > 0.04) reasons.push(`Tus usuarios se iban rápido (${(metrics.churn * 100).toFixed(1)}% por día): mejora la satisfacción y la retención.`);
-    if (company.fundingRound === 0 && company.stage >= 2) reasons.push('Podías levantar una ronda de inversión y no lo hiciste.');
-    reasons.push('Tu nivel de fundador y tus logros se conservan: la próxima arranca con más caja.');
-    return reasons.join(' ');
+  private postMortem(company: LoadedCompany, metrics: EngineMetrics, lang: Lang) {
+    const reasons: Localized[] = [MSG.pmBurn(metrics.dailyCosts, metrics.dailySalaries, metrics.dailyInfra, metrics.dailyRevenue)];
+    if (metrics.arpu === 0) reasons.push(MSG.pmNoMonetization());
+    if (company.employees.length >= 3 && metrics.dailyRevenue < metrics.dailySalaries * 0.5) reasons.push(MSG.pmOverhired());
+    if (metrics.churn > 0.04) reasons.push(MSG.pmChurn((metrics.churn * 100).toFixed(1)));
+    if (company.fundingRound === 0 && company.stage >= 2) reasons.push(MSG.pmNoFunding());
+    reasons.push(MSG.pmKept());
+    return reasons.map((reason) => pick(reason, lang)).join(' ');
   }
 
   private async prune(tx: Tx, companyId: string) {
@@ -1359,29 +1356,30 @@ export class CodeStudioService {
 
   // Cobro atómico: solo descuenta si hay caja suficiente (evita que dos
   // clicks simultáneos gasten la misma plata dos veces).
-  private async spend(tx: Tx, companyId: string, amount: number, message = 'Fondos insuficientes') {
+  private async spend(tx: Tx, companyId: string, amount: number, lang: Lang, message: Localized = MSG.notEnoughCash()) {
     if (amount <= 0) return;
     const result = await tx.codeStudioCompany.updateMany({
       where: { id: companyId, cash: { gte: amount }, status: { not: CodeStudioCompanyStatus.FAILED } },
       data: { cash: { decrement: amount }, expenses: { increment: amount } },
     });
-    if (result.count === 0) throw new BadRequestException(message);
+    if (result.count === 0) throw new BadRequestException(pick(message, lang));
   }
 
-  private log(tx: Tx, companyId: string, title: string, description: string, kind: string, tone: string) {
-    return tx.codeStudioEventLog.create({ data: { companyId, title, description, effects: { kind, tone } } });
+  // Acepta texto ya armado o un Localized (se elige el idioma del jugador).
+  private log(tx: Tx, companyId: string, title: Localized | string, description: Localized | string, kind: string, tone: string, lang: Lang) {
+    return tx.codeStudioEventLog.create({ data: { companyId, title: pick(title, lang), description: pick(description, lang), effects: { kind, tone } } });
   }
 
-  private async requireOwned(userId: string, companyId: string) {
+  private async requireOwned(userId: string, companyId: string, lang: Lang) {
     const company = await this.prisma.codeStudioCompany.findUnique({ where: { id: companyId }, include: companyInclude });
-    if (!company) throw new NotFoundException('Empresa no encontrada');
-    if (company.userId !== userId) throw new ForbiddenException('No puedes acceder a esta empresa');
+    if (!company) throw new NotFoundException(pick(MSG.companyNotFound(), lang));
+    if (company.userId !== userId) throw new ForbiddenException(pick(MSG.notYourCompany(), lang));
     return company;
   }
 
-  private async requireAlive(userId: string, companyId: string) {
-    const company = await this.requireOwned(userId, companyId);
-    if (company.status === CodeStudioCompanyStatus.FAILED) throw new BadRequestException('Esta empresa quebró. Funda una nueva.');
+  private async requireAlive(userId: string, companyId: string, lang: Lang) {
+    const company = await this.requireOwned(userId, companyId, lang);
+    if (company.status === CodeStudioCompanyStatus.FAILED) throw new BadRequestException(pick(MSG.companyFailed(), lang));
     return company;
   }
 

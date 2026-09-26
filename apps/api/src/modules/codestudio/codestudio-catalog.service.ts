@@ -5,6 +5,7 @@ import { APP_TYPES, CAMPAIGN_BUDGET_MULTIPLIERS, CHANNELS, HOSTING, ROLES } from
 import { FEATURES, FEATURE_BRANCHES } from './content/features';
 import { FUNDING_ROUNDS, MILESTONES, STAGES } from './content/progression';
 import { PRICE_LEVELS } from './content/events';
+import { Lang, contentFor, milestoneText, pick, stageText } from './content/i18n';
 
 // El contenido de CodeStudio v2 vive en código (content/*.ts) y se copia a
 // la base de datos al arrancar la API: así cada deploy trae el balance nuevo
@@ -21,7 +22,7 @@ type Json = Prisma.InputJsonValue;
 @Injectable()
 export class CodeStudioCatalogService implements OnApplicationBootstrap {
   private readonly logger = new Logger(CodeStudioCatalogService.name);
-  private cache: { at: number; value: Awaited<ReturnType<CodeStudioCatalogService['buildCatalog']>> } | null = null;
+  private cache = new Map<Lang, { at: number; value: Awaited<ReturnType<CodeStudioCatalogService['buildCatalog']>> }>();
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -175,7 +176,7 @@ export class CodeStudioCatalogService implements OnApplicationBootstrap {
       this.prisma.codeStudioEventTemplate.updateMany({ where: { active: true }, data: { active: false } }),
     ]);
 
-    this.cache = null;
+    this.cache.clear();
   }
 
   // Dos dynos arrancando a la vez pueden intentar crear la misma fila: el
@@ -188,18 +189,22 @@ export class CodeStudioCatalogService implements OnApplicationBootstrap {
     }
   }
 
-  async catalog() {
-    if (this.cache && Date.now() - this.cache.at < CATALOG_TTL_MS) return this.cache.value;
-    const value = await this.buildCatalog();
-    this.cache = { at: Date.now(), value };
+  async catalog(lang: Lang = 'es') {
+    const cached = this.cache.get(lang);
+    if (cached && Date.now() - cached.at < CATALOG_TTL_MS) return cached.value;
+    const value = await this.buildCatalog(lang);
+    this.cache.set(lang, { at: Date.now(), value });
     return value;
   }
 
   invalidate() {
-    this.cache = null;
+    this.cache.clear();
   }
 
-  private async buildCatalog() {
+  // El español sale de la base (editable por admin); inglés y alemán
+  // reemplazan nombres/descripciones por slug desde content/i18n.
+  private async buildCatalog(lang: Lang) {
+    const t = contentFor(lang);
     const [appTypes, modules, employees, infrastructure, campaigns] = await Promise.all([
       this.prisma.codeStudioAppType.findMany({ where: { active: true, visible: true }, orderBy: [{ order: 'asc' }, { name: 'asc' }] }),
       this.prisma.codeStudioModule.findMany({ where: { active: true, visible: true }, orderBy: { order: 'asc' } }),
@@ -214,27 +219,27 @@ export class CodeStudioCatalogService implements OnApplicationBootstrap {
         return {
           id: type.id,
           slug: type.slug,
-          name: type.name,
+          name: t?.appTypes[type.slug]?.name ?? type.name,
           icon: type.icon,
           color: type.color,
-          category: type.category,
+          category: t?.appTypes[type.slug]?.category ?? type.category,
           difficulty: type.difficulty,
-          description: type.description,
+          description: t?.appTypes[type.slug]?.description ?? type.description,
           minFounderLevel: Number(profile.minFounderLevel ?? 1),
           startingCash: Number(profile.startingCash ?? 6000),
         };
       }),
-      branches: FEATURE_BRANCHES,
+      branches: FEATURE_BRANCHES.map((branch) => ({ ...branch, ...(t?.branches[branch.key] ?? {}) })),
       features: modules.map((module) => {
         const requirements = (module.requirements ?? {}) as { requires?: string[]; minStage?: number };
         const metadata = (module.metadata ?? {}) as { branch?: string; lesson?: string };
         return {
           id: module.id,
           slug: module.slug,
-          name: module.name,
-          description: module.description,
+          name: t?.features[module.slug]?.name ?? module.name,
+          description: t?.features[module.slug]?.description ?? module.description,
           branch: metadata.branch ?? 'producto',
-          lesson: metadata.lesson ?? '',
+          lesson: t?.features[module.slug]?.lesson ?? metadata.lesson ?? '',
           cost: module.cost,
           devSeconds: module.developmentSeconds,
           difficulty: module.difficulty,
@@ -246,8 +251,8 @@ export class CodeStudioCatalogService implements OnApplicationBootstrap {
       roles: employees.map((type) => ({
         id: type.id,
         slug: type.slug,
-        name: type.name,
-        description: type.description,
+        name: t?.roles[type.slug]?.name ?? type.name,
+        description: t?.roles[type.slug]?.description ?? type.description,
         category: type.category,
         salary: type.salary,
         hireCost: Math.round(type.salary * 0.5),
@@ -259,8 +264,8 @@ export class CodeStudioCatalogService implements OnApplicationBootstrap {
         return {
           id: type.id,
           slug: type.slug,
-          name: type.name,
-          description: type.description,
+          name: t?.hosting[type.slug]?.name ?? type.name,
+          description: t?.hosting[type.slug]?.description ?? type.description,
           install: type.baseCost,
           monthly: Number(scaling.monthly ?? 0),
           capacity: Number(scaling.capacity ?? 0),
@@ -274,15 +279,15 @@ export class CodeStudioCatalogService implements OnApplicationBootstrap {
         id: campaign.id,
         slug: campaign.slug,
         name: campaign.name,
-        channel: campaign.channel,
+        channel: t?.channels[campaign.slug] ?? campaign.channel,
         baseCost: campaign.baseCost,
         minStage: Number((campaign.config as { minStage?: number } | null)?.minStage ?? 1),
       })),
       budgetMultipliers: CAMPAIGN_BUDGET_MULTIPLIERS,
-      stages: STAGES.map((stage) => ({ index: stage.index, name: stage.name, tagline: stage.tagline, reward: stage.reward })),
-      milestones: MILESTONES,
+      stages: STAGES.map((stage) => ({ index: stage.index, ...stageText(stage.index, lang), reward: stage.reward })),
+      milestones: MILESTONES.map((milestone) => ({ ...milestone, ...milestoneText(milestone.key, lang) })),
       fundingRounds: FUNDING_ROUNDS,
-      priceLevels: PRICE_LEVELS,
+      priceLevels: PRICE_LEVELS.map((level) => ({ value: level.value, label: pick(level.label, lang) })),
     };
   }
 }

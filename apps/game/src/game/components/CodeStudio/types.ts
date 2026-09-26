@@ -111,6 +111,12 @@ export type Profile = {
   bestValuation: number;
   milestones: Array<{ key: string; at: string }>;
   totalMilestones: number;
+  daily: {
+    day: string;
+    missions: Array<{ key: string; label: string; target: number; progress: number; done: boolean; xp: number; coins: number }>;
+    bonus: { xp: number; coins: number; done: boolean };
+    resetsInMinutes: number;
+  };
 };
 
 export type CompanySummary = {

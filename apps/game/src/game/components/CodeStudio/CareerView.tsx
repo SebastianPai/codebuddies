@@ -3,6 +3,7 @@
 import { Award, Check, Lock, Unlock } from "lucide-react";
 import type { Catalog, Profile } from "./types";
 import { ProgressBar, Stat, money } from "./ui";
+import DailyMissions from "./DailyMissions";
 import { useTranslation } from "../../../i18n/useTranslation";
 
 export default function CareerView({ profile, catalog }: { profile: Profile; catalog: Catalog }) {
@@ -24,6 +25,8 @@ export default function CareerView({ profile, catalog }: { profile: Profile; cat
         <ProgressBar value={((profile.xp - profile.levelXp) / levelSpan) * 100} />
         <p className="cs2-muted">{t("codestudio.career.explain")}</p>
       </section>
+
+      <DailyMissions daily={profile.daily} />
 
       <section className="cs2-stats">
         <Stat label={t("codestudio.career.startingBonus")} value={`+${money(profile.startingCashBonus)}`} hint={t("codestudio.career.startingBonusHint")} />

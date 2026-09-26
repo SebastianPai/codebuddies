@@ -753,6 +753,7 @@ model User {
   codeStudioCompanies      CodeStudioCompany[]
   codeStudioProfile        CodeStudioProfile?
   codeStudioMilestones     CodeStudioMilestone[]
+  codeStudioDailyCounters  CodeStudioDailyCounter[]
 
   battlePassProgress UserBattlePassProgress[]
   battlePassClaims   BattlePassClaim[]
@@ -4276,6 +4277,22 @@ model CodeStudioMilestone {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, key])
+}
+
+// Contadores de las misiones diarias (content/daily.ts): uno por usuario,
+// día (fecha de Colombia) y tipo. Se incrementan con upsert atómico; las
+// recompensas se pagan vía CodeStudioMilestone con clave "daily:<día>:<misión>".
+model CodeStudioDailyCounter {
+  id        String   @id @default(uuid())
+  userId    String
+  day       String
+  counter   String
+  value     Float    @default(0)
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, day, counter])
 }
 
 // Mejoras desbloqueables de un objeto del mundo con `behavior` (ver

@@ -3,6 +3,7 @@
 import { AlertTriangle, ArrowRight, Check, Flag, Gift, Lock, Scale } from "lucide-react";
 import type { Catalog, CompanyView, ViewKey } from "./types";
 import { ProgressBar, Sparkline, Stat, goalProgress, goalValue, money, nextStep, num, pct } from "./ui";
+import DailyMissions from "./DailyMissions";
 import { useTranslation } from "../../../i18n/useTranslation";
 
 type Props = {
@@ -83,6 +84,8 @@ export default function PanelView({ company, catalog, onNavigate, onOpenDecision
         <b>{step.text}</b>
         <ArrowRight size={18} />
       </button>
+
+      <DailyMissions daily={company.profile.daily} compact />
 
       {company.pendingDecision && (
         <section className="cs2-card cs2-decision-teaser">
