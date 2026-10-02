@@ -27,7 +27,7 @@ import {
   SEVERANCE_FACTOR,
 } from './content/economy';
 import { FEATURES } from './content/features';
-import { FUNDING_MIN_RATING, MAX_STAGE, STAGES, StageMetrics, startingCashBonus } from './content/progression';
+import { FUNDING_MIN_RATING, GAME_XP_FACTOR, MAX_STAGE, STAGES, StageMetrics, startingCashBonus } from './content/progression';
 import {
   BUG_SCENARIO_BY_KEY,
   BUG_SEVERITY_WEIGHT,
@@ -149,6 +149,11 @@ export class CodeStudioService {
     };
   }
 
+  // Logros de CodeStudio para la página de logros de la web.
+  achievements(userId: string, lang: Lang = 'es') {
+    return this.rewards.achievements(userId, lang);
+  }
+
   async getCompany(userId: string, companyId: string, lang: Lang = 'es') {
     await this.simulateCompany(userId, companyId, lang);
     return this.buildView(userId, companyId, lang);
@@ -220,6 +225,8 @@ export class CodeStudioService {
       await this.log(tx, created.id, MSG.welcomeTitle(), MSG.welcomeText(cash), 'info', 'neutral', lang);
       await this.rewards.addXp(tx, userId, 0, null, { companiesFounded: 1 }, lang);
       await this.rewards.grantMilestone(tx, userId, 'first-company', created.id, lang);
+      const types = await tx.codeStudioCompany.findMany({ where: { userId }, distinct: ['appTypeId'], select: { appTypeId: true } });
+      if (types.length >= 3) await this.rewards.grantMilestone(tx, userId, 'serial-founder', created.id, lang);
       return created;
     });
     this.rankingCache = null;
@@ -311,6 +318,9 @@ export class CodeStudioService {
       });
       await this.log(tx, company.id, MSG.hiredTitle(employee.name, this.roleName(type.slug, type.name, lang)), MSG.hiredText(bonus, type.salary), 'team', 'neutral', lang);
       await this.rewards.grantMilestone(tx, userId, 'first-hire', company.id, lang);
+      const teamSize = company.employees.length + 1;
+      if (teamSize >= 5) await this.rewards.grantMilestone(tx, userId, 'team-5', company.id, lang);
+      if (teamSize >= 15) await this.rewards.grantMilestone(tx, userId, 'team-15', company.id, lang);
       await this.rewards.bumpDaily(tx, userId, { hires: 1 }, company.id, lang);
     });
     return this.getCompany(userId, companyId, lang);
@@ -334,6 +344,7 @@ export class CodeStudioService {
         data: { cash: { decrement: severance }, expenses: { increment: severance } },
       });
       await this.log(tx, company.id, MSG.firedTitle(employee.name), MSG.firedText(severance, employee.salary), 'team', 'neutral', lang);
+      await this.rewards.grantMilestone(tx, userId, 'tough-call', company.id, lang);
     });
     return this.getCompany(userId, companyId, lang);
   }
@@ -372,6 +383,7 @@ export class CodeStudioService {
         'neutral',
         lang,
       );
+      if (!existing) await this.rewards.grantMilestone(tx, userId, 'first-server', company.id, lang);
     });
     return this.getCompany(userId, companyId, lang);
   }
@@ -407,6 +419,7 @@ export class CodeStudioService {
             : MSG.campaignNoRevenue(quote.cost);
       await this.log(tx, company.id, MSG.campaignTitle(campaign.name, quote.users), verdict, 'marketing', 'neutral', lang);
       await this.rewards.grantMilestone(tx, userId, 'first-campaign', company.id, lang);
+      if (quote.users >= 500) await this.rewards.grantMilestone(tx, userId, 'viral-campaign', company.id, lang);
       await this.rewards.bumpDaily(tx, userId, { campaigns: 1, newUsers: quote.users }, company.id, lang);
     });
     return this.getCompany(userId, companyId, lang);
@@ -444,16 +457,18 @@ export class CodeStudioService {
 
       const cost = Math.round(bug.fixCost * DIAGNOSE_COST_FACTOR);
       const firstTry = bug.attempts === 0;
-      const xp = weight * 12 * (firstTry ? 2 : 1);
+      const rawXp = weight * 12 * (firstTry ? 2 : 1);
+      let xp = 0;
       await this.prisma.$transaction(async (tx) => {
         await this.spend(tx, company.id, cost, lang, MSG.diagnoseNeedsCash(cost));
         await tx.codeStudioBug.update({ where: { id: bug.id }, data: { status: CodeStudioBugStatus.FIXED, fixedAt: new Date(), resolution: 'diagnose' } });
         await tx.codeStudioCompany.update({ where: { id: company.id }, data: { reputation: clamp(company.reputation + 1, 0, 100) } });
+        xp = (await this.rewards.addXp(tx, userId, rawXp, company.id, { bugsDiagnosed: 1, ...(firstTry ? { bugsFirstTry: 1 } : {}) }, lang)).xp;
         await this.log(tx, company.id, MSG.bugFixedTitle(scenario.title), MSG.bugFixedText(scenario.lesson, scenario.preventHint ?? '', xp), 'bug-fixed', 'good', lang);
-        await this.rewards.addXp(tx, userId, xp, company.id, { bugsDiagnosed: 1, ...(firstTry ? { bugsFirstTry: 1 } : {}) }, lang);
         await this.rewards.grantMilestone(tx, userId, 'first-bug-diagnosed', company.id, lang);
-        const profile = await tx.codeStudioProfile.findUnique({ where: { userId }, select: { bugsFirstTry: true } });
+        const profile = await tx.codeStudioProfile.findUnique({ where: { userId }, select: { bugsFirstTry: true, bugsDiagnosed: true } });
         if ((profile?.bugsFirstTry ?? 0) >= 10) await this.rewards.grantMilestone(tx, userId, 'bug-hunter', company.id, lang);
+        if ((profile?.bugsDiagnosed ?? 0) >= 25) await this.rewards.grantMilestone(tx, userId, 'bug-veteran', company.id, lang);
         await this.rewards.bumpDaily(tx, userId, { bugs: 1 }, company.id, lang);
       });
       return {
@@ -654,9 +669,8 @@ export class CodeStudioService {
       });
       installed.add(task.module.slug);
       const lesson = contentFor(lang)?.features[task.module.slug]?.lesson ?? (task.module.metadata as { lesson?: string } | null)?.lesson ?? '';
-      const xp = task.module.difficulty ** 2 * 4;
+      const xp = (await this.rewards.addXp(tx, userId, task.module.difficulty ** 2 * 4, company.id, {}, lang)).xp;
       await this.log(tx, company.id, MSG.releaseTitle(this.featureName(task.module.slug, lang, task.module.name)), MSG.releaseText(lesson, xp), 'release', 'good', lang);
-      await this.rewards.addXp(tx, userId, xp, company.id, {}, lang);
       await this.rewards.grantMilestone(tx, userId, 'first-feature', company.id, lang);
       if (Math.random() < releaseBugChance(update.difficulty, metrics.quality, profile.bugSeverityFactor)) {
         await spawn('release', task.module.slug);
@@ -665,6 +679,12 @@ export class CodeStudioService {
       if (branch && FEATURES.filter((feature) => feature.branch === branch).every((feature) => installed.has(feature.slug))) {
         await this.rewards.grantMilestone(tx, userId, 'full-branch', company.id, lang);
       }
+    }
+
+    if (released > 0) {
+      const builtV2 = FEATURES.filter((feature) => installed.has(feature.slug)).length;
+      if (builtV2 >= 20) await this.rewards.grantMilestone(tx, userId, 'half-tree', company.id, lang);
+      if (builtV2 >= FEATURES.length) await this.rewards.grantMilestone(tx, userId, 'full-tree', company.id, lang);
     }
 
     // Bugs por carga, deuda técnica y seguridad (probabilidad por día).
@@ -764,9 +784,22 @@ export class CodeStudioService {
         lang,
       );
       await this.rewards.grantRepeatable(tx, userId, `stage-${reached}`, company.id, lang);
+      if (reached === 4 && company.fundingRound === 0) await this.rewards.grantMilestone(tx, userId, 'bootstrapped', company.id, lang);
+      if (reached === 3) {
+        const profile = await tx.codeStudioProfile.findUnique({ where: { userId }, select: { bankruptcies: true } });
+        if ((profile?.bankruptcies ?? 0) >= 1) await this.rewards.grantMilestone(tx, userId, 'second-chance', company.id, lang);
+      }
     }
     if (metrics.dailyRevenue > 0) await this.grantOnce(tx, userId, 'first-revenue', company.id, stats, lang);
     if (metrics.dailyProfit > 0 && company.employees.length >= 2) await this.grantOnce(tx, userId, 'first-profitable-day', company.id, stats, lang);
+    const usersNow = company.activeUsers + next.users;
+    if (usersNow >= 1000) await this.grantOnce(tx, userId, 'users-1k', company.id, stats, lang);
+    if (usersNow >= 100_000) await this.grantOnce(tx, userId, 'users-100k', company.id, stats, lang);
+    if (company.cash + next.cash >= 1_000_000) await this.grantOnce(tx, userId, 'millionaire', company.id, stats, lang);
+    if (usersNow >= 1000 && result.state.rating >= 4.8) await this.grantOnce(tx, userId, 'five-stars', company.id, stats, lang);
+    if (FEATURES.filter((feature) => installed.has(feature.slug)).length >= 20 && next.techDebt < 0.5 && openCount === 0) {
+      await this.grantOnce(tx, userId, 'clean-code', company.id, stats, lang);
+    }
     await this.rewards.bumpDaily(
       tx,
       userId,
@@ -1043,6 +1076,7 @@ export class CodeStudioService {
             kind: effects.kind ?? 'info',
             tone: effects.tone ?? 'neutral',
             createdAt: event.createdAt,
+            ...(effects.kind === 'milestone' ? { xp: Number(effects.xp ?? 0), coins: Number(effects.coins ?? 0) } : {}),
           };
         }),
       snapshots: snapshots.reverse().map((snapshot) => ({
@@ -1090,7 +1124,7 @@ export class CodeStudioService {
       consultantCost: bug.fixCost,
       diagnoseCost: Math.round(bug.fixCost * DIAGNOSE_COST_FACTOR),
       wrongCost: Math.round(bug.fixCost * WRONG_DIAGNOSIS_COST_FACTOR),
-      xpReward: BUG_SEVERITY_WEIGHT[bug.severity] * 12 * (bug.attempts === 0 ? 2 : 1),
+      xpReward: Math.round(BUG_SEVERITY_WEIGHT[bug.severity] * 12 * (bug.attempts === 0 ? 2 : 1) * GAME_XP_FACTOR),
       assignedEmployeeId: bug.assignedEmployeeId,
       fixSecondsLeft: bug.fixReadyAt ? Math.max(0, Math.ceil((bug.fixReadyAt.getTime() - now) / 1000)) : null,
       employeeFixSeconds: BUG_SEVERITY_WEIGHT[bug.severity] * EMPLOYEE_FIX_SECONDS_PER_WEIGHT,

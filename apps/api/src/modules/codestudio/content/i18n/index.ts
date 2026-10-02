@@ -42,5 +42,9 @@ export function stageText(index: number, lang: Lang) {
 export function milestoneText(key: string, lang: Lang) {
   const milestone = MILESTONE_BY_KEY.get(key);
   const t = contentFor(lang)?.milestones[key];
-  return { name: t?.name ?? milestone?.name ?? key, description: t?.description ?? milestone?.description ?? '' };
+  return {
+    name: t?.name ?? milestone?.name ?? key,
+    description: t?.description ?? milestone?.description ?? '',
+    howTo: t?.howTo ?? milestone?.howTo ?? '',
+  };
 }

@@ -52,7 +52,14 @@ function consumeTokenFromUrl() {
 
   if (!token) return null;
 
-  const cleanUrl = `${window.location.origin}${window.location.pathname}`;
+  // Se quita el token, pero se conservan los parámetros de enlace profundo
+  // (?open=codestudio&view=…) para que Game.tsx los pueda leer después.
+  const kept = new URLSearchParams();
+  for (const param of ["open", "view"]) {
+    const value = queryParams.get(param);
+    if (value) kept.set(param, value);
+  }
+  const cleanUrl = `${window.location.origin}${window.location.pathname}${kept.toString() ? `?${kept.toString()}` : ""}`;
   window.history.replaceState({}, document.title, cleanUrl);
 
   return token.trim();

@@ -8,5 +8,12 @@
   "declineInvite": "Decline",
   "inviteAccepted": "Invite accepted",
   "inviteDeclined": "Invite declined",
-  "inviteJoining": "Joining room…"
+  "inviteJoining": "Joining room…",
+  "celebration": {
+    "achievement": "Achievement unlocked",
+    "reward": "Reward",
+    "level": "Level up!",
+    "stage": "New stage",
+    "close": "Close notice"
+  }
 }

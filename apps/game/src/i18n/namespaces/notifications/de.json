@@ -8,5 +8,12 @@
   "declineInvite": "Ablehnen",
   "inviteAccepted": "Einladung angenommen",
   "inviteDeclined": "Einladung abgelehnt",
-  "inviteJoining": "Raum wird betreten…"
+  "inviteJoining": "Raum wird betreten…",
+  "celebration": {
+    "achievement": "Erfolg freigeschaltet",
+    "reward": "Belohnung",
+    "level": "Level aufgestiegen!",
+    "stage": "Neue Stufe",
+    "close": "Hinweis schließen"
+  }
 }

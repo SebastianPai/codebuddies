@@ -11,6 +11,7 @@ import {
   GamificationSkeleton,
 } from "../../../components/gamification/GamificationState";
 import type { AchievementsPayload } from "../../../components/gamification/gamification-types";
+import CodeStudioAchievements from "../../../components/gamification/CodeStudioAchievements";
 import { useTranslation } from "../../../src/i18n/useTranslation";
 
 export default function AchievementsPage() {
@@ -52,7 +53,10 @@ export default function AchievementsPage() {
         </div>
       </section>
 
-      <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <CodeStudioAchievements />
+
+      <h2 className="mt-10 text-2xl font-black">{t("gamification.codestudio.platformTitle")}</h2>
+      <section className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {data.items.length ? (
           data.items.map((achievement) => (
             <article

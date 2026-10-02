@@ -28,8 +28,8 @@
     "newCompany": "Neue Firma gründen",
     "day": "Tag {day}",
     "dayHint": "1 echte Minute = 1 Tag in deinem Startup. Die Zeit läuft nur, solange es geöffnet ist.",
-    "level": "Gründer Lv. {level}",
-    "levelHint": "Dein Gründer-Level: schaltet App-Typen und mehr Startkapital frei.",
+    "level": "Level {level}",
+    "levelHint": "Dein Kontolevel: dasselbe wie auf der Plattform. Steig durch Lernen und Spielen auf und schalte App-Typen und mehr Startkapital frei.",
     "navigation": "CodeStudio-Bereiche"
   },
   "welcome": {
@@ -38,7 +38,7 @@
     "step1": "Bau dein MVP im Baum: Landingpage, Login und die Kernfunktion.",
     "step2": "Bring es auf einen Server und hol dir die ersten Nutzer.",
     "step3": "Lerne Geld zu verlangen, stelle vorsichtig ein und behebe auftretende Bugs.",
-    "step4": "Jede Stufe bringt Belohnungen. Wenn du pleitegehst, bleibt dein Gründer-Level.",
+    "step4": "Jede Stufe bringt Belohnungen und XP für dein Kontolevel. Wenn du pleitegehst, bleibt dein Level.",
     "cta": "Mein erstes Startup gründen"
   },
   "found": {
@@ -270,10 +270,9 @@
     "again": "Eine neue gründen (+{bonus} Startkapital)"
   },
   "career": {
-    "founder": "Gründerkarriere",
     "level": "Level {level}",
     "xp": "{xp} / {next} XP",
-    "explain": "Du bekommst XP fürs Bauen (schwieriger = mehr XP), für selbst behobene Bugs und fürs Erreichen von Stufen. Dein Level übersteht Pleiten.",
+    "explain": "Ein Level für die ganze Plattform: es steigt mit Lektionen, Übungen und CodeStudio. Im Spiel zählt XP zur Hälfte und Wiederholbares hat ein Tageslimit, damit Lernen der Hauptweg zum Aufsteigen bleibt.",
     "startingBonus": "Zusätzliches Startkapital",
     "startingBonusHint": "In jedem neuen Startup",
     "companies": "Gegründete Startups",
@@ -283,7 +282,10 @@
     "best": "Beste Bewertung",
     "appTypes": "App-Typen",
     "unlocksAt": "Ab Level {level} freigeschaltet",
-    "milestones": "Erfolge ({earned}/{total})"
+    "milestones": "Erfolge ({earned}/{total})",
+    "global": "Dein CodeBuddies-Level",
+    "xpToday": "Spiel-XP heute: {value} / {cap}",
+    "xpTodayHint": "Erfolge und Tagesmissionen zählen nicht zu diesem Limit."
   },
   "ranking": {
     "title": "Globale Rangliste",

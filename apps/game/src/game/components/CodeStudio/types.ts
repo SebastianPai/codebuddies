@@ -48,6 +48,7 @@ export type CatalogFeature = {
   difficulty: number;
   requires: string[];
   minStage: number;
+  xp: number;
   effects: FeatureEffects;
 };
 
@@ -93,7 +94,7 @@ export type Catalog = {
   channels: Array<{ id: string; slug: string; name: string; channel: string; baseCost: number; minStage: number }>;
   budgetMultipliers: number[];
   stages: Array<{ index: number; name: string; tagline: string; reward: { cash: number; xp: number; coins: number } }>;
-  milestones: Array<{ key: string; name: string; description: string; xp: number; coins: number }>;
+  milestones: Array<{ key: string; name: string; description: string; howTo: string; xp: number; coins: number }>;
   fundingRounds: Array<{ index: number; name: string; minStage: number; minRaise: number; equity: number }>;
   priceLevels: Array<{ value: number; label: string }>;
 };
@@ -104,6 +105,10 @@ export type Profile = {
   levelXp: number;
   nextLevelXp: number;
   startingCashBonus: number;
+  // XP repetible que el juego ya sumó hoy a tu nivel, y su tope diario.
+  gameXpToday: number;
+  gameXpCap: number;
+  codestudioXp: number;
   companiesFounded: number;
   bankruptcies: number;
   bugsDiagnosed: number;
@@ -199,7 +204,17 @@ export type ChannelQuote = {
   quotes: Array<{ multiplier: number; cost: number; users: number; cac: number }>;
 };
 
-export type ActivityEvent = { id: string; title: string; description: string | null; kind: string; tone: "good" | "bad" | "neutral"; createdAt: string };
+export type ActivityEvent = {
+  id: string;
+  title: string;
+  description: string | null;
+  kind: string;
+  tone: "good" | "bad" | "neutral";
+  createdAt: string;
+  // Solo en logros: lo que pagaron (para el aviso de celebración).
+  xp?: number;
+  coins?: number;
+};
 
 export type CompanyView = {
   id: string;

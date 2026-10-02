@@ -190,5 +190,33 @@
   "conditionUnlockAchievementsLabel": "Unlock achievements",
   "conditionUnlockAchievementsDescription": "Counts unlocked achievements.",
   "conditionEnterRankingLabel": "Enter ranking",
-  "conditionEnterRankingDescription": "Counts existing ranking entries."
+  "conditionEnterRankingDescription": "Counts existing ranking entries.",
+  "codestudio": {
+    "eyebrow": "Game · CodeStudio",
+    "title": "CodeStudio achievements",
+    "description": "Build your startup in the game’s simulator. Every achievement adds XP to your account level and some give coins.",
+    "open": "Go to CodeStudio",
+    "start": "Start in CodeStudio",
+    "progress": "Unlocked",
+    "level": "Your level",
+    "levelHint": "One level for studying and playing",
+    "daily": "Today’s missions",
+    "dailyDone": "Daily bonus collected!",
+    "filter": "Filter achievements",
+    "filter_all": "All",
+    "filter_unlocked": "Unlocked",
+    "filter_locked": "Locked",
+    "howTo": "How to get it:",
+    "goDoIt": "Go do it",
+    "platformTitle": "Platform achievements"
+  },
+  "celebration": {
+    "achievement": "Achievement unlocked",
+    "reward": "Reward",
+    "levelUp": "Level up!",
+    "rewardTitle": "Great job!",
+    "levelUpTitle": "New level reached",
+    "view": "View",
+    "close": "Close notice"
+  }
 }

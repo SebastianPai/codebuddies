@@ -183,7 +183,7 @@ export default function TreeView({ company, catalog, busy, onBuild, onCancel }: 
               </div>
               <div>
                 <span>{t("codestudio.tree.xp")}</span>
-                <b>+{selected.difficulty ** 2 * 4} XP</b>
+                <b>+{selected.xp} XP</b>
               </div>
             </div>
             {selected.requires.length > 0 && (

@@ -12,13 +12,15 @@ import "./PCWindows.css";
 
 interface PCWindowProps {
   onClose: () => void;
+  // Si viene (enlace desde la web), abre directo CodeStudio en esa pestaña.
+  initialView?: string;
 }
 
-export default function PCWindow({ onClose }: PCWindowProps) {
+export default function PCWindow({ onClose, initialView }: PCWindowProps) {
   const t = useTranslation();
   const modalRef = useRef<HTMLDivElement>(null);
   useDialogBehavior(modalRef, onClose);
-  const [pcTab, setPcTab] = useState<"desktop" | "codestudio">("desktop");
+  const [pcTab, setPcTab] = useState<"desktop" | "codestudio">(initialView ? "codestudio" : "desktop");
   // Tema del simulador (escritorio, pestañas y look general de CodeStudio) —
   // guardado en la CUENTA (User.pcTheme, mismo criterio que uiLanguage en
   // LanguageContext.tsx) para que sea el mismo en cualquier navegador/
@@ -95,7 +97,7 @@ export default function PCWindow({ onClose }: PCWindowProps) {
                   <div className={`win11-tabs ${tabsOverflow.scrollRow}`}>
                     <button className="tab active">CodeStudio</button>
                   </div>
-                  <CodeStudio />
+                  <CodeStudio initialView={initialView} />
                 </div>
               )}
             </div>

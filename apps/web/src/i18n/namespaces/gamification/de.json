@@ -190,5 +190,33 @@
   "conditionUnlockAchievementsLabel": "Erfolge freischalten",
   "conditionUnlockAchievementsDescription": "Zählt freigeschaltete Erfolge.",
   "conditionEnterRankingLabel": "In die Rangliste kommen",
-  "conditionEnterRankingDescription": "Zählt vorhandene Ranglisteneinträge."
+  "conditionEnterRankingDescription": "Zählt vorhandene Ranglisteneinträge.",
+  "codestudio": {
+    "eyebrow": "Spiel · CodeStudio",
+    "title": "CodeStudio-Erfolge",
+    "description": "Bau dein Startup im Simulator des Spiels. Jeder Erfolg bringt XP für dein Kontolevel und manche geben Coins.",
+    "open": "Zu CodeStudio",
+    "start": "In CodeStudio starten",
+    "progress": "Freigeschaltet",
+    "level": "Dein Level",
+    "levelHint": "Eins für Lernen und Spielen",
+    "daily": "Heutige Missionen",
+    "dailyDone": "Tagesbonus kassiert!",
+    "filter": "Erfolge filtern",
+    "filter_all": "Alle",
+    "filter_unlocked": "Freigeschaltet",
+    "filter_locked": "Gesperrt",
+    "howTo": "So bekommst du ihn:",
+    "goDoIt": "Jetzt holen",
+    "platformTitle": "Plattform-Erfolge"
+  },
+  "celebration": {
+    "achievement": "Erfolg freigeschaltet",
+    "reward": "Belohnung",
+    "levelUp": "Level aufgestiegen!",
+    "rewardTitle": "Gut gemacht!",
+    "levelUpTitle": "Neues Level erreicht",
+    "view": "Ansehen",
+    "close": "Hinweis schließen"
+  }
 }

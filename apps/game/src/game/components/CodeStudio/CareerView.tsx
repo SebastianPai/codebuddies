@@ -17,13 +17,18 @@ export default function CareerView({ profile, catalog }: { profile: Profile; cat
         <div className="cs2-level">
           <Award size={28} />
           <div>
-            <span className="cs2-eyebrow">{t("codestudio.career.founder")}</span>
+            <span className="cs2-eyebrow">{t("codestudio.career.global")}</span>
             <h3>{t("codestudio.career.level", { level: profile.level })}</h3>
             <small>{t("codestudio.career.xp", { xp: profile.xp, next: profile.nextLevelXp })}</small>
           </div>
         </div>
         <ProgressBar value={((profile.xp - profile.levelXp) / levelSpan) * 100} />
         <p className="cs2-muted">{t("codestudio.career.explain")}</p>
+        <div className="cs2-xpcap">
+          <span>{t("codestudio.career.xpToday", { value: profile.gameXpToday, cap: profile.gameXpCap })}</span>
+          <ProgressBar value={(profile.gameXpToday / Math.max(1, profile.gameXpCap)) * 100} tone={profile.gameXpToday >= profile.gameXpCap ? "warn" : "accent"} />
+          <small>{t("codestudio.career.xpTodayHint")}</small>
+        </div>
       </section>
 
       <DailyMissions daily={profile.daily} />
@@ -63,7 +68,7 @@ export default function CareerView({ profile, catalog }: { profile: Profile; cat
                 <i>{done ? <Check size={14} /> : <Lock size={12} />}</i>
                 <div>
                   <b>{milestone.name}</b>
-                  <p>{milestone.description}</p>
+                  <p>{done ? milestone.description : milestone.howTo}</p>
                   <small>
                     +{milestone.xp} XP{milestone.coins > 0 ? ` · ${t("codestudio.common.coins", { count: milestone.coins })}` : ""}
                   </small>

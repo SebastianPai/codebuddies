@@ -36,6 +36,7 @@ import FoundingModal from "./FoundingModal";
 import DecisionModal from "./DecisionModal";
 import { useTranslation } from "../../../i18n/useTranslation";
 import { useLanguage } from "../../../i18n/LanguageContext";
+import { celebrate } from "../Rewards/celebrate";
 
 const POLL_MS = 10_000;
 const SELECTED_KEY = "cs-selected-company";
@@ -58,13 +59,13 @@ function saveSelected(id: string) {
   }
 }
 
-export default function CodeStudio() {
+export default function CodeStudio({ initialView }: { initialView?: string }) {
   const t = useTranslation();
   const { lang } = useLanguage();
   const [studio, setStudio] = useState<StudioState | null>(null);
   const [company, setCompany] = useState<CompanyView | null>(null);
   const [selectedId, setSelectedId] = useState("");
-  const [view, setView] = useState<ViewKey>("panel");
+  const [view, setView] = useState<ViewKey>(() => (nav.some((item) => item.key === initialView) ? (initialView as ViewKey) : "panel"));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [showFound, setShowFound] = useState(false);
@@ -366,7 +367,16 @@ export default function CodeStudio() {
   );
 }
 
+const CELEBRATION_KINDS = { milestone: "achievement", stage: "stage", "level-up": "level" } as const;
+
 function toast(event: ActivityEvent) {
+  const kind = CELEBRATION_KINDS[event.kind as keyof typeof CELEBRATION_KINDS];
+  if (kind) {
+    // La descripción del logro ya trae "+X XP · +Y coins": los chips lo muestran mejor.
+    const subtitle = event.description?.replace(/\s*\+\d+ XP.*$/, "") || null;
+    celebrate({ kind, title: event.title, subtitle, xp: event.xp, coins: event.coins });
+    return;
+  }
   const payload = { title: event.title, description: event.description ?? undefined };
   if (event.tone === "good") sileo.success(payload);
   else if (event.tone === "bad") sileo.warning(payload);

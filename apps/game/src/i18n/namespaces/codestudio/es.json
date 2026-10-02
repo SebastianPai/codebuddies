@@ -28,8 +28,8 @@
     "newCompany": "Fundar nueva empresa",
     "day": "Día {day}",
     "dayHint": "1 minuto real = 1 día en tu startup. Solo avanza mientras la tienes abierta.",
-    "level": "Fundador nv. {level}",
-    "levelHint": "Tu nivel de fundador: desbloquea tipos de app y más caja inicial.",
+    "level": "Nivel {level}",
+    "levelHint": "Tu nivel de cuenta: es el mismo de la plataforma. Sube estudiando y jugando, y desbloquea tipos de app y más caja inicial.",
     "navigation": "Secciones de CodeStudio"
   },
   "welcome": {
@@ -38,7 +38,7 @@
     "step1": "Construye tu MVP en el Árbol: landing, login y la funcionalidad principal.",
     "step2": "Ponla en un servidor y consigue tus primeros usuarios.",
     "step3": "Aprende a cobrar, contrata con cuidado y resuelve los bugs que aparezcan.",
-    "step4": "Cada etapa te da recompensas. Si quiebras, tu nivel de fundador se conserva.",
+    "step4": "Cada etapa da recompensas y XP para tu nivel de cuenta. Si quiebras, tu nivel se conserva.",
     "cta": "Fundar mi primera startup"
   },
   "found": {
@@ -270,10 +270,9 @@
     "again": "Fundar otra (+{bonus} de caja inicial)"
   },
   "career": {
-    "founder": "Carrera de fundador",
     "level": "Nivel {level}",
     "xp": "{xp} / {next} XP",
-    "explain": "Ganas XP construyendo (más difícil = más XP), resolviendo bugs tú mismo y alcanzando etapas. Tu nivel sobrevive a las quiebras.",
+    "explain": "Es un solo nivel para toda la plataforma: sube con lecciones, ejercicios y CodeStudio. En el juego, el XP cuenta a la mitad y lo repetible tiene un tope diario, para que estudiar siga siendo lo que más te hace subir.",
     "startingBonus": "Caja inicial extra",
     "startingBonusHint": "En cada startup nueva",
     "companies": "Startups fundadas",
@@ -283,7 +282,10 @@
     "best": "Mejor valuación",
     "appTypes": "Tipos de app",
     "unlocksAt": "Se desbloquea en nivel {level}",
-    "milestones": "Logros ({earned}/{total})"
+    "milestones": "Logros ({earned}/{total})",
+    "global": "Tu nivel en CodeBuddies",
+    "xpToday": "XP del juego hoy: {value} / {cap}",
+    "xpTodayHint": "Los logros y las misiones diarias no cuentan para este tope."
   },
   "ranking": {
     "title": "Ranking global",

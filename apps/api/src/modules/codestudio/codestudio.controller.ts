@@ -30,6 +30,12 @@ export class CodeStudioController {
     return this.codeStudio.myStudio(user.userId, langFromHeader(lang));
   }
 
+  // Para la web (/achievements): logros con su pista y estado.
+  @Get('achievements')
+  achievements(@CurrentUser() user: AuthUser, @Query('lang') lang?: string) {
+    return this.codeStudio.achievements(user.userId, langFromHeader(lang));
+  }
+
   @Get('ranking')
   ranking(@Query('lang') lang?: string) {
     return this.codeStudio.ranking(langFromHeader(lang));

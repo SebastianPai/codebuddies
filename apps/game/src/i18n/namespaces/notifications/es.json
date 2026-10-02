@@ -8,5 +8,12 @@
   "declineInvite": "Rechazar",
   "inviteAccepted": "Invitación aceptada",
   "inviteDeclined": "Invitación rechazada",
-  "inviteJoining": "Entrando a la sala…"
+  "inviteJoining": "Entrando a la sala…",
+  "celebration": {
+    "achievement": "Logro desbloqueado",
+    "reward": "Recompensa",
+    "level": "¡Subiste de nivel!",
+    "stage": "Nueva etapa",
+    "close": "Cerrar aviso"
+  }
 }

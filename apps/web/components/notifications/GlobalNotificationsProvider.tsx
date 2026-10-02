@@ -8,6 +8,7 @@ import { Coins, Zap, Gift } from "lucide-react";
 import { api } from "../../utils/api";
 import { useAuth } from "../../hooks/useAuth";
 import { getNotificationIcon } from "./notificationIcons";
+import { useReward } from "../../contexts/RewardContext";
 
 type RewardsSummary = {
   xp: number;
@@ -50,6 +51,16 @@ const SUCCESS_TYPES = new Set([
 ]);
 
 const WARNING_TYPES = new Set(["REFERRAL_FRAUD_FLAGGED"]);
+
+// Logros y recompensas se muestran con la tarjeta de celebración propia
+// (components/rewards/RewardCelebration.tsx); el resto sigue como toast.
+const CELEBRATION_TYPES: Record<string, "achievement" | "reward" | "level"> = {
+  ACHIEVEMENT_UNLOCKED: "achievement",
+  MISSION_REWARD_CLAIMED: "reward",
+  REWARD_GRANTED: "reward",
+  REFERRAL_REWARD_UNLOCKED: "reward",
+  LEVEL_UPDATED: "level",
+};
 
 function pickSileoMethod(type: string): "success" | "warning" | "info" {
   if (SUCCESS_TYPES.has(type)) return "success";
@@ -136,6 +147,7 @@ export default function GlobalNotificationsProvider({
   const myId = user?.userId || user?.id || "";
   const router = useRouter();
   const { resolvedTheme } = useTheme();
+  const { celebrate } = useReward();
 
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -164,6 +176,31 @@ export default function GlobalNotificationsProvider({
 
       setUnreadCount((prev) => prev + 1);
 
+      const markRead = () => {
+        if (notification.id) void api.patch(`/notifications/${notification.id}/read`).catch(() => {});
+      };
+
+      const celebrationKind = CELEBRATION_TYPES[notification.type];
+      if (celebrationKind) {
+        const rewards = notification.metadata?.rewards;
+        celebrate({
+          kind: celebrationKind,
+          title: notification.body || notification.title,
+          subtitle: notification.body ? null : undefined,
+          xp: rewards?.xp ?? 0,
+          coins: rewards?.coins ?? 0,
+          items: rewards?.items.map((item) => item.label) ?? [],
+          linkLabel: notification.actionLabel,
+          onOpen: notification.link
+            ? () => {
+                router.push(notification.link!);
+                markRead();
+              }
+            : undefined,
+        });
+        return;
+      }
+
       const options = {
         title: notification.title,
         description: <NotificationDescription notification={notification} />,
@@ -183,7 +220,7 @@ export default function GlobalNotificationsProvider({
 
       sileo[pickSileoMethod(notification.type)](options);
     },
-    [router],
+    [router, celebrate],
   );
 
   useEffect(() => {

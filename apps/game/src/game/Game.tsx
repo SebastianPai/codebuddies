@@ -42,6 +42,7 @@ import ChatProvider from "./components/Chat/ChatProvider";
 import MessagesPanel from "./components/Chat/MessagesPanel";
 import NotificationsPanel from "./components/Notifications/NotificationsPanel";
 import NotificationsToastBridge from "./components/Notifications/NotificationsToastBridge";
+import RewardCelebrationHost from "./components/Rewards/RewardCelebrationHost";
 import SettingsWindow from "./components/Settings/SettingsWindow";
 import {
   GameDialogRequest,
@@ -50,6 +51,7 @@ import {
 } from "./utils/dialog";
 import { useTranslation } from "../i18n/useTranslation";
 import { EffectivePermissions, NO_PERMISSIONS } from "./types/permissions";
+import { takeDeepLink } from "./deepLink";
 
 let gameInstance: Phaser.Game | null = null;
 let socketInstance: ReturnType<typeof createSocket> | null = null;
@@ -79,6 +81,8 @@ export default function Game() {
   // =========================
 
   const [showPC, setShowPC] = useState(false);
+  // Pestaña de CodeStudio pedida por un enlace desde la web (ver deepLink.ts).
+  const [pcInitialView, setPcInitialView] = useState<string | null>(null);
   const [showAvatarStudio, setShowAvatarStudio] = useState(false);
 
   const [showShop, setShowShop] = useState(false);
@@ -232,6 +236,13 @@ export default function Game() {
               audioManager.play("panelOpen");
               setShowPC(true);
             };
+
+            // Enlace desde la web (p.ej. /achievements → "Ir a CodeStudio").
+            const deepLink = takeDeepLink();
+            if (deepLink?.open === "codestudio") {
+              setPcInitialView(deepLink.view ?? "panel");
+              setShowPC(true);
+            }
 
             // =========================
             // OPEN SHOP FROM PHASER
@@ -718,7 +729,15 @@ export default function Game() {
 
       {/* ================= PC ================= */}
 
-      {showPC && <PCWindow onClose={() => setShowPC(false)} />}
+      {showPC && (
+        <PCWindow
+          initialView={pcInitialView ?? undefined}
+          onClose={() => {
+            setShowPC(false);
+            setPcInitialView(null);
+          }}
+        />
+      )}
 
       {/* ================= SHOP ================= */}
 
@@ -766,6 +785,7 @@ export default function Game() {
       )}
 
       {currentUser && <NotificationsToastBridge />}
+      {currentUser && <RewardCelebrationHost />}
 
       {/* ================= INVENTORY ================= */}
 

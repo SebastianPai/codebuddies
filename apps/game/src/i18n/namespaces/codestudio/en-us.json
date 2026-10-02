@@ -28,8 +28,8 @@
     "newCompany": "Found a new company",
     "day": "Day {day}",
     "dayHint": "1 real minute = 1 day in your startup. Time only runs while you have it open.",
-    "level": "Founder lv. {level}",
-    "levelHint": "Your founder level: unlocks app types and more starting cash.",
+    "level": "Level {level}",
+    "levelHint": "Your account level: the same one as the platform. Level up by studying and playing to unlock app types and more starting cash.",
     "navigation": "CodeStudio sections"
   },
   "welcome": {
@@ -38,7 +38,7 @@
     "step1": "Build your MVP in the Tree: landing page, login and the core feature.",
     "step2": "Put it on a server and get your first users.",
     "step3": "Learn to charge, hire carefully and fix the bugs that show up.",
-    "step4": "Every stage gives rewards. If you go bankrupt, your founder level stays.",
+    "step4": "Every stage gives rewards and XP for your account level. If you go bankrupt, your level stays.",
     "cta": "Found my first startup"
   },
   "found": {
@@ -270,10 +270,9 @@
     "again": "Found another (+{bonus} starting cash)"
   },
   "career": {
-    "founder": "Founder career",
     "level": "Level {level}",
     "xp": "{xp} / {next} XP",
-    "explain": "You earn XP by building (harder = more XP), fixing bugs yourself and reaching stages. Your level survives bankruptcies.",
+    "explain": "One level for the whole platform: it goes up with lessons, exercises and CodeStudio. In the game, XP counts at half and repeatable actions have a daily cap, so studying stays the main way to level up.",
     "startingBonus": "Extra starting cash",
     "startingBonusHint": "In every new startup",
     "companies": "Startups founded",
@@ -283,7 +282,10 @@
     "best": "Best valuation",
     "appTypes": "App types",
     "unlocksAt": "Unlocks at level {level}",
-    "milestones": "Achievements ({earned}/{total})"
+    "milestones": "Achievements ({earned}/{total})",
+    "global": "Your CodeBuddies level",
+    "xpToday": "Game XP today: {value} / {cap}",
+    "xpTodayHint": "Achievements and daily missions don’t count toward this cap."
   },
   "ranking": {
     "title": "Global ranking",

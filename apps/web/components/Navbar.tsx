@@ -295,7 +295,6 @@ export default function Navbar() {
         bg-[rgba(var(--card),0.65)]
         ring-1 ring-white/10
         ${shapeClass}
-        ${rewardVisible ? "scale-[1.04] shadow-[0_40px_120px_rgba(255,215,0,0.35)] animate-pulse" : ""}
         `}
       >
         <div className="flex justify-between items-center h-[72px] px-6 sm:px-10">
@@ -597,38 +596,6 @@ export default function Navbar() {
           )}
         </AnimatePresence>
 
-        <AnimatePresence>
-          {rewardVisible && reward && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ type: "spring", stiffness: 200 }}
-              className="flex flex-col items-center gap-3 pb-5 pt-2"
-            >
-              <div className="flex items-center gap-2 text-sm font-bold text-yellow-400">
-                <Sparkles size={16} className="animate-spin-slow" />
-                {t("navbar.reward")}
-              </div>
-
-              <div className="flex gap-8 text-xl font-black items-center">
-                <span className="text-[rgb(var(--primary))]">
-                  ⚡ +{reward.xp} XP
-                </span>
-
-                <span className="text-[rgb(var(--accent))]">
-                  🪙 +{reward.coins}
-                </span>
-
-                {reward.levelUp && (
-                  <span className="text-green-400 animate-pulse">
-                    🚀 {t("navbar.levelUp")}
-                  </span>
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </nav>
     </div>
   );

@@ -3,7 +3,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { APP_TYPES, CAMPAIGN_BUDGET_MULTIPLIERS, CHANNELS, HOSTING, ROLES } from './content/economy';
 import { FEATURES, FEATURE_BRANCHES } from './content/features';
-import { FUNDING_ROUNDS, MILESTONES, STAGES } from './content/progression';
+import { FUNDING_ROUNDS, GAME_XP_FACTOR, MILESTONES, STAGES } from './content/progression';
 import { PRICE_LEVELS } from './content/events';
 import { Lang, contentFor, milestoneText, pick, stageText } from './content/i18n';
 
@@ -245,6 +245,8 @@ export class CodeStudioCatalogService implements OnApplicationBootstrap {
           difficulty: module.difficulty,
           requires: requirements.requires ?? [],
           minStage: requirements.minStage ?? 0,
+          // XP real que da (ya regulado: el XP del juego cuenta a la mitad).
+          xp: Math.round(module.difficulty ** 2 * 4 * GAME_XP_FACTOR),
           effects: module.effects ?? {},
         };
       }),
@@ -284,8 +286,16 @@ export class CodeStudioCatalogService implements OnApplicationBootstrap {
         minStage: Number((campaign.config as { minStage?: number } | null)?.minStage ?? 1),
       })),
       budgetMultipliers: CAMPAIGN_BUDGET_MULTIPLIERS,
-      stages: STAGES.map((stage) => ({ index: stage.index, ...stageText(stage.index, lang), reward: stage.reward })),
-      milestones: MILESTONES.map((milestone) => ({ ...milestone, ...milestoneText(milestone.key, lang) })),
+      stages: STAGES.map((stage) => ({
+        index: stage.index,
+        ...stageText(stage.index, lang),
+        reward: { ...stage.reward, xp: Math.round(stage.reward.xp * GAME_XP_FACTOR) },
+      })),
+      milestones: MILESTONES.map((milestone) => ({
+        ...milestone,
+        ...milestoneText(milestone.key, lang),
+        xp: Math.round(milestone.xp * GAME_XP_FACTOR),
+      })),
       fundingRounds: FUNDING_ROUNDS,
       priceLevels: PRICE_LEVELS.map((level) => ({ value: level.value, label: pick(level.label, lang) })),
     };

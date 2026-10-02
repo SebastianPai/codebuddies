@@ -94,7 +94,7 @@ run('CodeStudio v2 contra Postgres real', () => {
 
     // Tipo de app bloqueado por nivel de fundador.
     const saas = await prisma.codeStudioAppType.findUniqueOrThrow({ where: { slug: 'saas' } });
-    await expect(service.createCompany(userId, { appTypeId: saas.id, name: 'Too Early' })).rejects.toThrow(/nivel de fundador/);
+    await expect(service.createCompany(userId, { appTypeId: saas.id, name: 'Too Early' })).rejects.toThrow(/se desbloquea en nivel/);
 
     // No se puede saltar el árbol.
     await expect(service.startDevelopment(userId, created.id, { moduleId: await featureId('core-feature') })).rejects.toThrow(/Primero necesitas/);
@@ -227,6 +227,25 @@ run('CodeStudio v2 contra Postgres real', () => {
     // Repetir no paga de nuevo.
     await prisma.$transaction((tx) => rewards.bumpDaily(tx, userId, huge, null));
     expect((await prisma.user.findUniqueOrThrow({ where: { id: userId } })).coins).toBe(coinsAfter);
+  });
+
+  it('el XP es global (sube el nivel de la cuenta) y lo repetible tiene tope diario', async () => {
+    const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
+    expect(user.experience).toBeGreaterThan(0);
+    const xpLedger = await prisma.rewardLedgerEntry.count({ where: { userId, sourceType: 'CODESTUDIO', rewardType: 'XP' } });
+    expect(xpLedger).toBeGreaterThan(0);
+    // Mucho XP repetible de golpe: nunca pasa el tope del día.
+    for (let i = 0; i < 20; i++) await prisma.$transaction((tx) => rewards.addXp(tx, userId, 200, null));
+    const profile = await rewards.getProfile(userId);
+    expect(profile.gameXpToday).toBeLessThanOrEqual(profile.gameXpCap);
+    expect(profile.gameXpToday).toBe(profile.gameXpCap);
+    const after = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
+    expect(after.level).toBe(profile.level);
+    // La página de logros de la web.
+    const page = await rewards.achievements(userId, 'en');
+    expect(page.items.length).toBe(page.summary.total);
+    expect(page.items.find((item) => item.key === 'first-company')?.unlocked).toBe(true);
+    expect(page.items.find((item) => item.key === 'full-tree')?.howTo).toMatch(/Tree/);
   });
 
   it('responde en inglés y alemán', async () => {

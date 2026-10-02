@@ -13,6 +13,7 @@ import { GameNotification, markNotificationRead } from "../../network/notificati
 import { audioManager } from "../../audio/AudioManager";
 import { resolveNotificationIcon } from "../../utils/notificationIcons";
 import { useTranslation } from "../../../i18n/useTranslation";
+import { celebrate, type CelebrationKind } from "../Rewards/celebrate";
 
 const SUCCESS_TYPES = new Set([
   "ACHIEVEMENT_UNLOCKED",
@@ -27,6 +28,16 @@ const SUCCESS_TYPES = new Set([
 ]);
 
 const WARNING_TYPES = new Set(["REFERRAL_FRAUD_FLAGGED"]);
+
+// Logros y recompensas usan el aviso propio con el logo de CodeBuddies
+// (components/Rewards); el resto sigue como toast.
+const CELEBRATION_TYPES: Record<string, CelebrationKind> = {
+  ACHIEVEMENT_UNLOCKED: "achievement",
+  MISSION_REWARD_CLAIMED: "reward",
+  REWARD_GRANTED: "reward",
+  REFERRAL_REWARD_UNLOCKED: "reward",
+  LEVEL_UPDATED: "level",
+};
 
 function pickSileoMethod(type: string): "success" | "warning" | "info" {
   if (SUCCESS_TYPES.has(type)) return "success";
@@ -57,6 +68,20 @@ export default function NotificationsToastBridge() {
       audioManager.play(sound);
       if (sound === "levelUp" || sound === "achievement") {
         window.dispatchEvent(new CustomEvent("fx:confetti"));
+      }
+
+      const celebrationKind = CELEBRATION_TYPES[notification.type];
+      if (celebrationKind) {
+        const rewards = (notification.metadata as { rewards?: { xp: number; coins: number; items: Array<{ label: string }> } } | null)?.rewards;
+        celebrate({
+          kind: celebrationKind,
+          title: notification.body || notification.title,
+          xp: rewards?.xp ?? 0,
+          coins: rewards?.coins ?? 0,
+          items: rewards?.items?.map((item) => item.label) ?? [],
+        });
+        void markNotificationRead(notification.id).catch(() => {});
+        return;
       }
 
       const friend = notification.metadata?.friend;

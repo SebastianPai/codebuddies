@@ -15,7 +15,7 @@ export type ContentTranslation = {
   branches: Record<string, { name: string; description: string }>;
   features: Record<string, { name: string; description: string; lesson: string }>;
   stages: Record<number, { name: string; tagline: string; goals: string[] }>;
-  milestones: Record<string, { name: string; description: string }>;
+  milestones: Record<string, { name: string; description: string; howTo: string }>;
   roles: Record<string, { name: string; description: string }>;
   hosting: Record<string, { name: string; description: string }>;
   appTypes: Record<string, { name: string; category: string; description: string }>;

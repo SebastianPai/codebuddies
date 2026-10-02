@@ -190,5 +190,33 @@
   "conditionUnlockAchievementsLabel": "Obtener logros",
   "conditionUnlockAchievementsDescription": "Cuenta logros desbloqueados.",
   "conditionEnterRankingLabel": "Entrar al ranking",
-  "conditionEnterRankingDescription": "Cuenta entradas de ranking existentes."
+  "conditionEnterRankingDescription": "Cuenta entradas de ranking existentes.",
+  "codestudio": {
+    "eyebrow": "Juego · CodeStudio",
+    "title": "Logros de CodeStudio",
+    "description": "Construye tu startup en el simulador del juego. Cada logro suma XP a tu nivel de cuenta y algunos dan coins.",
+    "open": "Ir a CodeStudio",
+    "start": "Empezar en CodeStudio",
+    "progress": "Desbloqueados",
+    "level": "Tu nivel",
+    "levelHint": "Uno solo para estudiar y jugar",
+    "daily": "Misiones de hoy",
+    "dailyDone": "¡Bono diario cobrado!",
+    "filter": "Filtrar logros",
+    "filter_all": "Todos",
+    "filter_unlocked": "Desbloqueados",
+    "filter_locked": "Bloqueados",
+    "howTo": "Cómo conseguirlo:",
+    "goDoIt": "Ir a hacerlo",
+    "platformTitle": "Logros de la plataforma"
+  },
+  "celebration": {
+    "achievement": "Logro desbloqueado",
+    "reward": "Recompensa",
+    "levelUp": "¡Subiste de nivel!",
+    "rewardTitle": "¡Buen trabajo!",
+    "levelUpTitle": "Nuevo nivel alcanzado",
+    "view": "Ver",
+    "close": "Cerrar aviso"
+  }
 }

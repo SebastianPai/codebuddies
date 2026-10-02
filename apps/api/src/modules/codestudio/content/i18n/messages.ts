@@ -10,9 +10,9 @@ export const MSG = {
   appTypeUnavailable: () => L('Ese tipo de app no está disponible.', 'That app type is not available.', 'Dieser App-Typ ist nicht verfügbar.'),
   appTypeLocked: (app: string, min: number, level: number) =>
     L(
-      `${app} se desbloquea con nivel de fundador ${min}. Tú eres nivel ${level}.`,
-      `${app} unlocks at founder level ${min}. You are level ${level}.`,
-      `${app} wird mit Gründer-Level ${min} freigeschaltet. Du bist Level ${level}.`,
+      `${app} se desbloquea en nivel ${min}. Tú eres nivel ${level}: sube estudiando o jugando.`,
+      `${app} unlocks at level ${min}. You are level ${level}: level up by studying or playing.`,
+      `${app} wird ab Level ${min} freigeschaltet. Du bist Level ${level}: steig durch Lernen oder Spielen auf.`,
     ),
   tooManyCompanies: (max: number) =>
     L(
@@ -199,7 +199,7 @@ export const MSG = {
       'A new economy arrived: 1 minute = 1 day, no monetization means no revenue, 7 days in the red and you go bankrupt, and bugs are fixed by diagnosing them. Your previous features are still installed; the new Tree is in the Tree tab.',
       'Eine neue Wirtschaft ist da: 1 Minute = 1 Tag, ohne Monetarisierung keine Einnahmen, 7 Tage im Minus bedeuten Pleite, und Bugs behebt man durch Diagnose. Deine bisherigen Features bleiben installiert; der neue Baum ist im Tab Baum.',
     ),
-  levelUpTitle: (level: number) => L(`¡Subiste a fundador nivel ${level}!`, `You reached founder level ${level}!`, `Du hast Gründer-Level ${level} erreicht!`),
+  levelUpTitle: (level: number) => L(`¡Subiste a nivel ${level}!`, `You reached level ${level}!`, `Du hast Level ${level} erreicht!`),
   levelUpText: (bonus: number) =>
     L(
       `Tu próxima startup arrancará con ${$(bonus)} extra.`,
@@ -240,8 +240,8 @@ export const MSG = {
   pmNoFunding: () => L('Podías levantar una ronda de inversión y no lo hiciste.', 'You could have raised a funding round and didn’t.', 'Du hättest eine Finanzierungsrunde einsammeln können und hast es nicht getan.'),
   pmKept: () =>
     L(
-      'Tu nivel de fundador y tus logros se conservan: la próxima arranca con más caja.',
-      'Your founder level and achievements stay: the next one starts with more cash.',
-      'Dein Gründer-Level und deine Erfolge bleiben: das nächste Startup beginnt mit mehr Geld.',
+      'Tu nivel y tus logros se conservan: la próxima arranca con más caja.',
+      'Your level and achievements stay: the next one starts with more cash.',
+      'Dein Level und deine Erfolge bleiben: das nächste Startup beginnt mit mehr Geld.',
     ),
 };
