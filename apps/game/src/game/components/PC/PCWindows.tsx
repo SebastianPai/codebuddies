@@ -7,7 +7,6 @@ import { apiPatch } from "../../network/http";
 import CodeStudio from "../CodeStudio/CodeStudio";
 import { useDialogBehavior } from "../shared/useDialogBehavior";
 import { useTranslation } from "../../../i18n/useTranslation";
-import tabsOverflow from "../shared/tabsOverflow.module.css";
 import "./PCWindows.css";
 
 interface PCWindowProps {
@@ -94,9 +93,6 @@ export default function PCWindow({ onClose, initialView }: PCWindowProps) {
 
               {pcTab === "codestudio" && (
                 <div className="pc-content-area">
-                  <div className={`win11-tabs ${tabsOverflow.scrollRow}`}>
-                    <button className="tab active">CodeStudio</button>
-                  </div>
                   <CodeStudio initialView={initialView} />
                 </div>
               )}

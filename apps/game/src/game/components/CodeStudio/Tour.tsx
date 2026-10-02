@@ -9,7 +9,7 @@ import { useTranslation } from "../../../i18n/useTranslation";
 // Sale solo la primera vez que el jugador tiene una empresa y se puede volver
 // a ver con el botón "?" del encabezado.
 
-export const TOUR_STEPS: ViewKey[] = ["panel", "tree", "bugs", "team", "infra", "marketing", "finance", "career"];
+export const TOUR_STEPS: ViewKey[] = ["panel", "tree", "bugs", "team", "infra", "marketing", "finance", "career", "guide"];
 const TOUR_KEY = "cs-tour-done";
 
 export function tourSeen() {

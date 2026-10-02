@@ -9,7 +9,8 @@
     "finance": "Finance",
     "career": "Career",
     "ranking": "Ranking",
-    "settings": "Settings"
+    "settings": "Settings",
+    "guide": "Guide"
   },
   "common": {
     "loading": "Loading CodeStudio…",
@@ -40,7 +41,8 @@
     "step2": "Put it on a server and get your first users.",
     "step3": "Learn to charge, hire carefully and fix the bugs that show up.",
     "step4": "Every stage gives rewards and XP for your account level. If you go bankrupt, your level stays.",
-    "cta": "Found my first startup"
+    "cta": "Found my first startup",
+    "guide": "First, how does it work?"
   },
   "found": {
     "title": "Found a startup",
@@ -374,6 +376,138 @@
     "career": {
       "title": "Career",
       "text": "Your achievements and level. XP earned here also raises your CodeBuddies level."
+    },
+    "guide": {
+      "title": "Guide",
+      "text": "If you don't understand a word (landing, server, churn...), it's explained here without jargon."
     }
+  },
+  "guide": {
+    "title": "CodeStudio guide",
+    "subtitle": "You don't need to know how to code. Here you learn how a real app is built, by playing.",
+    "whatTitle": "What is all this?",
+    "whatCodebuddies": "CodeBuddies is a platform to learn programming like a game: courses with exercises, a world to explore and rewards for learning.",
+    "whatStudio": "CodeStudio is the simulator on the PC: you found a software company (a \"startup\"). You decide what to build, who to hire and how much to charge, just like in real life, but risk-free.",
+    "goalTitle": "Your goal",
+    "goal": "Grow your app: more people using it, liking it and paying for it. Each stage (Idea, Launch, Growth...) asks for concrete goals and gives you rewards. The one thing that can't happen is running out of money for too long: then the company goes bankrupt.",
+    "stepsTitle": "How to play, step by step",
+    "steps": {
+      "1": {
+        "title": "Found your company",
+        "text": "Choose the kind of app you want (for example, a social network or a shop) and name it. You start with some money."
+      },
+      "2": {
+        "title": "Build the basics",
+        "text": "In the Tree build the Landing page, Login and the Core feature. Without those three, nobody can use your app."
+      },
+      "3": {
+        "title": "Get a server",
+        "text": "In Servers rent one: it is the computer where your app lives. If many users arrive and it is small, the app goes down."
+      },
+      "4": {
+        "title": "Get users",
+        "text": "In Marketing launch campaigns. They bring people but cost money: launch only when your app already works well."
+      },
+      "5": {
+        "title": "Charge",
+        "text": "In Finance pick the price. Too expensive scares users away; too cheap doesn't cover your costs."
+      },
+      "6": {
+        "title": "Fix the bugs",
+        "text": "Errors show up on their own. In Bugs read the clues and pick the cause: if you get it right, you learn how to prevent them for real."
+      }
+    },
+    "glossaryTitle": "Words you'll see",
+    "glossarySearch": "Search a word...",
+    "glossaryEmpty": "No word matches that.",
+    "glossary": {
+      "app": {
+        "term": "App",
+        "text": "A program people use on their phone or browser. Instagram or Spotify are apps."
+      },
+      "saas": {
+        "term": "SaaS",
+        "text": "\"Software as a service\": an app you pay for every month instead of buying once, like Netflix."
+      },
+      "mvp": {
+        "term": "MVP",
+        "text": "\"Minimum viable product\": the simplest version of your app that already solves the problem. You launch it early to learn from users."
+      },
+      "landing": {
+        "term": "Landing page",
+        "text": "The introduction page: the first thing someone sees. It explains what your app does and why to sign up."
+      },
+      "login": {
+        "term": "Sign-up and login",
+        "text": "Creating an account and entering with email and password. That way each person keeps their stuff."
+      },
+      "core": {
+        "term": "Core feature",
+        "text": "What your app does that makes it useful: in a music app, listening to songs."
+      },
+      "server": {
+        "term": "Server",
+        "text": "A computer that is on all day where your app lives. More users need bigger servers."
+      },
+      "bug": {
+        "term": "Bug",
+        "text": "An error in the program: a button that doesn't work, a page that won't load... They lower your app's rating."
+      },
+      "users": {
+        "term": "Active users",
+        "text": "People really using your app these days, not just those who signed up once."
+      },
+      "churn": {
+        "term": "Churn",
+        "text": "The percentage of users who leave your app each day. If it's high, you're filling a bucket with a hole."
+      },
+      "rating": {
+        "term": "Rating",
+        "text": "The 1 to 5 star score users give you. It goes up if the app is good and down with bugs and outages."
+      },
+      "marketing": {
+        "term": "Marketing and campaigns",
+        "text": "Ads and actions so more people get to know your app. Each channel (social media, search engines...) works differently."
+      },
+      "price": {
+        "term": "Price",
+        "text": "How much you charge. It's your company's main source of revenue."
+      },
+      "profit": {
+        "term": "Profit",
+        "text": "What comes in (revenue) minus what goes out (salaries, servers, campaigns). If it's negative, you lose money every day."
+      },
+      "runway": {
+        "term": "Runway",
+        "text": "How many days your money lasts at the current spending rate before hitting zero."
+      },
+      "funding": {
+        "term": "Funding",
+        "text": "Money investors give you in exchange for part of your company. It helps you grow, but you no longer own all of it."
+      },
+      "valuation": {
+        "term": "Valuation",
+        "text": "How much your whole company is worth based on its users, revenue and potential."
+      },
+      "techDebt": {
+        "term": "Tech debt",
+        "text": "Shortcuts taken when coding fast. They save time today; tomorrow they cause more bugs."
+      },
+      "latency": {
+        "term": "Latency",
+        "text": "How long your app takes to respond. If it's slow, people get bored and leave."
+      }
+    },
+    "troubleTitle": "If things go wrong",
+    "trouble": {
+      "1": "Money in the red: cut costs (fewer campaigns or layoffs) or raise the price a little. In Finance you can ask for funding.",
+      "2": "Rating dropping: fix pending bugs and upgrade the server if the app goes down.",
+      "3": "Nobody shows up: check that the basics are built and launch a small campaign.",
+      "4": "If you go bankrupt, no problem: you found another company and keep your level and achievements."
+    },
+    "learnTitle": "Want to learn to do it for real?",
+    "learnText": "Everything you build here (landing, login, servers...) is taught in the CodeBuddies courses, from scratch.",
+    "learnCta": "See courses",
+    "back": "Back"
   }
 }

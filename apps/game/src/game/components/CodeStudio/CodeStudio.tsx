@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { sileo } from "sileo";
-import { Award, CalendarDays, CircleHelp, Plus, Rocket, Wallet } from "lucide-react";
+import { Award, BookOpen, CalendarDays, CircleHelp, Plus, Rocket, Wallet } from "lucide-react";
 import {
   cancelCodeStudioDevelopment,
   chooseCodeStudioDecision,
@@ -35,6 +35,7 @@ import FailedView from "./FailedView";
 import FoundingModal from "./FoundingModal";
 import DecisionModal from "./DecisionModal";
 import Tour, { TOUR_STEPS, tourSeen } from "./Tour";
+import GuideView from "./GuideView";
 import { useTranslation } from "../../../i18n/useTranslation";
 import { useLanguage } from "../../../i18n/LanguageContext";
 import { celebrate } from "../Rewards/celebrate";
@@ -223,7 +224,7 @@ export default function CodeStudio({ initialView }: { initialView?: string }) {
   const profile = company?.profile ?? studio.profile;
   const levelSpan = Math.max(1, profile.nextLevelXp - profile.levelXp);
   const failed = company?.status === "FAILED";
-  const failedAllowed: ViewKey[] = ["career", "ranking", "settings"];
+  const failedAllowed: ViewKey[] = ["guide", "career", "ranking", "settings"];
 
   return (
     <div className="cs2-shell">
@@ -301,7 +302,9 @@ export default function CodeStudio({ initialView }: { initialView?: string }) {
       <main className="cs2-main">
         {error && <p className="cs2-alert cs2-alert-bad">{error}</p>}
 
-        {!company ? (
+        {view === "guide" ? (
+          <GuideView onNavigate={setView} hasCompany={!!company && !failed} />
+        ) : !company ? (
           studio.companies.length === 0 ? (
             <section className="cs2-card cs2-welcome">
               <Rocket size={34} />
@@ -313,9 +316,14 @@ export default function CodeStudio({ initialView }: { initialView?: string }) {
                 <li>{t("codestudio.welcome.step3")}</li>
                 <li>{t("codestudio.welcome.step4")}</li>
               </ol>
-              <button type="button" className="cs2-btn cs2-btn-primary" onClick={() => setShowFound(true)}>
-                <Rocket size={15} /> {t("codestudio.welcome.cta")}
-              </button>
+              <div className="cs2-welcome-actions">
+                <button type="button" className="cs2-btn" onClick={() => setView("guide")}>
+                  <BookOpen size={15} /> {t("codestudio.welcome.guide")}
+                </button>
+                <button type="button" className="cs2-btn cs2-btn-primary" onClick={() => setShowFound(true)}>
+                  <Rocket size={15} /> {t("codestudio.welcome.cta")}
+                </button>
+              </div>
             </section>
           ) : (
             <p className="cs2-muted">{t("codestudio.common.loading")}</p>

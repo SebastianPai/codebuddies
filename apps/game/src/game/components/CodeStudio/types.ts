@@ -1,4 +1,5 @@
 import {
+  BookOpen,
   Bug,
   DollarSign,
   GitBranch,
@@ -266,11 +267,12 @@ export type BugFixResult =
   | { assigned: true; seconds: number }
   | { paid: number };
 
-export type ViewKey = "panel" | "tree" | "bugs" | "team" | "infra" | "marketing" | "finance" | "career" | "ranking" | "settings";
+export type ViewKey = "panel" | "guide" | "tree" | "bugs" | "team" | "infra" | "marketing" | "finance" | "career" | "ranking" | "settings";
 
 // labelKey y no texto: CodeStudio.tsx lo resuelve con t() al renderizar.
 export const nav: Array<{ key: ViewKey; labelKey: string; icon: LucideIcon }> = [
   { key: "panel", labelKey: "codestudio.nav.panel", icon: LayoutDashboard },
+  { key: "guide", labelKey: "codestudio.nav.guide", icon: BookOpen },
   { key: "tree", labelKey: "codestudio.nav.tree", icon: GitBranch },
   { key: "bugs", labelKey: "codestudio.nav.bugs", icon: Bug },
   { key: "team", labelKey: "codestudio.nav.team", icon: Users },

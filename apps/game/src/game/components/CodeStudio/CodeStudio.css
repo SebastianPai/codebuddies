@@ -1,16 +1,16 @@
-/* CodeStudio — pixel art. Paleta tomada del PC del juego (metal oscuro,
+/* CodeStudio — marco pixel art con letra limpia. Paleta tomada del PC del juego (metal oscuro,
    azul eléctrico, morado de la barra de tareas y el amarillo de la pestaña
    "CodeStudio"). Reglas del estilo:
    - sin esquinas redondeadas: bordes de 2px y sombras duras desplazadas
      (el "relieve" de los juegos de 8/16 bits), sin blur;
-   - tipografía pixel: "Press Start 2P" para títulos, etiquetas y cifras,
-     "Pixelify Sans" para el texto (legible y con tildes/ñ);
+   - tipografía limpia (Inter; JetBrains Mono para código): la letra pixel
+     se leía mal en textos largos, así que solo el marco es pixel art;
    - barras de progreso por bloques y movimiento por pasos (steps()).
    Las variables se definen en .cs2-shell y en .cs2-modal porque los
    diálogos se dibujan fuera del shell (portal). El layout usa container
    queries: vive dentro de la ventana del PC, no del ancho de la pantalla. */
 
-@import url("https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&family=Press+Start+2P&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap");
 
 .cs2-shell,
 .cs2-modal {
@@ -31,8 +31,8 @@
   --px-bad: #ff4d6d;
   --px-warn: #ffad1f;
   --px-shadow: #05060a;
-  --px-font: "Pixelify Sans", "Trebuchet MS", system-ui, sans-serif;
-  --px-title: "Press Start 2P", "Pixelify Sans", monospace;
+  --px-font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --px-title: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
 
   /* Alias que usan los componentes. */
   --cs2-accent: var(--px-cyan);
@@ -83,7 +83,7 @@
   font-size: 15px;
   line-height: 1.35;
   overflow: hidden;
-  -webkit-font-smoothing: none;
+  -webkit-font-smoothing: antialiased;
   image-rendering: pixelated;
 }
 
@@ -116,9 +116,10 @@
   place-items: center;
   padding: 24px;
   font-family: var(--px-title);
-  font-size: 12px;
+  font-size: 14px;
   text-align: center;
   letter-spacing: 0.05em;
+  font-weight: 800;
 }
 
 /* Scrollbars pixel. */
@@ -170,8 +171,9 @@
   background: var(--px-yellow);
   color: #1b1400;
   font-family: var(--px-title);
-  font-size: 10px;
+  font-size: 13px;
   box-shadow: inset -3px -3px 0 var(--px-yellow-dark), inset 3px 3px 0 #fff3a8;
+  font-weight: 800;
 }
 
 .cs2-brand select {
@@ -207,8 +209,9 @@
   background: var(--px-yellow);
   color: #1b1400;
   font-family: var(--px-title);
-  font-size: 9px;
+  font-size: 12px;
   box-shadow: 2px 2px 0 var(--px-shadow);
+  font-weight: 800;
 }
 
 .cs2-level-chip {
@@ -222,8 +225,9 @@
   background: var(--px-bg-2);
   cursor: pointer;
   font-family: var(--px-title);
-  font-size: 9px;
+  font-size: 12px;
   box-shadow: 3px 3px 0 var(--px-shadow);
+  font-weight: 800;
 }
 
 .cs2-level-chip .cs2-bar {
@@ -291,9 +295,10 @@
   color: #fff;
   font-family: var(--px-title);
   font-style: normal;
-  font-size: 8px;
+  font-size: 11.5px;
   line-height: 14px;
   text-align: center;
+  font-weight: 800;
 }
 
 .cs2-main {
@@ -327,7 +332,7 @@
   gap: 8px;
   margin: 0 0 8px;
   font-family: var(--px-title);
-  font-weight: 400;
+  font-weight: 800;
   line-height: 1.5;
 }
 
@@ -362,10 +367,11 @@
   align-items: center;
   gap: 6px;
   font-family: var(--px-title);
-  font-size: 8px;
+  font-size: 11.5px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--px-cyan);
+  font-weight: 800;
 }
 
 .cs2-grid-2 {
@@ -549,16 +555,17 @@
 
 .cs2-stat span {
   font-family: var(--px-title);
-  font-size: 8px;
+  font-size: 11.5px;
   line-height: 1.5;
   text-transform: uppercase;
   color: var(--px-muted);
+  font-weight: 800;
 }
 
 .cs2-stat b {
   font-family: var(--px-title);
-  font-size: 14px;
-  font-weight: 400;
+  font-size: 18px;
+  font-weight: 800;
   line-height: 1.4;
   overflow-wrap: anywhere;
 }
@@ -588,8 +595,9 @@
 
 .cs2-spark span {
   font-family: var(--px-title);
-  font-size: 8px;
+  font-size: 11.5px;
   color: var(--px-muted);
+  font-weight: 800;
 }
 
 .cs2-spark svg {
@@ -677,11 +685,12 @@
   height: 28px;
   border: 2px solid var(--px-line-hi);
   font-family: var(--px-title);
-  font-size: 9px;
+  font-size: 12px;
   font-style: normal;
   background: var(--px-bg-2);
   position: relative;
   z-index: 1;
+  font-weight: 800;
 }
 
 .cs2-path-step.done {
@@ -785,9 +794,10 @@
 .cs2-next span {
   grid-column: 1;
   font-family: var(--px-title);
-  font-size: 8px;
+  font-size: 11.5px;
   text-transform: uppercase;
   opacity: 0.85;
+  font-weight: 800;
 }
 
 .cs2-next b {
@@ -937,8 +947,8 @@
 
 .cs2-branch header b {
   font-family: var(--px-title);
-  font-size: 9px;
-  font-weight: 400;
+  font-size: 12px;
+  font-weight: 800;
   color: var(--px-cyan);
 }
 
@@ -1059,15 +1069,16 @@
   font-family: var(--px-font);
   font-size: 15px;
   box-shadow: 6px 6px 0 var(--px-shadow), 0 0 0 3px var(--px-bg) !important;
-  -webkit-font-smoothing: none;
+  -webkit-font-smoothing: antialiased;
 }
 
 .cs2-modal > div:first-child {
   border-bottom: 2px solid var(--px-line-hi);
   background: var(--px-panel-2);
   font-family: var(--px-title);
-  font-size: 11px;
+  font-size: 14px;
   line-height: 1.5;
+  font-weight: 800;
 }
 
 .cs2-detail {
@@ -1083,8 +1094,8 @@
 
 .cs2-detail h4 {
   font-family: var(--px-title);
-  font-size: 9px;
-  font-weight: 400;
+  font-size: 12px;
+  font-weight: 800;
   text-transform: uppercase;
   color: var(--px-cyan);
 }
@@ -1137,10 +1148,11 @@
 
 .cs2-detail-grid span {
   font-family: var(--px-title);
-  font-size: 7px;
+  font-size: 11px;
   line-height: 1.5;
   color: var(--px-muted);
   text-transform: uppercase;
+  font-weight: 800;
 }
 
 .cs2-lesson {
@@ -1152,9 +1164,10 @@
 
 .cs2-lesson span {
   font-family: var(--px-title);
-  font-size: 8px;
+  font-size: 11.5px;
   text-transform: uppercase;
   color: var(--px-yellow);
+  font-weight: 800;
 }
 
 .cs2-lesson-inline {
@@ -1197,8 +1210,9 @@
   padding: 3px 7px;
   border: 2px solid var(--px-shadow);
   font-family: var(--px-title);
-  font-size: 7px;
+  font-size: 11px;
   text-transform: uppercase;
+  font-weight: 800;
 }
 
 .cs2-sev-low {
@@ -1228,7 +1242,7 @@
   border: 2px solid var(--px-shadow);
   background: #06080d;
   color: #9ff3c4;
-  font-family: "VT323", ui-monospace, "Cascadia Code", Menlo, monospace;
+  font-family: "JetBrains Mono", ui-monospace, "Cascadia Code", Menlo, monospace;
   font-size: 13px;
   line-height: 1.55;
   white-space: pre-wrap;
@@ -1409,8 +1423,9 @@
   background: var(--px-purple);
   color: #fff;
   font-family: var(--px-title);
-  font-size: 9px;
+  font-size: 12px;
   box-shadow: inset -3px -3px 0 rgba(0, 0, 0, 0.3);
+  font-weight: 800;
 }
 
 .cs2-gauge {
@@ -1427,8 +1442,8 @@
 
 .cs2-gauge b {
   font-family: var(--px-title);
-  font-size: 16px;
-  font-weight: 400;
+  font-size: 22px;
+  font-weight: 800;
 }
 
 .cs2-gauge .cs2-bar {
@@ -1471,8 +1486,8 @@
 
 .cs2-quote b {
   font-family: var(--px-title);
-  font-size: 9px;
-  font-weight: 400;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .cs2-quote span,
@@ -1513,8 +1528,8 @@
 
 .cs2-pnl li b {
   font-family: var(--px-title);
-  font-size: 10px;
-  font-weight: 400;
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .cs2-pnl li.total {
@@ -1657,8 +1672,8 @@
 
 .cs2-ranking li > b {
   font-family: var(--px-title);
-  font-size: 10px;
-  font-weight: 400;
+  font-size: 13px;
+  font-weight: 800;
   color: var(--px-cyan);
 }
 
@@ -1704,8 +1719,8 @@
 .cs2-failed h3 {
   margin: 0;
   font-family: var(--px-title);
-  font-size: 15px;
-  font-weight: 400;
+  font-size: 19px;
+  font-weight: 800;
   line-height: 1.5;
 }
 
@@ -1732,9 +1747,10 @@
 .cs2-field span,
 .cs2-field-label {
   font-family: var(--px-title);
-  font-size: 8px;
+  font-size: 11.5px;
   text-transform: uppercase;
   color: var(--px-cyan);
+  font-weight: 800;
 }
 
 .cs2-apptypes {
@@ -1920,8 +1936,9 @@
   height: 24px;
   border: 2px solid var(--px-line-hi);
   font-family: var(--px-title);
-  font-size: 8px;
+  font-size: 11.5px;
   font-style: normal;
+  font-weight: 800;
 }
 
 .cs2-firststeps li.done > i {
@@ -1942,10 +1959,11 @@
   background: var(--px-yellow);
   color: #1b1400;
   font-family: var(--px-title);
-  font-size: 7px;
+  font-size: 11px;
   padding: 5px 6px;
   cursor: pointer;
   box-shadow: 2px 2px 0 var(--px-shadow);
+  font-weight: 800;
 }
 
 /* Globo del tutorial: abajo a la derecha del shell, sin tapar la barra. */
@@ -1972,15 +1990,16 @@
 
 .cs2-tour header span {
   font-family: var(--px-title);
-  font-size: 8px;
+  font-size: 11.5px;
   color: var(--px-yellow);
+  font-weight: 800;
 }
 
 .cs2-tour h4 {
   margin: 0 0 6px;
   font-family: var(--px-title);
-  font-size: 11px;
-  font-weight: 400;
+  font-size: 14px;
+  font-weight: 800;
   line-height: 1.5;
 }
 
@@ -2138,4 +2157,149 @@
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* ─── Guía para principiantes ─────────────────────────────────────────── */
+.cs2-guide h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+.cs2-guide p {
+  margin: 0 0 8px;
+  line-height: 1.55;
+}
+
+.cs2-guide-lead {
+  margin-top: 8px !important;
+  font-size: 15px;
+}
+
+.cs2-guide-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.cs2-guide-steps li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px;
+  border: 2px solid var(--px-line, rgba(255, 255, 255, 0.12));
+  background: var(--px-bg);
+}
+
+.cs2-guide-steps li > i {
+  display: grid;
+  place-items: center;
+  flex: 0 0 32px;
+  height: 32px;
+  background: var(--px-blue);
+  color: #fff;
+}
+
+.cs2-guide-steps li > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.cs2-guide-steps li p {
+  margin: 2px 0 0;
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.cs2-guide-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  border: 2px solid var(--px-line, rgba(255, 255, 255, 0.12));
+  background: var(--px-bg);
+}
+
+.cs2-guide-search input {
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.cs2-glossary {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 8px;
+}
+
+.cs2-glossary > div {
+  padding: 10px;
+  border: 2px solid var(--px-line, rgba(255, 255, 255, 0.12));
+  background: var(--px-bg);
+}
+
+.cs2-glossary dt {
+  font-weight: 800;
+  color: var(--px-cyan);
+  margin-bottom: 4px;
+}
+
+.cs2-glossary dd {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.cs2-guide-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+  line-height: 1.5;
+}
+
+.cs2-guide-learn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cs2-guide-learn > div {
+  flex: 1;
+  min-width: 200px;
+}
+
+.cs2-guide-learn p {
+  margin: 2px 0 0 !important;
+}
+
+.cs2-guide-learn a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+}
+
+.cs2-welcome-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.cs2-guide-back {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
