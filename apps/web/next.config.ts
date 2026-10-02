@@ -16,11 +16,9 @@ const hostname = assetsHostname();
 const nextConfig: NextConfig = {
   /* config options here */
   transpilePackages: ["@codebuddies/visual-effects"],
-  // Versión del build (Heroku expone el commit como SOURCE_VERSION al
-  // compilar). Con esto Next detecta que una pestaña abierta antes de un
-  // deploy pide JS que ya no existe y recarga la página en vez de mostrar
-  // "Algo salió mal" al navegar o al comprobar un ejercicio.
-  deploymentId: process.env.SOURCE_VERSION || process.env.HEROKU_SLUG_COMMIT || undefined,
+  // OJO: no usar `deploymentId` con Turbopack (Next 16.1): carga cada chunk
+  // dos veces (con y sin ?dpl=) y la página nunca hidrata. Las pestañas
+  // viejas tras un deploy se recuperan con src/shared/utils/stale-build.ts.
   images: {
     remotePatterns: hostname
       ? [
