@@ -3,7 +3,6 @@
   "subtitle": "Wähle den Tarif, der zu dir passt",
   "loadError": "Preise konnten nicht geladen werden. Bitte versuche es später erneut.",
   "loginRequired": "Melde dich an, um mit deinem Kauf fortzufahren",
-
   "welcome": {
     "title": "Willkommen bei CodeBuddies Pro",
     "body": "Dein Abo ist jetzt aktiv. Genieße jeden Premium-Vorteil.",
@@ -19,7 +18,6 @@
     "error": "Das Abrechnungsportal konnte nicht geöffnet werden",
     "backToPricing": "Zurück zu den Preisen"
   },
-
   "pro": {
     "name": "CodeBuddies Pro",
     "description": "Unbegrenzter Zugriff auf Kurse, Übungen und Premium-Vorteile.",
@@ -43,7 +41,6 @@
       "Priorisierter Support"
     ]
   },
-
   "certificate": {
     "name": "Offizielles CodeBuddies-Zertifikat",
     "oneTime": "Einmaliger Kauf",
@@ -55,7 +52,6 @@
       "Lebenslanger Zugriff"
     ]
   },
-
   "coins": {
     "title": "Coin-Pakete",
     "subtitle": "Kaufe Coins zum Ausgeben im Spiel-Shop",
@@ -68,5 +64,32 @@
       "coins_3400": "Groß",
       "coins_6000": "Ultimativ"
     }
+  },
+  "boosts": {
+    "title": "Münz-Boosts",
+    "subtitle": "Verdiene eine Zeit lang mehr Münzen beim Spielen. Nur Münzen: XP und Level verdienst du weiterhin durch Lernen.",
+    "soon": "Bald verfügbar",
+    "buy": "Für {price} aktivieren",
+    "active": "Aktiv · endet in {time}",
+    "queued": "Wenn schon einer aktiv ist, startet der neue danach.",
+    "cap": "Zusammen höchstens x{max}.",
+    "personal": {
+      "name": "Persönlicher Boost",
+      "badge": "x{mult} · 24 Std.",
+      "text": "Alle Münzen aus Lektionen, Übungen, Missionen und CodeStudio zählen 24 Stunden lang x{mult}."
+    },
+    "community": {
+      "name": "Boost für alle",
+      "badge": "x{mult} · 1 Std.",
+      "text": "Alle Spieler verdienen 1 Stunde lang x{mult} Münzen. In dieser Stunde bist du Mäzen: dein Name leuchtet in der Ankündigung und in den Rankings."
+    },
+    "banner": {
+      "title": "x{mult} Münz-Boost für alle!",
+      "by": "Dank {name}, Mäzen",
+      "left": "noch {time}",
+      "mine": "Dein x{mult}-Boost · {time}",
+      "cta": "Boosts ansehen"
+    },
+    "sponsor": "Mäzen"
   }
 }

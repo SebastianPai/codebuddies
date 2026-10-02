@@ -687,6 +687,7 @@ model User {
   coinTransactions CoinTransaction[]
   xpTransactions   XPTransaction[]
   coinPurchases    CoinPurchase[]
+  coinBoosts       CoinBoost[]
 
   // Relaciones bidireccionales añadidas
   postComments           PostComment[]
@@ -2733,6 +2734,42 @@ model CoinPurchase {
 
   @@index([userId, status])
   @@index([status, createdAt])
+}
+
+enum CoinBoostScope {
+  PERSONAL
+  COMMUNITY
+}
+
+// Boost de monedas pagado con dinero real (ver modules/boosts). Multiplica
+// SOLO las monedas ganadas jugando (lecciones, ejercicios, misiones,
+// CodeStudio), nunca XP ni nivel: no compra estatus. PERSONAL dura 24 h
+// para quien lo compra; COMMUNITY dura 1 h para todos y le da a quien lo
+// pagó el título de Mecenas mientras está activo. Varios boosts del mismo
+// alcance se encadenan (startsAt = fin del anterior), no se apilan.
+model CoinBoost {
+  id                    String              @id @default(uuid())
+  userId                String
+  scope                 CoinBoostScope
+  package               String
+  multiplier            Float
+  durationMinutes       Int
+  amount                Decimal             @db.Decimal(10, 2)
+  currency              Currency            @default(USD)
+  status                CoinPurchaseStatus  @default(PENDING)
+  provider              PaymentProviderType @default(MOCK)
+  providerTransactionId String?             @unique
+  // Regalado por un admin (promos/eventos): sin pago real.
+  gifted                Boolean             @default(false)
+  startsAt              DateTime?
+  endsAt                DateTime?
+  createdAt             DateTime            @default(now())
+  completedAt           DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([scope, status, endsAt])
+  @@index([userId, status, endsAt])
 }
 
 // Log genérico de webhooks entrantes de cualquier provider de pago, con

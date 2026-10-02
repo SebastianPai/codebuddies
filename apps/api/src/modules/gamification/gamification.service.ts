@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import {
   GamificationRewardType,
   MissionCadence,
@@ -16,6 +16,7 @@ import { UpsertMissionDto } from './dto/upsert-mission.dto';
 import { UpsertMissionCategoryDto } from './dto/upsert-mission-category.dto';
 import { UpsertRewardBundleDto } from './dto/upsert-reward-bundle.dto';
 import { PREMIUM_LOGO_BADGE_ID } from '../badges/badges.constants';
+import { CoinBoostsService } from '../boosts/coin-boosts.service';
 
 export type RewardConfig = {
   type: GamificationRewardType | string;
@@ -28,12 +29,18 @@ export type RewardConfig = {
 
 const STREAK_CONDITIONS = new Set(['MAINTAIN_STREAK', 'CONNECT_STREAK', 'LOGIN_DAYS']);
 
+// Fuentes de monedas que multiplica un boost: lo que se gana jugando en el
+// momento. Logros, pase, ranking o premios de admin se pueden "guardar"
+// para la hora del boost, así que no cuentan.
+const BOOSTABLE_SOURCES = new Set<RewardSourceType>([RewardSourceType.MISSION, RewardSourceType.CODESTUDIO, RewardSourceType.EVENT]);
+
 @Injectable()
 export class GamificationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
     private readonly realtimeService: RealtimeService,
+    @Optional() private readonly coinBoosts?: CoinBoostsService,
   ) {}
 
   async getMissionsForUser(userId: string) {
@@ -793,6 +800,11 @@ export class GamificationService {
       if (rewardType === 'COINS' && amount > 0) {
         await tx.user.update({ where: { id: userId }, data: { coins: { increment: amount } } });
         await tx.coinTransaction.create({ data: { userId, amount, reason: `${sourceType.toLowerCase()}:${sourceLabel}` } });
+        // Boost de monedas (modules/boosts): solo lo que se gana jugando,
+        // nunca premios guardables (logros, pase, ranking, admin...).
+        if (BOOSTABLE_SOURCES.has(sourceType)) {
+          await this.coinBoosts?.grantBonus(tx, userId, amount, `${sourceType.toLowerCase()}:${sourceLabel}`);
+        }
       }
 
       if (rewardType === 'XP' && amount > 0) {

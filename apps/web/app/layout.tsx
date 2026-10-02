@@ -4,6 +4,7 @@ import "react-toastify/dist/ReactToastify.css";
 import type { Metadata, Viewport } from "next";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "../src/config/site";
 import { ThemeProvider } from "next-themes";
+import { BoostBanner } from "@/features/boosts/BoostBanner";
 import { RewardProvider } from "../contexts/RewardContext";
 import { LanguageProvider } from "../src/i18n/LanguageContext";
 import GlobalChatProvider from "../components/chat/GlobalChatProvider";
@@ -94,6 +95,7 @@ export default function RootLayout({
                   {children}
                   <AppToastContainer />
                   <CookieBanner />
+                  <BoostBanner />
                 </GlobalChatProvider>
               </GlobalNotificationsProvider>
             </RewardProvider>

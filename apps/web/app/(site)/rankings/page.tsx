@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Award, Calendar, Coins, Flame, History, Trophy, Zap } from "lucide-react";
+import { Award, CalendarClock, Calendar, Coins, Flame, History, Trophy, Users, Zap } from "lucide-react";
 import { api } from "../../../utils/api";
 import { useAuth } from "../../../hooks/useAuth";
 import { useTranslation } from "../../../src/i18n/useTranslation";
@@ -15,6 +15,8 @@ type RankingEntry = {
   rank: number;
   userId: string;
   username: string;
+  avatar?: string | null;
+  level?: number;
   value: number;
 };
 
@@ -24,6 +26,9 @@ type Board = {
 };
 
 type RankingsResponse = {
+  // Mecenas: pagaron un boost comunitario activo (ver /pricing#boosts).
+  sponsorIds?: string[];
+  topWeeklyXp?: Board;
   topXp: Board;
   topCoins: Board;
   topStreaks: Board;
@@ -55,6 +60,7 @@ interface CurrentSeasonResponse {
 }
 
 const boards = [
+  ["site.topWeeklyXp", "topWeeklyXp", CalendarClock],
   ["site.topXp", "topXp", Zap],
   ["site.topCoins", "topCoins", Coins],
   ["site.topStreaks", "topStreaks", Flame],
@@ -62,12 +68,26 @@ const boards = [
   ["site.topCoinsSpent", "topCoinsSpent", Trophy],
 ] as const;
 
+// Foto de perfil o, si no tiene, la inicial con el color del tema.
+function RankAvatar({ entry }: { entry: RankingEntry }) {
+  if (entry.avatar) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={entry.avatar} alt="" className="h-9 w-9 shrink-0 rounded-full border border-[rgb(var(--border))] object-cover" loading="lazy" />;
+  }
+  return (
+    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[rgb(var(--primary)/0.15)] text-sm font-black uppercase text-[rgb(var(--primary))]">
+      {entry.username.slice(0, 1)}
+    </span>
+  );
+}
+
 export default function RankingsPage() {
   const { user } = useAuth();
   const [rankings, setRankings] = useState<RankingsResponse | null>(null);
   const [status, setStatus] = useState<LoadStatus>("loading");
   const [season, setSeason] = useState<CurrentSeasonResponse | null>(null);
   const t = useTranslation();
+  const sponsorIds = new Set(rankings?.sponsorIds ?? []);
 
   const fetchRankings = useCallback(() => {
     const query = user?.userId ? `?userId=${user.userId}` : "";
@@ -224,23 +244,32 @@ export default function RankingsPage() {
                 {(board?.entries ?? []).map((entry) => {
                   const isCurrent = entry.userId === user?.userId;
                   const podium = resolvePodiumEffect(entry.rank);
+                  const sponsor = sponsorIds.has(entry.userId);
                   const rowContent = (
-                    <div className="flex items-center justify-between p-4">
-                      <div className="min-w-0">
+                    <Link href={`/u/${encodeURIComponent(entry.username)}`} className="flex items-center gap-3 p-3 sm:p-4">
+                      <span className="w-7 shrink-0 text-center font-mono text-sm font-black text-[rgb(var(--secondary-text))]">#{entry.rank}</span>
+                      <RankAvatar entry={entry} />
+                      <div className="min-w-0 flex-1">
                         {podium ? (
                           <RarityText effect={podium.id} as="p" className="truncate font-black">
-                            #{entry.rank} {entry.username}
+                            {entry.username}
                           </RarityText>
                         ) : (
-                          <p className="truncate font-black">
-                            #{entry.rank} {entry.username}
-                          </p>
+                          <p className={`truncate font-black ${sponsor ? "text-[rgb(var(--accent))]" : ""}`}>{entry.username}</p>
                         )}
+                        <p className="flex items-center gap-2 text-xs text-[rgb(var(--secondary-text))]">
+                          {entry.level ? <span>{t("site.rankingLevel", { level: entry.level })}</span> : null}
+                          {sponsor && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-[rgb(var(--accent)/0.18)] px-2 py-0.5 font-black uppercase tracking-wide text-[rgb(var(--accent))]">
+                              <Users size={11} /> {t("pricing.boosts.sponsor")}
+                            </span>
+                          )}
+                        </p>
                       </div>
-                      <p className="font-mono font-black text-[rgb(var(--primary))]">
-                        {entry.value.toLocaleString()}
+                      <p className="shrink-0 font-mono font-black text-[rgb(var(--primary))]">
+                        {entry.value.toLocaleString("en-US")}
                       </p>
-                    </div>
+                    </Link>
                   );
 
                   if (podium) {

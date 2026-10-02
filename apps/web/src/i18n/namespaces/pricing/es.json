@@ -3,7 +3,6 @@
   "subtitle": "Elegi el plan que se adapte a vos",
   "loadError": "No se pudieron cargar los precios. Intenta de nuevo mas tarde.",
   "loginRequired": "Inicia sesion para continuar con la compra",
-
   "welcome": {
     "title": "Bienvenido a CodeBuddies Pro",
     "body": "Tu suscripcion se activo correctamente. Ya podes disfrutar de todos los beneficios premium.",
@@ -19,7 +18,6 @@
     "error": "No se pudo abrir el portal de facturacion",
     "backToPricing": "Volver a precios"
   },
-
   "pro": {
     "name": "CodeBuddies Pro",
     "description": "Acceso ilimitado a cursos, ejercicios y beneficios premium.",
@@ -43,7 +41,6 @@
       "Soporte prioritario"
     ]
   },
-
   "certificate": {
     "name": "Official CodeBuddies Certificate",
     "oneTime": "Pago unico",
@@ -55,7 +52,6 @@
       "Acceso de por vida"
     ]
   },
-
   "coins": {
     "title": "Paquetes de monedas",
     "subtitle": "Compra monedas para usar en la tienda del juego",
@@ -68,5 +64,32 @@
       "coins_3400": "Large",
       "coins_6000": "Ultimate"
     }
+  },
+  "boosts": {
+    "title": "Boosts de monedas",
+    "subtitle": "Gana más monedas jugando por un tiempo. Solo monedas: el XP y tu nivel se siguen ganando aprendiendo.",
+    "soon": "Muy pronto",
+    "buy": "Activar por {price}",
+    "active": "Activo · termina en {time}",
+    "queued": "Si ya tienes uno activo, el nuevo empieza cuando termine.",
+    "cap": "Combinados llegan como máximo a x{max}.",
+    "personal": {
+      "name": "Boost personal",
+      "badge": "x{mult} · 24 h",
+      "text": "Todas las monedas que ganes en lecciones, ejercicios, misiones y CodeStudio valen x{mult} durante 24 horas."
+    },
+    "community": {
+      "name": "Boost para todos",
+      "badge": "x{mult} · 1 h",
+      "text": "Todos los jugadores ganan x{mult} monedas durante 1 hora. Durante esa hora tú eres Mecenas: tu nombre brilla en el anuncio y en los rankings."
+    },
+    "banner": {
+      "title": "¡Boost x{mult} de monedas para todos!",
+      "by": "Gracias a {name}, Mecenas",
+      "left": "quedan {time}",
+      "mine": "Tu boost x{mult} · {time}",
+      "cta": "Ver boosts"
+    },
+    "sponsor": "Mecenas"
   }
 }

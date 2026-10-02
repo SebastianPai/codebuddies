@@ -18,6 +18,7 @@ import { CertificateOrdersRepository } from '../payments/repositories/certificat
 import { PremiumSubscriptionsRepository } from '../subscriptions/repositories/premium-subscriptions.repository';
 import { CertificatesService } from '../certificates/services/certificates.service';
 import { CoinPurchasesService } from '../coins/services/coin-purchases.service';
+import { CoinBoostsService } from '../boosts/coin-boosts.service';
 import { EmailService } from '../email/email.service';
 
 type AnySubscriptionNotification =
@@ -34,6 +35,7 @@ export class PaddleWebhookService {
     private readonly premiumSubscriptionsRepository: PremiumSubscriptionsRepository,
     private readonly certificatesService: CertificatesService,
     private readonly coinPurchasesService: CoinPurchasesService,
+    private readonly coinBoostsService: CoinBoostsService,
     private readonly emailService: EmailService,
   ) {}
 
@@ -190,6 +192,17 @@ export class PaddleWebhookService {
         purchaseId,
         data.id ?? null,
       );
+      return;
+    }
+
+    if (kind === 'coin_boost') {
+      const boostId = data.customData?.orderId as string | undefined;
+      if (!boostId) {
+        this.logger.warn('transaction.completed de boost sin orderId en custom_data');
+        return;
+      }
+      // activate es idempotente (compare-and-swap sobre status).
+      await this.coinBoostsService.activate(boostId, data.id ?? null);
       return;
     }
   }

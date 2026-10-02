@@ -16,6 +16,7 @@ import { getInbox, getMessageRequests } from "../../network/messages";
 import { useThemeAsset } from "../../network/themeAssets";
 import { ThemeImage } from "../ThemeImage/ThemeImage";
 import { CoinIcon } from "../shared/ThemeIcons";
+import BoostChip from "../shared/BoostChip";
 import { useTranslation } from "../../../i18n/useTranslation";
 import { getAssetsUrl } from "../../../config/env";
 
@@ -511,6 +512,7 @@ function LeftSidebar({
                 <strong className="cb-fx-text-goldRank" style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
                   <CoinIcon size={14} />
                   {coins.toLocaleString()}
+                  <BoostChip />
                 </strong>
               </div>
               <div className="currency-card">

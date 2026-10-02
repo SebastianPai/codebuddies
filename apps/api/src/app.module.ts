@@ -33,6 +33,7 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module';
 import { PaddleWebhookModule } from './modules/paddle/paddle-webhook.module';
 import { CoinsModule } from './modules/coins/coins.module';
+import { BoostsModule } from './modules/boosts/boosts.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { ReconciliationModule } from './modules/reconciliation/reconciliation.module';
 import { FraudDetectionModule } from './modules/fraud-detection/fraud-detection.module';
@@ -103,6 +104,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     ContentDiscussionModule,
     PaddleWebhookModule,
     CoinsModule,
+    BoostsModule,
     WebhooksModule,
     ReconciliationModule,
     FraudDetectionModule,

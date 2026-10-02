@@ -1,14 +1,27 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CacheService } from '../../cache/cache.service';
 import { RealtimeService } from '../realtime/realtime.service';
+import { CoinBoostsService } from '../boosts/coin-boosts.service';
 
 type LeaderboardMetric =
   | 'experience'
   | 'coins'
   | 'streak'
   | 'certificates'
-  | 'coinsSpent';
+  | 'coinsSpent'
+  | 'weeklyXp';
+
+type RankingEntry = {
+  rank: number;
+  userId: string;
+  username: string;
+  avatar: string | null;
+  level: number;
+  value: number;
+};
+
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 // HI12/PERF4: los top-10 (y las community-stats) son iguales para
 // cualquier visitante — solo el "currentUserRank" varía por usuario, así
@@ -29,10 +42,11 @@ export class RankingsService {
     private readonly prisma: PrismaService,
     private readonly cacheService: CacheService,
     private readonly realtimeService: RealtimeService,
+    @Optional() private readonly coinBoosts?: CoinBoostsService,
   ) {}
 
   async getRankings(currentUserId?: string) {
-    const [topXp, topCoins, topStreaks, topCertificates, topCoinsSpent] =
+    const [topXp, topCoins, topStreaks, topCertificates, topCoinsSpent, topWeeklyXp] =
       await this.cacheService.getOrSet(
         BOARDS_CACHE_KEY,
         CACHE_TTL_SECONDS,
@@ -43,10 +57,17 @@ export class RankingsService {
             this.topUsersByField('streak'),
             this.topUsersByRelation('certificates'),
             this.topCoinsSpent(),
+            this.topWeeklyXp(),
           ]),
       );
 
     return {
+      // Mecenas (boost comunitario pagado y activo): la web resalta su nombre
+      // en todos los tops mientras dura. Fresco, fuera del cache.
+      sponsorIds: this.coinBoosts ? [...(await this.coinBoosts.activeSponsorIds())] : [],
+      // XP ganado en los últimos 7 días: el top donde alguien nuevo puede
+      // ganarle a quien lleva años jugando.
+      topWeeklyXp: await this.withCurrentUserRank(topWeeklyXp, 'weeklyXp', currentUserId),
       topXp: await this.withCurrentUserRank(topXp, 'experience', currentUserId),
       topCoins: await this.withCurrentUserRank(
         topCoins,
@@ -178,6 +199,8 @@ export class RankingsService {
       select: {
         id: true,
         username: true,
+        avatarUrl: true,
+        level: true,
         experience: true,
         coins: true,
         streak: true,
@@ -188,6 +211,8 @@ export class RankingsService {
       rank: index + 1,
       userId: user.id,
       username: user.username,
+      avatar: user.avatarUrl,
+      level: user.level,
       value: user[field],
     }));
   }
@@ -199,6 +224,8 @@ export class RankingsService {
       select: {
         id: true,
         username: true,
+        avatarUrl: true,
+        level: true,
         _count: { select: { certificates: true } },
       },
     });
@@ -207,6 +234,8 @@ export class RankingsService {
       rank: index + 1,
       userId: user.id,
       username: user.username,
+      avatar: user.avatarUrl,
+      level: user.level,
       value: user._count.certificates,
     }));
   }
@@ -219,30 +248,41 @@ export class RankingsService {
       orderBy: { _sum: { amount: 'asc' } },
       take: 10,
     });
+    return this.entriesFromGroups(grouped.map((row) => ({ userId: row.userId, value: Math.abs(row._sum.amount ?? 0) })));
+  }
+
+  private async topWeeklyXp() {
+    const grouped = await this.prisma.xPTransaction.groupBy({
+      by: ['userId'],
+      where: { amount: { gt: 0 }, createdAt: { gte: new Date(Date.now() - WEEK_MS) } },
+      _sum: { amount: true },
+      orderBy: { _sum: { amount: 'desc' } },
+      take: 10,
+    });
+    return this.entriesFromGroups(grouped.map((row) => ({ userId: row.userId, value: row._sum.amount ?? 0 })));
+  }
+
+  private async entriesFromGroups(rows: Array<{ userId: string; value: number }>): Promise<RankingEntry[]> {
     const users = await this.prisma.user.findMany({
-      where: { id: { in: grouped.map((row) => row.userId) } },
-      select: { id: true, username: true },
+      where: { id: { in: rows.map((row) => row.userId) } },
+      select: { id: true, username: true, avatarUrl: true, level: true },
     });
     const usersById = new Map(users.map((user) => [user.id, user]));
-
-    return grouped.map((row, index) => {
+    return rows.map((row, index) => {
       const user = usersById.get(row.userId);
       return {
         rank: index + 1,
         userId: row.userId,
         username: user?.username ?? 'Unknown',
-        value: Math.abs(row._sum.amount ?? 0),
+        avatar: user?.avatarUrl ?? null,
+        level: user?.level ?? 1,
+        value: row.value,
       };
     });
   }
 
   private async withCurrentUserRank(
-    entries: Array<{
-      rank: number;
-      userId: string;
-      username: string;
-      value: number;
-    }>,
+    entries: RankingEntry[],
     metric: LeaderboardMetric,
     currentUserId?: string,
   ) {
@@ -268,11 +308,31 @@ export class RankingsService {
     if (!user) return null;
 
     if (metric === 'certificates') {
-      return (
-        (await this.prisma.user.count({
-          where: { certificates: { some: {} } },
-        })) + 1
-      );
+      // Antes contaba a todos los que tenían algún certificado: la posición
+      // real es 1 + quienes tienen MÁS certificados que yo.
+      const mine = user._count.certificates;
+      const ahead = await this.prisma.certificate.groupBy({
+        by: ['userId'],
+        _count: { _all: true },
+        having: { userId: { _count: { gt: mine } } },
+      });
+      return ahead.length + 1;
+    }
+    if (metric === 'weeklyXp') {
+      const since = new Date(Date.now() - WEEK_MS);
+      const mine = await this.prisma.xPTransaction.aggregate({
+        where: { userId, amount: { gt: 0 }, createdAt: { gte: since } },
+        _sum: { amount: true },
+      });
+      const myXp = mine._sum.amount ?? 0;
+      if (myXp <= 0) return null;
+      const ahead = await this.prisma.xPTransaction.groupBy({
+        by: ['userId'],
+        where: { amount: { gt: 0 }, createdAt: { gte: since } },
+        _sum: { amount: true },
+        having: { amount: { _sum: { gt: myXp } } },
+      });
+      return ahead.length + 1;
     }
     if (metric === 'coinsSpent') return null;
 

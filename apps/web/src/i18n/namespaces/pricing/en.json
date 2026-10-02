@@ -3,7 +3,6 @@
   "subtitle": "Choose the plan that fits you",
   "loadError": "Couldn't load prices. Please try again later.",
   "loginRequired": "Sign in to continue with your purchase",
-
   "welcome": {
     "title": "Welcome to CodeBuddies Pro",
     "body": "Your subscription is now active. Enjoy every premium perk.",
@@ -19,7 +18,6 @@
     "error": "Couldn't open the billing portal",
     "backToPricing": "Back to pricing"
   },
-
   "pro": {
     "name": "CodeBuddies Pro",
     "description": "Unlimited access to courses, exercises and premium perks.",
@@ -43,7 +41,6 @@
       "Priority support"
     ]
   },
-
   "certificate": {
     "name": "Official CodeBuddies Certificate",
     "oneTime": "One-time purchase",
@@ -55,7 +52,6 @@
       "Lifetime access"
     ]
   },
-
   "coins": {
     "title": "Coin Packs",
     "subtitle": "Buy coins to spend in the game shop",
@@ -68,5 +64,32 @@
       "coins_3400": "Large",
       "coins_6000": "Ultimate"
     }
+  },
+  "boosts": {
+    "title": "Coin boosts",
+    "subtitle": "Earn more coins while you play for a while. Coins only: XP and your level are still earned by learning.",
+    "soon": "Coming soon",
+    "buy": "Activate for {price}",
+    "active": "Active · ends in {time}",
+    "queued": "If you already have one active, the new one starts when it ends.",
+    "cap": "Combined they reach at most x{max}.",
+    "personal": {
+      "name": "Personal boost",
+      "badge": "x{mult} · 24 h",
+      "text": "Every coin you earn from lessons, exercises, missions and CodeStudio is worth x{mult} for 24 hours."
+    },
+    "community": {
+      "name": "Boost for everyone",
+      "badge": "x{mult} · 1 h",
+      "text": "Every player earns x{mult} coins for 1 hour. During that hour you are a Patron: your name shines in the announcement and in the rankings."
+    },
+    "banner": {
+      "title": "x{mult} coin boost for everyone!",
+      "by": "Thanks to {name}, Patron",
+      "left": "{time} left",
+      "mine": "Your x{mult} boost · {time}",
+      "cta": "See boosts"
+    },
+    "sponsor": "Patron"
   }
 }

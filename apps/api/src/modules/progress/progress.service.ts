@@ -3,6 +3,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { ActivityType, Prisma, Role } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -12,6 +13,7 @@ import { ReferralValidationService } from '../referrals/services/referral-valida
 import { computeStreakUpdate } from '../../common/utils/streak.util';
 import { PremiumAccessService } from '../premium-access/premium-access.service';
 import { BattlePassService } from '../battle-pass/services/battle-pass.service';
+import { CoinBoostsService } from '../boosts/coin-boosts.service';
 
 @Injectable()
 export class ProgressService {
@@ -23,6 +25,7 @@ export class ProgressService {
     private readonly referralValidationService: ReferralValidationService,
     private readonly premiumAccessService: PremiumAccessService,
     private readonly battlePassService: BattlePassService,
+    @Optional() private readonly coinBoosts?: CoinBoostsService,
   ) {}
 
   async createProgress(
@@ -178,6 +181,7 @@ export class ProgressService {
 
     const activityType = this.getActivityType(dto);
 
+    let boostBonus = 0;
     const completion = await this.prisma.$transaction(async (tx) => {
       const created = await tx.completion.create({
         data: {
@@ -226,6 +230,8 @@ export class ProgressService {
               reason: `progress:${activityType}`,
             },
           });
+          // Boost de monedas activo (personal o comunitario): extra aparte.
+          boostBonus = (await this.coinBoosts?.grantBonus(tx, userId, coinsToAdd, `progress:${activityType}`)) ?? 0;
         }
       }
 
@@ -255,7 +261,10 @@ export class ProgressService {
     return {
       ...completion,
       xpAdded: xpToAdd,
-      coinsAdded: coinsToAdd,
+      // Incluye el extra del boost para que la tarjeta de recompensa muestre
+      // lo que de verdad llegó; boostBonus lo deja ver por separado.
+      coinsAdded: coinsToAdd + boostBonus,
+      boostBonus,
     };
   }
 

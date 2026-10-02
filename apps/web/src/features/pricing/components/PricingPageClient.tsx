@@ -15,6 +15,7 @@ import { usePricePreview } from "../lib/usePricePreview";
 import { ProPricingCard } from "./ProPricingCard";
 import { CertificateCard } from "./CertificateCard";
 import { CoinPackCard } from "./CoinPackCard";
+import { BoostsSection } from "@/features/boosts/BoostsSection";
 
 type BillingInterval = "monthly" | "yearly";
 
@@ -137,6 +138,20 @@ export function PricingPageClient({ countryCode }: { countryCode?: string }) {
     }
   }
 
+  async function handleBoostCheckout(packageKey: string) {
+    if (!requireAuthOrRedirect()) return;
+    setCheckoutError(null);
+    setCheckingOutKey(packageKey);
+    try {
+      const res = await api.post<{ checkout: { providerPaymentId: string } }>("/boosts/purchase", { packageKey });
+      openOverlayCheckout(res.checkout.providerPaymentId, "/pricing#boosts");
+    } catch {
+      setCheckoutError(t("common.unexpectedError"));
+    } finally {
+      setCheckingOutKey(null);
+    }
+  }
+
   function handleCertificateCta() {
     router.push("/certificates");
   }
@@ -207,6 +222,7 @@ export function PricingPageClient({ countryCode }: { countryCode?: string }) {
           ))}
         </div>
       </section>
+      <BoostsSection onBuy={handleBoostCheckout} checkingOutKey={checkingOutKey} />
     </div>
   );
 }
