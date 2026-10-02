@@ -4,9 +4,10 @@ import { useEffect } from "react";
 import ErrorScreen from "../../components/system/ErrorScreen";
 import { recoverFromStaleBuild } from "@/shared/utils/stale-build";
 
-// Error inesperado dentro de una página del sitio: se muestra dentro del
-// layout (navbar y footer siguen) en vez de la pantalla en blanco de Next.
-export default function SiteError({
+// Error dentro del editor de ejercicios: se muestra dentro del layout (con
+// navbar) en vez de la pantalla global. Si es una versión vieja de la web
+// tras un deploy, recarga sola.
+export default function WorkspaceError({
   error,
   reset,
 }: {

@@ -1,8 +1,18 @@
 "use client";
 
+import { useEffect } from "react";
+import { recoverFromStaleBuild } from "@/shared/utils/stale-build";
+
 // Último recurso: falló el layout raíz (sin providers ni estilos de tema),
 // así que trae su propio <html>/<body> y no puede usar i18n.
-export default function GlobalError({ reset }: { error: Error; reset: () => void }) {
+export default function GlobalError({ error, reset }: { error: Error; reset: () => void }) {
+  // Tras un deploy, una pestaña vieja pide JS que ya no existe: recargar
+  // trae la versión nueva y el usuario ni se entera.
+  useEffect(() => {
+    console.error(error);
+    recoverFromStaleBuild(error);
+  }, [error]);
+
   return (
     <html lang="es">
       <body

@@ -63,7 +63,7 @@ function CelebrationCard({
     achievement: { label: t("gamification.celebration.achievement"), Icon: Trophy },
     level: { label: t("gamification.celebration.levelUp"), Icon: Rocket },
     reward: { label: t("gamification.celebration.reward"), Icon: Sparkles },
-  }[item.kind];
+  }[item.kind] ?? { label: t("gamification.celebration.reward"), Icon: Sparkles };
   const title = item.title ?? (item.kind === "level" ? t("gamification.celebration.levelUpTitle") : t("gamification.celebration.rewardTitle"));
 
   return (

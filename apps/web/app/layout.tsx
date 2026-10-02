@@ -84,8 +84,11 @@ export default function RootLayout({
         <GtmRouteTracker />
         <AdSenseLoader />
         <ThemeProvider attribute="data-theme" defaultTheme="dark">
-          <RewardProvider>
-            <LanguageProvider>
+          {/* LanguageProvider va por fuera: RewardProvider pinta las tarjetas
+              de recompensa (con textos traducidos) y, si quedaba afuera del
+              idioma, la primera recompensa tumbaba la página entera. */}
+          <LanguageProvider>
+            <RewardProvider>
               <GlobalNotificationsProvider>
                 <GlobalChatProvider>
                   {children}
@@ -93,8 +96,8 @@ export default function RootLayout({
                   <CookieBanner />
                 </GlobalChatProvider>
               </GlobalNotificationsProvider>
-            </LanguageProvider>
-          </RewardProvider>
+            </RewardProvider>
+          </LanguageProvider>
         </ThemeProvider>
       </body>
     </html>

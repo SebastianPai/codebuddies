@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useRef, useState } from "react";
+import { Component, createContext, useCallback, useContext, useRef, useState, type ReactNode } from "react";
 import { refreshUserStats } from "../utils/auth";
 import RewardCelebration from "../components/rewards/RewardCelebration";
 
@@ -70,7 +70,9 @@ export function RewardProvider({ children }: { children: React.ReactNode }) {
   return (
     <RewardContext.Provider value={{ reward, showReward, celebrate }}>
       {children}
-      <RewardCelebration items={queue} onDismiss={dismiss} />
+      <CelebrationBoundary>
+        <RewardCelebration items={queue} onDismiss={dismiss} />
+      </CelebrationBoundary>
     </RewardContext.Provider>
   );
 }
@@ -83,4 +85,22 @@ export function useReward() {
   }
 
   return context;
+}
+
+// Una tarjeta de recompensa que falla nunca debe tumbar la página (antes un
+// error acá mostraba "Algo salió mal" al ganar XP): se pierde solo el aviso.
+class CelebrationBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  componentDidCatch(error: unknown) {
+    console.error("RewardCelebration", error);
+  }
+
+  render() {
+    return this.state.failed ? null : this.props.children;
+  }
 }
