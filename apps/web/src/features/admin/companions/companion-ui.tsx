@@ -1,4 +1,5 @@
 "use client";
+import { X } from "lucide-react";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
@@ -708,7 +709,7 @@ export function PhraseList({
             className="text-zinc-500 hover:text-red-400"
             aria-label="Quitar"
           >
-            ✕
+            <X size={14} />
           </button>
         </div>
       ))}

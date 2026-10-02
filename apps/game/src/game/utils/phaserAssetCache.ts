@@ -98,7 +98,7 @@ export function loadTextureOnce(
         lastError = err;
         if (attempt < LOAD_RETRIES) {
           console.warn(
-            `⚠️ Reintentando carga de asset (${attempt}/${LOAD_RETRIES}):`,
+            `Reintentando carga de asset (${attempt}/${LOAD_RETRIES}):`,
             sourceUrl,
           );
           await delay(LOAD_RETRY_DELAY_MS * attempt);
@@ -109,7 +109,7 @@ export function loadTextureOnce(
     const proxyUrl = toProxyUrl(sourceUrl);
     if (proxyUrl) {
       try {
-        console.warn(`⚠️ Carga directa falló, probando vía proxy propio:`, sourceUrl);
+        console.warn(`Carga directa falló, probando vía proxy propio:`, sourceUrl);
         await loadImageOnce(scene, key, proxyUrl);
         if (options.pixelArt !== false && scene.textures.exists(key)) {
           scene.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);

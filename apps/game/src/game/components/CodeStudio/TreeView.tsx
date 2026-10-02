@@ -189,7 +189,13 @@ export default function TreeView({ company, catalog, busy, onBuild, onCancel }: 
             {selected.requires.length > 0 && (
               <p className="cs2-muted">
                 {t("codestudio.tree.requiresList")}{" "}
-                {selected.requires.map((slug) => `${nodeBySlug.get(slug)?.state === "installed" ? "✓" : "✗"} ${featureBySlug.get(slug)?.name ?? slug}`).join(" · ")}
+                {selected.requires.map((slug, index) => (
+                  <span key={slug} style={{ display: "inline-flex", alignItems: "center", gap: 3, marginRight: 8 }}>
+                    {index > 0 && "· "}
+                    {nodeBySlug.get(slug)?.state === "installed" ? <CheckCircle2 size={12} /> : <X size={12} />}
+                    {featureBySlug.get(slug)?.name ?? slug}
+                  </span>
+                ))}
               </p>
             )}
             <div className="cs2-lesson">

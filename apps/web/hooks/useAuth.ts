@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { createElement, useEffect, useState } from "react";
+import { Flame } from "lucide-react";
 import { toast } from "react-toastify";
 import { AUTH_CHANGED_EVENT, getCurrentUser, logout } from "../utils/auth";
 import type { User } from "../utils/auth";
@@ -52,7 +53,9 @@ export function useAuth() {
 
         if (freshUser.streakJustIncreased && !streakToastShown) {
           streakToastShown = true;
-          toast(t("site.streakIncreasedToast", { count: freshUser.streak ?? 0 }));
+          toast(t("site.streakIncreasedToast", { count: freshUser.streak ?? 0 }), {
+            icon: () => createElement(Flame, { size: 18, className: "text-orange-400" }),
+          });
         }
       }
 

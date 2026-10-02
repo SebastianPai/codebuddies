@@ -270,7 +270,7 @@ export class PlayerHandler {
       this.socketToUserId.set(socket.id, userId);
 
       this.logger.log(
-        `✅ Usuario conectado: ${socket.data.user.username} (${socket.id})`,
+        `Usuario conectado: ${socket.data.user.username} (${socket.id})`,
       );
     } catch (err: any) {
       this.logger.error(

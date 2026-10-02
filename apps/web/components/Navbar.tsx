@@ -2,38 +2,7 @@
 
 import Link from "next/link";
 import { useAuth } from "../hooks/useAuth";
-import {
-  Moon,
-  Sun,
-  Menu,
-  X,
-  User,
-  LogOut,
-  LogIn,
-  UserPlus,
-  Settings,
-  BookOpen,
-  Sparkles,
-  Bell,
-  MessageSquare,
-  Users,
-  Trophy,
-  Award,
-  Target,
-  Gift,
-  Home,
-  GraduationCap,
-  Tag,
-  BarChart3,
-  Globe,
-  ChevronDown,
-  Shield,
-  Zap,
-  Flame,
-  Gamepad2,
-  CreditCard,
-  Ticket,
-} from "lucide-react";
+import { Award, BarChart3, Bell, BookOpen, ChevronDown, CreditCard, Flame, Gamepad2, Gift, Globe, GraduationCap, Home, Languages, LogIn, LogOut, Menu, MessageSquare, Moon, Settings, Shield, Sparkles, Sun, Tag, Target, Ticket, Trophy, User, UserPlus, Users, X, Zap } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useCallback, useEffect, useState, useRef } from "react";
 import { usePathname } from "next/navigation";
@@ -46,6 +15,7 @@ import { useGlobalNotifications } from "./notifications/GlobalNotificationsProvi
 import { useThemeAsset } from "../hooks/useThemeAsset";
 import { ThemeImage, THEME_IMAGE_SPRITE_KEYFRAMES } from "./ThemeImage";
 import { RainbowButton } from "@/shared/ui/rainbow-button";
+import { BoostMultiplierChip } from "@/features/boosts/BoostBanner";
 import { CurrencyIcon } from "@/shared/ui/currency-icon";
 import { RarityText } from "@/shared/ui/rarity-text";
 
@@ -53,9 +23,9 @@ const INACTIVE_MS = 5 * 60 * 1000;
 const PRESENCE_SESSION_KEY = "codebuddies:presence-session-id";
 
 const LANGUAGES = [
-  { code: "es", short: "ES", flag: "🇪🇸", label: "Español" },
-  { code: "en-us", short: "EN", flag: "🇺🇸", label: "English" },
-  { code: "de", short: "DE", flag: "🇩🇪", label: "Deutsch" },
+  { code: "es", short: "ES", label: "Español" },
+  { code: "en-us", short: "EN", label: "English" },
+  { code: "de", short: "DE", label: "Deutsch" },
 ];
 
 const mobilePanelVariants = {
@@ -370,7 +340,7 @@ export default function Navbar() {
                             : "text-[rgb(var(--text))] hover:bg-[rgba(var(--background),0.6)]"
                         }`}
                       >
-                        <span>{l.flag}</span> {l.label}
+                        <span className="w-6 font-mono text-[11px] font-black opacity-70">{l.short}</span> {l.label}
                       </button>
                     ))}
                   </motion.div>
@@ -578,7 +548,7 @@ export default function Navbar() {
                             : "text-[rgb(var(--secondary-text))]"
                         }`}
                       >
-                        {l.flag} {l.short}
+                        <Languages size={13} /> {l.short}
                       </button>
                     ))}
                   </div>
@@ -635,6 +605,7 @@ function StatsPill({
       <span className="flex items-center gap-1">
         <CurrencyIcon currency="coins" size={13} />
         <RarityText effect="goldRank">{(user.coins ?? 0).toLocaleString()}</RarityText>
+        <BoostMultiplierChip />
       </span>
       {(user.streak ?? 0) > 0 && (
         <>

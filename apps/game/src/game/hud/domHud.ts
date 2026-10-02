@@ -3,6 +3,7 @@ import type Phaser from "phaser";
 import styles from "./domHud.module.css";
 import type { ChatBubbleTheme } from "./nameplateStyles";
 import { bubbleThemeVars, nameEffectClass } from "./hudStyleUtils";
+import { reactionKey, reactionSvg } from "./reactionIcons";
 
 export { nameEffectClass };
 
@@ -83,8 +84,15 @@ export function createBubbleElement({ message, theme, name, nameEffectId, face, 
 
   const messageEl = document.createElement("span");
   messageEl.className = styles.message;
-  // textContent, nunca innerHTML: el mensaje lo escribe otro jugador.
-  messageEl.textContent = message;
+  const reaction = reactionKey(message);
+  if (reaction) {
+    // Reacción rápida: SVG propio (estático), no el texto del jugador.
+    messageEl.innerHTML = reactionSvg(reaction);
+    messageEl.style.display = "inline-flex";
+  } else {
+    // textContent, nunca innerHTML: el mensaje lo escribe otro jugador.
+    messageEl.textContent = message;
+  }
   text.appendChild(messageEl);
   bubble.appendChild(text);
 

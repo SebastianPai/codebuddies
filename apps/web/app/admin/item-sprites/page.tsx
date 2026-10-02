@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { Combobox } from "@headlessui/react";
-import { HelpCircle, ImageIcon, Ruler, Gauge, Compass } from "lucide-react";
+import { Compass, Gauge, HelpCircle, ImageIcon, Pause, Play, Ruler } from "lucide-react";
 import { api } from "@/shared/api/client";
 import { Tooltip } from "@/shared/ui";
 import { useTranslation } from "../../../src/i18n/useTranslation";
@@ -716,6 +716,7 @@ function ItemSpriteEditor() {
                 : "bg-gray-600 hover:bg-gray-500"
             }`}
           >
+            {isPlaying ? <Pause size={15} className="mr-1 inline align-[-2px]" /> : <Play size={15} className="mr-1 inline align-[-2px]" />}
             {isPlaying ? t("items.pauseButton") : t("items.playButton")}
           </button>
         </div>

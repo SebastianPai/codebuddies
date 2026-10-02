@@ -1,4 +1,5 @@
 "use client";
+import { Pencil } from "lucide-react";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -167,7 +168,7 @@ export default function ButlerPanel({ onClose }: Props) {
                     }}
                     title={t("hud.butler.rename")}
                   >
-                    {butler.name || t("hud.butler.unnamed")} ✎
+                    {butler.name || t("hud.butler.unnamed")} <Pencil size={12} style={{ marginLeft: 4, verticalAlign: -1 }} />
                   </button>
                 )}
                 <p style={{ fontSize: 13, color: "#a1a1aa", marginTop: 2 }}>

@@ -75,7 +75,7 @@ async function main() {
       body: `
         <h1>¡Hola {{username}}!</h1>
         <p>Gracias por registrarte en CodeBuddies. Tu cuenta ({{email}}) ya está lista.</p>
-        <p>¡Nos vemos dentro! 🚀</p>
+        <p>¡Nos vemos dentro!</p>
       `,
       variables: ['username', 'email'],
       active: true,
@@ -89,7 +89,7 @@ async function main() {
       type: 'BIRTHDAY',
       language: 'es',
       name: 'Cumpleaños',
-      subject: '¡Feliz cumpleaños, {{username}}! 🎉',
+      subject: '¡Feliz cumpleaños, {{username}}!',
       body: `
         <h1>¡Feliz cumpleaños, {{username}}!</h1>
         <p>Todo el equipo de CodeBuddies te desea un día increíble. ¡Gracias por aprender con nosotros!</p>

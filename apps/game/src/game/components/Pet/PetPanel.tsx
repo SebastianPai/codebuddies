@@ -1,4 +1,5 @@
 "use client";
+import { Bandage, Droplet, Drumstick, Frown, Meh, Moon, Pencil, Smile, Thermometer, Volleyball } from "lucide-react";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -190,11 +191,11 @@ export default function PetPanel({ onClose }: Props) {
                     }}
                     title={t("hud.pet.rename")}
                   >
-                    {pet.name || t("hud.pet.unnamed")} ✎
+                    {pet.name || t("hud.pet.unnamed")} <Pencil size={12} style={{ marginLeft: 4, verticalAlign: -1 }} />
                   </button>
                 )}
                 <p style={{ fontSize: 13, color: pet.sick ? "#f87171" : "#a1a1aa", marginTop: 2 }}>
-                  {moodLabel}
+                  <MoodIcon mood={pet.mood} /> {moodLabel}
                 </p>
               </div>
             </div>
@@ -213,7 +214,7 @@ export default function PetPanel({ onClose }: Props) {
                 onClick={() => action("feed")}
                 disabled={busy || pet.cooldowns.feed > 0}
               >
-                🍖 {t("hud.pet.feed")}{cd(pet.cooldowns.feed)}
+                <Drumstick size={14} /> {t("hud.pet.feed")}{cd(pet.cooldowns.feed)}
               </Button>
               <Button
                 variant="primary"
@@ -221,7 +222,7 @@ export default function PetPanel({ onClose }: Props) {
                 onClick={() => action("water")}
                 disabled={busy || pet.cooldowns.water > 0}
               >
-                💧 {t("hud.pet.water")}{cd(pet.cooldowns.water)}
+                <Droplet size={14} /> {t("hud.pet.water")}{cd(pet.cooldowns.water)}
               </Button>
               <Button
                 variant="primary"
@@ -229,11 +230,11 @@ export default function PetPanel({ onClose }: Props) {
                 onClick={() => action("play")}
                 disabled={busy || pet.cooldowns.play > 0}
               >
-                🎾 {t("hud.pet.play")}{cd(pet.cooldowns.play)}
+                <Volleyball size={14} /> {t("hud.pet.play")}{cd(pet.cooldowns.play)}
               </Button>
               {pet.sick && (
                 <Button variant="danger" size="sm" onClick={() => run(curePet)} disabled={busy}>
-                  🩹 {t("hud.pet.cure")}
+                  <Bandage size={14} /> {t("hud.pet.cure")}
                 </Button>
               )}
             </div>
@@ -259,4 +260,12 @@ export default function PetPanel({ onClose }: Props) {
       </div>
     </Modal>
   );
+}
+
+// Ícono del ánimo de la mascota (antes era un emoji dentro del texto).
+const MOOD_ICONS = { HAPPY: Smile, CONTENT: Meh, SAD: Frown, SICK: Thermometer, SLEEPING: Moon } as const;
+
+function MoodIcon({ mood }: { mood: string }) {
+  const Icon = MOOD_ICONS[mood as keyof typeof MOOD_ICONS];
+  return Icon ? <Icon size={13} style={{ verticalAlign: -2, marginRight: 2 }} /> : null;
 }

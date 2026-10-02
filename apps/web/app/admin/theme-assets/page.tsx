@@ -384,7 +384,7 @@ function VariantTile({
             : "bg-zinc-800 text-zinc-200 hover:bg-yellow-400 hover:text-black"
         }`}
       >
-        {variant.isActive ? "✓ Activa" : "Usar esta"}
+        {variant.isActive ? <span className="inline-flex items-center gap-1"><Check size={14} /> Activa</span> : "Usar esta"}
       </button>
 
       <div className="absolute -top-1.5 -right-1.5 flex gap-1">

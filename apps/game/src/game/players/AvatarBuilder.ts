@@ -18,7 +18,7 @@ export default class AvatarBuilder {
     slotMap: SlotMap,
     skinColor: number = 0xffffff,
   ) {
-    console.log("[AvatarBuilder PRO] 🚀 build START");
+    console.log("[AvatarBuilder PRO] build START");
 
     const scale = 0.5;
 
@@ -30,7 +30,7 @@ export default class AvatarBuilder {
       const spriteSheet = slot?.sprites?.[0];
       const baseTextureKey = slot.imageUrl;
 
-      console.log("🧩 SLOT:", {
+      console.log("SLOT:", {
         slot: slot.slot,
         base: baseTextureKey,
         anim: spriteSheet?.imageUrl,
@@ -149,6 +149,6 @@ export default class AvatarBuilder {
       };
     }
 
-    console.log("[AvatarBuilder PRO] ✅ Avatar COMPLETO");
+    console.log("[AvatarBuilder PRO] Avatar COMPLETO");
   }
 }

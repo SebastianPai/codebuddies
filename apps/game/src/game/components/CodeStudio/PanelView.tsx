@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, ArrowRight, Check, Flag, Gift, Lock, Scale } from "lucide-react";
+import { AlertTriangle, ArrowRight, Check, Flag, Gift, Lock, Scale, Star } from "lucide-react";
 import type { Catalog, CompanyView, ViewKey } from "./types";
 import { ProgressBar, Sparkline, Stat, goalProgress, goalValue, money, nextStep, num, pct } from "./ui";
 import DailyMissions from "./DailyMissions";
@@ -132,7 +132,7 @@ export default function PanelView({ company, catalog, onNavigate, onOpenDecision
         />
         <Stat
           label={t("codestudio.kpi.rating")}
-          value={`★ ${company.rating.toFixed(1)}`}
+          value={<><Star size={14} fill="currentColor" style={{ verticalAlign: -2 }} /> {company.rating.toFixed(1)}</>}
           tone={company.rating < 3 ? "bad" : company.rating >= 4 ? "good" : undefined}
           hint={t("codestudio.kpi.satisfaction", { value: Math.round(company.satisfaction) })}
         />

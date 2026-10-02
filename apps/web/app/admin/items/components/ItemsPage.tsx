@@ -1,4 +1,5 @@
 "use client";
+import { Star } from "lucide-react";
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -312,7 +313,7 @@ function ItemCard({
           }`}
         >
           {item.isDefaultForSlot === slot
-            ? t("items.isDefaultForSlotBadge", { slot })
+            ? <span className="inline-flex items-center gap-1"><Star size={13} fill="currentColor" /> {t("items.isDefaultForSlotBadge", { slot })}</span>
             : t("items.setAsDefaultButton", { slot })}
         </button>
       )}

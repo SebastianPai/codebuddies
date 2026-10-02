@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Heart, Sparkles, Zap } from "lucide-react";
+import { BadgeCheck, Heart, Sparkles, Zap } from "lucide-react";
 import { api } from "../../../utils/api";
 import CachedImage from "../../../components/shared/CachedImage";
 import { useTranslation } from "../../../src/i18n/useTranslation";
@@ -239,7 +239,7 @@ export default function MarketplacePage() {
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-[rgb(var(--secondary-text))]">
                         {t("site.byCreatorPrefix")} <b className="text-[rgb(var(--text))]">{item.creator.user.username}</b>
-                        {item.creator.verified ? " ✓" : ""}
+                        {item.creator.verified ? <BadgeCheck size={14} className="ml-1 inline align-[-2px] text-[rgb(var(--primary))]" aria-label="verified" /> : null}
                       </span>
                       <span className="rounded-full bg-[rgb(var(--button))] px-3 py-1 font-black text-[rgb(var(--button-text))]">
                         {item.priceCoins} Coins

@@ -23,20 +23,7 @@ import { api } from "../../../utils/api";
 import { useTranslation } from "../../../src/i18n/useTranslation";
 import { Button, ErrorState, Skeleton } from "../../../src/shared/ui";
 
-const EMOJIS = [
-  "👍",
-  "❤️",
-  "😂",
-  "😮",
-  "😢",
-  "🔥",
-  "👏",
-  "🚀",
-  "✅",
-  "💡",
-  "🎉",
-  "👀",
-];
+import { REACTION_KEYS, ReactionIcon } from "@/shared/ui/reaction-icon";
 
 type UserLite = {
   id: string;
@@ -878,7 +865,7 @@ const MessageList = memo(function MessageList({
                       key={`${reaction.userId}-${reaction.emoji}`}
                       className="rounded-full bg-black/10 px-1.5 text-xs"
                     >
-                      {reaction.emoji}
+                      <ReactionIcon value={reaction.emoji} size={13} />
                     </span>
                   ))}
                 </div>
@@ -992,13 +979,14 @@ function EmojiPicker({
     <div
       className={`z-30 grid w-52 grid-cols-6 gap-1 rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-2 shadow-xl ${className}`}
     >
-      {EMOJIS.map((emoji) => (
+      {REACTION_KEYS.map((key) => (
         <button
-          key={emoji}
-          onClick={() => onPick(emoji)}
-          className="rounded-md p-1.5 text-lg hover:bg-[rgb(var(--border)/0.4)]"
+          key={key}
+          onClick={() => onPick(key)}
+          aria-label={key}
+          className="flex items-center justify-center rounded-md p-1.5 hover:bg-[rgb(var(--border)/0.4)]"
         >
-          {emoji}
+          <ReactionIcon value={key} size={18} />
         </button>
       ))}
     </div>

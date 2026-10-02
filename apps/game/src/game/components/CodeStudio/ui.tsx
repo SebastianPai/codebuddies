@@ -44,7 +44,7 @@ export function goalValue(goal: Pick<StageGoal, "format">, value: number) {
     case "percent":
       return `${value.toFixed(1)}%`;
     case "flag":
-      return value >= 1 ? "✓" : "—";
+      return value >= 1 ? "1/1" : "0/1";
     default:
       return num(value);
   }

@@ -1,4 +1,5 @@
 "use client";
+import { PawPrint } from "lucide-react";
 
 import { useEffect, useMemo, useState } from "react";
 
@@ -65,7 +66,7 @@ export default function PetSpriteCell({
         className="grid place-items-center text-2xl"
         aria-hidden
       >
-        🐾
+        <PawPrint size={Math.round(size * 0.45)} />
       </div>
     );
   }

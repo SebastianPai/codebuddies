@@ -111,7 +111,7 @@ export class GameGateway
   ) {}
 
   afterInit() {
-    this.logger.log('🔥 GameGateway iniciado correctamente');
+    this.logger.log('GameGateway iniciado correctamente');
   }
 
   // ====================== CONEXIÓN ======================

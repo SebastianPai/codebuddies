@@ -1,17 +1,18 @@
 "use client";
 
 import { memo, useRef, useState } from "react";
-import { Palette, Send } from "lucide-react";
+import { Flame, Hand, HandHeart, Laugh, Palette, Send } from "lucide-react";
+import { reactionToken } from "../../hud/reactionIcons";
 import "./BottomBar.css";
 import ChatThemePopover from "./ChatThemePopover";
 import { audioManager } from "../../audio/AudioManager";
 import { useTranslation } from "../../../i18n/useTranslation";
 
 const QUICK_REACTIONS = [
-  { emoji: "👋", textKey: "hud.bottomBar.reactionWave", action: "wave" },
-  { emoji: "😂", textKey: "hud.bottomBar.reactionLaugh", action: "laugh" },
-  { emoji: "🔥", textKey: "hud.bottomBar.reactionFire", action: "fire" },
-  { emoji: "✌️", textKey: "hud.bottomBar.reactionBye", action: "bye" },
+  { Icon: Hand, textKey: "hud.bottomBar.reactionWave", action: "wave" },
+  { Icon: Laugh, textKey: "hud.bottomBar.reactionLaugh", action: "laugh" },
+  { Icon: Flame, textKey: "hud.bottomBar.reactionFire", action: "fire" },
+  { Icon: HandHeart, textKey: "hud.bottomBar.reactionBye", action: "bye" },
 ];
 
 function BottomBar() {
@@ -85,9 +86,9 @@ function BottomBar() {
                 key={reaction.action}
                 className="composer-reaction-btn"
                 data-label={t(reaction.textKey)}
-                onClick={() => sendReaction(reaction.emoji)}
+                onClick={() => sendReaction(reactionToken(reaction.action))}
               >
-                <span>{reaction.emoji}</span>
+                <reaction.Icon size={15} />
               </button>
             ))}
           </div>

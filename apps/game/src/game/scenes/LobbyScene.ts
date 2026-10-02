@@ -224,7 +224,7 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
         this.canUpdateRoomThumbnail = data.room.ownerId === user?.userId;
 
         const layout = data.room.layout;
-        if (!layout) return console.error("❌ Sala sin layout");
+        if (!layout) return console.error("Sala sin layout");
 
         // El tileset real de la sala se toma de layoutJson.tilesets[0] (lo que
         // sube el admin al crear/editar el layout) en vez de asumir siempre el
@@ -244,7 +244,7 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
               .then((key) => ({ name: tilesetDef.name as string, key: key || DEFAULT_TILESET_KEY }))
               .catch((err) => {
                 console.error(
-                  "❌ No se pudo cargar el tileset de la sala, uso el default:",
+                  "No se pudo cargar el tileset de la sala, uso el default:",
                   err,
                 );
                 return { name: DEFAULT_TILESET_NAME, key: DEFAULT_TILESET_KEY };
@@ -464,7 +464,7 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
         height: this.selectedSurfaceTexture.height,
       });
 
-      console.log("🎨 Pintando todo el suelo");
+      console.log("Pintando todo el suelo");
 
       this.selectedSurfaceTexture = null;
     });
@@ -877,7 +877,7 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     this.map = this.make.tilemap({ key: "dynamic-map" });
 
     const tileset = this.map.addTilesetImage(this.currentTilesetName, this.currentTilesetKey);
-    if (!tileset) return console.error("❌ Tileset no encontrado");
+    if (!tileset) return console.error("Tileset no encontrado");
 
     const compositionCenter = this.getCompositionCenter();
     const offsetX =
@@ -1087,7 +1087,7 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     // colocar nada. Antes esto seguía adelante y reventaba más abajo en el
     // primer tileToWorldXY sobre una capa inexistente.
     if (!this.isoGrid || !this.groundLayer) {
-      console.error("❌ No se pudo construir la sala: falta el tilemap/tileset");
+      console.error("No se pudo construir la sala: falta el tilemap/tileset");
       return;
     }
 
@@ -1100,7 +1100,7 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     // del Container: ModularPlayer deriva ese origen midiendo el avatar.
     const spawn = this.resolveSpawnPosition();
     if (!spawn) {
-      console.error("❌ La sala no tiene ninguna casilla de suelo donde aparecer");
+      console.error("La sala no tiene ninguna casilla de suelo donde aparecer");
       return;
     }
     const [spawnX, spawnY] = spawn;
@@ -1190,7 +1190,7 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
 
     this.furnitureSockets.initialize();
 
-    console.log("🔥 PLAYER SOCKET INIT");
+    console.log("PLAYER SOCKET INIT");
 
     this.playerSockets = new PlayerSocketSystem(this, socket);
 
@@ -1224,7 +1224,7 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
           .then((textureKey) => spawnRoomItem(item, textureKey))
           .catch((err) =>
             console.error(
-              "❌ No se pudo cargar el mueble, se omite:",
+              "No se pudo cargar el mueble, se omite:",
               item?.item?.imageUrl,
               err,
             ),
@@ -1232,7 +1232,7 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
       ),
     )
       .then(() => this.roomItems.updateDepths())
-      .catch((err) => console.error("❌ Error cargando los muebles", err));
+      .catch((err) => console.error("Error cargando los muebles", err));
 
     this.placementValidator = new PlacementValidator();
     this.placementValidator.configure(this.isoGrid, this.roomItems);
@@ -1308,7 +1308,7 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
   }
 
   private setupPathfinding() {
-    if (!this.isoGrid) return console.error("❌ No isoGrid");
+    if (!this.isoGrid) return console.error("No isoGrid");
 
     this.navGrid = new NavGrid(this.isoGrid);
     // La rejilla nace vacía de muebles; los que ya estén cargados (y los que
@@ -1386,7 +1386,7 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     if (this.stuckAttempts < LobbyScene.MAX_STUCK_ATTEMPTS) return false;
 
     merr(
-      "⛔ CORTE DE SEGURIDAD:", this.stuckAttempts,
+      "CORTE DE SEGURIDAD:", this.stuckAttempts,
       `repaths seguidos sin avanzar (${kind}). Se detiene el movimiento.`,
       { current, next, pathTarget: this.pathTarget, escaping: this.escaping },
     );

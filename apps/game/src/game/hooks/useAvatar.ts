@@ -44,12 +44,12 @@ export function useAvatar(socket: Socket | null) {
 
     // 🔥 handlers tipados
     const handleAvatar = (data: ParsedAvatar) => {
-      console.log("🔥 Avatar recibido:", data);
+      console.log("Avatar recibido:", data);
       setAvatar(data);
     };
 
     const handleUpdate = (data: { playerId: string; avatar: ParsedAvatar }) => {
-      console.log("🔄 Avatar update:", data);
+      console.log("Avatar update:", data);
       setAvatar(data.avatar);
     };
 

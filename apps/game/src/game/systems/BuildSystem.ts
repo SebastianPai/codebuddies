@@ -68,7 +68,7 @@ export default class BuildSystem {
         // promesa rechazada sin manejar: no aparecía preview, no se podía
         // colocar nada, y no había ningún log claro de por qué.
         console.error(
-          "❌ No se pudo cargar la textura del item a construir:",
+          "No se pudo cargar la textura del item a construir:",
           imageUrl,
           err,
         );

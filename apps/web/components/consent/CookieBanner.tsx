@@ -71,7 +71,7 @@ export default function CookieBanner() {
             <div className="min-w-0 flex-1">
               <div className="flex items-start justify-between gap-2">
                 <h2 id="cookie-banner-title" className="text-base font-black text-[rgb(var(--text))]">
-                  {t("site.cookies.title")}
+                  <Cookie size={18} className="mr-1.5 inline align-[-3px]" />{t("site.cookies.title")}
                 </h2>
                 {readConsent() && (
                   <button

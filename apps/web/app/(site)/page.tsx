@@ -3,18 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import {
-  Terminal,
-  Cpu,
-  Code2,
-  Database,
-  Flame,
-  Zap,
-  ChevronRight,
-  ArrowRight,
-  PlayCircle,
-  ShieldCheck,
-} from "lucide-react";
+import { ArrowRight, Brain, ChevronRight, Code2, Cpu, Database, Flame, Newspaper, PlayCircle, ShieldCheck, Terminal, Zap } from "lucide-react";
 import { api } from "../../utils/api";
 import { useTranslation } from "../../src/i18n/useTranslation"; // ← Asegúrate que la ruta sea correcta
 import { WorldPulseBar } from "../../src/features/world-pulse/world-pulse-bar";
@@ -40,12 +29,12 @@ type CommunityStats = {
 
 // Componente FactCard estilo "Recorte de Periódico"
 function NewspaperFact({
-  emoji,
+  icon,
   title,
   text,
   id,
 }: {
-  emoji: string;
+  icon: React.ReactNode;
   title: string;
   text: string;
   id: string;
@@ -59,7 +48,7 @@ function NewspaperFact({
             <span className="font-mono text-[10px] font-bold uppercase tracking-tighter bg-black text-[#e4e0d7] px-2">
               DESCLASIFICADO: {id}
             </span>
-            <span className="text-2xl">{emoji}</span>
+            <span className="flex h-8 w-8 items-center justify-center">{icon}</span>
           </div>
           <h3 className="font-serif text-2xl font-black uppercase mb-3 leading-none tracking-tighter">
             {title}
@@ -430,13 +419,13 @@ export default function BrutalistLanding() {
               </h2>
               <NewspaperFact
                 id="NEURO-01"
-                emoji="🧠"
+                icon={<Brain size={26} strokeWidth={2.25} />}
                 title={t.landing.facts.brainTitle}
                 text={t.landing.facts.brainText}
               />
               <NewspaperFact
                 id="EDU-99"
-                emoji="🗞️"
+                icon={<Newspaper size={26} strokeWidth={2.25} />}
                 title={t.landing.facts.learningTitle}
                 text={t.landing.facts.learningText}
               />

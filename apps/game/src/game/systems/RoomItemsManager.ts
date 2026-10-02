@@ -148,7 +148,7 @@ export default class RoomItemsManager {
 
   addItem(payload: RoomItemPayload, texture: string) {
     if (!this.scene.textures.exists(texture)) {
-      console.error("❌ TEXTURA NO CARGADA", texture);
+      console.error("TEXTURA NO CARGADA", texture);
       return null;
     }
 

@@ -286,12 +286,12 @@ export default function PublicProfilePage({
         <Stat
           icon={<Flame />}
           label={t("site.currentStreakLabel")}
-          value={`${profile.currentStreak} 🔥`}
+          value={profile.currentStreak}
         />
         <Stat
           icon={<Flame />}
           label={t("site.bestStreakLabel")}
-          value={`${profile.bestStreak} 🔥`}
+          value={profile.bestStreak}
         />
         <Stat label={t("site.coursesCompletedLabel")} value={profile.coursesCompleted} />
         <Stat label={t("site.certificates")} value={profile.certificatesEarned} />

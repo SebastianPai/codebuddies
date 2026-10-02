@@ -1,6 +1,6 @@
 "use client";
 
-import { Lock, Megaphone, Sparkles, TrendingDown } from "lucide-react";
+import { Lock, Megaphone, Sparkles, Star, TrendingDown } from "lucide-react";
 import type { Catalog, CompanyView } from "./types";
 import { Stat, money, num, pct } from "./ui";
 import { useTranslation } from "../../../i18n/useTranslation";
@@ -31,7 +31,7 @@ export default function MarketingView({ company, catalog, busy, onLaunch }: Prop
           hint={m.ltv > 0 ? t("codestudio.marketing.ltvHint", { arpu: money(m.arpu), churn: pct(m.churn, 1) }) : t("codestudio.marketing.noMonetization")}
         />
         <Stat label={t("codestudio.marketing.discount")} value={pct(m.cacDiscount)} hint={t("codestudio.marketing.discountHint")} />
-        <Stat label={t("codestudio.marketing.ratingEffect")} value={`★ ${company.rating.toFixed(1)}`} hint={t("codestudio.marketing.ratingHint")} />
+        <Stat label={t("codestudio.marketing.ratingEffect")} value={<><Star size={14} fill="currentColor" style={{ verticalAlign: -2 }} /> {company.rating.toFixed(1)}</>} hint={t("codestudio.marketing.ratingHint")} />
       </section>
 
       {offline && <p className="cs2-alert cs2-alert-warn">{t("codestudio.marketing.offline")}</p>}

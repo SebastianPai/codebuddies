@@ -720,7 +720,7 @@ export default function Shop({ socket, inventory = [], onClose, username = "" }:
                 (item.type === "BACKGROUND" ||
                   item.type === "PET" ||
                   item.type === "BUTLER")
-                  ? `${displayName} ✓`
+                  ? displayName
                   : displayName
               }
               description={item.description}

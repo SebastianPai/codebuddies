@@ -58,14 +58,14 @@ export default class FurniturePlacementSystem {
     const ty = tile.y;
 
     if (!this.placementValidator.canPlace(tx, ty, item, this.buildSystem.getRotation())) {
-      console.warn("❌ No se puede colocar aquí");
+      console.warn("No se puede colocar aquí");
 
       return;
     }
 
     const socket = (this.scene.game as any).socket;
 
-    console.log("🚀 ENVIANDO ITEM", {
+    console.log("ENVIANDO ITEM", {
       roomId: (this.scene.game as any).roomId,
       itemId: item.id,
       x: tx,

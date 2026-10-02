@@ -128,11 +128,11 @@
     "bringOut": "Bring to room",
     "putAway": "Put away",
     "enterRoomFirst": "Enter a room to bring it out.",
-    "mood_HAPPY": "Happy 😺",
-    "mood_CONTENT": "Content 🙂",
-    "mood_SAD": "Sad 😿",
-    "mood_SICK": "Sick 🤒",
-    "mood_SLEEPING": "Sleeping 💤"
+    "mood_HAPPY": "Happy",
+    "mood_CONTENT": "Content",
+    "mood_SAD": "Sad",
+    "mood_SICK": "Sick",
+    "mood_SLEEPING": "Sleeping"
   },
   "butler": {
     "title": "My butler",

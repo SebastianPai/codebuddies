@@ -128,11 +128,11 @@
     "bringOut": "Sacar a la sala",
     "putAway": "Guardar",
     "enterRoomFirst": "Entrá a una sala para sacarla.",
-    "mood_HAPPY": "Feliz 😺",
-    "mood_CONTENT": "Tranquila 🙂",
-    "mood_SAD": "Triste 😿",
-    "mood_SICK": "Enferma 🤒",
-    "mood_SLEEPING": "Durmiendo 💤"
+    "mood_HAPPY": "Feliz",
+    "mood_CONTENT": "Tranquila",
+    "mood_SAD": "Triste",
+    "mood_SICK": "Enferma",
+    "mood_SLEEPING": "Durmiendo"
   },
   "butler": {
     "title": "Mi mayordomo",

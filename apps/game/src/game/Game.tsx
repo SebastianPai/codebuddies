@@ -432,14 +432,14 @@ export default function Game() {
     if (joinTimeoutRef.current) clearTimeout(joinTimeoutRef.current);
     joinTimeoutRef.current = setTimeout(() => setJoiningRoomId(null), 15000);
 
-    console.log("🔥 ROOM GUARDADO", roomId);
+    console.log("ROOM GUARDADO", roomId);
 
     (window as any).currentRoomId = roomId;
     if (gameInstance) {
       (gameInstance as any).roomId = roomId;
     }
 
-    console.log("🔥 ROOM ACTUAL", (window as any).currentRoomId);
+    console.log("ROOM ACTUAL", (window as any).currentRoomId);
 
     // 🔥 GUARDAR ROOM ACTUAL
     (window as any).currentRoomId = roomId;
@@ -452,7 +452,7 @@ export default function Game() {
   const handleEquipAvatarItem = (item: any, color?: number) => {
     if (!socket) return;
 
-    console.log("🧢 Equipando:", item);
+    console.log("Equipando:", item);
 
     socket.emit("avatar:equip", {
       slot: item.avatarData.slot,
@@ -794,7 +794,7 @@ export default function Game() {
           inventory={inventory}
           onClose={() => setShowInventory(false)}
           onPlaceWorldItem={(item) => {
-            console.log("🏠 Modo construcción:", item);
+            console.log("Modo construcción:", item);
 
             setShowInventory(false);
 
