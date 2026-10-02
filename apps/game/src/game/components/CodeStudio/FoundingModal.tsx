@@ -48,7 +48,7 @@ export default function FoundingModal({ catalog, profile, onFound, onClose }: Pr
   };
 
   return (
-    <Modal title={t("codestudio.found.title")} onClose={onClose}>
+    <Modal className="cs2-modal" title={t("codestudio.found.title")} onClose={onClose}>
       <div className="cs2-detail cs2-found">
         <label className="cs2-field">
           <span>{t("codestudio.found.nameLabel")}</span>

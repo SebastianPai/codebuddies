@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
-import { Coins } from "lucide-react";
+
 import { api } from "@/shared/api/client";
 import { useTranslation } from "../../../src/i18n/useTranslation";
 import { Pagination } from "../../../src/shared/ui";
 
+import { CurrencyIcon } from "@/shared/ui/currency-icon";
 interface CoinPurchase {
   id: string;
   package: string;
@@ -84,7 +85,7 @@ export default function AdminCoinsPage() {
   return (
     <div className="p-10 space-y-6">
       <div className="flex items-center gap-3">
-        <Coins className="text-yellow-400" />
+        <CurrencyIcon currency="coins" className="text-yellow-400" />
         <div>
           <h1 className="text-3xl font-bold text-yellow-400">{t("admin.coinsEconomyNav")}</h1>
           <p className="mt-1 text-sm text-zinc-500">{t("admin.coinsPageDescription")}</p>

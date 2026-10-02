@@ -4,27 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import {
-  Zap,
-  Coins,
-  ChevronLeft,
-  ChevronRight,
-  ArrowLeft,
-  ArrowRight,
-  RotateCcw,
-  AlertTriangle,
-  Rewind,
-  FastForward,
-  Bookmark,
-  BookmarkCheck,
-  CheckCircle2,
-  XCircle,
-  Circle,
-  Check,
-  BookOpen,
-  Sparkles,
-  Loader2,
-} from "lucide-react";
+import { Zap, ChevronLeft, ChevronRight, ArrowLeft, ArrowRight, RotateCcw, AlertTriangle, Rewind, FastForward, Bookmark, BookmarkCheck, CheckCircle2, XCircle, Circle, Check, BookOpen, Sparkles, Loader2 } from "lucide-react";
 import { fetcher } from "../../../../../../utils/fetcher";
 import { useReward } from "../../../../../../contexts/RewardContext";
 import { QuizExercise } from "../../../../../../src/types/exercise";
@@ -40,6 +20,7 @@ import {
   trackToolAction,
 } from "../../../../../../components/analytics/tool-tracking";
 
+import { CurrencyIcon } from "@/shared/ui/currency-icon";
 interface ExtendedQuizExercise extends QuizExercise {
   prevExerciseId?: string | null;
   nextExerciseId?: string | null;
@@ -554,7 +535,7 @@ export default function QuizExercisePage() {
                               <Zap size={14} /> +{xpGained} XP
                             </span>
                             <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgb(var(--primary)/0.4)] bg-[rgb(var(--primary)/0.12)] px-3 py-1.5 text-sm font-black text-[rgb(var(--primary-text))]">
-                              <Coins size={14} /> +{coinsGained}
+                              <CurrencyIcon currency="coins" size={14} /> +{coinsGained}
                             </span>
                           </motion.div>
                         )}
@@ -736,7 +717,7 @@ export default function QuizExercisePage() {
                     <Zap size={14} /> +{xpGained} XP
                   </span>
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgb(var(--primary)/0.4)] bg-[rgb(var(--primary)/0.12)] px-3 py-1.5 text-sm font-black text-[rgb(var(--primary-text))]">
-                    <Coins size={14} /> +{coinsGained}
+                    <CurrencyIcon currency="coins" size={14} /> +{coinsGained}
                   </span>
                 </div>
               </div>

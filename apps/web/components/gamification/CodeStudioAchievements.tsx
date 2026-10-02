@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowUpRight, CalendarCheck, Check, Coins, Gamepad2, Lock, Sparkles, Trophy } from "lucide-react";
+import { ArrowUpRight, CalendarCheck, Check, Gamepad2, Lock, Sparkles } from "lucide-react";
 import { api } from "../../utils/api";
 import { getGameUrl } from "../../src/config/env";
 import { useLanguage } from "../../src/i18n/LanguageContext";
 import { useTranslation } from "../../src/i18n/useTranslation";
 
+import { AchievementIcon, CurrencyIcon } from "@/shared/ui/currency-icon";
 // Logros de CodeStudio (el simulador de startups del juego) en la web: se
 // ven bloqueados/desbloqueados con la pista de cómo conseguir cada uno, y
 // un botón abre el juego directo en CodeStudio (?open=codestudio&view=…,
@@ -110,7 +111,7 @@ export default function CodeStudioAchievements() {
           <div className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--background))] p-4">
             <div className="flex items-center justify-between text-xs font-black uppercase text-[rgb(var(--secondary-text))]">
               {t("gamification.codestudio.progress")}
-              <Trophy size={15} className="text-[rgb(var(--primary))]" />
+              <AchievementIcon size={15} className="text-[rgb(var(--primary))]" />
             </div>
             <p className="mt-2 text-2xl font-black">
               {data.summary.unlocked}
@@ -201,7 +202,7 @@ export default function CodeStudioAchievements() {
                   </span>
                   {item.coins > 0 && (
                     <span className="inline-flex items-center gap-1 rounded-full bg-[rgb(var(--border)/0.6)] px-2.5 py-1">
-                      <Coins size={12} /> {item.coins}
+                      <CurrencyIcon currency="coins" size={12} /> {item.coins}
                     </span>
                   )}
                 </div>

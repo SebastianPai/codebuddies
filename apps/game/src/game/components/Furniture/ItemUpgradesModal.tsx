@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Check, Coins, Lock, Sparkles } from "lucide-react";
+import { Check, Lock, Sparkles } from "lucide-react";
 import Modal from "../shared/Modal";
 import Button from "../shared/Button";
 import { apiGet, apiPost } from "../../network/http";
 import { useTranslation } from "../../../i18n/useTranslation";
 import styles from "./ItemUpgradesModal.module.css";
 
+import { CoinIcon } from "../shared/ThemeIcons";
 type Upgrade = {
   id: string;
   name: string;
@@ -136,7 +137,7 @@ export default function ItemUpgradesModal({
                   </span>
                 ) : (
                   <Button variant="primary" size="sm" onClick={() => void buy(upgrade)} disabled={buying !== null}>
-                    <Coins size={13} /> {buying === upgrade.id ? "…" : upgrade.priceCoins}
+                    <CoinIcon size={13} /> {buying === upgrade.id ? "…" : upgrade.priceCoins}
                   </Button>
                 )}
               </div>

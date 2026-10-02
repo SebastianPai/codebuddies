@@ -4,12 +4,13 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { sileo, Toaster } from "sileo";
-import { Coins, Zap, Gift } from "lucide-react";
+import { Zap, Gift } from "lucide-react";
 import { api } from "../../utils/api";
 import { useAuth } from "../../hooks/useAuth";
 import { getNotificationIcon } from "./notificationIcons";
 import { useReward } from "../../contexts/RewardContext";
 
+import { CurrencyIcon } from "@/shared/ui/currency-icon";
 type RewardsSummary = {
   xp: number;
   coins: number;
@@ -80,7 +81,7 @@ function NotificationDescription({ notification }: { notification: RealtimeNotif
         ) : null}
         {rewards.coins > 0 ? (
           <span className="inline-flex items-center gap-1 text-yellow-500">
-            <Coins size={14} /> +{rewards.coins}
+            <CurrencyIcon currency="coins" size={14} /> +{rewards.coins}
           </span>
         ) : null}
         {rewards.items.map((item, index) => (

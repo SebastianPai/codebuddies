@@ -30,7 +30,8 @@
     "dayHint": "1 real minute = 1 day in your startup. Time only runs while you have it open.",
     "level": "Level {level}",
     "levelHint": "Your account level: the same one as the platform. Level up by studying and playing to unlock app types and more starting cash.",
-    "navigation": "CodeStudio sections"
+    "navigation": "CodeStudio sections",
+    "tutorial": "Show tutorial"
   },
   "welcome": {
     "title": "Build your startup from scratch",
@@ -60,7 +61,9 @@
     "debtAlert": "In the red: {days} days left to get back to positive or the company goes bankrupt. Let people go, raise prices or raise money.",
     "chartUsers": "Active users",
     "chartProfit": "Daily profit",
-    "activity": "What's happening"
+    "activity": "What's happening",
+    "goalDone": "Done",
+    "goalPending": "Pending"
   },
   "next": {
     "decision": "You have a pending decision: {title}",
@@ -322,5 +325,55 @@
     "resets": "New ones in {hours}h {minutes}m",
     "bonus": "Complete all 3: +{xp} XP and {coins} extra coins",
     "bonusDone": "Daily bonus collected! Come back tomorrow for more."
+  },
+  "firstSteps": {
+    "title": "First steps",
+    "progress": "{done}/{total}",
+    "go": "Go",
+    "landing": "Build the Landing page",
+    "auth": "Build Login",
+    "core": "Build the core feature",
+    "server": "Get a server",
+    "hire": "Hire your first employee",
+    "campaign": "Launch your first campaign"
+  },
+  "tour": {
+    "label": "Tutorial {step}/{total}",
+    "next": "Next",
+    "back": "Back",
+    "skip": "Skip",
+    "done": "Let's play!",
+    "panel": {
+      "title": "Dashboard",
+      "text": "Your stage, the goals to level up and your numbers. The \"What now?\" button always tells you the next step."
+    },
+    "tree": {
+      "title": "Feature tree",
+      "text": "Build features for your app. Start with Landing, Login and the core feature: without them nobody uses your app."
+    },
+    "bugs": {
+      "title": "Bugs",
+      "text": "Bugs lower your rating and scare users away. Read the evidence, pick the right cause and learn how to prevent them."
+    },
+    "team": {
+      "title": "Team",
+      "text": "Hire people to build faster and fix bugs. Careful: salaries are paid every day."
+    },
+    "infra": {
+      "title": "Servers",
+      "text": "Without a server your app goes down when users arrive. Upgrade it when capacity runs short."
+    },
+    "marketing": {
+      "title": "Marketing",
+      "text": "Campaigns bring users but cost money. If your app is bad, they leave just as fast."
+    },
+    "finance": {
+      "title": "Finance",
+      "text": "Set prices and raise funding. If your cash stays negative for too long, you go bankrupt."
+    },
+    "career": {
+      "title": "Career",
+      "text": "Your achievements and level. XP earned here also raises your CodeBuddies level."
+    }
   }
 }

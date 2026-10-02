@@ -93,7 +93,7 @@ export default function TeamView({ company, catalog, busy, onHire, onFire }: Pro
       </section>
 
       {firing && (
-        <Modal title={t("codestudio.team.fireTitle", { name: firing.name })} onClose={() => setFiring(null)}>
+        <Modal className="cs2-modal" title={t("codestudio.team.fireTitle", { name: firing.name })} onClose={() => setFiring(null)}>
           <div className="cs2-detail">
             <p>{t("codestudio.team.fireText", { severance: money(firing.severance), salary: money(firing.salary) })}</p>
             <div className="cs2-inline">

@@ -1,9 +1,10 @@
 "use client";
 
 import { useReward } from "../contexts/RewardContext";
-import { Zap, Coins } from "lucide-react";
+import { Zap } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
+import { CurrencyIcon } from "@/shared/ui/currency-icon";
 export default function RewardBar() {
   const { reward } = useReward();
 
@@ -22,7 +23,7 @@ export default function RewardBar() {
           </div>
 
           <div className="flex items-center gap-1 text-yellow-300 font-bold">
-            <Coins size={16} />+{reward.coins}
+            <CurrencyIcon currency="coins" size={16} />+{reward.coins}
           </div>
         </motion.div>
       )}

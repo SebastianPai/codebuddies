@@ -15,6 +15,7 @@ import type { MissionsPayload } from "../../../components/gamification/gamificat
 import { useTranslation } from "../../../src/i18n/useTranslation";
 import { useTrackToolUsed, trackToolAction } from "../../../components/analytics/tool-tracking";
 
+import { CurrencyIcon } from "@/shared/ui/currency-icon";
 export default function MissionsPage() {
   const t = useTranslation();
   useTrackToolUsed("missions", "gamification");
@@ -88,7 +89,7 @@ export default function MissionsPage() {
           <Metric icon={<Target size={16} />} label={t("gamification.completedCount")} value={data.summary.completed} />
           <Metric icon={<Award size={16} />} label={t("gamification.pendingCount")} value={data.summary.pending} />
           <Metric icon={<Zap size={16} />} label="XP" value={data.summary.xpEarned} />
-          <Metric icon={<Coins size={16} />} label="Coins" value={data.summary.coinsEarned} />
+          <Metric icon={<CurrencyIcon currency="coins" size={16} />} label="Coins" value={data.summary.coinsEarned} />
           <Metric icon={<Gift size={16} />} label={t("gamification.objectsCount")} value={data.summary.objectsEarned} />
           <Metric icon={<Trophy size={16} />} label={t("gamification.levelLabel")} value={data.summary.level} />
           <Metric icon={<Award size={16} />} label={t("gamification.claimedCount")} value={data.summary.claimed} />

@@ -3,6 +3,7 @@
 import { CalendarCheck, Check, Gift } from "lucide-react";
 import type { Profile } from "./types";
 import { ProgressBar, num } from "./ui";
+import { CoinIcon } from "../shared/ThemeIcons";
 import { useTranslation } from "../../../i18n/useTranslation";
 
 // Misiones del día: 3 metas chicas (fácil, media, difícil) y un bono por
@@ -29,7 +30,7 @@ export default function DailyMissions({ daily, compact = false }: { daily: Profi
               <div className="cs2-daily-row">
                 <b>{mission.label}</b>
                 <small>
-                  +{mission.xp} XP{mission.coins > 0 ? ` · ${t("codestudio.common.coins", { count: mission.coins })}` : ""}
+                  +{mission.xp} XP{mission.coins > 0 && <> · <CoinIcon size={11} /> {mission.coins}</>}
                 </small>
               </div>
               {!mission.done && (

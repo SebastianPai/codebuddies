@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { sileo } from "sileo";
-import { Award, CalendarDays, Plus, Rocket, Wallet } from "lucide-react";
+import { Award, CalendarDays, CircleHelp, Plus, Rocket, Wallet } from "lucide-react";
 import {
   cancelCodeStudioDevelopment,
   chooseCodeStudioDecision,
@@ -34,6 +34,7 @@ import SettingsView from "./SettingsView";
 import FailedView from "./FailedView";
 import FoundingModal from "./FoundingModal";
 import DecisionModal from "./DecisionModal";
+import Tour, { TOUR_STEPS, tourSeen } from "./Tour";
 import { useTranslation } from "../../../i18n/useTranslation";
 import { useLanguage } from "../../../i18n/LanguageContext";
 import { celebrate } from "../Rewards/celebrate";
@@ -70,6 +71,8 @@ export default function CodeStudio({ initialView }: { initialView?: string }) {
   const [error, setError] = useState("");
   const [showFound, setShowFound] = useState(false);
   const [showDecision, setShowDecision] = useState(false);
+  // Paso del tutorial abierto (null = cerrado).
+  const [tourStep, setTourStep] = useState<number | null>(null);
   const seenEventsRef = useRef<Map<string, Set<string>>>(new Map());
   const pollingRef = useRef(false);
 
@@ -155,6 +158,20 @@ export default function CodeStudio({ initialView }: { initialView?: string }) {
       document.removeEventListener("visibilitychange", onVisible);
     };
   }, [selectedId, applyCompany, lang]);
+
+  // El tutorial sale solo la primera vez que hay una empresa activa.
+  const hasActiveCompany = !!company && company.status !== "FAILED";
+  useEffect(() => {
+    if (!hasActiveCompany || tourSeen()) return;
+    setTourStep(0);
+    setView(TOUR_STEPS[0]);
+  }, [hasActiveCompany]);
+
+  const goTourStep = (step: number) => {
+    setTourStep(step);
+    setView(TOUR_STEPS[step]);
+  };
+  const tourView = tourStep !== null ? TOUR_STEPS[tourStep] : null;
 
   // Abre la decisión sola la primera vez que aparece.
   const lastDecisionRef = useRef<string | null>(null);
@@ -247,6 +264,18 @@ export default function CodeStudio({ initialView }: { initialView?: string }) {
           </div>
         )}
 
+        {company && !failed && (
+          <button
+            type="button"
+            className="cs2-icon-btn"
+            onClick={() => goTourStep(0)}
+            aria-label={t("codestudio.header.tutorial")}
+            title={t("codestudio.header.tutorial")}
+          >
+            <CircleHelp size={16} />
+          </button>
+        )}
+
         <button type="button" className="cs2-level-chip" onClick={() => setView("career")} title={t("codestudio.header.levelHint")}>
           <Award size={15} />
           <span>{t("codestudio.header.level", { level: profile.level })}</span>
@@ -259,7 +288,7 @@ export default function CodeStudio({ initialView }: { initialView?: string }) {
           {nav.map((item) => {
             const badge = item.key === "bugs" ? company.bugs.length : item.key === "panel" && company.pendingDecision ? 1 : 0;
             return (
-              <button key={item.key} type="button" className={view === item.key ? "active" : ""} onClick={() => setView(item.key)}>
+              <button key={item.key} type="button" className={`${view === item.key ? "active" : ""} ${tourView === item.key ? "tour-target" : ""}`.trim()} onClick={() => setView(item.key)}>
                 <item.icon size={16} />
                 <span>{t(item.labelKey)}</span>
                 {badge > 0 && <em>{badge}</em>}
@@ -350,6 +379,8 @@ export default function CodeStudio({ initialView }: { initialView?: string }) {
           </>
         )}
       </main>
+
+      {tourStep !== null && company && !failed && <Tour step={tourStep} onStep={goTourStep} onClose={() => setTourStep(null)} />}
 
       {showFound && <FoundingModal catalog={studio.catalog} profile={profile} onFound={found} onClose={() => setShowFound(false)} />}
       {showDecision && company?.pendingDecision && !failed && (

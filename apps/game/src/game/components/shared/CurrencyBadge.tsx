@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Coins, Gem, Gift, Star, type LucideIcon } from "lucide-react";
 
 import styles from "./CurrencyBadge.module.css";
+import { CoinIcon } from "./ThemeIcons";
 import { useTranslation } from "../../../i18n/useTranslation";
 
 type Currency = "coins" | "gems" | "premium" | "free";
@@ -95,7 +96,7 @@ export default function CurrencyBadge({ currency, amount, size = "md", className
       aria-label={showAmount ? `${amount?.toLocaleString() ?? 0} ${label}` : label}
     >
       <span className={`${styles.icon} ${styles[currency] ?? ""}`} aria-hidden="true">
-        <Icon size={size === "sm" ? 12 : 15} />
+        {currency === "coins" ? <CoinIcon size={size === "sm" ? 12 : 15} /> : <Icon size={size === "sm" ? 12 : 15} />}
       </span>
       {showAmount ? (
         <span

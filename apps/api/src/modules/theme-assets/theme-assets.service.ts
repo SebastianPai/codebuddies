@@ -18,6 +18,10 @@ function clamp(value: number, min: number, max: number): number {
 // nueva imagen administrable, sin migraciones nuevas.
 const SLOT_REGISTRY: { key: string; label: string; category: string }[] = [
   { key: 'LOGO', label: 'Logo principal', category: 'Marca' },
+  // Íconos de la economía: se usan en TODA la web y el juego (saldo, precios,
+  // recompensas, avisos de logro). Cuadrados, idealmente pixel art.
+  { key: 'COIN_ICON', label: 'Ícono de moneda', category: 'Marca' },
+  { key: 'ACHIEVEMENT_ICON', label: 'Ícono de logro', category: 'Marca' },
   { key: 'ROOM_DOOR', label: 'Puerta de Salas', category: 'Juego' },
   { key: 'HOME_HERO_PHOTO', label: 'Foto — Home (polaroid)', category: 'Marketing' },
   { key: 'AUTH_HERO_PHOTO', label: 'Foto — Login / Registro', category: 'Marketing' },

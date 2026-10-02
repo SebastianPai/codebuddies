@@ -12,6 +12,7 @@ import {
 import type { RewardLedgerEntry } from "../../../components/gamification/gamification-types";
 import { useTranslation } from "../../../src/i18n/useTranslation";
 
+import { CurrencyIcon } from "@/shared/ui/currency-icon";
 type RewardsPayload = {
   items: RewardLedgerEntry[];
   total: number;
@@ -109,7 +110,7 @@ export default function RewardsPage() {
             </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
-            <Metric icon={<Coins size={16} />} label="Coins" value={data?.summary.coins ?? 0} />
+            <Metric icon={<CurrencyIcon currency="coins" size={16} />} label="Coins" value={data?.summary.coins ?? 0} />
             <Metric icon={<Zap size={16} />} label="XP" value={data?.summary.xp ?? 0} />
             <Metric icon={<Gift size={16} />} label={t("gamification.objectsCount")} value={data?.summary.objects ?? 0} />
           </div>

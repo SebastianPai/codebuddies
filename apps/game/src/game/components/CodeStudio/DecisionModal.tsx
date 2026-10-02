@@ -15,7 +15,7 @@ type Props = {
 export default function DecisionModal({ decision, busy, onChoose, onClose }: Props) {
   const t = useTranslation();
   return (
-    <Modal title={decision.title} onClose={onClose}>
+    <Modal className="cs2-modal" title={decision.title} onClose={onClose}>
       <div className="cs2-detail">
         <p>{decision.description}</p>
         <p className="cs2-muted">

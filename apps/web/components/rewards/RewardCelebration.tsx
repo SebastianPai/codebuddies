@@ -2,12 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowRight, Coins, Gift, Rocket, Sparkles, Trophy, X, Zap } from "lucide-react";
+import { ArrowRight, Gift, Rocket, Sparkles, Trophy, X, Zap } from "lucide-react";
 import { ThemeImage, THEME_IMAGE_SPRITE_KEYFRAMES } from "../ThemeImage";
 import { useThemeAsset } from "../../hooks/useThemeAsset";
 import { useTranslation } from "../../src/i18n/useTranslation";
 import type { Celebration } from "../../contexts/RewardContext";
 
+import { AchievementIcon, CurrencyIcon } from "@/shared/ui/currency-icon";
 // Aviso de recompensa/logro: una tarjeta propia con el logo de CodeBuddies
 // en vez de agrandar el navbar. Arriba a la derecha bajo el navbar (en el
 // celular, a lo ancho con margen de 16px), apilable, se cierra sola y la
@@ -88,7 +89,7 @@ function CelebrationCard({
             <ThemeImage asset={logo} fallbackSrc="/robot-head.png" alt="CodeBuddies" size={36} className="h-9 w-9 object-contain" />
           </div>
           <span className="absolute -bottom-1.5 -right-1.5 flex h-6 w-6 items-center justify-center rounded-full border-2 border-[rgb(var(--card))] bg-[rgb(var(--button))] text-[rgb(var(--button-text))]">
-            <meta.Icon size={12} />
+            {item.kind === "achievement" ? <AchievementIcon size={12} /> : <meta.Icon size={12} />}
           </span>
         </div>
 
@@ -106,7 +107,7 @@ function CelebrationCard({
               )}
               {item.coins > 0 && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-[rgb(var(--accent)/0.16)] px-2.5 py-1 text-[rgb(var(--accent))]">
-                  <Coins size={12} /> +{item.coins}
+                  <CurrencyIcon currency="coins" size={12} /> +{item.coins}
                 </span>
               )}
               {item.items?.map((label) => (

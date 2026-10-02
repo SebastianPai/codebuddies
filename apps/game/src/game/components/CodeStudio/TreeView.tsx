@@ -148,7 +148,7 @@ export default function TreeView({ company, catalog, busy, onBuild, onCancel }: 
       )}
 
       {selected && selectedNode && (
-        <Modal title={selected.name} onClose={() => setSelected(null)}>
+        <Modal className="cs2-modal" title={selected.name} onClose={() => setSelected(null)}>
           <div className="cs2-detail">
             <p>{selected.description}</p>
             {selectedNode.fit !== 1 && (

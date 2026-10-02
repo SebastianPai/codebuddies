@@ -4,12 +4,13 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Check, Coins, Lock, Sparkles, Zap } from "lucide-react";
+import { Check, Lock, Sparkles, Zap } from "lucide-react";
 import { api } from "../../../../src/shared/api";
 import { ProgressBar, Skeleton } from "../../../../src/shared/ui";
 import { classNames } from "../../../../src/shared/utils/class-names";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
 
+import { CurrencyIcon } from "@/shared/ui/currency-icon";
 interface LearningPathCourseNode {
   id: string;
   order: number;
@@ -217,7 +218,7 @@ function PathMapNode({
               <Zap size={13} className="text-[rgb(var(--primary))]" /> +{course.xpReward}
             </span>
             <span className="inline-flex items-center gap-1">
-              <Coins size={13} className="text-[rgb(var(--primary))]" /> +{course.coinsReward}
+              <CurrencyIcon currency="coins" size={13} className="text-[rgb(var(--primary))]" /> +{course.coinsReward}
             </span>
           </div>
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Coins, Flag, Gift, Rocket, Sparkles, Trophy, X, Zap } from "lucide-react";
+import { Flag, Gift, Rocket, Sparkles, Trophy, X, Zap } from "lucide-react";
 import { useThemeAsset } from "../../network/themeAssets";
 import { ThemeImage } from "../ThemeImage/ThemeImage";
 import { getAssetsUrl } from "../../../config/env";
@@ -9,6 +9,7 @@ import { useTranslation } from "../../../i18n/useTranslation";
 import { CELEBRATE_EVENT, type CelebrationInput } from "./celebrate";
 import "./RewardCelebration.css";
 
+import { AchievementIcon, CoinIcon } from "../shared/ThemeIcons";
 // Aviso propio de logros/recompensas del juego, con el logo de CodeBuddies:
 // reemplaza al toast genérico para todo lo que sea "ganaste algo".
 // Arriba a la derecha (en pantallas chicas, a lo ancho), apilable (máx. 3),
@@ -86,7 +87,7 @@ function CelebrationCard({ item, logo, onDismiss }: { item: Item; logo: ReturnTy
         <div className="cb-celebration-logo">
           <ThemeImage asset={logo} fallbackSrc={DEFAULT_LOGO_URL} alt="CodeBuddies" size={34} className="cb-celebration-logo-img" />
           <span className="cb-celebration-badge">
-            <Icon size={12} />
+            {item.kind === "achievement" ? <AchievementIcon size={12} /> : <Icon size={12} />}
           </span>
         </div>
         <div className="cb-celebration-text">
@@ -102,7 +103,7 @@ function CelebrationCard({ item, logo, onDismiss }: { item: Item; logo: ReturnTy
               )}
               {(item.coins ?? 0) > 0 && (
                 <span className="coins">
-                  <Coins size={12} /> +{item.coins}
+                  <CoinIcon size={12} /> +{item.coins}
                 </span>
               )}
               {item.items?.map((label) => (

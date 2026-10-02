@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, memo, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Editor from "@monaco-editor/react";
+import { useTheme } from "next-themes";
 
 import {
   BookOpen,
@@ -49,15 +50,15 @@ relative
 overflow-hidden
 rounded-[28px]
 border
-border-white/[0.06]
-bg-[#0b0b0b]/90
+border-[rgb(var(--border))]
+bg-[rgb(var(--card)/0.94)]
 backdrop-blur-2xl
-shadow-[0_0_40px_rgba(250,204,21,0.05)]
+shadow-[0_10px_40px_rgba(0,0,0,0.12)]
 before:absolute
 before:inset-0
 before:rounded-[28px]
 before:border
-before:border-white/[0.03]
+before:border-[rgb(var(--border)/0.4)]
 before:pointer-events-none
 `;
 
@@ -91,6 +92,7 @@ const EditorContent = memo(
     onUserEdit,
   }: any) => {
     const t = useTranslation();
+    const { resolvedTheme } = useTheme();
     const handleChange = useCallback(
       (value: string | undefined) => {
         const newValue = value ?? "";
@@ -117,16 +119,19 @@ const EditorContent = memo(
       else setJsCode(starterCode);
     }, [starterCode, starterTab, setHtmlCode, setCssCode, setJsCode]);
 
+    // Monaco no lee las variables CSS: hay que darle su propio tema.
+    const editorTheme = resolvedTheme === "light" || resolvedTheme === "pink" ? "light" : "vs-dark";
+
     return (
       <div className={`${panelClass} h-full flex flex-col`}>
         {/* HEADER */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-white/[0.05]">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-[rgb(var(--border))]">
           <div className="flex items-center gap-2">
             <div className="text-yellow-400">
               <Sparkles size={18} />
             </div>
 
-            <h2 className="text-white font-semibold tracking-wide text-lg">
+            <h2 className="text-[rgb(var(--text))] font-semibold tracking-wide text-lg">
               {t("site.codeExerciseYourCodeTitle")}
             </h2>
           </div>
@@ -147,7 +152,7 @@ const EditorContent = memo(
                   ${
                     activeTab === tab
                       ? "bg-yellow-400 text-black"
-                      : "bg-white/[0.03] border border-white/[0.06] text-gray-400 hover:bg-white/[0.06]"
+                      : "bg-[rgb(var(--background))] border border-[rgb(var(--border))] text-[rgb(var(--secondary-text))] hover:bg-[rgb(var(--border)/0.5)]"
                   }
                 `}
               >
@@ -161,7 +166,7 @@ const EditorContent = memo(
         <div className="flex-1 overflow-hidden">
           <Editor
             height="100%"
-            theme="vs-dark"
+            theme={editorTheme}
             language={activeTab === "js" ? "javascript" : activeTab}
             value={
               activeTab === "html"
@@ -192,21 +197,21 @@ const EditorContent = memo(
         </div>
 
         {/* FOOT */}
-        <div className="px-6 py-4 border-t border-white/[0.05] flex justify-end">
+        <div className="px-6 py-4 border-t border-[rgb(var(--border))] flex justify-end">
           <button
             onClick={handleReset}
             className="
             h-11
             px-5
             rounded-2xl
-            bg-white/[0.03]
+            bg-[rgb(var(--background))]
             border
-            border-white/[0.06]
-            text-white
+            border-[rgb(var(--border))]
+            text-[rgb(var(--text))]
             flex
             items-center
             gap-2
-            hover:bg-white/[0.06]
+            hover:bg-[rgb(var(--border)/0.5)]
             transition-all
           "
           >
@@ -381,7 +386,11 @@ export default function FullWidthConfidentialWorkspace() {
 
   useEffect(() => {
     const timeout = setTimeout(() => {
-      const assertions = (exercise?.solutionCode || "").trim();
+      const solution = (exercise?.solutionCode || "").trim();
+      // solutionCode puede ser verificaciones assert(...) o la respuesta
+      // modelo (HTML/CSS/JS). Ejecutar la respuesta modelo como JS era lo que
+      // mostraba "Unexpected token '<'". El servidor valida ambos casos.
+      const assertions = /\bassert\s*\(/.test(solution) ? solution : "";
 
       const doc = `
 <!DOCTYPE html>
@@ -507,6 +516,7 @@ try {
         "";
       const res = (await api.post(`/exercises/${exercise.id}/code/submit`, {
         code: submittedCode,
+        lang: apiLang,
         timeSpentSeconds,
       })) as any;
 
@@ -553,7 +563,7 @@ try {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-[#070707] flex items-center justify-center text-yellow-400 text-2xl font-semibold">
+      <div className="fixed inset-0 bg-[rgb(var(--background))] flex items-center justify-center text-yellow-400 text-2xl font-semibold">
         <Cpu className="animate-pulse mr-4" />
         {t("site.codeExerciseLoadingCore")}
       </div>
@@ -562,7 +572,7 @@ try {
 
   if (error || !exercise) {
     return (
-      <div className="fixed inset-0 bg-[#070707] flex items-center justify-center text-red-400">
+      <div className="fixed inset-0 bg-[rgb(var(--background))] flex items-center justify-center text-red-400">
         {t("site.codeExerciseLoadError")}
       </div>
     );
@@ -582,11 +592,11 @@ try {
 
   const InstructionsContent = () => (
     <div className={`${panelClass} h-full overflow-y-auto`}>
-      <div className="px-6 py-5 border-b border-white/[0.05]">
+      <div className="px-6 py-5 border-b border-[rgb(var(--border))]">
         <div className="flex items-center gap-3">
           <BookOpen className="text-yellow-400" size={20} />
 
-          <h2 className="text-white font-semibold text-lg">{t("site.codeExerciseInstructionsTitle")}</h2>
+          <h2 className="text-[rgb(var(--text))] font-semibold text-lg">{t("site.codeExerciseInstructionsTitle")}</h2>
         </div>
       </div>
 
@@ -614,20 +624,20 @@ try {
 
   const PreviewContent = () => (
     <div className={`${panelClass} h-full flex flex-col`}>
-      <div className="px-6 py-5 border-b border-white/[0.05] flex items-center gap-3">
+      <div className="px-6 py-5 border-b border-[rgb(var(--border))] flex items-center gap-3">
         <Eye className="text-yellow-400" size={18} />
 
-        <h2 className="text-white font-semibold text-lg">{t("site.codeExerciseResultTitle")}</h2>
+        <h2 className="text-[rgb(var(--text))] font-semibold text-lg">{t("site.codeExerciseResultTitle")}</h2>
       </div>
 
-      <div className="flex-1 overflow-hidden rounded-b-[28px] bg-black">
+      <div className="flex-1 overflow-hidden rounded-b-[28px] bg-white">
         <PreviewFrame srcDoc={previewDoc} />
       </div>
     </div>
   );
 
   return (
-    <div className="h-[calc(100vh-110px)] overflow-hidden bg-[#070707] text-white rounded-[32px] relative">
+    <div className="h-[calc(100vh-110px)] overflow-hidden bg-[rgb(var(--background))] text-[rgb(var(--text))] rounded-[32px] relative">
       {/* GRID */}
       <div
         className="absolute inset-0 opacity-[0.04]"
@@ -675,7 +685,7 @@ try {
                 <InstructionsContent />
               </Panel>
 
-              <Separator className="w-[1px] bg-white/[0.05]" />
+              <Separator className="w-[1px] bg-[rgb(var(--border))]" />
 
               <Panel defaultSize={40} minSize={30}>
                 <EditorContent
@@ -694,7 +704,7 @@ try {
                 />
               </Panel>
 
-              <Separator className="w-[1px] bg-white/[0.05]" />
+              <Separator className="w-[1px] bg-[rgb(var(--border))]" />
 
               <Panel defaultSize={30} minSize={20}>
                 <PreviewContent />
@@ -704,25 +714,25 @@ try {
         </main>
 
         {/* FOOTER */}
-        <footer className="h-24 rounded-[28px] border border-white/[0.05] bg-black/40 backdrop-blur-xl flex items-center justify-between px-8 gap-6">
+        <footer className="h-24 rounded-[28px] border border-[rgb(var(--border))] bg-[rgb(var(--card)/0.85)] backdrop-blur-xl flex items-center justify-between px-8 gap-6">
           <div className="min-w-0 text-sm font-medium truncate">
             {completed ? (
-              <span className="text-green-400 flex items-center gap-2">
+              <span className="text-emerald-500 flex items-center gap-2">
                 <CheckCircle size={18} />
                 {t("site.exerciseCompletedMessage")} (+{xpGained} XP, +
                 {coinsGained} coins)
               </span>
             ) : checkResult === "pass" ? (
-              <span className="text-green-400 flex items-center gap-2">
+              <span className="text-emerald-500 flex items-center gap-2">
                 <CheckCircle size={18} />
                 {t("site.codeExerciseCoreActivatedAlert")}
               </span>
             ) : checkResult === "fail" ? (
-              <span className="text-red-400 truncate">
+              <span className="text-red-500 line-clamp-2">
                 {checkMessage || t("site.codeExerciseReviewCodeAlert")}
               </span>
             ) : (
-              <span className="text-gray-500">
+              <span className="text-[rgb(var(--secondary-text))]">
                 {t("site.codeExerciseYourCodeTitle")}
               </span>
             )}
@@ -745,18 +755,18 @@ try {
                 h-12
                 px-6
                 rounded-2xl
-                bg-white/[0.03]
+                bg-[rgb(var(--background))]
                 border
-                border-white/[0.06]
-                text-gray-300
+                border-[rgb(var(--border))]
+                text-[rgb(var(--text))]
                 flex
                 items-center
                 gap-2
-                hover:bg-white/8
+                hover:bg-[rgb(var(--border)/0.5)]
                 transition-all
                 disabled:opacity-40
-                disabled:text-gray-500
-                disabled:hover:bg-white/3
+                disabled:text-[rgb(var(--secondary-text))]
+                disabled:hover:bg-[rgb(var(--background))]
               "
             >
               <ChevronLeft size={16} />
@@ -810,8 +820,8 @@ try {
                 hover:scale-[1.02]
                 transition-all
                 disabled:opacity-40
-                disabled:bg-white/3
-                disabled:text-gray-500
+                disabled:bg-[rgb(var(--background))]
+                disabled:text-[rgb(var(--secondary-text))]
                 disabled:hover:scale-100
               "
             >

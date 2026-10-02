@@ -30,7 +30,8 @@
     "dayHint": "1 echte Minute = 1 Tag in deinem Startup. Die Zeit läuft nur, solange es geöffnet ist.",
     "level": "Level {level}",
     "levelHint": "Dein Kontolevel: dasselbe wie auf der Plattform. Steig durch Lernen und Spielen auf und schalte App-Typen und mehr Startkapital frei.",
-    "navigation": "CodeStudio-Bereiche"
+    "navigation": "CodeStudio-Bereiche",
+    "tutorial": "Tutorial ansehen"
   },
   "welcome": {
     "title": "Bau dein Startup von null auf",
@@ -60,7 +61,9 @@
     "debtAlert": "Im Minus: noch {days} Tage, um wieder ins Plus zu kommen, sonst ist die Firma pleite. Entlasse Leute, erhöhe die Preise oder sammle Kapital ein.",
     "chartUsers": "Aktive Nutzer",
     "chartProfit": "Tagesgewinn",
-    "activity": "Was gerade passiert"
+    "activity": "Was gerade passiert",
+    "goalDone": "Erledigt",
+    "goalPending": "Offen"
   },
   "next": {
     "decision": "Eine Entscheidung wartet: {title}",
@@ -322,5 +325,55 @@
     "resets": "Neue in {hours} Std. {minutes} Min.",
     "bonus": "Schaffe alle 3: +{xp} XP und {coins} Extra-Coins",
     "bonusDone": "Tagesbonus kassiert! Komm morgen für mehr wieder."
+  },
+  "firstSteps": {
+    "title": "Erste Schritte",
+    "progress": "{done}/{total}",
+    "go": "Los",
+    "landing": "Baue die Landingpage",
+    "auth": "Baue den Login",
+    "core": "Baue die Kernfunktion",
+    "server": "Miete einen Server",
+    "hire": "Stelle deine erste Person ein",
+    "campaign": "Starte deine erste Kampagne"
+  },
+  "tour": {
+    "label": "Tutorial {step}/{total}",
+    "next": "Weiter",
+    "back": "Zurück",
+    "skip": "Überspringen",
+    "done": "Los geht's!",
+    "panel": {
+      "title": "Übersicht",
+      "text": "Deine Phase, die Ziele zum Aufsteigen und deine Zahlen. Der Button „Und jetzt?“ zeigt dir immer den nächsten Schritt."
+    },
+    "tree": {
+      "title": "Funktionsbaum",
+      "text": "Baue Funktionen für deine App. Fang mit Landingpage, Login und Kernfunktion an: ohne sie nutzt niemand deine App."
+    },
+    "bugs": {
+      "title": "Bugs",
+      "text": "Bugs senken deine Bewertung und vertreiben Nutzer. Lies die Hinweise, wähle die richtige Ursache und lerne, sie zu vermeiden."
+    },
+    "team": {
+      "title": "Team",
+      "text": "Stelle Leute ein, um schneller zu bauen und Bugs zu beheben. Achtung: Gehälter werden täglich bezahlt."
+    },
+    "infra": {
+      "title": "Server",
+      "text": "Ohne Server stürzt deine App ab, wenn Nutzer kommen. Rüste auf, wenn die Kapazität knapp wird."
+    },
+    "marketing": {
+      "title": "Marketing",
+      "text": "Kampagnen bringen Nutzer, kosten aber Geld. Ist deine App schlecht, gehen sie genauso schnell wieder."
+    },
+    "finance": {
+      "title": "Finanzen",
+      "text": "Lege Preise fest und sammle Investitionen. Bleibt dein Geld zu lange im Minus, gehst du pleite."
+    },
+    "career": {
+      "title": "Karriere",
+      "text": "Deine Erfolge und dein Level. Hier verdiente XP erhöht auch dein CodeBuddies-Level."
+    }
   }
 }

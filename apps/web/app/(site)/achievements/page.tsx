@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Lock, Trophy, Unlock } from "lucide-react";
+import { Lock, Unlock } from "lucide-react";
 import { api } from "../../../utils/api";
 import GamificationProgress from "../../../components/gamification/GamificationProgress";
 import RewardChips from "../../../components/gamification/RewardChips";
@@ -12,6 +12,7 @@ import {
 } from "../../../components/gamification/GamificationState";
 import type { AchievementsPayload } from "../../../components/gamification/gamification-types";
 import CodeStudioAchievements from "../../../components/gamification/CodeStudioAchievements";
+import { AchievementIcon } from "@/shared/ui/currency-icon";
 import { useTranslation } from "../../../src/i18n/useTranslation";
 
 export default function AchievementsPage() {
@@ -112,7 +113,7 @@ function Metric({ label, value }: { label: string; value: number }) {
     <div className="rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--background))] p-4">
       <div className="flex items-center justify-between">
         <span className="text-xs font-black uppercase text-[rgb(var(--secondary-text))]">{label}</span>
-        <Trophy size={16} className="text-[rgb(var(--primary))]" />
+        <AchievementIcon size={16} className="text-[rgb(var(--primary))]" />
       </div>
       <p className="mt-2 text-3xl font-black text-[rgb(var(--text))]">{value}</p>
     </div>

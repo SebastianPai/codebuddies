@@ -1,27 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  CalendarDays,
-  Coins,
-  Crown,
-  Gift,
-  MessageCircle,
-  Pencil,
-  Plus,
-  Search,
-  Shirt,
-  Sofa,
-  Sparkles,
-  Trash2,
-  Trophy,
-  Type,
-  X,
-  Zap,
-} from "lucide-react";
+import { CalendarDays, Crown, Gift, MessageCircle, Pencil, Plus, Search, Shirt, Sofa, Sparkles, Trash2, Trophy, Type, X, Zap } from "lucide-react";
 import { toast } from "react-toastify";
 import { api } from "../../../utils/api";
 
+import { CurrencyIcon } from "@/shared/ui/currency-icon";
 type Status = "UPCOMING" | "ACTIVE" | "ENDED";
 type Track = "FREE" | "PREMIUM";
 
@@ -68,7 +52,7 @@ interface Catalog {
 type RewardKind = "COINS" | "XP" | "NAME_EFFECT" | "CHAT_BUBBLE" | "AVATAR" | "WORLD" | "BADGE" | "TITLE";
 
 const KINDS: Array<{ kind: RewardKind; label: string; icon: React.ReactNode }> = [
-  { kind: "COINS", label: "Monedas", icon: <Coins size={15} /> },
+  { kind: "COINS", label: "Monedas", icon: <CurrencyIcon currency="coins" size={15} /> },
   { kind: "XP", label: "XP", icon: <Zap size={15} /> },
   { kind: "NAME_EFFECT", label: "Nombre personalizado", icon: <Type size={15} /> },
   { kind: "CHAT_BUBBLE", label: "Burbuja de chat", icon: <MessageCircle size={15} /> },

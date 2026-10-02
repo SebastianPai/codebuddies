@@ -3,21 +3,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-import {
-  ArrowLeft,
-  Award,
-  Coins,
-  CreditCard,
-  Crown,
-  Shield,
-  ShieldAlert,
-  ShieldCheck,
-  ShieldOff,
-  User as UserIcon,
-} from "lucide-react";
+import { ArrowLeft, Award, CreditCard, Crown, Shield, ShieldAlert, ShieldCheck, ShieldOff, User as UserIcon } from "lucide-react";
 import { api } from "@/shared/api/client";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
 
+import { CurrencyIcon } from "@/shared/ui/currency-icon";
 interface UserDetail {
   id: string;
   username: string;
@@ -290,7 +280,7 @@ export default function UserDetailPage() {
       )}
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <StatCard label={t("admin.coinsColumnLabel")} value={user.coins} icon={<Coins size={16} />} />
+        <StatCard label={t("admin.coinsColumnLabel")} value={user.coins} icon={<CurrencyIcon currency="coins" size={16} />} />
         <StatCard label="XP" value={user.experience} icon={<Award size={16} />} />
         <StatCard label={t("admin.levelLabel")} value={user.level} icon={<UserIcon size={16} />} />
         <StatCard label={t("admin.streakLabel")} value={user.streak} icon={<Shield size={16} />} />
@@ -499,7 +489,7 @@ export default function UserDetailPage() {
               data.coinPurchases.map((purchase) => (
                 <div key={purchase.id} className="flex items-center justify-between border-b border-zinc-900 py-2 text-sm last:border-0">
                   <span className="flex items-center gap-2 text-zinc-300">
-                    <Coins size={13} className="text-zinc-600" />
+                    <CurrencyIcon currency="coins" size={13} className="text-zinc-600" />
                     {purchase.coins.toLocaleString()} coins — {purchase.currency} {purchase.amount}
                   </span>
                   <StatusBadge status={purchase.status} />

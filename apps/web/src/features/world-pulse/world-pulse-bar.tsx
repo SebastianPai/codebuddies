@@ -1,12 +1,13 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Award, Coins, Flame, Sparkles, Target, Zap } from "lucide-react";
+import { Award, Flame, Sparkles, Target, Zap } from "lucide-react";
 import { useTranslation } from "@/i18n/useTranslation";
 import { Skeleton } from "@/shared/ui";
 import { classNames } from "@/shared/utils/class-names";
 import { useWorldPulse } from "./use-world-pulse";
 
+import { CurrencyIcon } from "@/shared/ui/currency-icon";
 function PulseDot({ tone }: { tone: "light" | "dark" }) {
   return (
     <span className="relative flex h-2.5 w-2.5">
@@ -132,7 +133,7 @@ export function WorldPulseBar({ variant = "landing", className }: WorldPulseBarP
         />
         <StatChip
           tone={tone}
-          icon={<Coins size={18} />}
+          icon={<CurrencyIcon currency="coins" size={18} />}
           value={pulse.today.coinsEarned}
           label={t("site.worldPulseCoinsToday", { count: pulse.today.coinsEarned })}
         />

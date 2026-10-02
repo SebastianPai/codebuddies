@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Activity, AlertTriangle, ChevronDown, Coins, Gamepad2, Globe, History, Search, ShieldCheck, Users } from "lucide-react";
+import { Activity, AlertTriangle, ChevronDown, Gamepad2, Globe, History, Search, ShieldCheck, Users } from "lucide-react";
 import { toast } from "react-toastify";
 import { api } from "../../../utils/api";
 
+import { CurrencyIcon } from "@/shared/ui/currency-icon";
 type EventRow = {
   id: string;
   userId: string | null;
@@ -151,7 +152,7 @@ export default function AdminHistoryPage() {
           {(
             [
               ["events", "Todo", <Activity key="a" size={15} />],
-              ["coins", "Monedas", <Coins key="c" size={15} />],
+              ["coins", "Monedas", <CurrencyIcon currency="coins" key="c" size={15} />],
             ] as const
           ).map(([key, label, icon]) => (
             <button

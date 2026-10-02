@@ -4,6 +4,7 @@ import { Award, Check, Lock, Unlock } from "lucide-react";
 import type { Catalog, Profile } from "./types";
 import { ProgressBar, Stat, money } from "./ui";
 import DailyMissions from "./DailyMissions";
+import { CoinIcon } from "../shared/ThemeIcons";
 import { useTranslation } from "../../../i18n/useTranslation";
 
 export default function CareerView({ profile, catalog }: { profile: Profile; catalog: Catalog }) {
@@ -70,7 +71,7 @@ export default function CareerView({ profile, catalog }: { profile: Profile; cat
                   <b>{milestone.name}</b>
                   <p>{done ? milestone.description : milestone.howTo}</p>
                   <small>
-                    +{milestone.xp} XP{milestone.coins > 0 ? ` · ${t("codestudio.common.coins", { count: milestone.coins })}` : ""}
+                    +{milestone.xp} XP{milestone.coins > 0 && <> · <CoinIcon size={11} /> {milestone.coins}</>}
                   </small>
                 </div>
               </article>

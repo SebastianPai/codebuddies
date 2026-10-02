@@ -4,6 +4,7 @@ import { AlertTriangle, ArrowRight, Check, Flag, Gift, Lock, Scale } from "lucid
 import type { Catalog, CompanyView, ViewKey } from "./types";
 import { ProgressBar, Sparkline, Stat, goalProgress, goalValue, money, nextStep, num, pct } from "./ui";
 import DailyMissions from "./DailyMissions";
+import FirstSteps from "./FirstSteps";
 import { useTranslation } from "../../../i18n/useTranslation";
 
 type Props = {
@@ -69,7 +70,9 @@ export default function PanelView({ company, catalog, onNavigate, onOpenDecision
                 <div>
                   <span>{goal.met ? <Check size={13} /> : null} {goal.label}</span>
                   <b>
-                    {goalValue(goal, goal.current)} {goal.kind === "min" ? "≤" : "/"} {goalValue(goal, goal.target)}
+                    {goal.format === "flag"
+                      ? t(goal.met ? "codestudio.panel.goalDone" : "codestudio.panel.goalPending")
+                      : `${goalValue(goal, goal.current)} ${goal.kind === "min" ? "≤" : "/"} ${goalValue(goal, goal.target)}`}
                   </b>
                 </div>
                 <ProgressBar value={goalProgress(goal)} tone={goal.met ? "good" : "accent"} />
@@ -84,6 +87,8 @@ export default function PanelView({ company, catalog, onNavigate, onOpenDecision
         <b>{step.text}</b>
         <ArrowRight size={18} />
       </button>
+
+      {company.stage.index <= 1 && <FirstSteps company={company} onNavigate={onNavigate} />}
 
       <DailyMissions daily={company.profile.daily} compact />
 

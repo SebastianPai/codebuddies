@@ -1,11 +1,12 @@
 "use client";
 
-import { Award, BadgeCheck, Coins, Gift, PawPrint, Shield, Sofa, Sparkles, Star, Zap } from "lucide-react";
+import { Award, BadgeCheck, Gift, PawPrint, Shield, Sofa, Sparkles, Star, Zap } from "lucide-react";
 import type { RewardConfig } from "./gamification-types";
 import { useTranslation } from "../../src/i18n/useTranslation";
 
+import { CurrencyIcon } from "@/shared/ui/currency-icon";
 const iconByType: Record<string, React.ReactNode> = {
-  COINS: <Coins size={14} />,
+  COINS: <CurrencyIcon currency="coins" size={14} />,
   XP: <Zap size={14} />,
   ITEM: <Gift size={14} />,
   AVATAR_ITEM: <Sparkles size={14} />,

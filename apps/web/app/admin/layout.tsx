@@ -4,49 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "../../hooks/useAuth";
 import Link from "next/link";
-import {
-  History,
-  Ticket,
-  LayoutDashboard,
-  BookOpen,
-  Layers,
-  Code,
-  Terminal,
-  Award,
-  User,
-  Image,
-  Palette,
-  BarChart3,
-  Settings,
-  LogOut,
-  MapPin,
-  Mail,
-  Bell,
-  Crown,
-  Users,
-  Target,
-  DollarSign,
-  GitBranch,
-  Shield,
-  AlertTriangle,
-  Activity,
-  ChevronDown,
-  ChevronsLeft,
-  ChevronsRight,
-  Coins,
-  CreditCard,
-  Webhook,
-  GitCompare,
-  ShoppingBag,
-  Search,
-  ChevronRight,
-  ShieldAlert,
-  Gift,
-} from "lucide-react";
+import { History, Ticket, LayoutDashboard, BookOpen, Layers, Code, Terminal, Award, User, Image, Palette, BarChart3, Settings, LogOut, MapPin, Mail, Bell, Crown, Users, Target, DollarSign, GitBranch, Shield, AlertTriangle, Activity, ChevronDown, ChevronsLeft, ChevronsRight, CreditCard, Webhook, GitCompare, ShoppingBag, Search, ChevronRight, ShieldAlert, Gift } from "lucide-react";
 import { useTranslation } from "../../src/i18n/useTranslation";
 import { useDisclosure } from "../../src/shared/hooks/use-disclosure";
 import { CommandPalette } from "../../src/features/admin/command-palette";
 
+import { CurrencyIcon } from "@/shared/ui/currency-icon";
 interface AdminNavItem {
   href: string;
   label: string;
@@ -147,7 +110,7 @@ export default function AdminLayout({
           {
             href: "/admin/coins",
             label: t("admin.coinsEconomyNav"),
-            icon: <Coins size={18} />,
+            icon: <CurrencyIcon currency="coins" size={18} />,
           },
           {
             href: "/admin/premium",

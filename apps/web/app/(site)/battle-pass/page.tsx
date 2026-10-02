@@ -4,21 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { toast } from "react-toastify";
 import { motion, useReducedMotion } from "framer-motion";
-import {
-  Award,
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  Coins,
-  Crown,
-  Gift,
-  Lock,
-  Sparkles,
-  Ticket,
-  Trophy,
-  Zap,
-} from "lucide-react";
+import { Award, Check, ChevronLeft, ChevronRight, Clock, Crown, Gift, Lock, Sparkles, Ticket, Trophy, Zap } from "lucide-react";
 import { api } from "../../../utils/api";
 import { useTranslation } from "../../../src/i18n/useTranslation";
 import { useReward } from "../../../contexts/RewardContext";
@@ -32,6 +18,7 @@ import { rewardLabel } from "../../../components/battle-pass/BattlePassTicket";
 import type { BattlePassState, BattlePassTier } from "../../../components/battle-pass/battle-pass-types";
 import { useTrackToolUsed, trackToolAction } from "../../../components/analytics/tool-tracking";
 
+import { CurrencyIcon } from "@/shared/ui/currency-icon";
 const COLUMN_WIDTH = 132; // px por día en el camino (incluye separación)
 
 function useCountdown(endsAt: string | undefined) {
@@ -374,7 +361,7 @@ function RewardVisual({ tier, size = 44 }: { tier: BattlePassTier; size?: number
     );
   }
   const icon =
-    tier.rewardType === "COINS" ? <Coins size={22} /> :
+    tier.rewardType === "COINS" ? <CurrencyIcon currency="coins" size={22} /> :
     tier.rewardType === "XP" ? <Zap size={22} /> :
     tier.rewardType === "BADGE" ? <Award size={22} /> :
     tier.rewardType === "TITLE" ? <Crown size={22} /> :

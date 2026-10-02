@@ -1,57 +1,142 @@
-/* CodeStudio v2. Los colores de fondo/texto/bordes salen de las variables
-   --cs-* que define PCWindows.css para el tema claro/oscuro del PC; acá
-   solo se agregan los acentos. El layout usa container queries (no media
-   queries) porque vive dentro de la ventana del PC, cuyo ancho no es el de
-   la pantalla. */
+/* CodeStudio — pixel art. Paleta tomada del PC del juego (metal oscuro,
+   azul eléctrico, morado de la barra de tareas y el amarillo de la pestaña
+   "CodeStudio"). Reglas del estilo:
+   - sin esquinas redondeadas: bordes de 2px y sombras duras desplazadas
+     (el "relieve" de los juegos de 8/16 bits), sin blur;
+   - tipografía pixel: "Press Start 2P" para títulos, etiquetas y cifras,
+     "Pixelify Sans" para el texto (legible y con tildes/ñ);
+   - barras de progreso por bloques y movimiento por pasos (steps()).
+   Las variables se definen en .cs2-shell y en .cs2-modal porque los
+   diálogos se dibujan fuera del shell (portal). El layout usa container
+   queries: vive dentro de la ventana del PC, no del ancho de la pantalla. */
+
+@import url("https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600;700&family=Press+Start+2P&display=swap");
+
+.cs2-shell,
+.cs2-modal {
+  --px-bg: #0b0d12;
+  --px-bg-2: #10131a;
+  --px-panel: #161a22;
+  --px-panel-2: #1c212b;
+  --px-line: #2a313d;
+  --px-line-hi: #3b4453;
+  --px-text: #e9eef6;
+  --px-muted: #8c97a9;
+  --px-blue: #2f9bff;
+  --px-cyan: #42d4ff;
+  --px-yellow: #ffd21f;
+  --px-yellow-dark: #b98a00;
+  --px-purple: #7a46e0;
+  --px-good: #3ddc84;
+  --px-bad: #ff4d6d;
+  --px-warn: #ffad1f;
+  --px-shadow: #05060a;
+  --px-font: "Pixelify Sans", "Trebuchet MS", system-ui, sans-serif;
+  --px-title: "Press Start 2P", "Pixelify Sans", monospace;
+
+  /* Alias que usan los componentes. */
+  --cs2-accent: var(--px-cyan);
+  --cs2-gold: var(--px-yellow);
+  --cs2-good: var(--px-good);
+  --cs2-bad: var(--px-bad);
+  --cs2-warn: var(--px-warn);
+  --cs2-surface: var(--px-panel);
+  --cs2-border: var(--px-line-hi);
+  --cs2-soft: var(--px-line);
+  --cs2-text: var(--px-text);
+  --cs2-muted: var(--px-muted);
+}
+
+/* Tema claro del PC (botón sol/luna de la barra de tareas). */
+[data-pc-theme="light"] .cs2-shell,
+[data-pc-theme="light"] .cs2-modal {
+  --px-bg: #dfe4ec;
+  --px-bg-2: #e8ecf2;
+  --px-panel: #f4f6fa;
+  --px-panel-2: #ffffff;
+  --px-line: #c3cad6;
+  --px-line-hi: #9aa5b6;
+  --px-text: #141821;
+  --px-muted: #5b6577;
+  --px-blue: #1a73e8;
+  --px-cyan: #0b84c6;
+  --px-yellow-dark: #8a6500;
+  --px-shadow: #9aa5b6;
+}
 
 .cs2-shell {
-  --cs2-accent: var(--cs-label, #22d3ee);
-  --cs2-gold: #facc15;
-  --cs2-good: #22c55e;
-  --cs2-bad: #f43f5e;
-  --cs2-warn: #f59e0b;
-  --cs2-surface: var(--cs-panel-bg, rgba(3, 7, 18, 0.78));
-  --cs2-border: var(--cs-panel-border, rgba(103, 232, 249, 0.18));
-  --cs2-soft: var(--cs-border-soft, rgba(148, 163, 184, 0.13));
-  --cs2-text: var(--cs-text, #e5f6ff);
-  --cs2-muted: var(--cs-text-muted, rgba(229, 246, 255, 0.62));
-
   container-type: inline-size;
   height: 100%;
   min-height: 0;
   display: grid;
-  grid-template-columns: 190px minmax(0, 1fr);
+  grid-template-columns: 196px minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
   grid-template-areas:
     "header header"
     "nav main";
-  color: var(--cs2-text);
-  background: var(--cs-bg-gradient, linear-gradient(135deg, #050914, #08111f 48%, #100f08));
-  font-family: "Trebuchet MS", system-ui, sans-serif;
-  font-size: 14px;
+  color: var(--px-text);
+  background-color: var(--px-bg);
+  /* Trama de puntos tipo pantalla CRT, muy sutil. */
+  background-image: radial-gradient(rgba(66, 212, 255, 0.07) 1px, transparent 1px);
+  background-size: 6px 6px;
+  font-family: var(--px-font);
+  font-size: 15px;
+  line-height: 1.35;
   overflow: hidden;
+  -webkit-font-smoothing: none;
+  image-rendering: pixelated;
 }
 
 .cs2-shell *,
 .cs2-shell *::before,
-.cs2-shell *::after {
+.cs2-shell *::after,
+.cs2-modal *,
+.cs2-modal *::before,
+.cs2-modal *::after {
   box-sizing: border-box;
 }
 
 .cs2-shell button,
 .cs2-shell select,
-.cs2-shell input {
+.cs2-shell input,
+.cs2-modal button,
+.cs2-modal select,
+.cs2-modal input {
   font: inherit;
   color: inherit;
+}
+
+.cs2-shell svg,
+.cs2-modal svg {
+  shape-rendering: crispEdges;
 }
 
 .cs2-loading {
   display: grid;
   place-items: center;
-  font-weight: 800;
-  letter-spacing: 0.06em;
   padding: 24px;
+  font-family: var(--px-title);
+  font-size: 12px;
   text-align: center;
+  letter-spacing: 0.05em;
+}
+
+/* Scrollbars pixel. */
+.cs2-shell ::-webkit-scrollbar,
+.cs2-modal ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.cs2-shell ::-webkit-scrollbar-track,
+.cs2-modal ::-webkit-scrollbar-track {
+  background: var(--px-bg-2);
+}
+
+.cs2-shell ::-webkit-scrollbar-thumb,
+.cs2-modal ::-webkit-scrollbar-thumb {
+  background: var(--px-blue);
+  border: 2px solid var(--px-bg-2);
 }
 
 /* ─── Header ─────────────────────────────────────────────────────────── */
@@ -63,8 +148,9 @@
   align-items: center;
   gap: 10px 16px;
   padding: 10px 14px;
-  border-bottom: 1px solid var(--cs2-border);
-  background: var(--cs2-surface);
+  border-bottom: 2px solid var(--px-line-hi);
+  background: linear-gradient(180deg, var(--px-panel-2), var(--px-panel));
+  box-shadow: 0 2px 0 var(--px-shadow);
 }
 
 .cs2-brand {
@@ -80,11 +166,12 @@
   place-items: center;
   flex: 0 0 34px;
   height: 34px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #22d3ee, var(--cs2-gold));
-  color: #031018;
-  font-weight: 900;
-  font-size: 13px;
+  border: 2px solid var(--px-shadow);
+  background: var(--px-yellow);
+  color: #1b1400;
+  font-family: var(--px-title);
+  font-size: 10px;
+  box-shadow: inset -3px -3px 0 var(--px-yellow-dark), inset 3px 3px 0 #fff3a8;
 }
 
 .cs2-brand select {
@@ -92,10 +179,11 @@
   flex: 1;
   max-width: 260px;
   padding: 7px 10px;
-  border-radius: 10px;
-  border: 1px solid var(--cs2-border);
-  background: var(--cs2-surface);
+  border: 2px solid var(--px-line-hi);
+  border-radius: 0;
+  background: var(--px-bg-2);
   font-weight: 700;
+  box-shadow: inset 2px 2px 0 var(--px-shadow);
 }
 
 .cs2-header-stats {
@@ -114,30 +202,33 @@
 }
 
 .cs2-stage-chip {
-  padding: 3px 10px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--cs2-gold) 18%, transparent);
-  color: var(--cs2-gold);
-  border: 1px solid color-mix(in srgb, var(--cs2-gold) 40%, transparent);
+  padding: 4px 9px;
+  border: 2px solid var(--px-shadow);
+  background: var(--px-yellow);
+  color: #1b1400;
+  font-family: var(--px-title);
+  font-size: 9px;
+  box-shadow: 2px 2px 0 var(--px-shadow);
 }
 
 .cs2-level-chip {
   display: grid;
   grid-template-columns: auto auto;
   align-items: center;
-  gap: 2px 6px;
-  min-width: 118px;
+  gap: 4px 6px;
+  min-width: 124px;
   padding: 6px 10px;
-  border-radius: 12px;
-  border: 1px solid var(--cs2-border);
-  background: transparent;
+  border: 2px solid var(--px-line-hi);
+  background: var(--px-bg-2);
   cursor: pointer;
-  font-weight: 800;
+  font-family: var(--px-title);
+  font-size: 9px;
+  box-shadow: 3px 3px 0 var(--px-shadow);
 }
 
 .cs2-level-chip .cs2-bar {
   grid-column: 1 / -1;
-  height: 4px;
+  height: 6px;
 }
 
 /* ─── Navegación ─────────────────────────────────────────────────────── */
@@ -148,9 +239,9 @@
   flex-direction: column;
   gap: 4px;
   padding: 10px;
-  border-right: 1px solid var(--cs2-border);
+  border-right: 2px solid var(--px-line-hi);
+  background: var(--px-bg-2);
   overflow-y: auto;
-  scrollbar-width: thin;
 }
 
 .cs2-nav button {
@@ -158,39 +249,50 @@
   display: flex;
   align-items: center;
   gap: 9px;
-  padding: 9px 10px;
-  border-radius: 10px;
-  border: 1px solid transparent;
+  padding: 8px 10px;
+  border: 2px solid transparent;
+  border-radius: 0;
   background: transparent;
-  color: var(--cs2-muted);
-  font-weight: 700;
+  color: var(--px-muted);
+  font-weight: 600;
   text-align: left;
   cursor: pointer;
   white-space: nowrap;
 }
 
 .cs2-nav button:hover {
-  color: var(--cs2-text);
-  background: var(--cs2-soft);
+  color: var(--px-text);
+  border-color: var(--px-line);
 }
 
 .cs2-nav button.active {
-  color: var(--cs2-text);
-  border-color: var(--cs2-border);
-  background: color-mix(in srgb, var(--cs2-accent) 14%, transparent);
+  color: #fff;
+  border-color: var(--px-shadow);
+  background: var(--px-blue);
+  box-shadow: inset -3px -3px 0 rgba(0, 0, 0, 0.25), inset 3px 3px 0 rgba(255, 255, 255, 0.18), 3px 3px 0 var(--px-shadow);
+}
+
+[data-pc-theme="light"] .cs2-nav button.active {
+  color: #fff;
+}
+
+.cs2-nav button.tour-target {
+  animation: cs2-blink 0.8s steps(2) infinite;
+  border-color: var(--px-yellow);
 }
 
 .cs2-nav em {
   margin-left: auto;
-  min-width: 18px;
+  min-width: 20px;
   height: 18px;
-  padding: 0 5px;
-  border-radius: 999px;
-  background: var(--cs2-bad);
-  color: white;
+  padding: 0 4px;
+  border: 2px solid var(--px-shadow);
+  background: var(--px-bad);
+  color: #fff;
+  font-family: var(--px-title);
   font-style: normal;
-  font-size: 11px;
-  line-height: 18px;
+  font-size: 8px;
+  line-height: 14px;
   text-align: center;
 }
 
@@ -199,14 +301,13 @@
   min-height: 0;
   overflow-y: auto;
   padding: 14px;
-  scrollbar-width: thin;
 }
 
 /* ─── Bloques base ───────────────────────────────────────────────────── */
 
 .cs2-stack {
   display: grid;
-  gap: 12px;
+  gap: 14px;
   max-width: 1200px;
   margin: 0 auto;
 }
@@ -214,25 +315,28 @@
 .cs2-card {
   min-width: 0;
   padding: 14px;
-  border-radius: 14px;
-  border: 1px solid var(--cs2-border);
-  background: var(--cs2-surface);
+  border: 2px solid var(--px-line-hi);
+  background: var(--px-panel);
+  box-shadow: 4px 4px 0 var(--px-shadow), inset 0 2px 0 rgba(255, 255, 255, 0.04);
 }
 
 .cs2-card h3,
 .cs2-card h4 {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin: 0 0 6px;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-family: var(--px-title);
+  font-weight: 400;
+  line-height: 1.5;
 }
 
 .cs2-card h3 {
-  font-size: 16px;
+  font-size: 12px;
 }
 
 .cs2-card h4 {
-  font-size: 14px;
+  font-size: 10px;
 }
 
 .cs2-card p {
@@ -249,31 +353,31 @@
 }
 
 .cs2-muted {
-  color: var(--cs2-muted);
+  color: var(--px-muted);
   line-height: 1.45;
 }
 
 .cs2-eyebrow {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
+  gap: 6px;
+  font-family: var(--px-title);
+  font-size: 8px;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--cs2-accent);
+  color: var(--px-cyan);
 }
 
 .cs2-grid-2 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 14px;
 }
 
 .cs2-cards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-  gap: 10px;
+  gap: 12px;
 }
 
 .cs2-chips {
@@ -286,29 +390,29 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  border: 1px solid var(--cs2-soft);
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--cs2-muted);
+  padding: 3px 8px;
+  border: 2px solid var(--px-line);
+  background: var(--px-bg-2);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--px-muted);
   white-space: nowrap;
 }
 
 .cs2-tone-good {
-  color: var(--cs2-good);
+  color: var(--px-good);
 }
 
 .cs2-tone-bad {
-  color: var(--cs2-bad);
+  color: var(--px-bad);
 }
 
 .cs2-tone-warn {
-  color: var(--cs2-warn);
+  color: var(--px-warn);
 }
 
 .cs2-warn-text {
-  color: var(--cs2-warn);
+  color: var(--px-warn);
   font-weight: 700;
 }
 
@@ -319,22 +423,23 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 36px;
-  padding: 7px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--cs2-border);
-  background: var(--cs2-soft);
-  font-weight: 800;
+  min-height: 38px;
+  padding: 7px 14px;
+  border: 2px solid var(--px-shadow);
+  border-radius: 0;
+  background: var(--px-panel-2);
+  font-weight: 700;
   cursor: pointer;
-  transition: transform 0.12s ease, filter 0.12s ease;
+  box-shadow: inset -3px -3px 0 rgba(0, 0, 0, 0.3), inset 3px 3px 0 rgba(255, 255, 255, 0.08), 3px 3px 0 var(--px-shadow);
 }
 
 .cs2-btn:hover:not(:disabled) {
-  filter: brightness(1.12);
+  filter: brightness(1.15);
 }
 
 .cs2-btn:active:not(:disabled) {
-  transform: translateY(1px);
+  transform: translate(2px, 2px);
+  box-shadow: inset -3px -3px 0 rgba(0, 0, 0, 0.3), inset 3px 3px 0 rgba(255, 255, 255, 0.08), 1px 1px 0 var(--px-shadow);
 }
 
 .cs2-btn:disabled,
@@ -343,17 +448,18 @@
 .cs2-quote:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+  filter: grayscale(0.5);
 }
 
 .cs2-btn-primary {
-  border-color: transparent;
-  background: linear-gradient(135deg, #22d3ee, var(--cs2-gold));
-  color: #031018 !important;
+  background: var(--px-yellow);
+  color: #1b1400 !important;
+  box-shadow: inset -3px -3px 0 var(--px-yellow-dark), inset 3px 3px 0 #fff3a8, 3px 3px 0 var(--px-shadow);
 }
 
 .cs2-btn-danger {
-  border-color: color-mix(in srgb, var(--cs2-bad) 60%, transparent);
-  background: color-mix(in srgb, var(--cs2-bad) 20%, transparent);
+  background: var(--px-bad);
+  color: #fff;
 }
 
 .cs2-btn-block {
@@ -366,10 +472,16 @@
   flex: 0 0 34px;
   width: 34px;
   height: 34px;
-  border-radius: 10px;
-  border: 1px solid var(--cs2-border);
-  background: transparent;
+  border: 2px solid var(--px-line-hi);
+  border-radius: 0;
+  background: var(--px-panel-2);
   cursor: pointer;
+  box-shadow: 2px 2px 0 var(--px-shadow);
+}
+
+.cs2-icon-btn:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: none;
 }
 
 .cs2-inline {
@@ -384,117 +496,125 @@
   min-width: 0;
   flex: 1 1 160px;
   padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid var(--cs2-border);
-  background: var(--cs2-surface);
+  border: 2px solid var(--px-line-hi);
+  border-radius: 0;
+  background: var(--px-bg-2);
+  box-shadow: inset 2px 2px 0 var(--px-shadow);
 }
 
 /* ─── Barras, stats, sparklines ──────────────────────────────────────── */
 
+/* Barra por bloques: el relleno se ve como celdas de 6px. */
 .cs2-bar {
-  height: 7px;
-  border-radius: 999px;
-  background: var(--cs2-soft);
+  height: 10px;
+  border: 2px solid var(--px-shadow);
+  background: var(--px-bg-2);
   overflow: hidden;
 }
 
 .cs2-bar i {
   display: block;
   height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, #22d3ee, var(--cs2-gold));
-  transition: width 0.6s ease;
+  background: repeating-linear-gradient(90deg, var(--px-cyan) 0 6px, transparent 6px 8px);
+  transition: width 0.6s steps(10);
 }
 
 .cs2-bar-good i {
-  background: var(--cs2-good);
+  background: repeating-linear-gradient(90deg, var(--px-good) 0 6px, transparent 6px 8px);
 }
 
 .cs2-bar-bad i {
-  background: var(--cs2-bad);
+  background: repeating-linear-gradient(90deg, var(--px-bad) 0 6px, transparent 6px 8px);
 }
 
 .cs2-bar-warn i {
-  background: var(--cs2-warn);
+  background: repeating-linear-gradient(90deg, var(--px-warn) 0 6px, transparent 6px 8px);
 }
 
 .cs2-stats {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 10px;
+  gap: 12px;
 }
 
 .cs2-stat {
   display: grid;
-  gap: 2px;
+  gap: 4px;
   min-width: 0;
   padding: 11px 12px;
-  border-radius: 12px;
-  border: 1px solid var(--cs2-border);
-  background: var(--cs2-surface);
+  border: 2px solid var(--px-line-hi);
+  background: var(--px-panel);
+  box-shadow: 3px 3px 0 var(--px-shadow);
 }
 
 .cs2-stat span {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--cs2-muted);
+  font-family: var(--px-title);
+  font-size: 8px;
+  line-height: 1.5;
+  text-transform: uppercase;
+  color: var(--px-muted);
 }
 
 .cs2-stat b {
-  font-size: 19px;
+  font-family: var(--px-title);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.4;
   overflow-wrap: anywhere;
 }
 
 .cs2-stat small {
-  font-size: 12px;
-  color: var(--cs2-muted);
+  font-size: 13px;
+  color: var(--px-muted);
 }
 
 .cs2-stat.cs2-tone-good b {
-  color: var(--cs2-good);
+  color: var(--px-good);
 }
 
 .cs2-stat.cs2-tone-bad b {
-  color: var(--cs2-bad);
+  color: var(--px-bad);
 }
 
 .cs2-stat.cs2-tone-warn b {
-  color: var(--cs2-warn);
+  color: var(--px-warn);
 }
 
 .cs2-spark {
   display: grid;
-  gap: 4px;
-  margin-bottom: 10px;
+  gap: 6px;
+  margin-bottom: 12px;
 }
 
 .cs2-spark span {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--cs2-muted);
+  font-family: var(--px-title);
+  font-size: 8px;
+  color: var(--px-muted);
 }
 
 .cs2-spark svg {
   width: 100%;
   height: 56px;
+  border-bottom: 2px solid var(--px-line);
 }
 
 .cs2-spark polyline {
-  stroke: var(--cs2-accent);
+  stroke: var(--px-cyan);
+  stroke-width: 3;
+  stroke-linejoin: miter;
 }
 
 .cs2-spark-good polyline {
-  stroke: var(--cs2-good);
+  stroke: var(--px-good);
 }
 
 .cs2-spark-bad polyline {
-  stroke: var(--cs2-bad);
+  stroke: var(--px-bad);
 }
 
 .cs2-spark-empty {
   min-height: 56px;
-  border: 1px dashed var(--cs2-soft);
-  border-radius: 10px;
+  border: 2px dashed var(--px-line);
   padding: 8px;
 }
 
@@ -504,14 +624,14 @@
 }
 
 .cs2-stars i {
-  width: 7px;
-  height: 7px;
-  border-radius: 2px;
-  background: var(--cs2-soft);
+  width: 8px;
+  height: 8px;
+  background: var(--px-line);
 }
 
 .cs2-stars i.on {
-  background: var(--cs2-gold);
+  background: var(--px-yellow);
+  box-shadow: inset -2px -2px 0 var(--px-yellow-dark);
 }
 
 /* ─── Panel: camino y metas ──────────────────────────────────────────── */
@@ -520,20 +640,19 @@
   display: flex;
   gap: 4px;
   overflow-x: auto;
-  padding-bottom: 8px;
-  margin-bottom: 10px;
-  scrollbar-width: thin;
+  padding-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .cs2-path-step {
-  flex: 1 0 74px;
+  flex: 1 0 78px;
   display: grid;
   justify-items: center;
-  gap: 4px;
+  gap: 6px;
   position: relative;
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--cs2-muted);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--px-muted);
   text-align: center;
 }
 
@@ -541,10 +660,10 @@
   content: "";
   position: absolute;
   top: 12px;
-  left: calc(50% + 14px);
-  width: calc(100% - 24px);
-  height: 2px;
-  background: var(--cs2-soft);
+  left: calc(50% + 16px);
+  width: calc(100% - 28px);
+  height: 4px;
+  background: repeating-linear-gradient(90deg, var(--px-line) 0 4px, transparent 4px 8px);
 }
 
 .cs2-path-step:last-child::after {
@@ -554,36 +673,41 @@
 .cs2-path-step i {
   display: grid;
   place-items: center;
-  width: 25px;
-  height: 25px;
-  border-radius: 50%;
-  border: 2px solid var(--cs2-soft);
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--px-line-hi);
+  font-family: var(--px-title);
+  font-size: 9px;
   font-style: normal;
-  background: var(--cs2-surface);
+  background: var(--px-bg-2);
   position: relative;
   z-index: 1;
 }
 
 .cs2-path-step.done {
-  color: var(--cs2-good);
+  color: var(--px-good);
 }
 
 .cs2-path-step.done i {
-  border-color: var(--cs2-good);
-  background: color-mix(in srgb, var(--cs2-good) 20%, transparent);
+  border-color: var(--px-shadow);
+  background: var(--px-good);
+  color: #062b14;
 }
 
 .cs2-path-step.done::after {
-  background: var(--cs2-good);
+  background: var(--px-good);
 }
 
 .cs2-path-step.current {
-  color: var(--cs2-gold);
+  color: var(--px-yellow);
 }
 
 .cs2-path-step.current i {
-  border-color: var(--cs2-gold);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--cs2-gold) 20%, transparent);
+  border-color: var(--px-shadow);
+  background: var(--px-yellow);
+  color: #1b1400;
+  box-shadow: 0 0 0 3px var(--px-bg), 0 0 0 5px var(--px-yellow);
+  animation: cs2-blink 1.2s steps(2) infinite;
 }
 
 .cs2-stage {
@@ -594,8 +718,8 @@
 }
 
 .cs2-stage h3 {
-  font-size: 20px;
-  margin: 2px 0 4px;
+  font-size: 16px;
+  margin: 6px 0;
 }
 
 .cs2-reward {
@@ -604,27 +728,27 @@
   gap: 8px;
   align-self: flex-start;
   padding: 8px 12px;
-  border-radius: 12px;
-  border: 1px dashed color-mix(in srgb, var(--cs2-gold) 50%, transparent);
-  color: var(--cs2-gold);
+  border: 2px dashed var(--px-yellow);
+  color: var(--px-yellow);
+  background: rgba(255, 210, 31, 0.06);
 }
 
 .cs2-reward small {
   display: block;
-  color: var(--cs2-muted);
+  color: var(--px-muted);
 }
 
 .cs2-goals {
   display: grid;
-  gap: 10px;
-  margin-top: 10px;
+  gap: 12px;
+  margin-top: 12px;
 }
 
 .cs2-goal > div {
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   font-weight: 700;
 }
 
@@ -635,62 +759,67 @@
 }
 
 .cs2-goal.met span {
-  color: var(--cs2-good);
+  color: var(--px-good);
 }
 
 .cs2-next {
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  gap: 2px 10px;
+  gap: 4px 10px;
   width: 100%;
   padding: 12px 14px;
-  border-radius: 14px;
-  border: 1px solid var(--cs2-border);
-  background: color-mix(in srgb, var(--cs2-accent) 12%, var(--cs2-surface));
+  border: 2px solid var(--px-shadow);
+  border-radius: 0;
+  background: var(--px-blue);
+  color: #fff;
   text-align: left;
   cursor: pointer;
+  box-shadow: inset -3px -3px 0 rgba(0, 0, 0, 0.25), inset 3px 3px 0 rgba(255, 255, 255, 0.18), 4px 4px 0 var(--px-shadow);
+}
+
+.cs2-next:active {
+  transform: translate(2px, 2px);
 }
 
 .cs2-next span {
   grid-column: 1;
-  font-size: 11px;
-  font-weight: 800;
+  font-family: var(--px-title);
+  font-size: 8px;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--cs2-muted);
+  opacity: 0.85;
 }
 
 .cs2-next b {
   grid-column: 1;
-  font-size: 15px;
+  font-size: 16px;
 }
 
 .cs2-next svg {
   grid-column: 2;
   grid-row: 1 / 3;
+  animation: cs2-nudge 1s steps(2) infinite;
 }
 
 .cs2-next-bad {
-  border-color: color-mix(in srgb, var(--cs2-bad) 60%, transparent);
-  background: color-mix(in srgb, var(--cs2-bad) 14%, var(--cs2-surface));
+  background: var(--px-bad);
 }
 
 .cs2-next-warn {
-  border-color: color-mix(in srgb, var(--cs2-warn) 60%, transparent);
-  background: color-mix(in srgb, var(--cs2-warn) 14%, var(--cs2-surface));
+  background: var(--px-warn);
+  color: #2a1600;
 }
 
 .cs2-next-good {
-  border-color: color-mix(in srgb, var(--cs2-good) 60%, transparent);
-  background: color-mix(in srgb, var(--cs2-good) 14%, var(--cs2-surface));
+  background: var(--px-good);
+  color: #062b14;
 }
 
 .cs2-decision-teaser {
   display: flex;
   align-items: center;
   gap: 12px;
-  border-color: color-mix(in srgb, var(--cs2-gold) 50%, transparent);
+  border-color: var(--px-yellow);
 }
 
 .cs2-decision-teaser div {
@@ -704,9 +833,10 @@
   gap: 8px;
   margin: 0;
   padding: 10px 12px;
-  border-radius: 12px;
+  border: 2px solid var(--px-shadow);
   font-weight: 700;
   line-height: 1.4;
+  box-shadow: 3px 3px 0 var(--px-shadow);
 }
 
 .cs2-alert p {
@@ -714,13 +844,13 @@
 }
 
 .cs2-alert-bad {
-  border: 1px solid color-mix(in srgb, var(--cs2-bad) 55%, transparent);
-  background: color-mix(in srgb, var(--cs2-bad) 14%, transparent);
+  background: rgba(255, 77, 109, 0.16);
+  border-color: var(--px-bad);
 }
 
 .cs2-alert-warn {
-  border: 1px solid color-mix(in srgb, var(--cs2-warn) 55%, transparent);
-  background: color-mix(in srgb, var(--cs2-warn) 14%, transparent);
+  background: rgba(255, 173, 31, 0.14);
+  border-color: var(--px-warn);
 }
 
 .cs2-feed {
@@ -735,32 +865,32 @@
 
 .cs2-feed li {
   padding: 8px 10px;
-  border-left: 3px solid var(--cs2-soft);
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--cs2-soft) 40%, transparent);
+  border: 2px solid var(--px-line);
+  border-left-width: 6px;
+  background: var(--px-bg-2);
 }
 
 .cs2-feed li.cs2-tone-good {
-  border-left-color: var(--cs2-good);
+  border-left-color: var(--px-good);
   color: inherit;
 }
 
 .cs2-feed li.cs2-tone-bad {
-  border-left-color: var(--cs2-bad);
+  border-left-color: var(--px-bad);
   color: inherit;
 }
 
 .cs2-feed p {
   margin: 3px 0 0;
-  font-size: 12.5px;
-  color: var(--cs2-muted);
+  font-size: 13.5px;
+  color: var(--px-muted);
 }
 
 /* ─── Árbol ──────────────────────────────────────────────────────────── */
 
 .cs2-queue {
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 .cs2-queue-item {
@@ -772,7 +902,7 @@
 
 .cs2-queue-item small {
   display: block;
-  color: var(--cs2-muted);
+  color: var(--px-muted);
 }
 
 .cs2-queue-item.queued {
@@ -782,29 +912,39 @@
 .cs2-tree {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: minmax(200px, 1fr);
-  gap: 10px;
+  grid-auto-columns: minmax(205px, 1fr);
+  gap: 12px;
   overflow-x: auto;
-  padding-bottom: 8px;
-  scrollbar-width: thin;
+  padding: 0 4px 10px 0;
 }
 
 .cs2-branch {
   min-width: 0;
   padding: 10px;
-  border-radius: 14px;
-  border: 1px solid var(--cs2-border);
-  background: var(--cs2-surface);
+  border: 2px solid var(--px-line-hi);
+  background: var(--px-panel);
+  box-shadow: 4px 4px 0 var(--px-shadow);
 }
 
 .cs2-branch header {
   display: grid;
-  margin-bottom: 10px;
+  gap: 4px;
+  margin: -10px -10px 12px;
+  padding: 10px;
+  border-bottom: 2px solid var(--px-line-hi);
+  background: var(--px-panel-2);
+}
+
+.cs2-branch header b {
+  font-family: var(--px-title);
+  font-size: 9px;
+  font-weight: 400;
+  color: var(--px-cyan);
 }
 
 .cs2-branch header small {
-  color: var(--cs2-muted);
-  font-size: 12px;
+  color: var(--px-muted);
+  font-size: 13px;
 }
 
 .cs2-branch-nodes {
@@ -813,70 +953,77 @@
   position: relative;
 }
 
-/* Línea vertical que une los nodos de una rama. */
+/* Línea punteada que une los nodos de una rama. */
 .cs2-branch-nodes::before {
   content: "";
   position: absolute;
-  left: 14px;
+  left: 16px;
   top: 8px;
   bottom: 8px;
-  width: 2px;
-  background: var(--cs2-soft);
+  width: 4px;
+  background: repeating-linear-gradient(180deg, var(--px-line-hi) 0 4px, transparent 4px 8px);
 }
 
 .cs2-node {
   position: relative;
   display: grid;
-  gap: 4px;
+  gap: 5px;
   width: 100%;
   padding: 9px 10px;
-  border-radius: 12px;
-  border: 1px solid var(--cs2-soft);
-  background: var(--cs2-surface);
+  border: 2px solid var(--px-line);
+  border-radius: 0;
+  background: var(--px-bg-2);
   text-align: left;
   cursor: pointer;
+  box-shadow: 3px 3px 0 var(--px-shadow);
+}
+
+.cs2-node:hover {
+  border-color: var(--px-line-hi);
 }
 
 .cs2-node small {
-  font-size: 12px;
-  color: var(--cs2-muted);
+  font-size: 13px;
+  color: var(--px-muted);
 }
 
 .cs2-node-head {
   display: flex;
   align-items: center;
   gap: 6px;
+  font-weight: 700;
 }
 
 .cs2-node.installed {
-  border-color: color-mix(in srgb, var(--cs2-good) 60%, transparent);
-  background: color-mix(in srgb, var(--cs2-good) 12%, var(--cs2-surface));
+  border-color: var(--px-good);
+  background: rgba(61, 220, 132, 0.1);
 }
 
 .cs2-node.installed .cs2-node-head svg {
-  color: var(--cs2-good);
+  color: var(--px-good);
 }
 
 .cs2-node.available {
-  border-color: var(--cs2-accent);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--cs2-accent) 35%, transparent);
+  border-color: var(--px-cyan);
+  box-shadow: 3px 3px 0 var(--px-shadow), 0 0 0 2px rgba(66, 212, 255, 0.25);
 }
 
 .cs2-node.developing,
 .cs2-node.queued {
-  border-color: var(--cs2-gold);
+  border-color: var(--px-yellow);
 }
 
 .cs2-node.locked,
 .cs2-node.locked-stage {
-  opacity: 0.62;
+  opacity: 0.6;
+  filter: grayscale(0.4);
 }
 
 .cs2-lock {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: var(--cs2-muted);
+  color: var(--px-muted);
 }
 
 .cs2-requires {
@@ -888,28 +1035,45 @@
   align-items: center;
   gap: 3px;
   justify-self: start;
-  padding: 1px 7px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 800;
+  padding: 1px 6px;
+  border: 2px solid currentColor;
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .cs2-fit.good {
-  color: var(--cs2-good);
-  background: color-mix(in srgb, var(--cs2-good) 16%, transparent);
+  color: var(--px-good);
 }
 
 .cs2-fit.bad {
-  color: var(--cs2-warn);
-  background: color-mix(in srgb, var(--cs2-warn) 16%, transparent);
+  color: var(--px-warn);
 }
 
-/* ─── Detalle (dentro de Modal) ──────────────────────────────────────── */
+/* ─── Diálogos (Modal compartido con clase cs2-modal) ────────────────── */
+
+.cs2-modal {
+  border-radius: 0 !important;
+  border: 3px solid var(--px-line-hi) !important;
+  background: var(--px-panel) !important;
+  color: var(--px-text) !important;
+  font-family: var(--px-font);
+  font-size: 15px;
+  box-shadow: 6px 6px 0 var(--px-shadow), 0 0 0 3px var(--px-bg) !important;
+  -webkit-font-smoothing: none;
+}
+
+.cs2-modal > div:first-child {
+  border-bottom: 2px solid var(--px-line-hi);
+  background: var(--px-panel-2);
+  font-family: var(--px-title);
+  font-size: 11px;
+  line-height: 1.5;
+}
 
 .cs2-detail {
   display: grid;
-  gap: 10px;
-  color: var(--cs2-text, inherit);
+  gap: 12px;
+  color: var(--px-text);
 }
 
 .cs2-detail p,
@@ -918,29 +1082,31 @@
 }
 
 .cs2-detail h4 {
-  font-size: 13px;
+  font-family: var(--px-title);
+  font-size: 9px;
+  font-weight: 400;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  opacity: 0.75;
-}
-
-.cs2-detail .cs2-muted {
-  opacity: 0.8;
+  color: var(--px-cyan);
 }
 
 .cs2-effects {
   display: grid;
   gap: 4px;
   margin: 0;
-  padding-left: 18px;
+  padding-left: 0;
+  list-style: none;
+}
+
+.cs2-effects li::before {
+  content: "▸ ";
 }
 
 .cs2-effects li.good {
-  color: var(--cs2-good);
+  color: var(--px-good);
 }
 
 .cs2-effects li.bad {
-  color: var(--cs2-bad);
+  color: var(--px-bad);
 }
 
 .cs2-fit-line {
@@ -948,11 +1114,11 @@
 }
 
 .cs2-fit-line.good {
-  color: var(--cs2-good);
+  color: var(--px-good);
 }
 
 .cs2-fit-line.bad {
-  color: var(--cs2-warn);
+  color: var(--px-warn);
 }
 
 .cs2-detail-grid {
@@ -963,30 +1129,32 @@
 
 .cs2-detail-grid > div {
   display: grid;
-  gap: 3px;
+  gap: 4px;
   padding: 8px;
-  border-radius: 10px;
-  border: 1px solid rgba(148, 163, 184, 0.25);
+  border: 2px solid var(--px-line);
+  background: var(--px-bg-2);
 }
 
 .cs2-detail-grid span {
-  font-size: 12px;
-  opacity: 0.7;
+  font-family: var(--px-title);
+  font-size: 7px;
+  line-height: 1.5;
+  color: var(--px-muted);
+  text-transform: uppercase;
 }
 
 .cs2-lesson {
   padding: 10px 12px;
-  border-radius: 12px;
-  border-left: 3px solid var(--cs2-gold);
-  background: color-mix(in srgb, var(--cs2-gold) 10%, transparent);
+  border: 2px solid var(--px-yellow);
+  border-left-width: 6px;
+  background: rgba(255, 210, 31, 0.07);
 }
 
 .cs2-lesson span {
-  font-size: 11px;
-  font-weight: 800;
+  font-family: var(--px-title);
+  font-size: 8px;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--cs2-gold);
+  color: var(--px-yellow);
 }
 
 .cs2-lesson-inline {
@@ -997,8 +1165,8 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  color: var(--cs2-good);
-  font-weight: 800;
+  color: var(--px-good);
+  font-weight: 700;
 }
 
 /* ─── Bugs ───────────────────────────────────────────────────────────── */
@@ -1007,8 +1175,8 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px 14px;
-  font-size: 12.5px;
-  color: var(--cs2-muted);
+  font-size: 13.5px;
+  color: var(--px-muted);
 }
 
 .cs2-legend span {
@@ -1026,44 +1194,46 @@
 }
 
 .cs2-sev {
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 900;
+  padding: 3px 7px;
+  border: 2px solid var(--px-shadow);
+  font-family: var(--px-title);
+  font-size: 7px;
   text-transform: uppercase;
 }
 
 .cs2-sev-low {
-  background: color-mix(in srgb, #38bdf8 22%, transparent);
-  color: #38bdf8;
+  background: #2b7fff;
+  color: #fff;
 }
 
 .cs2-sev-medium {
-  background: color-mix(in srgb, var(--cs2-warn) 22%, transparent);
-  color: var(--cs2-warn);
+  background: var(--px-warn);
+  color: #2a1600;
 }
 
 .cs2-sev-high {
-  background: color-mix(in srgb, #fb7185 22%, transparent);
-  color: #fb7185;
+  background: #ff7a45;
+  color: #2a0d00;
 }
 
 .cs2-sev-critical {
-  background: var(--cs2-bad);
-  color: white;
+  background: var(--px-bad);
+  color: #fff;
+  animation: cs2-blink 1s steps(2) infinite;
 }
 
 .cs2-code {
   margin: 0;
   padding: 10px 12px;
-  border-radius: 10px;
-  background: #0b1020;
-  color: #c7f0ff;
-  font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
-  font-size: 12.5px;
-  line-height: 1.5;
+  border: 2px solid var(--px-shadow);
+  background: #06080d;
+  color: #9ff3c4;
+  font-family: "VT323", ui-monospace, "Cascadia Code", Menlo, monospace;
+  font-size: 13px;
+  line-height: 1.55;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+  box-shadow: inset 3px 3px 0 #000;
 }
 
 .cs2-options {
@@ -1076,21 +1246,28 @@
   gap: 2px;
   width: 100%;
   padding: 11px 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  background: rgba(148, 163, 184, 0.08);
+  border: 2px solid var(--px-line-hi);
+  border-radius: 0;
+  background: var(--px-bg-2);
   text-align: left;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.35;
   cursor: pointer;
+  box-shadow: 3px 3px 0 var(--px-shadow);
 }
 
 .cs2-option:hover:not(:disabled) {
-  border-color: #22d3ee;
+  border-color: var(--px-cyan);
+  background: rgba(66, 212, 255, 0.08);
+}
+
+.cs2-option:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--px-shadow);
 }
 
 .cs2-option small {
-  font-weight: 500;
+  font-weight: 400;
   opacity: 0.75;
 }
 
@@ -1102,7 +1279,7 @@
   display: flex;
   gap: 10px;
   padding: 12px;
-  border-radius: 12px;
+  border: 2px solid var(--px-shadow);
 }
 
 .cs2-result div {
@@ -1111,21 +1288,21 @@
 }
 
 .cs2-result.good {
-  border: 1px solid color-mix(in srgb, var(--cs2-good) 60%, transparent);
-  background: color-mix(in srgb, var(--cs2-good) 12%, transparent);
+  border-color: var(--px-good);
+  background: rgba(61, 220, 132, 0.1);
 }
 
 .cs2-result.good > svg {
-  color: var(--cs2-good);
+  color: var(--px-good);
 }
 
 .cs2-result.bad {
-  border: 1px solid color-mix(in srgb, var(--cs2-bad) 60%, transparent);
-  background: color-mix(in srgb, var(--cs2-bad) 12%, transparent);
+  border-color: var(--px-bad);
+  background: rgba(255, 77, 109, 0.1);
 }
 
 .cs2-result.bad > svg {
-  color: var(--cs2-bad);
+  color: var(--px-bad);
 }
 
 .cs2-bug-alt {
@@ -1137,7 +1314,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  color: var(--cs2-good);
+  color: var(--px-good);
 }
 
 .cs2-empty p {
@@ -1151,29 +1328,30 @@
   align-content: start;
   gap: 6px;
   padding: 12px;
-  border-radius: 12px;
-  border: 1px solid var(--cs2-soft);
-  background: color-mix(in srgb, var(--cs2-soft) 30%, transparent);
+  border: 2px solid var(--px-line);
+  background: var(--px-bg-2);
+  box-shadow: 3px 3px 0 var(--px-shadow);
 }
 
 .cs2-mini p {
   margin: 0;
-  font-size: 12.5px;
-  color: var(--cs2-muted);
+  font-size: 13.5px;
+  color: var(--px-muted);
 }
 
 .cs2-mini small {
-  font-size: 12px;
-  color: var(--cs2-muted);
+  font-size: 13px;
+  color: var(--px-muted);
 }
 
 .cs2-mini .cs2-btn {
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 .cs2-mini.locked,
 .cs2-channel.locked {
   opacity: 0.6;
+  filter: grayscale(0.4);
 }
 
 .cs2-mini-head {
@@ -1203,8 +1381,8 @@
   align-items: center;
   gap: 10px;
   padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid var(--cs2-soft);
+  border: 2px solid var(--px-line);
+  background: var(--px-bg-2);
 }
 
 .cs2-list li > div {
@@ -1214,8 +1392,8 @@
 }
 
 .cs2-list small {
-  color: var(--cs2-muted);
-  font-size: 12px;
+  color: var(--px-muted);
+  font-size: 13px;
 }
 
 .cs2-list li.locked {
@@ -1227,16 +1405,17 @@
   place-items: center;
   flex: 0 0 34px;
   height: 34px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #22d3ee, var(--cs2-gold));
-  color: #031018;
-  font-weight: 900;
-  font-size: 12px;
+  border: 2px solid var(--px-shadow);
+  background: var(--px-purple);
+  color: #fff;
+  font-family: var(--px-title);
+  font-size: 9px;
+  box-shadow: inset -3px -3px 0 rgba(0, 0, 0, 0.3);
 }
 
 .cs2-gauge {
   display: grid;
-  gap: 6px;
+  gap: 8px;
 }
 
 .cs2-gauge > div {
@@ -1247,15 +1426,17 @@
 }
 
 .cs2-gauge b {
-  font-size: 22px;
+  font-family: var(--px-title);
+  font-size: 16px;
+  font-weight: 400;
 }
 
 .cs2-gauge .cs2-bar {
-  height: 12px;
+  height: 16px;
 }
 
 .cs2-gauge small {
-  color: var(--cs2-muted);
+  color: var(--px-muted);
 }
 
 /* ─── Marketing ──────────────────────────────────────────────────────── */
@@ -1273,31 +1454,43 @@
 
 .cs2-quote {
   display: grid;
-  gap: 1px;
+  gap: 2px;
   padding: 8px 6px;
-  border-radius: 10px;
-  border: 1px solid var(--cs2-soft);
-  background: transparent;
+  border: 2px solid var(--px-line-hi);
+  border-radius: 0;
+  background: var(--px-bg-2);
   text-align: center;
   cursor: pointer;
+  box-shadow: 2px 2px 0 var(--px-shadow);
+}
+
+.cs2-quote:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+.cs2-quote b {
+  font-family: var(--px-title);
+  font-size: 9px;
+  font-weight: 400;
 }
 
 .cs2-quote span,
 .cs2-quote small {
-  font-size: 11.5px;
-  color: var(--cs2-muted);
+  font-size: 12.5px;
+  color: var(--px-muted);
 }
 
 .cs2-quote.winning {
-  border-color: color-mix(in srgb, var(--cs2-good) 55%, transparent);
+  border-color: var(--px-good);
 }
 
 .cs2-quote.losing {
-  border-color: color-mix(in srgb, var(--cs2-bad) 55%, transparent);
+  border-color: var(--px-bad);
 }
 
 .cs2-quote.losing small {
-  color: var(--cs2-bad);
+  color: var(--px-bad);
 }
 
 /* ─── Finanzas ───────────────────────────────────────────────────────── */
@@ -1307,21 +1500,30 @@
   margin: 0 0 8px;
   padding: 0;
   display: grid;
-  gap: 4px;
+  gap: 2px;
 }
 
 .cs2-pnl li {
   display: flex;
   justify-content: space-between;
   gap: 8px;
-  padding: 6px 2px;
-  border-bottom: 1px solid var(--cs2-soft);
+  padding: 7px 2px;
+  border-bottom: 2px dashed var(--px-line);
+}
+
+.cs2-pnl li b {
+  font-family: var(--px-title);
+  font-size: 10px;
+  font-weight: 400;
 }
 
 .cs2-pnl li.total {
   border-bottom: 0;
-  font-size: 16px;
   font-weight: 800;
+}
+
+.cs2-pnl li.total b {
+  font-size: 12px;
 }
 
 .cs2-segmented {
@@ -1334,94 +1536,105 @@
   display: grid;
   gap: 2px;
   padding: 8px 4px;
-  border-radius: 10px;
-  border: 1px solid var(--cs2-soft);
-  background: transparent;
+  border: 2px solid var(--px-line-hi);
+  border-radius: 0;
+  background: var(--px-bg-2);
   font-weight: 700;
-  font-size: 12.5px;
+  font-size: 13.5px;
   cursor: pointer;
+  box-shadow: 2px 2px 0 var(--px-shadow);
 }
 
 .cs2-segmented button small {
-  color: var(--cs2-muted);
+  color: var(--px-muted);
 }
 
 .cs2-segmented button.active {
-  border-color: var(--cs2-gold);
-  background: color-mix(in srgb, var(--cs2-gold) 16%, transparent);
+  border-color: var(--px-shadow);
+  background: var(--px-yellow);
+  color: #1b1400;
   opacity: 1;
   cursor: default;
+  filter: none;
+}
+
+.cs2-segmented button.active small {
+  color: #4a3a00;
 }
 
 /* ─── Carrera y ranking ──────────────────────────────────────────────── */
 
 .cs2-career {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .cs2-level {
   display: flex;
   align-items: center;
   gap: 12px;
-  color: var(--cs2-gold);
+  color: var(--px-yellow);
 }
 
 .cs2-level h3 {
-  margin: 0;
-  font-size: 22px;
-  color: var(--cs2-text);
+  margin: 4px 0;
+  font-size: 16px;
+  color: var(--px-text);
 }
 
 .cs2-level small {
-  color: var(--cs2-muted);
+  color: var(--px-muted);
 }
 
 .cs2-milestones {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 8px;
+  gap: 10px;
 }
 
 .cs2-milestones article {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   padding: 10px;
-  border-radius: 12px;
-  border: 1px solid var(--cs2-soft);
-  opacity: 0.65;
+  border: 2px solid var(--px-line);
+  background: var(--px-bg-2);
+  opacity: 0.7;
 }
 
 .cs2-milestones article.done {
   opacity: 1;
-  border-color: color-mix(in srgb, var(--cs2-gold) 55%, transparent);
-  background: color-mix(in srgb, var(--cs2-gold) 8%, transparent);
+  border-color: var(--px-yellow);
+  background: rgba(255, 210, 31, 0.07);
+  box-shadow: 3px 3px 0 var(--px-shadow);
 }
 
 .cs2-milestones i {
   display: grid;
   place-items: center;
-  flex: 0 0 26px;
-  height: 26px;
-  border-radius: 50%;
-  border: 1px solid var(--cs2-soft);
+  flex: 0 0 28px;
+  height: 28px;
+  border: 2px solid var(--px-line-hi);
   font-style: normal;
 }
 
 .cs2-milestones article.done i {
-  color: var(--cs2-gold);
-  border-color: var(--cs2-gold);
+  border-color: var(--px-shadow);
+  background: var(--px-yellow);
+  color: #1b1400;
 }
 
 .cs2-milestones p {
-  margin: 2px 0;
-  font-size: 12.5px;
-  color: var(--cs2-muted);
+  margin: 3px 0;
+  font-size: 13.5px;
+  color: var(--px-muted);
 }
 
 .cs2-milestones small {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-weight: 800;
-  color: var(--cs2-gold);
+  color: var(--px-yellow);
 }
 
 .cs2-ranking {
@@ -1434,17 +1647,24 @@
 
 .cs2-ranking li {
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) auto;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
   align-items: center;
   gap: 8px;
   padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid var(--cs2-soft);
+  border: 2px solid var(--px-line);
+  background: var(--px-bg-2);
+}
+
+.cs2-ranking li > b {
+  font-family: var(--px-title);
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--px-cyan);
 }
 
 .cs2-ranking li.you {
-  border-color: var(--cs2-gold);
-  background: color-mix(in srgb, var(--cs2-gold) 10%, transparent);
+  border-color: var(--px-yellow);
+  background: rgba(255, 210, 31, 0.08);
 }
 
 .cs2-ranking li > div {
@@ -1460,8 +1680,8 @@
 }
 
 .cs2-ranking small {
-  color: var(--cs2-muted);
-  font-size: 12px;
+  color: var(--px-muted);
+  font-size: 13px;
 }
 
 .cs2-ranking-value {
@@ -1474,8 +1694,8 @@
 .cs2-failed {
   display: grid;
   justify-items: center;
-  gap: 10px;
-  max-width: 620px;
+  gap: 12px;
+  max-width: 640px;
   margin: 20px auto;
   text-align: center;
 }
@@ -1483,21 +1703,25 @@
 .cs2-welcome h2,
 .cs2-failed h3 {
   margin: 0;
+  font-family: var(--px-title);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.5;
 }
 
 .cs2-welcome ol {
   margin: 0;
-  padding-left: 20px;
+  padding-left: 22px;
   text-align: left;
   line-height: 1.6;
 }
 
 .cs2-welcome > svg {
-  color: var(--cs2-gold);
+  color: var(--px-yellow);
 }
 
 .cs2-failed > svg {
-  color: var(--cs2-bad);
+  color: var(--px-bad);
 }
 
 .cs2-found .cs2-field {
@@ -1507,16 +1731,10 @@
 
 .cs2-field span,
 .cs2-field-label {
-  font-size: 12px;
-  font-weight: 800;
+  font-family: var(--px-title);
+  font-size: 8px;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  opacity: 0.8;
-}
-
-.cs2-field input {
-  border-color: rgba(148, 163, 184, 0.4);
-  background: transparent;
+  color: var(--px-cyan);
 }
 
 .cs2-apptypes {
@@ -1529,11 +1747,12 @@
   display: grid;
   gap: 6px;
   padding: 10px;
-  border-radius: 12px;
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  background: transparent;
+  border: 2px solid var(--px-line-hi);
+  border-radius: 0;
+  background: var(--px-bg-2);
   text-align: left;
   cursor: pointer;
+  box-shadow: 3px 3px 0 var(--px-shadow);
 }
 
 .cs2-apptype b svg {
@@ -1542,18 +1761,18 @@
 
 .cs2-apptype p {
   margin: 0;
-  font-size: 12.5px;
+  font-size: 13.5px;
   opacity: 0.8;
 }
 
 .cs2-apptype small {
-  font-size: 12px;
+  font-size: 13px;
   opacity: 0.8;
 }
 
 .cs2-apptype.active {
   border-color: var(--apptype);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--apptype) 40%, transparent);
+  box-shadow: 3px 3px 0 var(--px-shadow), 0 0 0 2px var(--apptype);
 }
 
 .cs2-apptype.locked {
@@ -1563,14 +1782,27 @@
 
 .cs2-howto {
   margin: 0;
-  padding-left: 20px;
+  padding-left: 22px;
   display: grid;
   gap: 6px;
   line-height: 1.45;
 }
 
 .cs2-danger {
-  border-color: color-mix(in srgb, var(--cs2-bad) 45%, transparent);
+  border-color: var(--px-bad);
+}
+
+.cs2-xpcap {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 2px dashed var(--px-line-hi);
+  font-weight: 700;
+}
+
+.cs2-xpcap small {
+  font-weight: 400;
+  color: var(--px-muted);
 }
 
 /* ─── Misiones diarias ───────────────────────────────────────────────── */
@@ -1580,7 +1812,7 @@
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 8px;
+  gap: 10px;
 }
 
 .cs2-daily-list li {
@@ -1601,16 +1833,14 @@
   place-items: center;
   flex: 0 0 22px;
   height: 22px;
-  margin-top: 1px;
-  border-radius: 50%;
-  border: 2px solid var(--cs2-soft);
+  border: 2px solid var(--px-line-hi);
   font-style: normal;
 }
 
 .cs2-daily-list li.done > i {
-  border-color: var(--cs2-good);
-  background: color-mix(in srgb, var(--cs2-good) 22%, transparent);
-  color: var(--cs2-good);
+  border-color: var(--px-shadow);
+  background: var(--px-good);
+  color: #062b14;
 }
 
 .cs2-daily-list li.done b {
@@ -1625,27 +1855,189 @@
   gap: 4px 10px;
 }
 
+.cs2-daily-row small {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .cs2-daily-list small {
-  font-size: 12px;
-  color: var(--cs2-muted);
+  font-size: 13px;
+  color: var(--px-muted);
 }
 
 .cs2-daily-bonus {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin: 10px 0 0 !important;
-  font-size: 12.5px;
+  margin: 12px 0 0 !important;
+  font-size: 13.5px;
   font-weight: 700;
-  color: var(--cs2-gold);
+  color: var(--px-yellow);
 }
 
 .cs2-daily-bonus.done {
-  color: var(--cs2-good);
+  color: var(--px-good);
 }
 
 .cs2-daily.compact .cs2-daily-list {
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+/* ─── Primeros pasos y tutorial ──────────────────────────────────────── */
+
+.cs2-firststeps ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 8px;
+}
+
+.cs2-firststeps li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: 2px solid var(--px-line);
+  background: var(--px-bg-2);
+}
+
+.cs2-firststeps li.done {
+  border-color: var(--px-good);
+}
+
+.cs2-firststeps li.next {
+  border-color: var(--px-yellow);
+  box-shadow: 3px 3px 0 var(--px-shadow);
+}
+
+.cs2-firststeps li > i {
+  display: grid;
+  place-items: center;
+  flex: 0 0 24px;
+  height: 24px;
+  border: 2px solid var(--px-line-hi);
+  font-family: var(--px-title);
+  font-size: 8px;
+  font-style: normal;
+}
+
+.cs2-firststeps li.done > i {
+  border-color: var(--px-shadow);
+  background: var(--px-good);
+  color: #062b14;
+}
+
+.cs2-firststeps li > span {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.cs2-firststeps li button {
+  border: 2px solid var(--px-shadow);
+  background: var(--px-yellow);
+  color: #1b1400;
+  font-family: var(--px-title);
+  font-size: 7px;
+  padding: 5px 6px;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 var(--px-shadow);
+}
+
+/* Globo del tutorial: abajo a la derecha del shell, sin tapar la barra. */
+.cs2-tour {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  z-index: 30;
+  width: min(360px, calc(100% - 28px));
+  padding: 14px;
+  border: 3px solid var(--px-yellow);
+  background: var(--px-panel);
+  box-shadow: 6px 6px 0 var(--px-shadow);
+  animation: cs2-pop 0.25s steps(4);
+}
+
+.cs2-tour header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.cs2-tour header span {
+  font-family: var(--px-title);
+  font-size: 8px;
+  color: var(--px-yellow);
+}
+
+.cs2-tour h4 {
+  margin: 0 0 6px;
+  font-family: var(--px-title);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.cs2-tour p {
+  margin: 0 0 12px;
+  line-height: 1.45;
+}
+
+.cs2-tour footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cs2-tour-dots {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.cs2-tour-dots i {
+  width: 10px;
+  height: 6px;
+  background: var(--px-line-hi);
+}
+
+.cs2-tour-dots i.on {
+  background: var(--px-yellow);
+}
+
+.cs2-shell {
+  position: relative;
+}
+
+/* ─── Animaciones por pasos (sin suavizado, como en los juegos retro) ── */
+
+@keyframes cs2-blink {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@keyframes cs2-nudge {
+  50% {
+    transform: translateX(3px);
+  }
+}
+
+@keyframes cs2-pop {
+  from {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
 }
 
 /* ─── Responsive (ancho real de la ventana del PC) ───────────────────── */
@@ -1664,7 +2056,7 @@
       "header"
       "nav"
       "main";
-    font-size: 13.5px;
+    font-size: 14px;
   }
 
   .cs2-nav {
@@ -1673,7 +2065,7 @@
     overflow-y: hidden;
     padding: 6px 8px;
     border-right: 0;
-    border-bottom: 1px solid var(--cs2-border);
+    border-bottom: 2px solid var(--px-line-hi);
   }
 
   .cs2-nav button {
@@ -1698,7 +2090,7 @@
   }
 
   .cs2-tree {
-    grid-auto-columns: minmax(180px, 78%);
+    grid-auto-columns: minmax(185px, 80%);
   }
 
   .cs2-segmented {
@@ -1712,6 +2104,13 @@
   .cs2-queue-item .cs2-bar {
     grid-column: 1 / -1;
     grid-row: 2;
+  }
+
+  .cs2-tour {
+    right: 10px;
+    left: 10px;
+    bottom: 10px;
+    width: auto;
   }
 }
 
@@ -1734,24 +2133,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cs2-bar i,
-  .cs2-btn {
-    transition: none;
+  .cs2-shell *,
+  .cs2-modal * {
+    animation: none !important;
+    transition: none !important;
   }
-}
-
-/* Tope diario de XP del juego (Carrera). */
-.cs2-xpcap {
-  display: grid;
-  gap: 4px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px dashed var(--cs2-soft);
-  font-size: 12.5px;
-  font-weight: 700;
-}
-
-.cs2-xpcap small {
-  font-weight: 500;
-  color: var(--cs2-muted);
 }

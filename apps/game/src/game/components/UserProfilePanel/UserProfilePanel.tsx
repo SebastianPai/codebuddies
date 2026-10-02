@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Coins, Gem, Star } from "lucide-react";
+import { Gem, Star } from "lucide-react";
 import "./UserProfilePanel.css";
 import AvatarPreview from "../AvatarEditor/AvatarPreview";
 import { useAvatar } from "../../hooks/useAvatar";
@@ -9,6 +9,7 @@ import { useSocket } from "../../hooks/useSocket";
 import UserBadges from "../shared/UserBadges";
 import { useTranslation } from "../../../i18n/useTranslation";
 
+import { CoinIcon } from "../shared/ThemeIcons";
 export default function UserProfilePanel({
   username,
   level,
@@ -61,7 +62,7 @@ export default function UserProfilePanel({
         <div className="panel currency-panel">
           <div className="currency-item">
             <span className="currency-icon">
-              <Coins size={16} />
+              <CoinIcon size={16} />
             </span>
             <span className="currency-amount cb-fx-text-goldRank">{coins.toLocaleString()}</span>
           </div>

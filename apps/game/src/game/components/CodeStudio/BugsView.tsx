@@ -98,7 +98,7 @@ export default function BugsView({ company, busy, onFix }: Props) {
       ))}
 
       {liveBug && (
-        <Modal title={liveBug.title} onClose={close}>
+        <Modal className="cs2-modal" title={liveBug.title} onClose={close}>
           <div className="cs2-detail">
             <div className="cs2-bug-head">
               <SeverityBadge severity={liveBug.severity} t={t} />

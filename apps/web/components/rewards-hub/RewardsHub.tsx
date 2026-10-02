@@ -4,23 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import {
-  Award,
-  Check,
-  ChevronRight,
-  Coins,
-  Crown,
-  Flame,
-  Gift,
-  LayoutGrid,
-  Lock,
-  Target,
-  Ticket,
-  Trophy,
-  Users,
-  X,
-  Zap,
-} from "lucide-react";
+import { Award, Check, ChevronRight, Crown, Flame, Gift, LayoutGrid, Lock, Target, Ticket, Trophy, Users, X, Zap } from "lucide-react";
 import { toast } from "react-toastify";
 import { api } from "../../utils/api";
 import { useAuth } from "../../hooks/useAuth";
@@ -31,6 +15,7 @@ import { rewardLabel } from "../battle-pass/BattlePassTicket";
 import type { BattlePassTier } from "../battle-pass/battle-pass-types";
 import type { RewardConfig } from "../gamification/gamification-types";
 
+import { CurrencyIcon } from "@/shared/ui/currency-icon";
 type StreakMilestone = {
   id: string;
   name: string;
@@ -437,7 +422,7 @@ function TabButton({
 }
 
 const TIER_ICON: Record<string, React.ReactNode> = {
-  COINS: <Coins size={18} />,
+  COINS: <CurrencyIcon currency="coins" size={18} />,
   XP: <Zap size={18} />,
   BADGE: <Award size={18} />,
   TITLE: <Crown size={18} />,

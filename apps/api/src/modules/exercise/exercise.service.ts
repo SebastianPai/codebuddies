@@ -5,7 +5,6 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import * as vm from 'node:vm';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ReorderDto } from '../../common/dto/reorder.dto';
 import { CreateExerciseDto } from './dto/create-exercise.dto';
@@ -23,6 +22,7 @@ import {
   QuizExercise,
   QuizQuestion,
 } from './types/exercise.interface';
+import { validateCode } from './code-validation';
 
 type AdminExercisePayload = Prisma.ExerciseGetPayload<{
   include: {
@@ -681,24 +681,22 @@ export class ExerciseService {
     }
 
     const codeEntry = (exercise.codes as any)?.[0] as
-      | { tests?: Array<{ description: string; assertCode: string }>; expectedCode?: string }
+      | {
+          language?: string;
+          tests?: Array<{ description: string; assertCode: string }>;
+          expectedCode?: string;
+        }
       | undefined;
 
-    let results: Array<{ description: string; passed: boolean; error?: string }>;
-
-    if (codeEntry?.tests?.length) {
-      // Formato nuevo: varias aserciones nombradas (NF26).
-      results = this.runCodeTests(dto.code, codeEntry.tests);
-    } else if (codeEntry?.expectedCode?.trim()) {
-      // Formato ya usado por el contenido existente: expectedCode es un
-      // bloque de `assert(condicion, mensaje)` que hoy corre sin verificar
-      // nada server-side (el iframe del cliente lo ejecuta y el propio
-      // cliente decide si avisa "passed: true"). Correrlo acá también,
-      // server-side, es lo que cierra ese bypass de verdad.
-      results = this.runCodeAssertionBlock(dto.code, codeEntry.expectedCode);
-    } else {
-      results = [{ description: 'Código enviado', passed: dto.code.trim().length > 0 }];
-    }
+    // Ver code-validation.ts: detecta si expectedCode son verificaciones
+    // (assert) o una respuesta modelo, y compara según el lenguaje.
+    const results = validateCode({
+      language: codeEntry?.language,
+      studentCode: dto.code,
+      expectedCode: codeEntry?.expectedCode,
+      tests: codeEntry?.tests,
+      lang: dto.lang,
+    });
 
     const isCorrect = results.every((result) => result.passed);
     const passedCount = results.filter((result) => result.passed).length;
@@ -746,61 +744,6 @@ export class ExerciseService {
       xpAdded: completion?.xpAdded ?? 0,
       coinsAdded: completion?.coinsAdded ?? 0,
     };
-  }
-
-  // Mismo contrato que el bloque de assert() que ya arma el frontend dentro
-  // del iframe (ver learn/exercise/code/[id]/page.tsx): expectedCode es
-  // código que llama assert(condición, mensaje) una o más veces; si algo
-  // no cumple, tira y la corrida se marca como incorrecta.
-  private runCodeAssertionBlock(
-    studentCode: string,
-    expectedCode: string,
-  ): Array<{ description: string; passed: boolean; error?: string }> {
-    try {
-      const context = vm.createContext({ console: { log() {}, error() {}, warn() {} } });
-      const script = new vm.Script(`
-        function assert(condition, message) {
-          if (!condition) throw new Error(message || 'Assertion failed');
-        }
-        ${studentCode}
-        ${expectedCode}
-      `);
-      script.runInContext(context, { timeout: 2000 });
-      return [{ description: 'Assertions', passed: true }];
-    } catch (error) {
-      return [{ description: 'Assertions', passed: false, error: this.describeSandboxError(error) }];
-    }
-  }
-
-  // Los errores que tira código corrido dentro de un vm.createContext()
-  // pertenecen al Error de ESE realm, no al Error del proceso de Node —
-  // `error instanceof Error` da false aunque tenga `.message` perfectamente
-  // legible. Leer `.message` directo evita perder el mensaje del assert().
-  private describeSandboxError(error: unknown): string {
-    if (error && typeof error === 'object' && 'message' in error) {
-      const message = (error as { message?: unknown }).message;
-      if (typeof message === 'string' && message.length > 0) return message;
-    }
-    return 'Error de ejecución';
-  }
-
-  private runCodeTests(
-    studentCode: string,
-    tests: Array<{ description: string; assertCode: string }>,
-  ): Array<{ description: string; passed: boolean; error?: string }> {
-    return tests.map((test) => {
-      try {
-        // Contexto nuevo por test: nada de estado compartido entre
-        // corridas, y vm.createContext({}) no expone ningún global de
-        // Node (require/process/Buffer/global) al código ejecutado.
-        const context = vm.createContext({ console: { log() {}, error() {}, warn() {} } });
-        const script = new vm.Script(`${studentCode}\n;(${test.assertCode})`);
-        const result = script.runInContext(context, { timeout: 2000 });
-        return { description: test.description, passed: Boolean(result) };
-      } catch (error) {
-        return { description: test.description, passed: false, error: this.describeSandboxError(error) };
-      }
-    });
   }
 
   // Update y delete (sin cambios)
