@@ -54,7 +54,7 @@ const SUCCESS_TYPES = new Set([
 const WARNING_TYPES = new Set(["REFERRAL_FRAUD_FLAGGED"]);
 
 // Logros y recompensas se muestran con la tarjeta de celebración propia
-// (components/rewards/celebration-toast.tsx, centrado); el resto sigue como toast.
+// (components/rewards/RewardCelebration.tsx, centrada); el resto sigue como toast.
 const CELEBRATION_TYPES: Record<string, "achievement" | "reward" | "level"> = {
   ACHIEVEMENT_UNLOCKED: "achievement",
   MISSION_REWARD_CLAIMED: "reward",

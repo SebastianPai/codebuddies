@@ -2,8 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { sileo } from "sileo";
-import { Users, Zap } from "lucide-react";
+import { useReward } from "../../../contexts/RewardContext";
 import { useTranslation } from "@/i18n/useTranslation";
 import { useBoosts } from "./use-boosts";
 
@@ -25,7 +24,7 @@ function markAnnounced(id: string) {
   }
 }
 
-// Anuncio centrado (mismo sistema de avisos del juego) cuando empieza un
+// Anuncio con la tarjeta de recompensas (centrada arriba) cuando empieza un
 // boost de monedas: el comunitario con el nombre del Mecenas o, si no, el
 // personal. Una vez por boost y por pestaña; el "xN" fijo vive en el navbar
 // (BoostMultiplierChip).
@@ -33,6 +32,7 @@ export function BoostBanner() {
   const t = useTranslation();
   const router = useRouter();
   const { data } = useBoosts();
+  const { celebrate } = useReward();
   const community = data?.community ?? null;
   const personal = data?.personal ?? null;
   const announceId = community ? `c:${community.sponsor.id}:${community.endsAt}` : personal ? `p:${personal.endsAt}` : null;
@@ -40,15 +40,16 @@ export function BoostBanner() {
   useEffect(() => {
     if (!announceId || alreadyAnnounced(announceId)) return;
     markAnnounced(announceId);
-    sileo.success({
-      position: "top-center",
-      duration: 7000,
-      icon: community ? <Users size={18} /> : <Zap size={18} />,
+    celebrate({
+      kind: "reward",
       title: community
         ? t("pricing.boosts.banner.title", { mult: community.multiplier })
         : t("pricing.boosts.banner.mine", { mult: personal!.multiplier, time: "24 h" }),
-      description: community ? t("pricing.boosts.banner.by", { name: `@${community.sponsor.username}` }) : undefined,
-      button: { title: t("pricing.boosts.banner.cta"), onClick: () => router.push("/pricing#boosts") },
+      subtitle: community ? t("pricing.boosts.banner.by", { name: `@${community.sponsor.username}` }) : null,
+      xp: 0,
+      coins: 0,
+      linkLabel: t("pricing.boosts.banner.cta"),
+      onOpen: () => router.push("/pricing#boosts"),
     });
     // Solo al cambiar de boost: el resto de datos viaja con el id.
     // eslint-disable-next-line react-hooks/exhaustive-deps

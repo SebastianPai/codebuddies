@@ -1,8 +1,8 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { Component, createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { refreshUserStats } from "../utils/auth";
-import { useCelebrationToast } from "../components/rewards/celebration-toast";
+import RewardCelebration from "../components/rewards/RewardCelebration";
 
 interface Reward {
   xp: number;
@@ -10,7 +10,7 @@ interface Reward {
   levelUp?: boolean;
 }
 
-// Un aviso de celebración (ver components/rewards/celebration-toast.tsx):
+// Una tarjeta de celebración (ver components/rewards/RewardCelebration.tsx):
 // recompensas locales (lección, ejercicio, pase…) y logros que llegan en
 // tiempo real (notificaciones ACHIEVEMENT_UNLOCKED, REWARD_GRANTED…).
 export type Celebration = {
@@ -35,21 +35,19 @@ interface RewardContextType {
 
 const RewardContext = createContext<RewardContextType | null>(null);
 
+// Como mucho 3 tarjetas apiladas a la vez; las más viejas se descartan.
+const MAX_VISIBLE = 3;
+
 export function RewardProvider({ children }: { children: React.ReactNode }) {
   const [reward, setReward] = useState<Reward | null>(null);
-  const showToast = useCelebrationToast();
+  const [queue, setQueue] = useState<Celebration[]>([]);
+  const counter = useRef(0);
 
-  const celebrate = useCallback(
-    (celebration: Omit<Celebration, "id">) => {
-      // Un aviso que falla nunca debe tumbar la página: se pierde solo el aviso.
-      try {
-        showToast(celebration);
-      } catch (error) {
-        console.error("celebrate", error);
-      }
-    },
-    [showToast],
-  );
+  const celebrate = useCallback((celebration: Omit<Celebration, "id">) => {
+    counter.current += 1;
+    const item = { ...celebration, id: `celebration-${counter.current}` };
+    setQueue((current) => [...current, item].slice(-MAX_VISIBLE));
+  }, []);
 
   // Solo en builds de prueba (NEXT_PUBLIC_E2E_HOOKS=1): permite disparar el
   // aviso desde un navegador automatizado para revisarlo visualmente.
@@ -72,9 +70,16 @@ export function RewardProvider({ children }: { children: React.ReactNode }) {
     [celebrate],
   );
 
+  const dismiss = useCallback((id: string) => {
+    setQueue((current) => current.filter((item) => item.id !== id));
+  }, []);
+
   return (
     <RewardContext.Provider value={{ reward, showReward, celebrate }}>
       {children}
+      <CelebrationBoundary>
+        <RewardCelebration items={queue} onDismiss={dismiss} />
+      </CelebrationBoundary>
     </RewardContext.Provider>
   );
 }
@@ -87,4 +92,22 @@ export function useReward() {
   }
 
   return context;
+}
+
+// Una tarjeta de recompensa que falla nunca debe tumbar la página (antes un
+// error acá mostraba "Algo salió mal" al ganar XP): se pierde solo el aviso.
+class CelebrationBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  componentDidCatch(error: unknown) {
+    console.error("RewardCelebration", error);
+  }
+
+  render() {
+    return this.state.failed ? null : this.props.children;
+  }
 }
