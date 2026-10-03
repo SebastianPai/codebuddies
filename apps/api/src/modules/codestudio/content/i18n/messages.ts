@@ -165,6 +165,14 @@ export const MSG = {
       lesson ? `Was das Team gelernt hat: ${lesson}` : 'Bug behoben.',
     ),
   yourTeam: () => L('Tu equipo', 'Your team', 'Dein Team'),
+  autoAssignedTitle: (name: string, title: string) =>
+    L(`Tu Product Manager le pasó «${title}» a ${name}`, `Your Product Manager handed "${title}" to ${name}`, `Dein Product Manager hat „${title}" an ${name} übergeben`),
+  autoAssignedText: () =>
+    L(
+      'Con un Product Manager el equipo toma los bugs solo. Si quieres aprender y ganar más XP, diagnostícalos tú antes.',
+      'With a Product Manager the team picks up bugs on its own. To learn and earn more XP, diagnose them yourself first.',
+      'Mit einem Product Manager nimmt das Team Bugs selbst an. Um zu lernen und mehr XP zu bekommen, diagnostiziere sie vorher selbst.',
+    ),
   roundTitle: (round: string, raise: number) => L(`Ronda ${round} cerrada: +${$(raise)}`, `${round} round closed: +${$(raise)}`, `Runde ${round} abgeschlossen: +${$(raise)}`),
   roundText: (equity: number, remaining: string) =>
     L(

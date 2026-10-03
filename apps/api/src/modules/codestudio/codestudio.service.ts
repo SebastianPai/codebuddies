@@ -19,8 +19,10 @@ import {
 import { CodeStudioCatalogService } from './codestudio-catalog.service';
 import { CodeStudioRewardsService } from './codestudio-rewards.service';
 import { campaignQuote, evaluateStage, fundingOffer, stageProgress } from './codestudio-rules';
+import { TRAITS, bumpStats, performanceOf, rollTrait, statsOf, traitOf } from './content/traits';
 import {
   BUG_CAPABLE_ROLES,
+  ROLE_BY_SLUG,
   CAMPAIGN_BUDGET_MULTIPLIERS,
   CAMPAIGN_FATIGUE_WINDOW_MS,
   HIRE_BONUS_FACTOR,
@@ -62,6 +64,10 @@ import { FixBugDto } from './dto/fix-bug.dto';
 import { LaunchCampaignDto } from './dto/launch-campaign.dto';
 import { ChooseDecisionDto } from './dto/choose-decision.dto';
 import { SetPricingDto } from './dto/set-pricing.dto';
+
+// Los bugs nuevos esperan 2 min antes de que un Product Manager se los pase
+// al equipo: tiempo para que el jugador los diagnostique (y aprenda).
+const AUTO_ASSIGN_DELAY_MS = 120_000;
 
 type Tx = Prisma.TransactionClient;
 
@@ -314,6 +320,7 @@ export class CodeStudioService {
           creativity: Number(stats.creativity ?? 1),
           speed: Number(stats.speed ?? 1),
           quality: Number(stats.quality ?? 1),
+          metadata: { trait: rollTrait(), stats: { featuresShipped: 0, bugsFixed: 0, bugsCaused: 0 } },
         },
       });
       await this.log(tx, company.id, MSG.hiredTitle(employee.name, this.roleName(type.slug, type.name, lang)), MSG.hiredText(bonus, type.salary), 'team', 'neutral', lang);
@@ -484,7 +491,7 @@ export class CodeStudioService {
         throw new BadRequestException(pick(MSG.notTechnical(this.roleName(employee.employeeType.slug, employee.employeeType.name, lang)), lang));
       }
       if (company.bugReports.some((entry) => entry.assignedEmployeeId === employee.id)) throw new BadRequestException(pick(MSG.employeeBusy(employee.name), lang));
-      const seconds = weight * EMPLOYEE_FIX_SECONDS_PER_WEIGHT;
+      const seconds = this.employeeFixSeconds(employee, weight);
       await this.prisma.codeStudioBug.update({
         where: { id: bug.id },
         data: { assignedEmployeeId: employee.id, fixReadyAt: new Date(Date.now() + seconds * 1000) },
@@ -604,6 +611,7 @@ export class CodeStudioService {
     for (const bug of company.bugReports.filter((entry) => entry.fixReadyAt && entry.fixReadyAt <= now)) {
       const employee = company.employees.find((entry) => entry.id === bug.assignedEmployeeId);
       await tx.codeStudioBug.update({ where: { id: bug.id }, data: { status: CodeStudioBugStatus.FIXED, fixedAt: now, resolution: 'employee' } });
+      if (employee) await this.bumpEmployee(tx, employee, { bugsFixed: 1 });
       const base = bug.scenarioKey ? BUG_SCENARIO_BY_KEY.get(bug.scenarioKey) : undefined;
       const scenario = base ? localizeScenario(base, lang) : undefined;
       await this.log(
@@ -618,6 +626,7 @@ export class CodeStudioService {
       await this.rewards.addXp(tx, userId, BUG_SEVERITY_WEIGHT[bug.severity] * 3, company.id, {}, lang);
     }
     const openBugs = company.bugReports.filter((entry) => !(entry.fixReadyAt && entry.fixReadyAt <= now));
+    await this.autoAssignBugs(tx, company, openBugs, now, lang);
 
     const input = this.engineInput(company, openBugs, elapsed);
     const result = this.engine.simulate(input);
@@ -672,8 +681,13 @@ export class CodeStudioService {
       const xp = (await this.rewards.addXp(tx, userId, task.module.difficulty ** 2 * 4, company.id, {}, lang)).xp;
       await this.log(tx, company.id, MSG.releaseTitle(this.featureName(task.module.slug, lang, task.module.name)), MSG.releaseText(lesson, xp), 'release', 'good', lang);
       await this.rewards.grantMilestone(tx, userId, 'first-feature', company.id, lang);
-      if (Math.random() < releaseBugChance(update.difficulty, metrics.quality, profile.bugSeverityFactor)) {
+      const builders = this.builders(company, openBugs);
+      for (const builder of builders) await this.bumpEmployee(tx, builder, { featuresShipped: 1 });
+      if (Math.random() < Math.min(0.75, releaseBugChance(update.difficulty, metrics.quality, profile.bugSeverityFactor) * this.teamBugRisk(builders))) {
+        const before = openCount;
         await spawn('release', task.module.slug);
+        const culprit = before < openCount ? this.pickCulprit(builders) : null;
+        if (culprit) await this.bumpEmployee(tx, culprit, { bugsCaused: 1 });
       }
       const branch = FEATURES.find((feature) => feature.slug === task.module.slug)?.branch;
       if (branch && FEATURES.filter((feature) => feature.branch === branch).every((feature) => installed.has(feature.slug))) {
@@ -1040,6 +1054,13 @@ export class CodeStudioService {
         severance: Math.round(employee.salary * SEVERANCE_FACTOR),
         canFixBugs: BUG_CAPABLE_ROLES.has(employee.employeeType.slug),
         busy: busyEmployeeIds.has(employee.id),
+        trait: (() => {
+          const trait = traitOf(employee);
+          return { key: trait.key, tone: trait.tone, name: pick(trait.name, lang), description: pick(trait.description, lang) };
+        })(),
+        stats: statsOf(employee),
+        performance: performanceOf(employee),
+        daysInTeam: Math.max(0, Math.floor((Date.now() - employee.hiredAt.getTime()) / 60_000)),
       })),
       hosting: company.infrastructure.map((item) => {
         const scaling = (item.infrastructureType.scaling ?? {}) as Record<string, number>;
@@ -1138,6 +1159,76 @@ export class CodeStudioService {
     return contentFor(lang)?.features[slug]?.name ?? FEATURES.find((feature) => feature.slug === slug)?.name ?? fallback ?? slug;
   }
 
+  // ─── Equipo: rasgos, estadísticas y Product Manager ──────────────────
+
+  /** Cada Mentor suma 5% a todo el equipo (máximo 2). */
+  private mentorBoost(company: LoadedCompany) {
+    const mentors = company.employees.filter((employee) => traitOf(employee).key === 'mentor').length;
+    return 1 + 0.05 * Math.min(2, mentors);
+  }
+
+  /** Quienes programan features ahora (rol que construye y no está con un bug). */
+  private builders(company: LoadedCompany, openBugs: LoadedCompany['bugReports']) {
+    const busy = new Set(openBugs.map((bug) => bug.assignedEmployeeId).filter(Boolean) as string[]);
+    return company.employees.filter((employee) => (ROLE_BY_SLUG.get(employee.employeeType.slug)?.devPower ?? 0) > 0 && !busy.has(employee.id));
+  }
+
+  /** Riesgo de bug del equipo que publica: promedio de sus rasgos (1 si no hay nadie). */
+  private teamBugRisk(builders: LoadedCompany['employees']) {
+    if (builders.length === 0) return 1;
+    return builders.reduce((sum, employee) => sum + traitOf(employee).bugRisk, 0) / builders.length;
+  }
+
+  /** Quién metió el bug: más probable cuanto más descuidado. */
+  private pickCulprit(builders: LoadedCompany['employees']) {
+    if (builders.length === 0) return null;
+    const total = builders.reduce((sum, employee) => sum + traitOf(employee).bugRisk, 0);
+    let roll = Math.random() * total;
+    for (const employee of builders) {
+      roll -= traitOf(employee).bugRisk;
+      if (roll <= 0) return employee;
+    }
+    return builders[builders.length - 1];
+  }
+
+  private employeeFixSeconds(employee: LoadedCompany['employees'][number], weight: number) {
+    return Math.round((weight * EMPLOYEE_FIX_SECONDS_PER_WEIGHT) / Math.max(0.5, traitOf(employee).power));
+  }
+
+  /** Suma estadísticas al empleado (y guarda su rasgo si era de antes). */
+  private async bumpEmployee(tx: Tx, employee: LoadedCompany['employees'][number], delta: Parameters<typeof bumpStats>[1]) {
+    const metadata = bumpStats(employee.metadata, delta, traitOf(employee).key);
+    employee.metadata = metadata as typeof employee.metadata;
+    await tx.codeStudioEmployee.update({ where: { id: employee.id }, data: { metadata: metadata as Prisma.InputJsonValue } });
+  }
+
+  /**
+   * Con un Product Manager en el equipo, los bugs sin dueño se asignan solos
+   * a quien esté libre y pueda arreglarlos (el de mejor rendimiento primero).
+   * Se espera un rato para que el jugador pueda diagnosticarlos él mismo
+   * (es como se aprende y da más XP). Sin PM, se asignan a mano.
+   */
+  private async autoAssignBugs(tx: Tx, company: LoadedCompany, openBugs: LoadedCompany['bugReports'], now: Date, lang: Lang) {
+    if (!company.employees.some((employee) => employee.employeeType.slug === 'product-manager')) return;
+    const busy = new Set(openBugs.map((bug) => bug.assignedEmployeeId).filter(Boolean) as string[]);
+    const free = company.employees
+      .filter((employee) => BUG_CAPABLE_ROLES.has(employee.employeeType.slug) && !busy.has(employee.id))
+      .sort((a, b) => performanceOf(b) - performanceOf(a));
+    const waiting = openBugs
+      .filter((bug) => !bug.assignedEmployeeId && now.getTime() - bug.createdAt.getTime() >= AUTO_ASSIGN_DELAY_MS)
+      .sort((a, b) => BUG_SEVERITY_WEIGHT[b.severity] - BUG_SEVERITY_WEIGHT[a.severity]);
+    for (const bug of waiting) {
+      const employee = free.shift();
+      if (!employee) break;
+      const seconds = this.employeeFixSeconds(employee, BUG_SEVERITY_WEIGHT[bug.severity]);
+      const fixReadyAt = new Date(now.getTime() + seconds * 1000);
+      await tx.codeStudioBug.update({ where: { id: bug.id }, data: { assignedEmployeeId: employee.id, fixReadyAt } });
+      bug.assignedEmployeeId = employee.id;
+      bug.fixReadyAt = fixReadyAt;
+      await this.log(tx, company.id, MSG.autoAssignedTitle(employee.name, bug.title), MSG.autoAssignedText(), 'team', 'neutral', lang);
+    }
+  }
+
   private roleName(slug: string, fallback: string, lang: Lang) {
     return contentFor(lang)?.roles[slug]?.name ?? fallback;
   }
@@ -1166,7 +1257,7 @@ export class CodeStudioService {
       employees: company.employees.map((employee) => ({
         id: employee.id,
         roleSlug: employee.employeeType.slug,
-        productivity: employee.productivity,
+        productivity: employee.productivity * traitOf(employee).power * this.mentorBoost(company),
         speed: employee.speed,
         salary: employee.salary,
         busy: busy.has(employee.id),
@@ -1227,6 +1318,9 @@ export class CodeStudioService {
         name: employee.name,
         salary: employee.salary,
         roleName: this.roleName(employee.employeeType.slug, employee.employeeType.name, lang),
+        trait: traitOf(employee),
+        stats: statsOf(employee),
+        performance: performanceOf(employee),
       })),
       channelFit: (slug) => profile.channelEffectiveness[slug] ?? 1,
     };

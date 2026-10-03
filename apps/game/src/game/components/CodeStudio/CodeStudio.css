@@ -1,11 +1,7 @@
-/* CodeStudio — marco pixel art con letra limpia. Paleta tomada del PC del juego (metal oscuro,
-   azul eléctrico, morado de la barra de tareas y el amarillo de la pestaña
-   "CodeStudio"). Reglas del estilo:
-   - sin esquinas redondeadas: bordes de 2px y sombras duras desplazadas
-     (el "relieve" de los juegos de 8/16 bits), sin blur;
-   - tipografía limpia (Inter; JetBrains Mono para código): la letra pixel
-     se leía mal en textos largos, así que solo el marco es pixel art;
-   - barras de progreso por bloques y movimiento por pasos (steps()).
+/* CodeStudio — estilo Apple con los acentos de la marca CodeBuddies:
+   superficies lisas con esquinas redondeadas, separadores finos, vidrio
+   esmerilado en la cabecera, sombras suaves y mucho aire; títulos negros y
+   gruesos como la web y el amarillo de la marca en las acciones clave.
    Las variables se definen en .cs2-shell y en .cs2-modal porque los
    diálogos se dibujan fuera del shell (portal). El layout usa container
    queries: vive dentro de la ventana del PC, no del ancho de la pantalla. */
@@ -14,28 +10,43 @@
 
 .cs2-shell,
 .cs2-modal {
-  --px-bg: #0b0d12;
-  --px-bg-2: #10131a;
-  --px-panel: #161a22;
-  --px-panel-2: #1c212b;
-  --px-line: #2a313d;
-  --px-line-hi: #3b4453;
-  --px-text: #e9eef6;
-  --px-muted: #8c97a9;
-  --px-blue: #2f9bff;
-  --px-cyan: #42d4ff;
-  --px-yellow: #ffd21f;
-  --px-yellow-dark: #b98a00;
-  --px-purple: #7a46e0;
-  --px-good: #3ddc84;
-  --px-bad: #ff4d6d;
-  --px-warn: #ffad1f;
-  --px-shadow: #05060a;
-  --px-font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --px-title: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* Oscuro (por defecto), paleta tipo macOS. */
+  --px-bg: #0b0b0d;
+  --px-bg-2: #141417;
+  --px-panel: #1c1c1f;
+  --px-panel-2: #26262a;
+  --px-line: rgba(255, 255, 255, 0.08);
+  --px-line-hi: rgba(255, 255, 255, 0.14);
+  --px-text: #f5f5f7;
+  --px-muted: #a1a1a6;
+  --px-blue: #0a84ff;
+  --px-cyan: #64d2ff;
+  --px-yellow: #facc15;
+  --px-yellow-dark: #ca8a04;
+  --px-purple: #bf5af2;
+  --px-good: #30d158;
+  --px-bad: #ff453a;
+  --px-warn: #ff9f0a;
+  --px-shadow: rgba(0, 0, 0, 0.45);
+  --px-font: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  --px-title: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+
+  /* Sistema Apple. */
+  --r-lg: 18px;
+  --r-md: 12px;
+  --r-sm: 9px;
+  --r-pill: 999px;
+  --fill: rgba(255, 255, 255, 0.06);
+  --fill-strong: rgba(255, 255, 255, 0.11);
+  --glass: rgba(28, 28, 31, 0.72);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.5);
+  --ring: 0 0 0 3px rgba(10, 132, 255, 0.35);
+  --ease: cubic-bezier(0.25, 0.1, 0.25, 1);
 
   /* Alias que usan los componentes. */
-  --cs2-accent: var(--px-cyan);
+  --cs2-accent: var(--px-blue);
   --cs2-gold: var(--px-yellow);
   --cs2-good: var(--px-good);
   --cs2-bad: var(--px-bad);
@@ -50,18 +61,27 @@
 /* Tema claro del PC (botón sol/luna de la barra de tareas). */
 [data-pc-theme="light"] .cs2-shell,
 [data-pc-theme="light"] .cs2-modal {
-  --px-bg: #dfe4ec;
-  --px-bg-2: #e8ecf2;
-  --px-panel: #f4f6fa;
-  --px-panel-2: #ffffff;
-  --px-line: #c3cad6;
-  --px-line-hi: #9aa5b6;
-  --px-text: #141821;
-  --px-muted: #5b6577;
-  --px-blue: #1a73e8;
-  --px-cyan: #0b84c6;
-  --px-yellow-dark: #8a6500;
-  --px-shadow: #9aa5b6;
+  --px-bg: #f5f5f7;
+  --px-bg-2: #ececf0;
+  --px-panel: #ffffff;
+  --px-panel-2: #f5f5f7;
+  --px-line: rgba(0, 0, 0, 0.08);
+  --px-line-hi: rgba(0, 0, 0, 0.13);
+  --px-text: #1d1d1f;
+  --px-muted: #6e6e73;
+  --px-blue: #0071e3;
+  --px-cyan: #0a84c6;
+  --px-yellow-dark: #a16207;
+  --px-good: #1f9d47;
+  --px-bad: #e5332a;
+  --px-warn: #c96f00;
+  --px-shadow: rgba(0, 0, 0, 0.12);
+  --fill: rgba(0, 0, 0, 0.04);
+  --fill-strong: rgba(0, 0, 0, 0.07);
+  --glass: rgba(255, 255, 255, 0.75);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.18);
 }
 
 .cs2-shell {
@@ -76,15 +96,11 @@
     "nav main";
   color: var(--px-text);
   background-color: var(--px-bg);
-  /* Trama de puntos tipo pantalla CRT, muy sutil. */
-  background-image: radial-gradient(rgba(66, 212, 255, 0.07) 1px, transparent 1px);
-  background-size: 6px 6px;
   font-family: var(--px-font);
   font-size: 15px;
   line-height: 1.35;
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
-  image-rendering: pixelated;
 }
 
 .cs2-shell *,
@@ -108,7 +124,7 @@
 
 .cs2-shell svg,
 .cs2-modal svg {
-  shape-rendering: crispEdges;
+  shape-rendering: geometricPrecision;
 }
 
 .cs2-loading {
@@ -122,7 +138,7 @@
   font-weight: 800;
 }
 
-/* Scrollbars pixel. */
+/* Scrollbars finas tipo macOS. */
 .cs2-shell ::-webkit-scrollbar,
 .cs2-modal ::-webkit-scrollbar {
   width: 10px;
@@ -131,13 +147,15 @@
 
 .cs2-shell ::-webkit-scrollbar-track,
 .cs2-modal ::-webkit-scrollbar-track {
-  background: var(--px-bg-2);
+  background: transparent;
 }
 
 .cs2-shell ::-webkit-scrollbar-thumb,
 .cs2-modal ::-webkit-scrollbar-thumb {
-  background: var(--px-blue);
-  border: 2px solid var(--px-bg-2);
+  background: var(--fill-strong);
+  border: 2px solid transparent;
+  border-radius: var(--r-pill);
+  background-clip: padding-box;
 }
 
 /* ─── Header ─────────────────────────────────────────────────────────── */
@@ -149,9 +167,9 @@
   align-items: center;
   gap: 10px 16px;
   padding: 10px 14px;
-  border-bottom: 2px solid var(--px-line-hi);
+  border-bottom: 1px solid var(--px-line-hi);
   background: linear-gradient(180deg, var(--px-panel-2), var(--px-panel));
-  box-shadow: 0 2px 0 var(--px-shadow);
+  box-shadow: var(--shadow-sm);
 }
 
 .cs2-brand {
@@ -167,12 +185,12 @@
   place-items: center;
   flex: 0 0 34px;
   height: 34px;
-  border: 2px solid var(--px-shadow);
+  border: 1px solid var(--px-shadow);
   background: var(--px-yellow);
   color: #1b1400;
   font-family: var(--px-title);
   font-size: 13px;
-  box-shadow: inset -3px -3px 0 var(--px-yellow-dark), inset 3px 3px 0 #fff3a8;
+  box-shadow: var(--shadow-sm);
   font-weight: 800;
 }
 
@@ -181,11 +199,10 @@
   flex: 1;
   max-width: 260px;
   padding: 7px 10px;
-  border: 2px solid var(--px-line-hi);
-  border-radius: 0;
+  border: 1px solid var(--px-line-hi);
   background: var(--px-bg-2);
   font-weight: 700;
-  box-shadow: inset 2px 2px 0 var(--px-shadow);
+  box-shadow: var(--shadow-sm);
 }
 
 .cs2-header-stats {
@@ -205,12 +222,12 @@
 
 .cs2-stage-chip {
   padding: 4px 9px;
-  border: 2px solid var(--px-shadow);
+  border: 1px solid var(--px-shadow);
   background: var(--px-yellow);
   color: #1b1400;
   font-family: var(--px-title);
   font-size: 12px;
-  box-shadow: 2px 2px 0 var(--px-shadow);
+  box-shadow: var(--shadow-sm);
   font-weight: 800;
 }
 
@@ -221,12 +238,12 @@
   gap: 4px 6px;
   min-width: 124px;
   padding: 6px 10px;
-  border: 2px solid var(--px-line-hi);
+  border: 1px solid var(--px-line-hi);
   background: var(--px-bg-2);
   cursor: pointer;
   font-family: var(--px-title);
   font-size: 12px;
-  box-shadow: 3px 3px 0 var(--px-shadow);
+  box-shadow: var(--shadow-sm);
   font-weight: 800;
 }
 
@@ -243,7 +260,7 @@
   flex-direction: column;
   gap: 4px;
   padding: 10px;
-  border-right: 2px solid var(--px-line-hi);
+  border-right: 1px solid var(--px-line-hi);
   background: var(--px-bg-2);
   overflow-y: auto;
 }
@@ -254,8 +271,7 @@
   align-items: center;
   gap: 9px;
   padding: 8px 10px;
-  border: 2px solid transparent;
-  border-radius: 0;
+  border: 1px solid transparent;
   background: transparent;
   color: var(--px-muted);
   font-weight: 600;
@@ -273,7 +289,7 @@
   color: #fff;
   border-color: var(--px-shadow);
   background: var(--px-blue);
-  box-shadow: inset -3px -3px 0 rgba(0, 0, 0, 0.25), inset 3px 3px 0 rgba(255, 255, 255, 0.18), 3px 3px 0 var(--px-shadow);
+  box-shadow: var(--shadow-sm);
 }
 
 [data-pc-theme="light"] .cs2-nav button.active {
@@ -281,7 +297,7 @@
 }
 
 .cs2-nav button.tour-target {
-  animation: cs2-blink 0.8s steps(2) infinite;
+  animation: cs2-blink 0.8s var(--ease) infinite;
   border-color: var(--px-yellow);
 }
 
@@ -290,7 +306,7 @@
   min-width: 20px;
   height: 18px;
   padding: 0 4px;
-  border: 2px solid var(--px-shadow);
+  border: 1px solid var(--px-shadow);
   background: var(--px-bad);
   color: #fff;
   font-family: var(--px-title);
@@ -320,9 +336,9 @@
 .cs2-card {
   min-width: 0;
   padding: 14px;
-  border: 2px solid var(--px-line-hi);
+  border: 1px solid var(--px-line-hi);
   background: var(--px-panel);
-  box-shadow: 4px 4px 0 var(--px-shadow), inset 0 2px 0 rgba(255, 255, 255, 0.04);
+  box-shadow: var(--shadow-sm);
 }
 
 .cs2-card h3,
@@ -397,7 +413,7 @@
   align-items: center;
   gap: 4px;
   padding: 3px 8px;
-  border: 2px solid var(--px-line);
+  border: 1px solid var(--px-line);
   background: var(--px-bg-2);
   font-size: 13px;
   font-weight: 600;
@@ -431,12 +447,11 @@
   gap: 6px;
   min-height: 38px;
   padding: 7px 14px;
-  border: 2px solid var(--px-shadow);
-  border-radius: 0;
+  border: 1px solid var(--px-shadow);
   background: var(--px-panel-2);
   font-weight: 700;
   cursor: pointer;
-  box-shadow: inset -3px -3px 0 rgba(0, 0, 0, 0.3), inset 3px 3px 0 rgba(255, 255, 255, 0.08), 3px 3px 0 var(--px-shadow);
+  box-shadow: var(--shadow-sm);
 }
 
 .cs2-btn:hover:not(:disabled) {
@@ -444,8 +459,8 @@
 }
 
 .cs2-btn:active:not(:disabled) {
-  transform: translate(2px, 2px);
-  box-shadow: inset -3px -3px 0 rgba(0, 0, 0, 0.3), inset 3px 3px 0 rgba(255, 255, 255, 0.08), 1px 1px 0 var(--px-shadow);
+  transform: scale(0.98);
+  box-shadow: var(--shadow-sm);
 }
 
 .cs2-btn:disabled,
@@ -460,7 +475,7 @@
 .cs2-btn-primary {
   background: var(--px-yellow);
   color: #1b1400 !important;
-  box-shadow: inset -3px -3px 0 var(--px-yellow-dark), inset 3px 3px 0 #fff3a8, 3px 3px 0 var(--px-shadow);
+  box-shadow: var(--shadow-sm);
 }
 
 .cs2-btn-danger {
@@ -478,15 +493,14 @@
   flex: 0 0 34px;
   width: 34px;
   height: 34px;
-  border: 2px solid var(--px-line-hi);
-  border-radius: 0;
+  border: 1px solid var(--px-line-hi);
   background: var(--px-panel-2);
   cursor: pointer;
-  box-shadow: 2px 2px 0 var(--px-shadow);
+  box-shadow: var(--shadow-sm);
 }
 
 .cs2-icon-btn:active:not(:disabled) {
-  transform: translate(2px, 2px);
+  transform: scale(0.98);
   box-shadow: none;
 }
 
@@ -502,10 +516,9 @@
   min-width: 0;
   flex: 1 1 160px;
   padding: 8px 10px;
-  border: 2px solid var(--px-line-hi);
-  border-radius: 0;
+  border: 1px solid var(--px-line-hi);
   background: var(--px-bg-2);
-  box-shadow: inset 2px 2px 0 var(--px-shadow);
+  box-shadow: var(--shadow-sm);
 }
 
 /* ─── Barras, stats, sparklines ──────────────────────────────────────── */
@@ -513,7 +526,7 @@
 /* Barra por bloques: el relleno se ve como celdas de 6px. */
 .cs2-bar {
   height: 10px;
-  border: 2px solid var(--px-shadow);
+  border: 1px solid var(--px-shadow);
   background: var(--px-bg-2);
   overflow: hidden;
 }
@@ -521,20 +534,20 @@
 .cs2-bar i {
   display: block;
   height: 100%;
-  background: repeating-linear-gradient(90deg, var(--px-cyan) 0 6px, transparent 6px 8px);
-  transition: width 0.6s steps(10);
+  background: var(--px-cyan);
+  transition: width 0.6s var(--ease);
 }
 
 .cs2-bar-good i {
-  background: repeating-linear-gradient(90deg, var(--px-good) 0 6px, transparent 6px 8px);
+  background: var(--px-good);
 }
 
 .cs2-bar-bad i {
-  background: repeating-linear-gradient(90deg, var(--px-bad) 0 6px, transparent 6px 8px);
+  background: var(--px-bad);
 }
 
 .cs2-bar-warn i {
-  background: repeating-linear-gradient(90deg, var(--px-warn) 0 6px, transparent 6px 8px);
+  background: var(--px-warn);
 }
 
 .cs2-stats {
@@ -548,9 +561,9 @@
   gap: 4px;
   min-width: 0;
   padding: 11px 12px;
-  border: 2px solid var(--px-line-hi);
+  border: 1px solid var(--px-line-hi);
   background: var(--px-panel);
-  box-shadow: 3px 3px 0 var(--px-shadow);
+  box-shadow: var(--shadow-sm);
 }
 
 .cs2-stat span {
@@ -603,13 +616,14 @@
 .cs2-spark svg {
   width: 100%;
   height: 56px;
-  border-bottom: 2px solid var(--px-line);
+  border-bottom: 1px solid var(--px-line);
 }
 
 .cs2-spark polyline {
   stroke: var(--px-cyan);
   stroke-width: 3;
-  stroke-linejoin: miter;
+  stroke-linejoin: round;
+  stroke-linecap: round;
 }
 
 .cs2-spark-good polyline {
@@ -622,7 +636,7 @@
 
 .cs2-spark-empty {
   min-height: 56px;
-  border: 2px dashed var(--px-line);
+  border: 1px dashed var(--px-line);
   padding: 8px;
 }
 
@@ -639,7 +653,7 @@
 
 .cs2-stars i.on {
   background: var(--px-yellow);
-  box-shadow: inset -2px -2px 0 var(--px-yellow-dark);
+  box-shadow: var(--shadow-sm);
 }
 
 /* ─── Panel: camino y metas ──────────────────────────────────────────── */
@@ -671,7 +685,7 @@
   left: calc(50% + 16px);
   width: calc(100% - 28px);
   height: 4px;
-  background: repeating-linear-gradient(90deg, var(--px-line) 0 4px, transparent 4px 8px);
+  background: var(--px-line);
 }
 
 .cs2-path-step:last-child::after {
@@ -683,7 +697,7 @@
   place-items: center;
   width: 28px;
   height: 28px;
-  border: 2px solid var(--px-line-hi);
+  border: 1px solid var(--px-line-hi);
   font-family: var(--px-title);
   font-size: 12px;
   font-style: normal;
@@ -716,7 +730,7 @@
   background: var(--px-yellow);
   color: #1b1400;
   box-shadow: 0 0 0 3px var(--px-bg), 0 0 0 5px var(--px-yellow);
-  animation: cs2-blink 1.2s steps(2) infinite;
+  animation: cs2-blink 1.2s var(--ease) infinite;
 }
 
 .cs2-stage {
@@ -737,7 +751,7 @@
   gap: 8px;
   align-self: flex-start;
   padding: 8px 12px;
-  border: 2px dashed var(--px-yellow);
+  border: 1px dashed var(--px-yellow);
   color: var(--px-yellow);
   background: rgba(255, 210, 31, 0.06);
 }
@@ -778,17 +792,16 @@
   gap: 4px 10px;
   width: 100%;
   padding: 12px 14px;
-  border: 2px solid var(--px-shadow);
-  border-radius: 0;
+  border: 1px solid var(--px-shadow);
   background: var(--px-blue);
   color: #fff;
   text-align: left;
   cursor: pointer;
-  box-shadow: inset -3px -3px 0 rgba(0, 0, 0, 0.25), inset 3px 3px 0 rgba(255, 255, 255, 0.18), 4px 4px 0 var(--px-shadow);
+  box-shadow: var(--shadow-sm);
 }
 
 .cs2-next:active {
-  transform: translate(2px, 2px);
+  transform: scale(0.98);
 }
 
 .cs2-next span {
@@ -808,7 +821,7 @@
 .cs2-next svg {
   grid-column: 2;
   grid-row: 1 / 3;
-  animation: cs2-nudge 1s steps(2) infinite;
+  animation: cs2-nudge 1s var(--ease) infinite;
 }
 
 .cs2-next-bad {
@@ -843,10 +856,10 @@
   gap: 8px;
   margin: 0;
   padding: 10px 12px;
-  border: 2px solid var(--px-shadow);
+  border: 1px solid var(--px-shadow);
   font-weight: 700;
   line-height: 1.4;
-  box-shadow: 3px 3px 0 var(--px-shadow);
+  box-shadow: var(--shadow-sm);
 }
 
 .cs2-alert p {
@@ -875,7 +888,7 @@
 
 .cs2-feed li {
   padding: 8px 10px;
-  border: 2px solid var(--px-line);
+  border: 1px solid var(--px-line);
   border-left-width: 6px;
   background: var(--px-bg-2);
 }
@@ -931,9 +944,9 @@
 .cs2-branch {
   min-width: 0;
   padding: 10px;
-  border: 2px solid var(--px-line-hi);
+  border: 1px solid var(--px-line-hi);
   background: var(--px-panel);
-  box-shadow: 4px 4px 0 var(--px-shadow);
+  box-shadow: var(--shadow-sm);
 }
 
 .cs2-branch header {
@@ -941,7 +954,7 @@
   gap: 4px;
   margin: -10px -10px 12px;
   padding: 10px;
-  border-bottom: 2px solid var(--px-line-hi);
+  border-bottom: 1px solid var(--px-line-hi);
   background: var(--px-panel-2);
 }
 
@@ -980,12 +993,11 @@
   gap: 5px;
   width: 100%;
   padding: 9px 10px;
-  border: 2px solid var(--px-line);
-  border-radius: 0;
+  border: 1px solid var(--px-line);
   background: var(--px-bg-2);
   text-align: left;
   cursor: pointer;
-  box-shadow: 3px 3px 0 var(--px-shadow);
+  box-shadow: var(--shadow-sm);
 }
 
 .cs2-node:hover {
@@ -1015,7 +1027,7 @@
 
 .cs2-node.available {
   border-color: var(--px-cyan);
-  box-shadow: 3px 3px 0 var(--px-shadow), 0 0 0 2px rgba(66, 212, 255, 0.25);
+  box-shadow: var(--shadow-sm);
 }
 
 .cs2-node.developing,
@@ -1046,7 +1058,7 @@
   gap: 3px;
   justify-self: start;
   padding: 1px 6px;
-  border: 2px solid currentColor;
+  border: 1px solid currentColor;
   font-size: 12px;
   font-weight: 700;
 }
@@ -1063,17 +1075,17 @@
 
 .cs2-modal {
   border-radius: 0 !important;
-  border: 3px solid var(--px-line-hi) !important;
+  border: 1px solid var(--px-line-hi) !important;
   background: var(--px-panel) !important;
   color: var(--px-text) !important;
   font-family: var(--px-font);
   font-size: 15px;
-  box-shadow: 6px 6px 0 var(--px-shadow), 0 0 0 3px var(--px-bg) !important;
+  box-shadow: var(--shadow-sm);
   -webkit-font-smoothing: antialiased;
 }
 
 .cs2-modal > div:first-child {
-  border-bottom: 2px solid var(--px-line-hi);
+  border-bottom: 1px solid var(--px-line-hi);
   background: var(--px-panel-2);
   font-family: var(--px-title);
   font-size: 14px;
@@ -1142,7 +1154,7 @@
   display: grid;
   gap: 4px;
   padding: 8px;
-  border: 2px solid var(--px-line);
+  border: 1px solid var(--px-line);
   background: var(--px-bg-2);
 }
 
@@ -1157,7 +1169,7 @@
 
 .cs2-lesson {
   padding: 10px 12px;
-  border: 2px solid var(--px-yellow);
+  border: 1px solid var(--px-yellow);
   border-left-width: 6px;
   background: rgba(255, 210, 31, 0.07);
 }
@@ -1208,7 +1220,7 @@
 
 .cs2-sev {
   padding: 3px 7px;
-  border: 2px solid var(--px-shadow);
+  border: 1px solid var(--px-shadow);
   font-family: var(--px-title);
   font-size: 11px;
   text-transform: uppercase;
@@ -1233,13 +1245,13 @@
 .cs2-sev-critical {
   background: var(--px-bad);
   color: #fff;
-  animation: cs2-blink 1s steps(2) infinite;
+  animation: cs2-blink 1s var(--ease) infinite;
 }
 
 .cs2-code {
   margin: 0;
   padding: 10px 12px;
-  border: 2px solid var(--px-shadow);
+  border: 1px solid var(--px-shadow);
   background: #06080d;
   color: #9ff3c4;
   font-family: "JetBrains Mono", ui-monospace, "Cascadia Code", Menlo, monospace;
@@ -1247,7 +1259,7 @@
   line-height: 1.55;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  box-shadow: inset 3px 3px 0 #000;
+  box-shadow: var(--shadow-sm);
 }
 
 .cs2-options {
@@ -1260,14 +1272,13 @@
   gap: 2px;
   width: 100%;
   padding: 11px 12px;
-  border: 2px solid var(--px-line-hi);
-  border-radius: 0;
+  border: 1px solid var(--px-line-hi);
   background: var(--px-bg-2);
   text-align: left;
   font-weight: 600;
   line-height: 1.35;
   cursor: pointer;
-  box-shadow: 3px 3px 0 var(--px-shadow);
+  box-shadow: var(--shadow-sm);
 }
 
 .cs2-option:hover:not(:disabled) {
@@ -1276,8 +1287,8 @@
 }
 
 .cs2-option:active:not(:disabled) {
-  transform: translate(2px, 2px);
-  box-shadow: 1px 1px 0 var(--px-shadow);
+  transform: scale(0.98);
+  box-shadow: var(--shadow-sm);
 }
 
 .cs2-option small {
@@ -1293,7 +1304,7 @@
   display: flex;
   gap: 10px;
   padding: 12px;
-  border: 2px solid var(--px-shadow);
+  border: 1px solid var(--px-shadow);
 }
 
 .cs2-result div {
@@ -1342,9 +1353,9 @@
   align-content: start;
   gap: 6px;
   padding: 12px;
-  border: 2px solid var(--px-line);
+  border: 1px solid var(--px-line);
   background: var(--px-bg-2);
-  box-shadow: 3px 3px 0 var(--px-shadow);
+  box-shadow: var(--shadow-sm);
 }
 
 .cs2-mini p {
@@ -1395,7 +1406,7 @@
   align-items: center;
   gap: 10px;
   padding: 8px 10px;
-  border: 2px solid var(--px-line);
+  border: 1px solid var(--px-line);
   background: var(--px-bg-2);
 }
 
@@ -1419,12 +1430,12 @@
   place-items: center;
   flex: 0 0 34px;
   height: 34px;
-  border: 2px solid var(--px-shadow);
+  border: 1px solid var(--px-shadow);
   background: var(--px-purple);
   color: #fff;
   font-family: var(--px-title);
   font-size: 12px;
-  box-shadow: inset -3px -3px 0 rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-sm);
   font-weight: 800;
 }
 
@@ -1471,16 +1482,15 @@
   display: grid;
   gap: 2px;
   padding: 8px 6px;
-  border: 2px solid var(--px-line-hi);
-  border-radius: 0;
+  border: 1px solid var(--px-line-hi);
   background: var(--px-bg-2);
   text-align: center;
   cursor: pointer;
-  box-shadow: 2px 2px 0 var(--px-shadow);
+  box-shadow: var(--shadow-sm);
 }
 
 .cs2-quote:active:not(:disabled) {
-  transform: translate(2px, 2px);
+  transform: scale(0.98);
   box-shadow: none;
 }
 
@@ -1523,7 +1533,7 @@
   justify-content: space-between;
   gap: 8px;
   padding: 7px 2px;
-  border-bottom: 2px dashed var(--px-line);
+  border-bottom: 1px dashed var(--px-line);
 }
 
 .cs2-pnl li b {
@@ -1551,13 +1561,12 @@
   display: grid;
   gap: 2px;
   padding: 8px 4px;
-  border: 2px solid var(--px-line-hi);
-  border-radius: 0;
+  border: 1px solid var(--px-line-hi);
   background: var(--px-bg-2);
   font-weight: 700;
   font-size: 13.5px;
   cursor: pointer;
-  box-shadow: 2px 2px 0 var(--px-shadow);
+  box-shadow: var(--shadow-sm);
 }
 
 .cs2-segmented button small {
@@ -1611,7 +1620,7 @@
   display: flex;
   gap: 10px;
   padding: 10px;
-  border: 2px solid var(--px-line);
+  border: 1px solid var(--px-line);
   background: var(--px-bg-2);
   opacity: 0.7;
 }
@@ -1620,7 +1629,7 @@
   opacity: 1;
   border-color: var(--px-yellow);
   background: rgba(255, 210, 31, 0.07);
-  box-shadow: 3px 3px 0 var(--px-shadow);
+  box-shadow: var(--shadow-sm);
 }
 
 .cs2-milestones i {
@@ -1628,7 +1637,7 @@
   place-items: center;
   flex: 0 0 28px;
   height: 28px;
-  border: 2px solid var(--px-line-hi);
+  border: 1px solid var(--px-line-hi);
   font-style: normal;
 }
 
@@ -1666,7 +1675,7 @@
   align-items: center;
   gap: 8px;
   padding: 8px 10px;
-  border: 2px solid var(--px-line);
+  border: 1px solid var(--px-line);
   background: var(--px-bg-2);
 }
 
@@ -1763,12 +1772,11 @@
   display: grid;
   gap: 6px;
   padding: 10px;
-  border: 2px solid var(--px-line-hi);
-  border-radius: 0;
+  border: 1px solid var(--px-line-hi);
   background: var(--px-bg-2);
   text-align: left;
   cursor: pointer;
-  box-shadow: 3px 3px 0 var(--px-shadow);
+  box-shadow: var(--shadow-sm);
 }
 
 .cs2-apptype b svg {
@@ -1788,7 +1796,7 @@
 
 .cs2-apptype.active {
   border-color: var(--apptype);
-  box-shadow: 3px 3px 0 var(--px-shadow), 0 0 0 2px var(--apptype);
+  box-shadow: var(--shadow-sm);
 }
 
 .cs2-apptype.locked {
@@ -1812,7 +1820,7 @@
   display: grid;
   gap: 6px;
   padding: 10px 12px;
-  border: 2px dashed var(--px-line-hi);
+  border: 1px dashed var(--px-line-hi);
   font-weight: 700;
 }
 
@@ -1849,7 +1857,7 @@
   place-items: center;
   flex: 0 0 22px;
   height: 22px;
-  border: 2px solid var(--px-line-hi);
+  border: 1px solid var(--px-line-hi);
   font-style: normal;
 }
 
@@ -1907,7 +1915,7 @@
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 8px;
 }
 
@@ -1916,7 +1924,7 @@
   align-items: center;
   gap: 8px;
   padding: 8px;
-  border: 2px solid var(--px-line);
+  border: 1px solid var(--px-line);
   background: var(--px-bg-2);
 }
 
@@ -1926,7 +1934,7 @@
 
 .cs2-firststeps li.next {
   border-color: var(--px-yellow);
-  box-shadow: 3px 3px 0 var(--px-shadow);
+  box-shadow: var(--shadow-sm);
 }
 
 .cs2-firststeps li > i {
@@ -1934,7 +1942,7 @@
   place-items: center;
   flex: 0 0 24px;
   height: 24px;
-  border: 2px solid var(--px-line-hi);
+  border: 1px solid var(--px-line-hi);
   font-family: var(--px-title);
   font-size: 11.5px;
   font-style: normal;
@@ -1955,14 +1963,14 @@
 }
 
 .cs2-firststeps li button {
-  border: 2px solid var(--px-shadow);
+  border: 1px solid var(--px-shadow);
   background: var(--px-yellow);
   color: #1b1400;
   font-family: var(--px-title);
   font-size: 11px;
   padding: 5px 6px;
   cursor: pointer;
-  box-shadow: 2px 2px 0 var(--px-shadow);
+  box-shadow: var(--shadow-sm);
   font-weight: 800;
 }
 
@@ -1974,10 +1982,10 @@
   z-index: 30;
   width: min(360px, calc(100% - 28px));
   padding: 14px;
-  border: 3px solid var(--px-yellow);
+  border: 1px solid var(--px-yellow);
   background: var(--px-panel);
-  box-shadow: 6px 6px 0 var(--px-shadow);
-  animation: cs2-pop 0.25s steps(4);
+  box-shadow: var(--shadow-sm);
+  animation: cs2-pop 0.25s var(--ease);
 }
 
 .cs2-tour header {
@@ -2084,7 +2092,7 @@
     overflow-y: hidden;
     padding: 6px 8px;
     border-right: 0;
-    border-bottom: 2px solid var(--px-line-hi);
+    border-bottom: 1px solid var(--px-line-hi);
   }
 
   .cs2-nav button {
@@ -2191,7 +2199,7 @@
   align-items: flex-start;
   gap: 10px;
   padding: 10px;
-  border: 2px solid var(--px-line, rgba(255, 255, 255, 0.12));
+  border: 1px solid var(--px-line, rgba(255, 255, 255, 0.12));
   background: var(--px-bg);
 }
 
@@ -2221,7 +2229,7 @@
   gap: 8px;
   padding: 8px 10px;
   margin-bottom: 10px;
-  border: 2px solid var(--px-line, rgba(255, 255, 255, 0.12));
+  border: 1px solid var(--px-line, rgba(255, 255, 255, 0.12));
   background: var(--px-bg);
 }
 
@@ -2243,7 +2251,7 @@
 
 .cs2-glossary > div {
   padding: 10px;
-  border: 2px solid var(--px-line, rgba(255, 255, 255, 0.12));
+  border: 1px solid var(--px-line, rgba(255, 255, 255, 0.12));
   background: var(--px-bg);
 }
 
@@ -2302,4 +2310,719 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+
+/* ═══ Capa final: forma, vidrio y jerarquía (Apple + marca) ═══════════ */
+
+.cs2-shell {
+  background: var(--px-bg);
+  font-size: 14.5px;
+  line-height: 1.45;
+  letter-spacing: -0.006em;
+}
+
+/* Superficies grandes */
+.cs2-card,
+.cs2-stat,
+.cs2-welcome,
+.cs2-failed,
+.cs2-tour,
+.cs2-next,
+.cs2-alert,
+.cs2-decision-teaser,
+.cs2-branch,
+.cs2-detail,
+.cs2-found,
+.cs2-result {
+  border-radius: var(--r-lg);
+}
+
+.cs2-card,
+.cs2-stat {
+  border: 1px solid var(--px-line);
+  background: var(--px-panel);
+  box-shadow: var(--shadow-sm);
+}
+
+.cs2-card {
+  padding: 18px;
+}
+
+/* Superficies medianas */
+.cs2-node,
+.cs2-option,
+.cs2-quote,
+.cs2-channel,
+.cs2-mini,
+.cs2-apptype,
+.cs2-goal,
+.cs2-queue-item,
+.cs2-daily-row,
+.cs2-daily-bonus,
+.cs2-lesson,
+.cs2-howto,
+.cs2-code,
+.cs2-reward,
+.cs2-gauge,
+.cs2-firststeps li,
+.cs2-guide-steps li,
+.cs2-glossary > div,
+.cs2-guide-search,
+.cs2-spark-empty,
+.cs2-empty,
+.cs2-bug-alt,
+.cs2-requires,
+.cs2-pnl li,
+.cs2-ranking li {
+  border-radius: var(--r-md);
+}
+
+/* Controles */
+.cs2-btn,
+.cs2-icon-btn,
+.cs2-brand select,
+.cs2-inline select,
+.cs2-field input,
+.cs2-nav button,
+.cs2-level-chip,
+.cs2-segmented,
+.cs2-segmented button,
+.cs2-firststeps li button {
+  border-radius: var(--r-sm);
+}
+
+.cs2-chip,
+.cs2-stage-chip,
+.cs2-sev,
+.cs2-nav em,
+.cs2-bar,
+.cs2-bar i,
+.cs2-tour-dots i,
+.cs2-avatar,
+.cs2-path-step i,
+.cs2-firststeps li > i,
+.cs2-stars i,
+.cs2-brand > span {
+  border-radius: var(--r-pill);
+}
+
+.cs2-guide-steps li > i {
+  border-radius: 10px;
+}
+
+/* Cabecera de vidrio */
+.cs2-header {
+  position: relative;
+  z-index: 2;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--px-line);
+  background: var(--glass);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  box-shadow: none;
+}
+
+.cs2-brand > span {
+  flex-basis: 34px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--px-yellow);
+  color: #111;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  box-shadow: 0 2px 8px rgba(250, 204, 21, 0.35);
+}
+
+.cs2-brand select,
+.cs2-inline select,
+.cs2-field input {
+  border: 1px solid var(--px-line-hi);
+  background: var(--fill);
+  box-shadow: none;
+  transition: box-shadow 0.15s var(--ease), border-color 0.15s var(--ease);
+}
+
+.cs2-brand select:focus,
+.cs2-inline select:focus,
+.cs2-field input:focus,
+.cs2-guide-search:focus-within {
+  outline: none;
+  border-color: var(--px-blue);
+  box-shadow: var(--ring);
+}
+
+.cs2-stage-chip {
+  border: 0;
+  padding: 4px 11px;
+  background: var(--px-yellow);
+  color: #111;
+  font-size: 12px;
+  box-shadow: none;
+}
+
+.cs2-level-chip {
+  border: 1px solid var(--px-line);
+  background: var(--fill);
+  box-shadow: none;
+  font-size: 13px;
+}
+
+/* Barra lateral tipo macOS */
+.cs2-nav {
+  gap: 2px;
+  padding: 12px 10px;
+  border-right: 1px solid var(--px-line);
+  background: var(--px-bg-2);
+}
+
+.cs2-nav button {
+  border: 0;
+  padding: 8px 10px;
+  font-weight: 600;
+  color: var(--px-muted);
+  transition: background 0.15s var(--ease), color 0.15s var(--ease);
+}
+
+.cs2-nav button svg {
+  opacity: 0.85;
+}
+
+.cs2-nav button:hover {
+  background: var(--fill);
+  color: var(--px-text);
+}
+
+.cs2-nav button.active {
+  background: var(--fill-strong);
+  color: var(--px-text);
+  box-shadow: none;
+}
+
+.cs2-nav button.active svg {
+  color: var(--px-yellow);
+  opacity: 1;
+}
+
+[data-pc-theme="light"] .cs2-nav button.active {
+  color: var(--px-text);
+}
+
+[data-pc-theme="light"] .cs2-nav button.active svg {
+  color: var(--px-yellow-dark);
+}
+
+.cs2-nav button.tour-target {
+  animation: cs2-pulse-ring 1.4s var(--ease) infinite;
+  border: 0;
+}
+
+@keyframes cs2-pulse-ring {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.55); }
+  50% { box-shadow: 0 0 0 4px rgba(250, 204, 21, 0); }
+}
+
+.cs2-nav em {
+  border: 0;
+  height: 18px;
+  padding: 0 6px;
+  line-height: 18px;
+  font-size: 11px;
+}
+
+.cs2-main {
+  padding: 22px;
+}
+
+.cs2-stack {
+  gap: 16px;
+}
+
+/* Tipografía: títulos negros y gruesos como la web */
+.cs2-card h3 {
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.cs2-card h4 {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+.cs2-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--px-muted);
+}
+
+.cs2-eyebrow svg {
+  color: var(--px-yellow);
+}
+
+.cs2-stat {
+  padding: 14px 16px;
+  gap: 2px;
+}
+
+.cs2-stat span {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.cs2-stat b {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+.cs2-stage h3,
+.cs2-welcome h2,
+.cs2-failed h3 {
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+}
+
+/* Botones */
+.cs2-btn {
+  min-height: 36px;
+  padding: 7px 16px;
+  border: 1px solid var(--px-line-hi);
+  background: var(--fill);
+  font-weight: 600;
+  box-shadow: none;
+  transition: background 0.15s var(--ease), transform 0.1s var(--ease), filter 0.15s var(--ease);
+}
+
+.cs2-btn:hover:not(:disabled) {
+  background: var(--fill-strong);
+  filter: none;
+}
+
+.cs2-btn:active:not(:disabled),
+.cs2-icon-btn:active:not(:disabled) {
+  transform: scale(0.97);
+  box-shadow: none;
+}
+
+.cs2-btn:focus-visible,
+.cs2-icon-btn:focus-visible,
+.cs2-nav button:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+}
+
+.cs2-btn-primary {
+  border-color: transparent;
+  background: var(--px-yellow);
+  color: #111 !important;
+  font-weight: 700;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), 0 4px 14px rgba(250, 204, 21, 0.25);
+}
+
+.cs2-btn-primary:hover:not(:disabled) {
+  background: #fde047;
+}
+
+.cs2-btn-danger {
+  border-color: transparent;
+  background: var(--px-bad);
+  color: #fff;
+}
+
+.cs2-btn-danger:hover:not(:disabled) {
+  background: var(--px-bad);
+  filter: brightness(1.08);
+}
+
+.cs2-btn:disabled,
+.cs2-icon-btn:disabled,
+.cs2-option:disabled,
+.cs2-quote:disabled {
+  opacity: 0.4;
+  filter: none;
+}
+
+.cs2-icon-btn {
+  border: 1px solid var(--px-line);
+  background: var(--fill);
+  box-shadow: none;
+  transition: background 0.15s var(--ease);
+}
+
+.cs2-icon-btn:hover:not(:disabled) {
+  background: var(--fill-strong);
+}
+
+/* Chips y barras */
+.cs2-chip {
+  border: 0;
+  padding: 3px 10px;
+  background: var(--fill);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.cs2-bar {
+  height: 6px;
+  border: 0;
+  background: var(--fill-strong);
+}
+
+.cs2-bar i {
+  background: linear-gradient(90deg, var(--px-blue), var(--px-cyan));
+  transition: width 0.6s var(--ease);
+}
+
+.cs2-bar-good i {
+  background: var(--px-good);
+}
+
+.cs2-bar-bad i {
+  background: var(--px-bad);
+}
+
+.cs2-bar-warn i {
+  background: var(--px-warn);
+}
+
+.cs2-spark svg {
+  border-bottom: 0;
+}
+
+.cs2-spark polyline {
+  stroke-width: 2.25;
+}
+
+.cs2-spark-empty {
+  border: 1px dashed var(--px-line-hi);
+}
+
+/* "¿Y ahora qué?": la tarjeta de llamada principal, con el amarillo */
+.cs2-next {
+  border: 1px solid transparent;
+  background: linear-gradient(135deg, rgba(250, 204, 21, 0.16), rgba(250, 204, 21, 0.04));
+  border-color: rgba(250, 204, 21, 0.35);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s var(--ease), box-shadow 0.15s var(--ease);
+}
+
+.cs2-next:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.cs2-next span {
+  letter-spacing: 0.04em;
+}
+
+/* Camino de etapas */
+.cs2-path-step::after {
+  height: 2px;
+  top: 13px;
+  border-radius: 2px;
+  background: var(--px-line-hi);
+}
+
+.cs2-path-step i {
+  border: 1px solid var(--px-line-hi);
+  background: var(--px-panel-2);
+}
+
+.cs2-path-step.current i {
+  border-color: transparent;
+  background: var(--px-yellow);
+  color: #111;
+  box-shadow: 0 0 0 4px rgba(250, 204, 21, 0.2);
+}
+
+/* Elementos interactivos medianos: hover suave */
+.cs2-node,
+.cs2-option,
+.cs2-quote,
+.cs2-channel,
+.cs2-apptype {
+  border: 1px solid var(--px-line);
+  box-shadow: none;
+  transition: transform 0.15s var(--ease), box-shadow 0.15s var(--ease), border-color 0.15s var(--ease), background 0.15s var(--ease);
+}
+
+.cs2-node:hover,
+.cs2-option:hover:not(:disabled),
+.cs2-quote:hover:not(:disabled),
+.cs2-apptype:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.cs2-apptype.active,
+.cs2-node.developing {
+  border-color: var(--px-yellow);
+  box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.18);
+}
+
+.cs2-node.installed {
+  border-color: rgba(48, 209, 88, 0.45);
+}
+
+/* Diálogos */
+.cs2-modal {
+  border-radius: 20px !important;
+  border: 1px solid var(--px-line-hi) !important;
+  box-shadow: var(--shadow-lg) !important;
+  overflow: hidden;
+}
+
+.cs2-modal > div:first-child {
+  border-bottom: 1px solid var(--px-line) !important;
+  background: var(--glass) !important;
+  backdrop-filter: saturate(180%) blur(20px);
+  font-size: 16px !important;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+/* Tutorial */
+.cs2-tour {
+  border: 1px solid var(--px-line-hi);
+  background: var(--glass);
+  backdrop-filter: saturate(180%) blur(24px);
+  -webkit-backdrop-filter: saturate(180%) blur(24px);
+  box-shadow: var(--shadow-lg);
+  animation: cs2-rise 0.35s var(--ease);
+}
+
+.cs2-tour header span {
+  color: var(--px-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.cs2-tour h4 {
+  font-size: 17px;
+  letter-spacing: -0.02em;
+}
+
+.cs2-tour-dots i {
+  height: 4px;
+}
+
+@keyframes cs2-rise {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Primeros pasos y guía */
+.cs2-firststeps li,
+.cs2-guide-steps li,
+.cs2-glossary > div,
+.cs2-guide-search {
+  border: 1px solid var(--px-line);
+  background: var(--px-panel-2);
+  box-shadow: none;
+}
+
+.cs2-firststeps li.next {
+  border-color: rgba(250, 204, 21, 0.55);
+  box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.12);
+}
+
+.cs2-firststeps li button {
+  border: 0;
+  padding: 5px 12px;
+  background: var(--px-yellow);
+  color: #111;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: none;
+}
+
+.cs2-guide-steps li > i {
+  background: linear-gradient(135deg, var(--px-yellow), #f59e0b);
+  color: #111;
+}
+
+.cs2-glossary dt {
+  color: var(--px-text);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.cs2-glossary dd {
+  color: var(--px-muted);
+}
+
+.cs2-alert {
+  border: 1px solid var(--px-line);
+}
+
+/* ─── Equipo: rasgos, estadísticas y Product Manager ─────────────────── */
+.cs2-people li {
+  align-items: flex-start;
+}
+
+.cs2-person {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.cs2-person-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cs2-person-trait {
+  color: var(--px-muted);
+}
+
+.cs2-trait {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: var(--r-pill);
+  font-size: 11.5px;
+  font-weight: 700;
+  background: var(--fill-strong);
+  color: var(--px-text);
+}
+
+.cs2-trait-good {
+  background: rgba(48, 209, 88, 0.16);
+  color: var(--px-good);
+}
+
+.cs2-trait-bad {
+  background: rgba(255, 69, 58, 0.14);
+  color: var(--px-bad);
+}
+
+.cs2-person-stats {
+  display: flex;
+  gap: 12px;
+  margin-top: 2px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--px-muted);
+}
+
+.cs2-person-stats span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cs2-perf {
+  display: grid;
+  justify-items: center;
+  min-width: 64px;
+  padding: 6px 8px;
+  border-radius: var(--r-md);
+  background: var(--fill);
+}
+
+.cs2-perf b {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.cs2-perf small {
+  font-size: 11px;
+  color: var(--px-muted);
+}
+
+.cs2-pm-note {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cs2-pm-note p,
+.cs2-pm-inline {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.cs2-pm-note svg,
+.cs2-pm-inline svg {
+  flex-shrink: 0;
+  color: var(--px-warn);
+}
+
+.cs2-pm-note.on svg,
+.cs2-pm-inline.on svg {
+  color: var(--px-good);
+}
+
+.cs2-pm-inline {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px !important;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  background: var(--fill);
+  font-size: 13px;
+}
+
+
+/* ─── Ajustes tras revisar con datos reales ──────────────────────────── */
+.cs2-list li {
+  border-radius: var(--r-md);
+}
+
+.cs2-list li > .cs2-perf {
+  flex: 0 0 auto;
+}
+
+.cs2-path-step.current i {
+  animation: none;
+}
+
+.cs2-fit {
+  padding: 2px 9px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--fill-strong);
+}
+
+.cs2-fit.good {
+  background: rgba(48, 209, 88, 0.14);
+}
+
+.cs2-fit.bad {
+  background: rgba(255, 159, 10, 0.14);
+}
+
+.cs2-branch-nodes::before {
+  width: 2px;
+  border-radius: 2px;
+  background: var(--px-line-hi);
+}
+
+.cs2-reward {
+  border: 1px solid rgba(250, 204, 21, 0.45);
+  border-radius: var(--r-md);
+  background: rgba(250, 204, 21, 0.08);
+}
+
+/* Tema claro: el amarillo como texto no se lee sobre blanco. */
+[data-pc-theme="light"] .cs2-path-step.current,
+[data-pc-theme="light"] .cs2-reward b,
+[data-pc-theme="light"] .cs2-reward svg,
+[data-pc-theme="light"] .cs2-eyebrow svg {
+  color: var(--px-yellow-dark);
 }

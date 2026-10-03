@@ -250,7 +250,21 @@ export type CompanyView = {
   tree: Array<{ slug: string; state: TreeState; fit: number; missing: string[] }>;
   legacyFeatures: Array<{ name: string; category: string }>;
   development: Array<{ id: string; slug: string; name: string; progress: number; queued: boolean; remainingSeconds: number | null; refund: number }>;
-  employees: Array<{ id: string; name: string; roleSlug: string; roleName: string; salary: number; severance: number; canFixBugs: boolean; busy: boolean }>;
+  employees: Array<{
+    id: string;
+    name: string;
+    roleSlug: string;
+    roleName: string;
+    salary: number;
+    severance: number;
+    canFixBugs: boolean;
+    busy: boolean;
+    // Rasgo, estadísticas y rendimiento (opcionales: API anterior).
+    trait?: { key: string; tone: "good" | "neutral" | "bad"; name: string; description: string };
+    stats?: { featuresShipped: number; bugsFixed: number; bugsCaused: number };
+    performance?: number;
+    daysInTeam?: number;
+  }>;
   hosting: Array<{ typeId: string; slug: string; name: string; level: number; maxLevel: number; capacity: number; monthly: number; upgradeCost: number; legacy: boolean }>;
   bugs: PublicBug[];
   pendingDecision: { id: string; title: string; description: string | null; choices: Array<{ key: string; label: string; hint: string }>; daysLeft: number } | null;

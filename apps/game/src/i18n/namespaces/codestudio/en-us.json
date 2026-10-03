@@ -169,7 +169,9 @@
     "pickEmployee": "Pick an engineer",
     "assign": "Assign (takes {time})",
     "noEngineers": "No free engineers (Backend, FullStack, DevOps, QA or Data Scientist).",
-    "consultant": "Consultancy ({amount})"
+    "consultant": "Consultancy ({amount})",
+    "pmOn": "Your Product Manager assigns bugs that have had no owner for 2 minutes. Diagnose them yourself first if you want to learn and earn more XP.",
+    "pmOff": "Without a Product Manager nobody picks up bugs on their own: assign them yourself. With a PM on the team they get distributed automatically."
   },
   "team": {
     "people": "Employees",
@@ -195,7 +197,14 @@
     "fire": "Let go",
     "fireTitle": "Let {name} go?",
     "fireText": "You pay {severance} in severance and save {salary} per month. Sometimes it's the only way to survive.",
-    "fireConfirm": "Let go"
+    "fireConfirm": "Let go",
+    "pmOn": "You have a Product Manager: bugs nobody picks up within 2 minutes are assigned to whoever is free (best performer first).",
+    "pmOff": "Without a Product Manager you assign every bug by hand in the Bugs tab. Hire one and the team picks them up on its own.",
+    "performance": "performance",
+    "performanceHint": "From 0 to 100: based on their trait and what they did (features and fixed bugs add, caused bugs subtract).",
+    "statShipped": "Features they helped ship",
+    "statFixed": "Bugs they fixed",
+    "statCaused": "Bugs they caused when shipping"
   },
   "infra": {
     "title": "Servers",

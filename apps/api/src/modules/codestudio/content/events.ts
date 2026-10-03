@@ -9,6 +9,7 @@
 // idiomas (L = { es, en, de }) en vez de en los archivos de traducción.
 
 import { L, Localized } from './i18n/localized';
+import type { EmployeeStats, Trait } from './traits';
 
 export type EventContext = {
   stage: number;
@@ -21,7 +22,7 @@ export type EventContext = {
   hostingSlugs: Set<string>;
   hasMonetization: boolean;
   activeTaskCount: number;
-  employees: Array<{ id: string; name: string; salary: number; roleName: string }>;
+  employees: Array<{ id: string; name: string; salary: number; roleName: string; trait: Trait; stats: EmployeeStats; performance: number }>;
   channelFit: (slug: string) => number;
 };
 
@@ -469,6 +470,10 @@ export const DECISION_EVENTS: DecisionEvent[] = [
     },
   },
   {
+    // La decisión tiene que tener motivo: se muestra el rasgo y lo que la
+    // persona hizo de verdad. Si rinde poco (Descuidado, Lento...), la otra
+    // empresa además paga un traspaso alto: dejarla ir es buen negocio. A
+    // una Estrella conviene subirle el sueldo.
     key: 'poach',
     name: L('Quieren llevarse a alguien de tu equipo', 'Someone is poaching your team', 'Jemand will dir Leute abwerben'),
     weight: 6,
@@ -476,16 +481,33 @@ export const DECISION_EVENTS: DecisionEvent[] = [
     build: (ctx, rng) => {
       const target = ctx.employees[Math.floor(rng() * ctx.employees.length)];
       const raised = Math.round(target.salary * 1.3);
+      const weak = target.performance < 50;
+      const strong = target.performance >= 70;
+      const fee = Math.round(target.salary * (weak ? 3 : 1));
+      const { featuresShipped: shipped, bugsFixed: fixed, bugsCaused: caused } = target.stats;
+      const traitName = target.trait.name;
       return {
         description: L(
-          `Una empresa grande le ofreció más sueldo a ${target.name} (${target.roleName}). Si no igualas la oferta, se va.`,
-          `A big company offered ${target.name} (${target.roleName}) a higher salary. If you don't match it, they leave.`,
-          `Eine große Firma hat ${target.name} (${target.roleName}) mehr Gehalt angeboten. Wenn du nicht mitziehst, geht die Person.`,
+          `Una empresa grande le ofreció más sueldo a ${target.name} (${target.roleName}, ${traitName.es}). Rendimiento ${target.performance}/100: ${shipped} features publicadas, ${fixed} bugs arreglados y ${caused} bugs causados. ${target.trait.description.es} Si no igualas la oferta se va, y la otra empresa te paga ${$(fee)} por el traspaso.`,
+          `A big company offered ${target.name} (${target.roleName}, ${traitName.en}) a higher salary. Performance ${target.performance}/100: ${shipped} features shipped, ${fixed} bugs fixed and ${caused} bugs caused. ${target.trait.description.en} If you don't match it they leave, and the other company pays you ${$(fee)} for the transfer.`,
+          `Eine große Firma hat ${target.name} (${target.roleName}, ${traitName.de}) mehr Gehalt angeboten. Leistung ${target.performance}/100: ${shipped} Features veröffentlicht, ${fixed} Bugs behoben und ${caused} Bugs verursacht. ${target.trait.description.de} Ziehst du nicht mit, geht die Person, und die andere Firma zahlt dir ${$(fee)} Ablöse.`,
         ),
-        params: { employeeId: target.id, name: target.name, salary: target.salary },
+        params: { employeeId: target.id, name: target.name, salary: target.salary, fee, weak },
         choices: [
-          { key: 'raise', label: L('Subirle el sueldo 30%', 'Give a 30% raise', 'Gehalt um 30% erhöhen'), hint: L(`Pasa de ${$(target.salary)} a ${$(raised)} al mes.`, `From ${$(target.salary)} to ${$(raised)} per month.`, `Von ${$(target.salary)} auf ${$(raised)} pro Monat.`) },
-          { key: 'let-go', label: L('Dejarlo ir', 'Let them go', 'Gehen lassen'), hint: L('Ahorras su sueldo, pierdes a la persona.', 'You save the salary, you lose the person.', 'Du sparst das Gehalt, verlierst aber die Person.') },
+          {
+            key: 'raise',
+            label: L('Subirle el sueldo 30%', 'Give a 30% raise', 'Gehalt um 30% erhöhen'),
+            hint: strong
+              ? L(`Recomendado: es de tus mejores. Pasa de ${$(target.salary)} a ${$(raised)} al mes.`, `Recommended: one of your best. From ${$(target.salary)} to ${$(raised)} per month.`, `Empfohlen: eine deiner Besten. Von ${$(target.salary)} auf ${$(raised)} pro Monat.`)
+              : L(`Pasa de ${$(target.salary)} a ${$(raised)} al mes.`, `From ${$(target.salary)} to ${$(raised)} per month.`, `Von ${$(target.salary)} auf ${$(raised)} pro Monat.`),
+          },
+          {
+            key: 'let-go',
+            label: L('Dejarlo ir', 'Let them go', 'Gehen lassen'),
+            hint: weak
+              ? L(`Recomendado: rinde poco. Recibes ${$(fee)} y ahorras ${$(target.salary)} al mes para contratar a alguien mejor.`, `Recommended: low performer. You get ${$(fee)} and save ${$(target.salary)} a month to hire someone better.`, `Empfohlen: schwache Leistung. Du bekommst ${$(fee)} und sparst ${$(target.salary)} im Monat für jemand Besseren.`)
+              : L(`Recibes ${$(fee)} de traspaso y ahorras su sueldo, pero pierdes a la persona.`, `You get a ${$(fee)} transfer fee and save the salary, but lose the person.`, `Du bekommst ${$(fee)} Ablöse und sparst das Gehalt, verlierst aber die Person.`),
+          },
         ],
       };
     },
@@ -493,9 +515,15 @@ export const DECISION_EVENTS: DecisionEvent[] = [
     resolve: (ctx, params, choice) => {
       const stillThere = ctx.employees.some((employee) => employee.id === params.employeeId);
       if (!stillThere) return { tone: 'neutral', message: L(`${params.name} ya no estaba en el equipo.`, `${params.name} was no longer on the team.`, `${params.name} war nicht mehr im Team.`) };
+      const fee = Number(params.fee ?? 0);
       return choice === 'raise'
         ? { tone: 'good', raiseSalary: { employeeId: params.employeeId, factor: 1.3 }, message: L(`${params.name} se queda con un 30% más de sueldo.`, `${params.name} stays with a 30% raise.`, `${params.name} bleibt mit 30% mehr Gehalt.`) }
-        : { tone: 'bad', removeEmployeeId: params.employeeId, message: L(`${params.name} se fue a la otra empresa.`, `${params.name} left for the other company.`, `${params.name} ist zur anderen Firma gewechselt.`) };
+        : {
+            tone: params.weak ? 'good' : 'bad',
+            cash: fee,
+            removeEmployeeId: params.employeeId,
+            message: L(`${params.name} se fue a la otra empresa, que te pagó ${$(fee)} por el traspaso.`, `${params.name} left for the other company, which paid you ${$(fee)} for the transfer.`, `${params.name} ist zur anderen Firma gewechselt, die dir ${$(fee)} Ablöse gezahlt hat.`),
+          };
     },
   },
   {

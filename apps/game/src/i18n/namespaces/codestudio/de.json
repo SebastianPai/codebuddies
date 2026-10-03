@@ -169,7 +169,9 @@
     "pickEmployee": "Techniker wählen",
     "assign": "Zuweisen (dauert {time})",
     "noEngineers": "Keine freien Techniker (Backend, FullStack, DevOps, QA oder Data Scientist).",
-    "consultant": "Beratung ({amount})"
+    "consultant": "Beratung ({amount})",
+    "pmOn": "Dein Product Manager weist Bugs zu, die seit 2 Minuten niemand hat. Diagnostiziere sie vorher selbst, wenn du lernen und mehr XP bekommen willst.",
+    "pmOff": "Ohne Product Manager übernimmt niemand Bugs von selbst: Weise sie selbst zu. Mit einem PM im Team werden sie automatisch verteilt."
   },
   "team": {
     "people": "Mitarbeiter",
@@ -195,7 +197,14 @@
     "fire": "Entlassen",
     "fireTitle": "{name} entlassen?",
     "fireText": "Du zahlst {severance} Abfindung und sparst {salary} pro Monat. Manchmal ist das der einzige Weg zu überleben.",
-    "fireConfirm": "Entlassen"
+    "fireConfirm": "Entlassen",
+    "pmOn": "Du hast einen Product Manager: Bugs, die 2 Minuten niemand übernimmt, gehen automatisch an freie Leute (die Besten zuerst).",
+    "pmOff": "Ohne Product Manager musst du jeden Bug im Tab Bugs selbst zuweisen. Stell einen ein, dann übernimmt das Team sie selbst.",
+    "performance": "Leistung",
+    "performanceHint": "Von 0 bis 100: nach Eigenschaft und dem, was die Person getan hat (Features und behobene Bugs zählen positiv, verursachte Bugs negativ).",
+    "statShipped": "Mitveröffentlichte Features",
+    "statFixed": "Behobene Bugs",
+    "statCaused": "Beim Veröffentlichen verursachte Bugs"
   },
   "infra": {
     "title": "Server",

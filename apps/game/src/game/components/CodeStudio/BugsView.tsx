@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Briefcase, CheckCircle2, Search, Timer, Wrench, XCircle } from "lucide-react";
+import { Briefcase, CheckCircle2, ClipboardList, Search, Timer, Wrench, XCircle } from "lucide-react";
 import Modal from "../shared/Modal";
 import type { BugFixResult, CompanyView, PublicBug } from "./types";
 import { SeverityBadge, duration, money } from "./ui";
@@ -49,6 +49,8 @@ export default function BugsView({ company, busy, onFix }: Props) {
     setResult(outcome);
   };
 
+  const hasPm = company.employees.some((employee) => employee.roleSlug === "product-manager");
+
   return (
     <div className="cs2-stack">
       <section className="cs2-card">
@@ -65,6 +67,9 @@ export default function BugsView({ company, busy, onFix }: Props) {
             <Briefcase size={13} /> {t("codestudio.bugs.legendConsultant")}
           </span>
         </div>
+        <p className={`cs2-pm-inline ${hasPm ? "on" : ""}`}>
+          <ClipboardList size={14} /> {hasPm ? t("codestudio.bugs.pmOn") : t("codestudio.bugs.pmOff")}
+        </p>
       </section>
 
       {company.bugs.length === 0 && (

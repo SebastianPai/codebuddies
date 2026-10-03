@@ -169,7 +169,9 @@
     "pickEmployee": "Elegir técnico",
     "assign": "Asignar (tarda {time})",
     "noEngineers": "No tienes técnicos libres (Backend, FullStack, DevOps, QA o Data Scientist).",
-    "consultant": "Consultora ({amount})"
+    "consultant": "Consultora ({amount})",
+    "pmOn": "Tu Product Manager asigna solos los bugs que lleven 2 minutos sin dueño. Diagnostícalos tú antes si quieres aprender y ganar más XP.",
+    "pmOff": "Sin Product Manager nadie toma los bugs solo: asígnalos tú. Con un PM en el equipo se reparten automáticamente."
   },
   "team": {
     "people": "Empleados",
@@ -195,7 +197,14 @@
     "fire": "Despedir",
     "fireTitle": "¿Despedir a {name}?",
     "fireText": "Pagas {severance} de indemnización y ahorras {salary} al mes. A veces es la única forma de sobrevivir.",
-    "fireConfirm": "Despedir"
+    "fireConfirm": "Despedir",
+    "pmOn": "Tienes Product Manager: los bugs que nadie toma en 2 minutos se asignan solos a quien esté libre (el de mejor rendimiento primero).",
+    "pmOff": "Sin Product Manager tienes que asignar cada bug a mano en la pestaña Bugs. Contrata uno y el equipo los tomará solo.",
+    "performance": "rendimiento",
+    "performanceHint": "De 0 a 100: según su rasgo y lo que hizo (features y bugs arreglados suman, bugs causados restan).",
+    "statShipped": "Features que ayudó a publicar",
+    "statFixed": "Bugs que arregló",
+    "statCaused": "Bugs que causó al publicar"
   },
   "infra": {
     "title": "Servidores",

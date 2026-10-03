@@ -7,6 +7,7 @@ import { DAILY_MISSIONS, missionsFor } from './content/daily';
 import { DE } from './content/i18n/de';
 import { EN } from './content/i18n/en';
 import { MSG } from './content/i18n/messages';
+import { TRAITS } from './content/traits';
 import { Localized, langFromHeader, localizeScenario } from './content/i18n';
 
 // Si alguien agrega contenido en español y se olvida de traducirlo, este
@@ -65,8 +66,8 @@ describe('Textos dinámicos de CodeStudio', () => {
     hasMonetization: true,
     activeTaskCount: 2,
     employees: [
-      { id: 'a', name: 'Ana', salary: 1000, roleName: 'Backend' },
-      { id: 'b', name: 'Leo', salary: 900, roleName: 'QA' },
+      { id: 'a', name: 'Ana', salary: 1000, roleName: 'Backend', trait: TRAITS.star, stats: { featuresShipped: 4, bugsFixed: 2, bugsCaused: 0 }, performance: 90 },
+      { id: 'b', name: 'Leo', salary: 900, roleName: 'QA', trait: TRAITS.sloppy, stats: { featuresShipped: 1, bugsFixed: 0, bugsCaused: 3 }, performance: 30 },
     ],
     channelFit: () => 1,
   };

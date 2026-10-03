@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { UserMinus, UserPlus, Wrench } from "lucide-react";
+import { Bug, CheckCircle2, ClipboardList, Rocket, UserMinus, UserPlus, Wrench } from "lucide-react";
 import Modal from "../shared/Modal";
 import type { Catalog, CompanyView } from "./types";
 import { Stat, money, pct } from "./ui";
@@ -19,6 +19,7 @@ export default function TeamView({ company, catalog, busy, onHire, onFire }: Pro
   const t = useTranslation();
   const [firing, setFiring] = useState<CompanyView["employees"][number] | null>(null);
   const m = company.metrics;
+  const hasPm = company.employees.some((employee) => employee.roleSlug === "product-manager");
   const counts = company.employees.reduce<Record<string, number>>((acc, employee) => {
     acc[employee.roleSlug] = (acc[employee.roleSlug] ?? 0) + 1;
     return acc;
@@ -37,6 +38,63 @@ export default function TeamView({ company, catalog, busy, onHire, onFire }: Pro
           tone={m.supportGap >= 1 ? "bad" : "good"}
           hint={t("codestudio.team.supportHint")}
         />
+      </section>
+
+      <section className={`cs2-card cs2-pm-note ${hasPm ? "on" : ""}`}>
+        <ClipboardList size={18} />
+        <p>{hasPm ? t("codestudio.team.pmOn") : t("codestudio.team.pmOff")}</p>
+      </section>
+
+      <section className="cs2-card">
+        <h3>{t("codestudio.team.current")}</h3>
+        {company.employees.length === 0 ? (
+          <p className="cs2-muted">{t("codestudio.team.none")}</p>
+        ) : (
+          <ul className="cs2-list cs2-people">
+            {company.employees.map((employee) => (
+              <li key={employee.id}>
+                <span className="cs2-avatar">{employee.name.slice(0, 2).toUpperCase()}</span>
+                <div className="cs2-person">
+                  <div className="cs2-person-head">
+                    <b>{employee.name}</b>
+                    {employee.trait && (
+                      <span className={`cs2-trait cs2-trait-${employee.trait.tone}`} title={employee.trait.description}>
+                        {employee.trait.name}
+                      </span>
+                    )}
+                  </div>
+                  <small>
+                    {employee.roleName} · {t("codestudio.team.salary", { amount: money(employee.salary) })}
+                    {employee.busy ? ` · ${t("codestudio.team.busy")}` : ""}
+                  </small>
+                  {employee.trait && <small className="cs2-person-trait">{employee.trait.description}</small>}
+                  {employee.stats && (
+                    <div className="cs2-person-stats">
+                      <span title={t("codestudio.team.statShipped")}>
+                        <Rocket size={12} /> {employee.stats.featuresShipped}
+                      </span>
+                      <span title={t("codestudio.team.statFixed")}>
+                        <CheckCircle2 size={12} /> {employee.stats.bugsFixed}
+                      </span>
+                      <span title={t("codestudio.team.statCaused")} className={employee.stats.bugsCaused > 0 ? "cs2-tone-bad" : ""}>
+                        <Bug size={12} /> {employee.stats.bugsCaused}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                {employee.performance !== undefined && (
+                  <div className="cs2-perf" title={t("codestudio.team.performanceHint")}>
+                    <b className={employee.performance >= 70 ? "cs2-tone-good" : employee.performance < 50 ? "cs2-tone-bad" : ""}>{employee.performance}</b>
+                    <small>{t("codestudio.team.performance")}</small>
+                  </div>
+                )}
+                <button type="button" className="cs2-icon-btn" disabled={busy} onClick={() => setFiring(employee)} aria-label={t("codestudio.team.fire")} title={t("codestudio.team.fire")}>
+                  <UserMinus size={15} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section className="cs2-card">
@@ -65,31 +123,6 @@ export default function TeamView({ company, catalog, busy, onHire, onFire }: Pro
             </article>
           ))}
         </div>
-      </section>
-
-      <section className="cs2-card">
-        <h3>{t("codestudio.team.current")}</h3>
-        {company.employees.length === 0 ? (
-          <p className="cs2-muted">{t("codestudio.team.none")}</p>
-        ) : (
-          <ul className="cs2-list">
-            {company.employees.map((employee) => (
-              <li key={employee.id}>
-                <span className="cs2-avatar">{employee.name.slice(0, 2).toUpperCase()}</span>
-                <div>
-                  <b>{employee.name}</b>
-                  <small>
-                    {employee.roleName} · {t("codestudio.team.salary", { amount: money(employee.salary) })}
-                    {employee.busy ? ` · ${t("codestudio.team.busy")}` : ""}
-                  </small>
-                </div>
-                <button type="button" className="cs2-icon-btn" disabled={busy} onClick={() => setFiring(employee)} aria-label={t("codestudio.team.fire")} title={t("codestudio.team.fire")}>
-                  <UserMinus size={15} />
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
       </section>
 
       {firing && (
