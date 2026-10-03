@@ -171,7 +171,12 @@ export const createCodeStudioOffice = (companyId: string, layoutId: string) =>
   post<{ room: { id: string; name: string } }>(`/codestudio/companies/${companyId}/office`, { layoutId });
 export const claimCodeStudioOfficeKit = (companyId: string) => post<{ granted: number }>(`/codestudio/companies/${companyId}/office/kit`);
 export const getOfficeRoomEmployees = (roomId: string) =>
-  request<{ company: { id: string; name: string } | null; employees: OfficeRoomEmployee[] }>(`/codestudio/office/room/${encodeURIComponent(roomId)}`);
+  request<{
+    company: { id: string; name: string } | null;
+    employees: OfficeRoomEmployee[];
+    /** Charlas entre empleados: cada una es una lista de (quién, qué dice). */
+    conversations?: Array<Array<{ employeeId: string; text: string }>>;
+  }>(`/codestudio/office/room/${encodeURIComponent(roomId)}`);
 
 export const setCodeStudioPricing = (companyId: string, level: number) =>
   post<CompanyView>(`/codestudio/companies/${companyId}/pricing`, { level });

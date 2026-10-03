@@ -23,6 +23,7 @@ import { TRAITS, bumpStats, performanceOf, readMeta, rollTrait, statsOf, traitOf
 import { cardStats, employeeName, genderOf, resolveSkin, rollGender } from './content/employee-card';
 import { OFFICE_TAGS, OfficeCounts, countOffice, officeFactors, officeLines, officePrice, officeSummary } from './content/office';
 import { employeeLines } from './content/office-lines';
+import { officeConversations } from './content/office-talk';
 import { applyDeal, marketingDeal } from './content/marketing-deal';
 import { CHANNELS } from './content/economy';
 import { candidateImpact, candidatesFor, minutesUntilNewCandidates, promotionFor, seniorityOf, type TeamMember } from './content/seniority';
@@ -1467,7 +1468,7 @@ export class CodeStudioService {
       where: { officeRoomId: roomId, status: { not: 'FAILED' } },
       include: {
         employees: { include: { employeeType: true } },
-        bugReports: { where: { status: 'OPEN' }, select: { id: true, title: true, scenarioKey: true, assignedEmployeeId: true } },
+        bugReports: { where: { status: 'OPEN' }, select: { id: true, title: true, severity: true, scenarioKey: true, assignedEmployeeId: true } },
         development: { where: { status: 'IN_PROGRESS' }, select: { id: true } },
       },
     });
@@ -1518,8 +1519,17 @@ export class CodeStudioService {
       deal: deal ? { name: CHANNELS.find((channel) => channel.slug === deal.slug)?.name ?? deal.slug, discount: Math.round(deal.discount * 100) } : null,
     };
     const ordered = [...company.employees].sort((a, b) => performanceOf(b) - performanceOf(a));
+    // Charlas entre ellos (el PM pasa un bug, QA avisa, celebran un arreglo...).
+    const conversations = officeConversations({
+      employees: ordered.map((employee) => ({ id: employee.id, name: employee.name, roleSlug: employee.employeeType.slug, traitKey: traitOf(employee).key })),
+      openBugs: company.bugReports.map((bug) => ({ id: bug.id, title: bugTitle(bug), severity: bug.severity, assignedEmployeeId: bug.assignedEmployeeId })),
+      recentFixes: recentFixes.map((bug) => ({ title: bugTitle(bug), assignedEmployeeId: bug.assignedEmployeeId })),
+      deal: lineContext.deal,
+      unseatedIds: summary.hasOffice ? ordered.slice(summary.stations).map((employee) => employee.id) : [],
+    }).map((conversation) => conversation.map((line) => ({ employeeId: line.employeeId, text: pick(line.text, lang) })));
     return {
       company: { id: company.id, name: company.name },
+      conversations,
       employees: ordered.map((employee, index) => {
         const skin = resolveSkin(employee, npcs);
         const full = skin ? npcs.find((npc) => npc.key === skin.key) : null;

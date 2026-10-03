@@ -411,6 +411,11 @@ export default class ButlerSystem {
 
   // ---- Frases / globo ----------------------------------------------------
 
+  /** Dice esta frase ya (charlas entre empleados que arma RoomCompanions). */
+  speak(text: string): void {
+    this.say([text], true);
+  }
+
   /** Frases nuevas (la oficina cambia): se usan desde la próxima que diga. */
   setLines(greetingLines: string[], idleLines: string[]): void {
     if (!this.npc) return;

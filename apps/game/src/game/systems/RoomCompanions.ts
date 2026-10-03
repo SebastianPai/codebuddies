@@ -12,6 +12,10 @@ import { getOfficeRoomEmployees } from "../network/codestudio";
 // la posición exacta).
 
 const REFRESH_MS = 30_000;
+// Una charla entre empleados cada tanto; todos los que miran ven la misma
+// (se elige por la hora) y cada frase sale un poco después de la anterior.
+const TALK_EVERY_MS = 26_000;
+const TALK_LINE_GAP_MS = 2800;
 
 export default class RoomCompanions {
   private pets = new Map<string, PetSystem>();
@@ -19,6 +23,9 @@ export default class RoomCompanions {
   // Empleados de CodeStudio si esta sala es la oficina de una empresa.
   private employees = new Map<string, ButlerSystem>();
   private sinceRefresh = 0;
+  private conversations: Array<Array<{ employeeId: string; text: string }>> = [];
+  private lastTalkSlot = -1;
+  private talkTimers: Phaser.Time.TimerEvent[] = [];
   private loading = false;
   private destroyed = false;
 
@@ -36,7 +43,7 @@ export default class RoomCompanions {
       const [pets, butlers, office] = await Promise.all([
         getRoomPets(roomId).catch(() => []),
         getRoomButlers(roomId).catch(() => []),
-        getOfficeRoomEmployees(roomId).catch(() => ({ company: null, employees: [] })),
+        getOfficeRoomEmployees(roomId).catch(() => ({ company: null, employees: [], conversations: [] })),
       ]);
       if (this.destroyed) return;
       const others = <T extends { ownerUsername: string }>(list: T[]) => list.filter((entry) => entry.ownerUsername !== this.myUsername);
@@ -69,6 +76,7 @@ export default class RoomCompanions {
         this.butlers.delete(id);
       }
 
+      this.conversations = office.conversations ?? [];
       const employeeIds = new Set<string>();
       const withSkin = office.employees.filter((employee) => !!employee.npc?.spriteSheetUrl);
       withSkin.forEach((employee, index) => {
@@ -130,10 +138,30 @@ export default class RoomCompanions {
     for (const system of this.pets.values()) system.update(delta);
     for (const system of this.butlers.values()) system.update(delta);
     for (const system of this.employees.values()) system.update(delta);
+    this.playConversation();
+  }
+
+  private playConversation(): void {
+    if (this.conversations.length === 0 || this.employees.size < 2) return;
+    const slot = Math.floor(Date.now() / TALK_EVERY_MS);
+    if (slot === this.lastTalkSlot) return;
+    const first = this.lastTalkSlot === -1;
+    this.lastTalkSlot = slot;
+    // Al entrar no arranca a mitad de una charla: espera a la siguiente.
+    if (first) return;
+    const conversation = this.conversations[slot % this.conversations.length];
+    conversation.forEach((line, index) => {
+      this.talkTimers.push(
+        this.scene.time.delayedCall(index * TALK_LINE_GAP_MS, () => this.employees.get(line.employeeId)?.speak(line.text)),
+      );
+    });
+    this.talkTimers = this.talkTimers.filter((timer) => timer.getOverallProgress() < 1);
   }
 
   destroy(): void {
     this.destroyed = true;
+    for (const timer of this.talkTimers) timer.remove(false);
+    this.talkTimers = [];
     for (const system of this.pets.values()) system.destroy();
     for (const system of this.butlers.values()) system.destroy();
     for (const system of this.employees.values()) system.destroy();
