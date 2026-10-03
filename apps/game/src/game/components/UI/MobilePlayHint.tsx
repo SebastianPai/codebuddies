@@ -43,10 +43,18 @@ async function enterFullscreen() {
 
 export default function MobilePlayHint() {
   const t = useTranslation();
-  const [phone, setPhone] = useState(false);
-  const [portrait, setPortrait] = useState(false);
-  const [fullscreen, setFullscreen] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
+  // Solo corre en el cliente (Game se carga sin SSR): los valores
+  // iniciales se leen al crear el estado y los listeners los actualizan.
+  const [phone, setPhone] = useState(isTouchPhone);
+  const [portrait, setPortrait] = useState(() => typeof window !== "undefined" && window.innerHeight > window.innerWidth);
+  const [fullscreen, setFullscreen] = useState(() => typeof document !== "undefined" && (!!document.fullscreenElement || isStandalone()));
+  const [dismissed, setDismissed] = useState(() => {
+    try {
+      return window.sessionStorage.getItem(DISMISS_KEY) === "1";
+    } catch {
+      return false; // sin storage: el aviso puede volver a salir
+    }
+  });
   const [showIosTip, setShowIosTip] = useState(false);
 
   useEffect(() => {
@@ -55,12 +63,6 @@ export default function MobilePlayHint() {
       setPortrait(window.innerHeight > window.innerWidth);
       setFullscreen(!!document.fullscreenElement || isStandalone());
     };
-    update();
-    try {
-      setDismissed(window.sessionStorage.getItem(DISMISS_KEY) === "1");
-    } catch {
-      // sin storage: el aviso puede volver a salir
-    }
     window.addEventListener("resize", update);
     window.addEventListener("orientationchange", update);
     document.addEventListener("fullscreenchange", update);
