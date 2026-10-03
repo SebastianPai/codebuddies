@@ -800,6 +800,9 @@ export class ItemsService {
     if (!item.coinsPrice || item.coinsPrice <= 0) {
       throw new BadRequestException('Este item no se puede comprar');
     }
+    if (item.isDefaultForSlot) {
+      throw new BadRequestException('Este item ya es tuyo: viene con tu cuenta');
+    }
 
     // El tope de unidades por operación es el mismo que el tope de stock
     // acumulado (Item.maxStack) -- no hay un límite "por compra" separado,
@@ -1100,6 +1103,8 @@ export class ItemsService {
     return this.prisma.item.findMany({
       where: {
         shopVisible: true,
+        // Los items default (cuerpo, etc.) ya son de todos: no se venden.
+        isDefaultForSlot: null,
         category: query.category,
         ...(Object.keys(priceFilter).length ? { coinsPrice: priceFilter } : {}),
       },

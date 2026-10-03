@@ -3,24 +3,31 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap");
 
 :root {
-  --cb-bg: #0c0e12;
-  --cb-surface: #141820;
-  --cb-surface-2: #1d2330;
-  --cb-border: rgba(148, 163, 184, 0.26);
-  --cb-text: #f8fafc;
-  --cb-muted: #94a3b8;
+  /* Estilo Apple con los acentos de la marca (mismo lenguaje que CodeStudio
+     y la web): superficies lisas, separadores finos, amarillo en lo clave. */
+  --cb-bg: #0b0b0d;
+  --cb-surface: #1c1c1f;
+  --cb-surface-2: #26262a;
+  --cb-border: rgba(255, 255, 255, 0.1);
+  --cb-text: #f5f5f7;
+  --cb-muted: #a1a1a6;
   --cb-accent: #facc15;
   --cb-accent-hover: #fde047;
-  --cb-danger: #f87171;
-  --cb-success: #22c55e;
-  --cb-info: #60a5fa;
-  --cb-warning: #fbbf24;
+  --cb-danger: #ff453a;
+  --cb-success: #30d158;
+  --cb-info: #0a84ff;
+  --cb-warning: #ff9f0a;
+  --cb-fill: rgba(255, 255, 255, 0.06);
+  --cb-fill-strong: rgba(255, 255, 255, 0.11);
+  --cb-glass: rgba(28, 28, 31, 0.78);
+  --cb-ring: 0 0 0 3px rgba(10, 132, 255, 0.4);
+  --cb-font: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
 
   /* Radius scale. --cb-radius se conserva como alias de --cb-radius-lg
      (uso previo en .cb-panel) para no romper a quien ya lo consuma. */
-  --cb-radius-sm: 8px;
-  --cb-radius-md: 12px;
-  --cb-radius-lg: 18px;
+  --cb-radius-sm: 10px;
+  --cb-radius-md: 14px;
+  --cb-radius-lg: 20px;
   --cb-radius-pill: 999px;
   --cb-radius: var(--cb-radius-lg);
 
@@ -43,7 +50,7 @@
   --cb-z-modal: 15000;
   --cb-z-toast: 16000;
 
-  --cb-shadow: 0 20px 60px rgba(0, 0, 0, 0.38);
+  --cb-shadow: 0 24px 60px rgba(0, 0, 0, 0.45), 0 1px 2px rgba(0, 0, 0, 0.3);
   --background: var(--cb-bg);
   --foreground: var(--cb-text);
 }

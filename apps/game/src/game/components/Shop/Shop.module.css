@@ -1,7 +1,11 @@
+/* Pestañas como control segmentado de macOS. */
 .tabs {
   display: flex;
-  gap: var(--cb-space-1);
-  margin-bottom: var(--cb-space-3);
+  gap: 2px;
+  padding: 3px;
+  margin-bottom: 16px;
+  border-radius: 12px;
+  background: var(--cb-fill);
 }
 
 .tab {
@@ -10,38 +14,51 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: var(--cb-space-2);
+  padding: 8px 10px;
   border: none;
-  border-radius: var(--cb-radius-md);
-  background: rgba(255, 255, 255, 0.06);
+  border-radius: 9px;
+  background: transparent;
   color: var(--cb-muted);
   cursor: pointer;
-  font-family: "Inter", system-ui, sans-serif;
-  font-size: 12px;
+  font-family: var(--cb-font);
+  font-size: 13px;
   font-weight: 600;
-  transition: 0.15s;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
 }
 
 .tab:hover {
-  background: rgba(255, 255, 255, 0.1);
+  color: var(--cb-text);
+}
+
+.tab:focus-visible {
+  outline: none;
+  box-shadow: var(--cb-ring);
 }
 
 .active {
-  background: var(--cb-accent);
-  color: #111;
+  background: var(--cb-surface-2);
+  color: var(--cb-text);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+.active svg {
+  color: var(--cb-accent);
 }
 
 .shopBanner {
-  padding: var(--cb-space-3);
-  border-radius: var(--cb-radius-md);
-  background: linear-gradient(135deg, #1a1f2d, #10141d);
-  margin-bottom: var(--cb-space-3);
+  padding: 18px 20px;
+  border-radius: 16px;
+  border: 1px solid rgba(250, 204, 21, 0.22);
+  background: linear-gradient(135deg, rgba(250, 204, 21, 0.1), rgba(250, 204, 21, 0.02));
+  margin-bottom: 16px;
 }
 
 .shopBanner h2 {
-  font-family: "Inter", system-ui, sans-serif;
-  font-size: 15px;
-  font-weight: 700;
+  font-family: var(--cb-font);
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
 }
 
 .shopBanner p {
@@ -60,13 +77,22 @@
 .filters input,
 .filters select {
   flex: 1;
-  padding: var(--cb-space-2) var(--cb-space-2);
-  border-radius: var(--cb-radius-sm);
-  background: rgba(255, 255, 255, 0.06);
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--cb-fill);
   border: 1px solid var(--cb-border);
   color: var(--cb-text);
-  font-family: "Inter", system-ui, sans-serif;
-  font-size: 13px;
+  font-family: var(--cb-font);
+  font-size: 14px;
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+
+.filters input:focus,
+.filters select:focus {
+  outline: none;
+  border-color: var(--cb-info);
+  box-shadow: var(--cb-ring);
 }
 
 .filters input::placeholder {
@@ -95,9 +121,18 @@
   letter-spacing: 0.04em;
 }
 
+/* Los botones (Comprar, Regalar...) se acomodan en otra fila si no caben:
+   antes "Regalar" se salía de la tarjeta y se montaba sobre la vecina. */
 .footerActions {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--cb-space-2);
+  min-width: 0;
+}
+
+.footerActions > * {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .giftForm {

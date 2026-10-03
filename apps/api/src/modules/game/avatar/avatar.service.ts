@@ -72,7 +72,11 @@ export class AvatarService {
   // slots, no solo BODY.
   // ────────────────────────────────────────────────
   async getOrCreateAvatarWithDefaults(userId: string) {
-    await this.ensureAvatar(userId);
+    const avatar = await this.ensureAvatar(userId);
+    // Al conectarse: los items "default" (cuerpo, etc.) son de todos. Las
+    // cuentas viejas o creadas antes de configurarlos también los reciben,
+    // y un avatar que quedó vacío se viste con ellos.
+    await this.syncDefaultItems(userId, avatar.id);
     return this.getUserAvatar(userId);
   }
 
@@ -85,12 +89,23 @@ export class AvatarService {
     });
 
     if (!avatar) {
-      avatar = await this.prisma.avatar.create({
-        data: {
-          userId,
-          skinColor: 0, // o el color por defecto que prefieras
-        },
-      });
+      try {
+        avatar = await this.prisma.avatar.create({
+          data: {
+            userId,
+            skinColor: 0, // o el color por defecto que prefieras
+          },
+        });
+      } catch (error) {
+        // Al conectarse, player.handler y avatar.handler crean el avatar a
+        // la vez: el segundo chocaba con el unique de userId (P2002) y el
+        // jugador nuevo veía "No se pudo cargar el avatar". Si ya existe,
+        // se usa ese.
+        if ((error as { code?: string })?.code !== 'P2002') throw error;
+        const existing = await this.prisma.avatar.findUnique({ where: { userId } });
+        if (!existing) throw error;
+        return existing;
+      }
 
       // Solo en la creación del avatar (nunca sobre uno ya existente):
       // auto-equipa el item marcado como default de cada slot que tenga
@@ -103,6 +118,29 @@ export class AvatarService {
     }
 
     return avatar;
+  }
+
+  /**
+   * Idempotente: le da al usuario los items default que no tenga y, si su
+   * avatar no tiene NADA puesto, se los pone. No toca un avatar que ya tiene
+   * partes (no re-equipa lo que alguien se quitó a propósito).
+   */
+  private async syncDefaultItems(userId: string, avatarId: string) {
+    const defaults = await this.prisma.item.findMany({
+      where: { isDefaultForSlot: { not: null } },
+      select: { id: true, isDefaultForSlot: true },
+    });
+    if (defaults.length === 0) return;
+    await this.prisma.userItem.createMany({
+      data: defaults.map((item) => ({ userId, itemId: item.id, amount: 1, source: 'default' })),
+      skipDuplicates: true,
+    });
+    const equipped = await this.prisma.avatarSlot.count({ where: { avatarId } });
+    if (equipped > 0) return;
+    await this.prisma.avatarSlot.createMany({
+      data: defaults.map((item) => ({ avatarId, slot: item.isDefaultForSlot!, itemId: item.id })),
+      skipDuplicates: true,
+    });
   }
 
   private async grantDefaultItems(userId: string, avatarId: string) {

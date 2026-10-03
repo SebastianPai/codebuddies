@@ -1,10 +1,10 @@
 {
   "sidebar": {
     "tagline": "CONECTA · APRENDE · CRECE",
-    "online": "ONLINE",
+    "online": "EN LÍNEA",
     "level": "NIVEL {level}",
-    "coins": "COINS",
-    "diamonds": "DIAMONDS",
+    "coins": "MONEDAS",
+    "diamonds": "DIAMANTES",
     "tierDiamond": "DIAMANTE",
     "tierGold": "ORO",
     "tierSilver": "PLATA",
@@ -21,7 +21,7 @@
     "tournamentsComingSoonMessage": "Los torneos todavía se están construyendo — vas a poder anotarte apenas estén listos.",
     "shop": "Tienda",
     "build": "Construir",
-    "marketplace": "Marketplace",
+    "marketplace": "Mercado",
     "settings": "Ajustes",
     "exit": "Salir",
     "discordCta": "Únete a la comunidad",
@@ -105,7 +105,7 @@
     "toggleFavorite": "Marcar {label} como favorito"
   },
   "itemPreview": {
-    "fallbackLabel": "Item"
+    "fallbackLabel": "Objeto"
   },
   "badges": {
     "verified": "Verificado",

@@ -3,7 +3,7 @@
     "tagline": "VERBINDEN · LERNEN · WACHSEN",
     "online": "ONLINE",
     "level": "LEVEL {level}",
-    "coins": "COINS",
+    "coins": "MÜNZEN",
     "diamonds": "DIAMANTEN",
     "tierDiamond": "DIAMANT",
     "tierGold": "GOLD",
@@ -21,7 +21,7 @@
     "tournamentsComingSoonMessage": "Turniere sind noch in Arbeit – sobald sie bereit sind, kannst du dich anmelden.",
     "shop": "Shop",
     "build": "Bauen",
-    "marketplace": "Marketplace",
+    "marketplace": "Marktplatz",
     "settings": "Einstellungen",
     "exit": "Verlassen",
     "discordCta": "Der Community beitreten",
@@ -105,7 +105,7 @@
     "toggleFavorite": "{label} als Favorit markieren"
   },
   "itemPreview": {
-    "fallbackLabel": "Item"
+    "fallbackLabel": "Objekt"
   },
   "badges": {
     "verified": "Verifiziert",
