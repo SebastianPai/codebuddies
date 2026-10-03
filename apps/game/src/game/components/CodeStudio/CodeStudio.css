@@ -3133,7 +3133,9 @@
 }
 
 .cs2-card-portrait {
-  height: 160px;
+  /* Cabe en su caja: con 160px los pies tapaban el nombre. */
+  height: 100%;
+  max-height: 140px;
   width: auto;
   image-rendering: pixelated;
   filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.35));
@@ -3308,4 +3310,28 @@
 .cs2-tour-action {
   width: 100%;
   margin: 10px 0 8px;
+}
+
+/* Carta de un empleado abierta desde la oficina (clic en el personaje). */
+.cs2-employee-modal-body {
+  display: grid;
+  place-items: center;
+  padding: 4px 0 8px;
+}
+
+.cs2-employee-modal-body .cs2-fut {
+  width: min(280px, 100%);
+}
+
+
+/* Confirmación de ronda de inversión. */
+.cs2-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.cs2-warn-text svg {
+  vertical-align: -2px;
 }

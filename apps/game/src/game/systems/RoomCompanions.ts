@@ -70,19 +70,35 @@ export default class RoomCompanions {
       }
 
       const employeeIds = new Set<string>();
-      for (const employee of office.employees) {
-        if (!employee.npc?.spriteSheetUrl) continue;
+      const withSkin = office.employees.filter((employee) => !!employee.npc?.spriteSheetUrl);
+      withSkin.forEach((employee, index) => {
+        if (!employee.npc) return;
         employeeIds.add(employee.id);
-        if (this.employees.has(employee.id)) continue;
+        const existing = this.employees.get(employee.id);
+        if (existing) {
+          existing.setLines(employee.npc.greetingLines, employee.npc.idleLines);
+          return;
+        }
         const npc = { ...employee.npc, name: employee.name, animations: (employee.npc.animations ?? []) as ButlerNpc["animations"] } as ButlerNpc;
         const system = new ButlerSystem(
           this.scene,
           { id: employee.id, npcKey: npc.key, name: employee.name, activeRoomId: roomId, ownerUsername: "" },
           npc,
+          {
+            nameplate: { name: employee.name, subtitle: employee.roleName },
+            wanderRadius: 240,
+            // El de mejor rendimiento se queda con la primera silla, igual
+            // que en el cálculo de puestos del servidor.
+            seat: () => this.officeChairs()[index] ?? null,
+            onSelect: () =>
+              window.dispatchEvent(
+                new CustomEvent("codestudio:employee-selected", { detail: { employee, companyName: office.company?.name ?? "" } }),
+              ),
+          },
         );
         this.employees.set(employee.id, system);
         void system.sync();
-      }
+      });
       for (const [id, system] of this.employees) {
         if (employeeIds.has(id)) continue;
         system.destroy();
@@ -91,6 +107,17 @@ export default class RoomCompanions {
     } finally {
       this.loading = false;
     }
+  }
+
+  /** Sillas de oficina (tag office:chair) de la sala, en orden estable: punto donde se sienta cada uno. */
+  private officeChairs(): Array<{ x: number; y: number }> {
+    const scene = this.scene as any;
+    const items: any[] = scene.roomItems?.getAll?.() ?? [];
+    return items
+      .filter((item) => Array.isArray(item.item?.tags) && item.item.tags.includes("office:chair"))
+      .sort((a, b) => String(a.roomItemId).localeCompare(String(b.roomItemId)))
+      .map((item) => scene.isoGrid?.groundCenter?.(item.tileX, item.tileY) ?? { x: item.sprite.x, y: item.sprite.y })
+      .filter(Boolean);
   }
 
   update(delta: number): void {

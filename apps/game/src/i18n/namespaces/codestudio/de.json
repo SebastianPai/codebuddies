@@ -274,7 +274,13 @@
     "fundingRequires": "Investoren verlangen die Stufe {stage} und eine Bewertung von {rating}+.",
     "raise": "{name} einsammeln",
     "fundingLesson": "Finanzierung gibt dir Geld, um schneller zu wachsen, aber nach jeder Runde gehört dir weniger von deiner Firma.",
-    "fundingDone": "Du hast alle Runden eingesammelt."
+    "fundingDone": "Du hast alle Runden eingesammelt.",
+    "confirmTitle": "Runde {name} annehmen?",
+    "confirmText": "Du verkaufst {equity}% deiner Firma für {raise}. Du gehst von {before}% auf {after}%.",
+    "confirmPreSeed": "Achtung: Du bist im Pre-Seed. Deine Firma ist noch wenig wert, also gibst du ein großes Stück für wenig Geld ab. Wenn du zuerst wächst (mehr Nutzer, besseres Rating), bringt dir die nächste Runde mehr Geld pro verkauftem %. Nimm nur an, wenn du das Geld wirklich brauchst, um nicht pleitezugehen.",
+    "confirmIrreversible": "Das lässt sich nicht rückgängig machen: Verkaufte Anteile kommen nicht zurück.",
+    "confirmCancel": "Ich warte lieber",
+    "confirmSell": "{equity}% verkaufen"
   },
   "decision": {
     "deadline": "Du hast {days} Tage Zeit zu entscheiden."

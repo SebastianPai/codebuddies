@@ -6,7 +6,8 @@ import type { CompanyView } from "./types";
 import { money } from "./ui";
 import { useTranslation } from "../../../i18n/useTranslation";
 
-type Employee = CompanyView["employees"][number];
+type Employee = Pick<CompanyView["employees"][number], "name" | "roleSlug" | "roleName" | "trait" | "skin" | "card" | "performance" | "stats"> &
+  Partial<Pick<CompanyView["employees"][number], "busy" | "salary">>;
 
 // Carta de empleado estilo "carta de fútbol": media grande, rol, retrato
 // (primer cuadro de su skin), seis estadísticas y el color según la media
@@ -72,7 +73,8 @@ function SkinPortrait({ skin, label }: { skin: Employee["skin"]; label: string }
   return <canvas ref={canvasRef} className="cs2-card-portrait" role="img" aria-label={label} />;
 }
 
-export default function EmployeeCard({ employee, busy, onFire }: { employee: Employee; busy: boolean; onFire: () => void }) {
+// Sin onFire (visitas en la oficina): sin sueldo ni botón de despedir.
+export default function EmployeeCard({ employee, busy = false, onFire }: { employee: Employee; busy?: boolean; onFire?: () => void }) {
   const t = useTranslation();
   const card = employee.card;
   const overall = card?.overall ?? employee.performance ?? 60;
@@ -139,10 +141,14 @@ export default function EmployeeCard({ employee, busy, onFire }: { employee: Emp
             </span>
           </span>
         )}
-        <span className="cs2-fut-salary">{t("codestudio.team.salary", { amount: money(employee.salary) })}</span>
-        <button type="button" className="cs2-icon-btn" disabled={busy} onClick={onFire} aria-label={t("codestudio.team.fire")} title={t("codestudio.team.fire")}>
-          <UserMinus size={15} />
-        </button>
+        {onFire && employee.salary !== undefined && (
+          <>
+            <span className="cs2-fut-salary">{t("codestudio.team.salary", { amount: money(employee.salary) })}</span>
+            <button type="button" className="cs2-icon-btn" disabled={busy} onClick={onFire} aria-label={t("codestudio.team.fire")} title={t("codestudio.team.fire")}>
+              <UserMinus size={15} />
+            </button>
+          </>
+        )}
       </footer>
     </article>
   );

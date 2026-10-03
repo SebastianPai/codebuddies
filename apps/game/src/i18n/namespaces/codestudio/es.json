@@ -274,7 +274,13 @@
     "fundingRequires": "Los inversores piden estar en la etapa {stage} y rating {rating}+.",
     "raise": "Levantar {name}",
     "fundingLesson": "Invertir te da caja para crecer más rápido, pero cada ronda te deja con menos parte de tu empresa.",
-    "fundingDone": "Ya levantaste todas las rondas."
+    "fundingDone": "Ya levantaste todas las rondas.",
+    "confirmTitle": "¿Aceptar la ronda {name}?",
+    "confirmText": "Vas a vender el {equity}% de tu empresa por {raise}. Pasas de tener el {before}% a tener el {after}%.",
+    "confirmPreSeed": "Ojo: estás en pre-seed. Tu empresa todavía vale poco, así que entregas una parte grande por poca plata. Si creces primero (más usuarios, mejor rating), la próxima ronda te da más dinero por cada % que vendes. Acepta solo si de verdad necesitas la caja para no quebrar.",
+    "confirmIrreversible": "No se puede deshacer: las acciones vendidas no vuelven.",
+    "confirmCancel": "Mejor espero",
+    "confirmSell": "Vender {equity}%"
   },
   "decision": {
     "deadline": "Tienes {days} días para decidir."

@@ -42,6 +42,7 @@ import ChatProvider from "./components/Chat/ChatProvider";
 import MessagesPanel from "./components/Chat/MessagesPanel";
 import NotificationsPanel from "./components/Notifications/NotificationsPanel";
 import NotificationsToastBridge from "./components/Notifications/NotificationsToastBridge";
+import OfficeEmployeeModal from "./components/CodeStudio/OfficeEmployeeModal";
 import RewardCelebrationHost from "./components/Rewards/RewardCelebrationHost";
 import GameOnboarding from "./components/Onboarding/GameOnboarding";
 import MobilePlayHint from "./components/UI/MobilePlayHint";
@@ -790,6 +791,7 @@ export default function Game() {
       )}
 
       {currentUser && <NotificationsToastBridge />}
+      {currentUser && inGame && <OfficeEmployeeModal />}
       {currentUser && <RewardCelebrationHost />}
       {currentUser && inGame && <GameOnboarding onOpenPc={handleOpenPc} />}
       {currentUser && inGame && <MobilePlayHint />}

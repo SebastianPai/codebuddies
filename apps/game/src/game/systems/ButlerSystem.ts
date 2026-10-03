@@ -9,6 +9,7 @@ import {
   createBubbleElement,
   createHudAnchor,
   frameToCanvas,
+  hudStyles,
 } from "../hud/domHud";
 import { resolveChatBubbleTheme } from "../hud/nameplateStyles";
 
@@ -37,6 +38,20 @@ const IDLE_LINE_MIN_MS = 16000;
 const IDLE_LINE_MAX_MS = 34000;
 
 type Mode = "PAUSE" | "WALK";
+
+/** Empleados de CodeStudio: nombre fijo arriba (como un jugador) y clic. */
+export type ButlerOptions = {
+  nameplate?: { name: string; subtitle?: string };
+  onSelect?: () => void;
+  /** Cuánto se aleja al pasear (px). Por defecto WANDER_RADIUS. */
+  wanderRadius?: number;
+  /** Su silla en la oficina: ahí vuelve y se sienta. Se pregunta seguido (los muebles cargan después). */
+  seat?: () => { x: number; y: number } | null;
+};
+
+// Con silla: casi siempre sentado; de vez en cuando se levanta a dar una vuelta.
+const LEAVE_SEAT_CHANCE = 0.3;
+const SEAT_ARRIVE_DIST = 6;
 
 export default class ButlerSystem {
   private scene: Phaser.Scene;
@@ -73,6 +88,9 @@ export default class ButlerSystem {
   // jugadores, ver hud/domHud.ts): ancla que sigue al sprite + burbuja.
   private hud?: { element: Phaser.GameObjects.DOMElement; root: HTMLDivElement; stack: BubbleStack };
   private butlerName = "";
+  private lineBag: string[] = [];
+  private lastLine = "";
+  private seatPoint: { x: number; y: number } | null = null;
 
   /**
    * Sin `record`: el mayordomo propio (lee /butlers/me). Con `record`: el
@@ -84,6 +102,7 @@ export default class ButlerSystem {
     // Empleados de CodeStudio en su oficina: traen su propio look (NPC
     // EMPLOYEE o el mayordomo) y frases, sin pasar por el catálogo.
     private readonly npcOverride?: ButlerNpc,
+    private readonly options: ButlerOptions = {},
   ) {
     this.scene = scene;
   }
@@ -153,13 +172,29 @@ export default class ButlerSystem {
     if (!this.textureKey) return;
 
     // "Home" = un paso al costado del jugador; a partir de ahí deambula.
-    this.homeX = px - 28;
-    this.homeY = py;
+    // Empleados: aparecen sentados en su silla, o repartidos por la sala.
+    const seat = this.options.seat?.() ?? null;
+    const scattered = !seat && this.options.nameplate ? this.randomPoint(px, py, this.options.wanderRadius ?? WANDER_RADIUS) : null;
+    this.seatPoint = seat;
+    this.homeX = seat?.x ?? scattered?.x ?? px - 28;
+    this.homeY = seat?.y ?? scattered?.y ?? py;
     this.sprite = this.scene.add
       .sprite(this.homeX, this.homeY, this.textureKey)
       .setOrigin(0.5, 1);
     this.applyScale();
     syncActorDepth(this.scene, this.sprite);
+    this.mountNameplate();
+    if (this.options.onSelect) {
+      this.sprite.setInteractive({ useHandCursor: true });
+      this.sprite.on(
+        "pointerdown",
+        (_pointer: Phaser.Input.Pointer, _x: number, _y: number, event: Phaser.Types.Input.EventData) => {
+          // Que no salga caminando hacia el tile además de abrir la carta.
+          event.stopPropagation();
+          this.options.onSelect?.();
+        },
+      );
+    }
     this.lastX = this.homeX;
     this.lastY = this.homeY;
     this.targetX = this.homeX;
@@ -171,7 +206,11 @@ export default class ButlerSystem {
     this.idleTime = 0;
     this.resting = false;
     this.restThreshold = this.randRest();
-    this.greetingAt = this.timer + GREETING_DELAY_MS;
+    if (seat) {
+      this.resting = true;
+      this.idleTime = this.restThreshold;
+    }
+    this.greetingAt = this.timer + GREETING_DELAY_MS + (this.options.nameplate ? Math.random() * 8000 : 0);
     this.nextIdleLineAt = this.timer + this.randIdleGap();
 
     this.animKey = "";
@@ -194,6 +233,37 @@ export default class ButlerSystem {
     this.displayScale = Phaser.Math.Clamp(target / figure, 0.25, 1.5);
     this.figureHeight = figure * this.displayScale;
     this.sprite.setScale(this.displayScale);
+  }
+
+  private ensureHud() {
+    if (!this.hud) {
+      const anchor = createHudAnchor(this.scene);
+      const stack = new BubbleStack();
+      anchor.root.appendChild(stack.element);
+      this.hud = { ...anchor, stack };
+    }
+    return this.hud;
+  }
+
+  /** Nombre (y rol) siempre visibles sobre la cabeza, con el estilo de los jugadores. */
+  private mountNameplate() {
+    const label = this.options.nameplate;
+    if (!label) return;
+    const hud = this.ensureHud();
+    const plate = document.createElement("div");
+    plate.className = hudStyles.plate;
+    const name = document.createElement("span");
+    name.className = hudStyles.nameDefault;
+    name.textContent = label.name;
+    plate.appendChild(name);
+    if (label.subtitle) {
+      const role = document.createElement("span");
+      role.className = hudStyles.level;
+      role.textContent = label.subtitle;
+      plate.appendChild(role);
+    }
+    hud.root.appendChild(plate);
+    this.positionBubble();
   }
 
   despawn(): void {
@@ -305,17 +375,34 @@ export default class ButlerSystem {
 
   // ---- Frases / globo ----------------------------------------------------
 
-  private say(lines: string[] | undefined): void {
-    if (!this.sprite || !lines || lines.length === 0) return;
-    const text = lines[Math.floor(Math.random() * lines.length)]?.trim();
-    if (!text) return;
+  /** Frases nuevas (la oficina cambia): se usan desde la próxima que diga. */
+  setLines(greetingLines: string[], idleLines: string[]): void {
+    if (!this.npc) return;
+    const same = this.npc.idleLines.join("|") === idleLines.join("|");
+    this.npc = { ...this.npc, greetingLines, idleLines };
+    if (!same) this.lineBag = [];
+  }
 
-    if (!this.hud) {
-      const anchor = createHudAnchor(this.scene);
-      const stack = new BubbleStack();
-      anchor.root.appendChild(stack.element);
-      this.hud = { ...anchor, stack };
+  /** Siguiente frase sin repetir: dice todas (en orden al azar) antes de volver a empezar. */
+  private nextLine(lines: string[]): string {
+    const pool = lines.map((line) => line.trim()).filter(Boolean);
+    if (pool.length === 0) return "";
+    if (this.lineBag.length === 0) {
+      this.lineBag = [...pool].sort(() => Math.random() - 0.5);
+      if (this.lineBag.length > 1 && this.lineBag[0] === this.lastLine) this.lineBag.push(this.lineBag.shift()!);
     }
+    this.lastLine = this.lineBag.shift() ?? "";
+    return this.lastLine;
+  }
+
+  private say(lines: string[] | undefined, fresh = false): void {
+    if (!this.sprite || !lines || lines.length === 0) return;
+    // El saludo es siempre la primera (la más importante); el resto, sin repetir.
+    const text = fresh ? lines[0]?.trim() : this.nextLine(lines);
+    if (!text) return;
+    if (fresh) this.lastLine = text;
+
+    const hud = this.ensureHud();
     const bubble = createBubbleElement({
       message: text,
       // Tema oscuro fijo: se distingue de un jugador (que usa el suyo).
@@ -324,7 +411,7 @@ export default class ButlerSystem {
       face: frameToCanvas(this.sprite.frame),
     });
     // Mismo historial en cascada que los jugadores (BubbleStack).
-    this.hud.stack.push(bubble, this.scene.time.now, BUBBLE_MS);
+    hud.stack.push(bubble, this.scene.time.now, BUBBLE_MS);
     this.positionBubble();
   }
 
@@ -340,6 +427,62 @@ export default class ButlerSystem {
     this.hud?.stack.clear();
   }
 
+  // ---- Deambular ---------------------------------------------------------
+
+  private walkable(x: number, y: number): boolean {
+    const check = (this.scene as any).isGroundWalkable;
+    return typeof check === "function" ? check.call(this.scene, x, y) : true;
+  }
+
+  /** Punto caminable al azar alrededor de (cx, cy); null si no encontró. */
+  private randomPoint(cx: number, cy: number, radius: number) {
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const angle = Math.random() * Math.PI * 2;
+      const r = radius * (0.35 + Math.random() * 0.65);
+      const x = cx + Math.cos(angle) * r;
+      const y = cy + Math.sin(angle) * r * 0.5; // iso: el piso se ve achatado
+      if (this.walkable(x, y) && this.walkable((x + cx) / 2, (y + cy) / 2)) return { x, y };
+    }
+    return null;
+  }
+
+  private atSeat(): boolean {
+    if (!this.seatPoint || !this.sprite) return false;
+    return Math.hypot(this.sprite.x - this.seatPoint.x, this.sprite.y - this.seatPoint.y) <= SEAT_ARRIVE_DIST;
+  }
+
+  private walkTo(x: number, y: number) {
+    this.targetX = x;
+    this.targetY = y;
+    this.mode = "WALK";
+    // Tiempo suficiente para el trayecto (antes eran 4.5 s fijos: pasos cortos).
+    const dist = this.sprite ? Math.hypot(x - this.sprite.x, y - this.sprite.y) : 0;
+    this.modeUntil = this.timer + Math.max(WALK_TIMEOUT_MS, (dist / WANDER_SPEED) * 1000 + 1500);
+    this.resting = false;
+    this.idleTime = 0;
+  }
+
+  private decideNext() {
+    const seat = this.options.seat?.() ?? null;
+    this.seatPoint = seat;
+    const radius = this.options.wanderRadius ?? WANDER_RADIUS;
+    if (seat && this.sprite) {
+      if (!this.atSeat()) return this.walkTo(seat.x, seat.y);
+      // Sentado en su puesto: casi siempre se queda trabajando.
+      if (Math.random() >= LEAVE_SEAT_CHANCE) {
+        this.modeUntil = this.randPause();
+        return;
+      }
+      const point = this.randomPoint(seat.x, seat.y, radius);
+      if (point) return this.walkTo(point.x, point.y);
+      this.modeUntil = this.randPause();
+      return;
+    }
+    const point = this.randomPoint(this.homeX, this.homeY, radius);
+    if (point) return this.walkTo(point.x, point.y);
+    this.modeUntil = this.randPause();
+  }
+
   // ---- Loop ------------------------------------------------------------
 
   update(delta: number): void {
@@ -349,21 +492,13 @@ export default class ButlerSystem {
     // Saludo de bienvenida (una vez).
     if (this.greetingAt > 0 && this.timer >= this.greetingAt) {
       this.greetingAt = -1;
-      this.say(this.npc.greetingLines);
+      this.say(this.npc.greetingLines, true);
     }
 
     // Cambios de estado del deambular.
     if (this.timer >= this.modeUntil) {
       if (this.mode === "PAUSE") {
-        // Elegir un punto al azar dentro del radio alrededor de "home".
-        const ang = Math.random() * Math.PI * 2;
-        const rad = Math.random() * WANDER_RADIUS;
-        this.targetX = this.homeX + Math.cos(ang) * rad;
-        this.targetY = this.homeY + Math.sin(ang) * rad * 0.6; // pisada isométrica
-        this.mode = "WALK";
-        this.modeUntil = this.timer + WALK_TIMEOUT_MS;
-        this.resting = false;
-        this.idleTime = 0;
+        this.decideNext();
       } else {
         this.mode = "PAUSE";
         this.modeUntil = this.randPause();
@@ -378,6 +513,13 @@ export default class ButlerSystem {
       if (dist <= ARRIVE_DIST) {
         this.mode = "PAUSE";
         this.modeUntil = this.randPause(); // randPause() ya incluye this.timer
+        // Llegó a su silla: se sienta de una (mirando hacia abajo, al frente).
+        if (this.atSeat()) {
+          this.sprite.setPosition(this.seatPoint!.x, this.seatPoint!.y);
+          this.resting = true;
+          this.idleTime = this.restThreshold;
+          this.dirIndex = 0;
+        }
       } else {
         const step = (WANDER_SPEED * delta) / 1000;
         const k = Math.min(1, step / dist);
@@ -413,7 +555,7 @@ export default class ButlerSystem {
     syncActorDepth(this.scene, this.sprite);
 
     // Globos: siguen al sprite; la pila los hace subir y desvanecerse sola.
-    if (this.hud && this.hud.stack.size > 0) {
+    if (this.hud && (this.hud.stack.size > 0 || this.options.nameplate)) {
       this.positionBubble();
       this.hud.stack.update(this.scene.time.now);
     }

@@ -274,7 +274,13 @@
     "fundingRequires": "Investors want the {stage} stage and a {rating}+ rating.",
     "raise": "Raise {name}",
     "fundingLesson": "Funding gives you cash to grow faster, but each round leaves you with a smaller share of your company.",
-    "fundingDone": "You've raised every round."
+    "fundingDone": "You've raised every round.",
+    "confirmTitle": "Accept the {name} round?",
+    "confirmText": "You're selling {equity}% of your company for {raise}. You go from owning {before}% to {after}%.",
+    "confirmPreSeed": "Careful: you're at pre-seed. Your company is still worth little, so you give away a big slice for little money. If you grow first (more users, better rating), the next round pays more for each % you sell. Accept only if you really need the cash to avoid going bankrupt.",
+    "confirmIrreversible": "This can't be undone: sold shares don't come back.",
+    "confirmCancel": "I'll wait",
+    "confirmSell": "Sell {equity}%"
   },
   "decision": {
     "deadline": "You have {days} days to decide."

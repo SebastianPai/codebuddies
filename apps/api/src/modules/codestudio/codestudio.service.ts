@@ -22,6 +22,7 @@ import { campaignQuote, evaluateStage, fundingOffer, stageProgress } from './cod
 import { TRAITS, bumpStats, performanceOf, rollTrait, statsOf, traitOf } from './content/traits';
 import { cardStats, employeeName, genderOf, resolveSkin, rollGender } from './content/employee-card';
 import { OFFICE_TAGS, OfficeCounts, countOffice, officeFactors, officeLines, officePrice, officeSummary } from './content/office';
+import { employeeLines } from './content/office-lines';
 import {
   BUG_CAPABLE_ROLES,
   ROLE_BY_SLUG,
@@ -1371,11 +1372,21 @@ export class CodeStudioService {
       where: { officeRoomId: roomId, status: { not: 'FAILED' } },
       include: {
         employees: { include: { employeeType: true } },
-        bugReports: { where: { status: 'OPEN' }, select: { id: true } },
+        bugReports: { where: { status: 'OPEN' }, select: { id: true, title: true, scenarioKey: true, assignedEmployeeId: true } },
         development: { where: { status: 'IN_PROGRESS' }, select: { id: true } },
       },
     });
     if (!company) return { company: null, employees: [] };
+    // Bugs arreglados en la última media hora: quien lo arregló lo cuenta.
+    const recentFixes = await this.prisma.codeStudioBug.findMany({
+      where: { companyId: company.id, status: 'FIXED', fixedAt: { gte: new Date(Date.now() - 30 * 60_000) }, assignedEmployeeId: { not: null } },
+      orderBy: { fixedAt: 'desc' },
+      select: { title: true, scenarioKey: true, assignedEmployeeId: true },
+    });
+    const bugTitle = (bug: { title: string; scenarioKey: string | null }) => {
+      const base = bug.scenarioKey ? BUG_SCENARIO_BY_KEY.get(bug.scenarioKey) : undefined;
+      return base ? localizeScenario(base, lang).title : bug.title;
+    };
     const npcs = await this.prisma.npcConfig.findMany({
       where: { enabled: true, kind: { in: ['EMPLOYEE', 'BUTLER'] } },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
@@ -1389,7 +1400,7 @@ export class CodeStudioService {
       orderBy: { createdAt: 'desc' },
       select: { id: true },
     });
-    const lines = officeLines({
+    const context = {
       activeUsers: company.activeUsers,
       openBugs: company.bugReports.length,
       queued: Math.max(0, company.development.length - 1),
@@ -1401,21 +1412,52 @@ export class CodeStudioService {
       stageName: lastStage ? stageText(company.stage, lang).name : null,
       fundingRaised: Boolean(stats.fundingRounds),
       unseated: summary.unseated,
-    }).map((line) => pick(line, lang));
+    };
+    // Lo de la empresa (sin la queja del escritorio: esa la dice cada uno).
+    const lines = officeLines({ ...context, unseated: 0 }).map((line) => pick(line, lang));
+    const lineContext = { ...context, rating: company.rating, hasCoffee: summary.amenities.includes('coffee') };
     const ordered = [...company.employees].sort((a, b) => performanceOf(b) - performanceOf(a));
     return {
       company: { id: company.id, name: company.name },
       employees: ordered.map((employee, index) => {
         const skin = resolveSkin(employee, npcs);
         const full = skin ? npcs.find((npc) => npc.key === skin.key) : null;
-        // Cada uno empieza por una frase distinta (no todos dicen lo mismo).
-        const own = lines.map((_, offset) => lines[(offset + index) % lines.length]);
-        if (summary.hasOffice && index >= summary.stations) own.unshift(pick(L('No tengo escritorio... así no se puede trabajar.', "I don't have a desk... I can't work like this.", 'Ich habe keinen Schreibtisch... so kann ich nicht arbeiten.'), lang));
+        // Lo suyo primero (rol, ánimo, su bug); luego un par de cosas de la
+        // empresa, distintas para cada uno para que no digan todos lo mismo.
+        const fixed = recentFixes.find((bug) => bug.assignedEmployeeId === employee.id);
+        const fixing = company.bugReports.find((bug) => bug.assignedEmployeeId === employee.id);
+        const personal = employeeLines(
+          {
+            id: employee.id,
+            roleSlug: employee.employeeType.slug,
+            traitKey: traitOf(employee).key,
+            motivation: employee.motivation,
+            stress: employee.stress,
+            minutesInTeam: (Date.now() - employee.hiredAt.getTime()) / 60_000,
+            seated: !summary.hasOffice || index < summary.stations,
+            bugsCaused: statsOf(employee).bugsCaused,
+            fixedBug: fixed ? bugTitle(fixed) : null,
+            fixingBug: fixing ? bugTitle(fixing) : null,
+          },
+          lineContext,
+        ).map((line) => pick(line, lang));
+        const shared = lines.filter((_, offset) => offset % Math.max(1, ordered.length) === index % Math.max(1, ordered.length)).slice(0, 2);
+        const own = [...new Set([...personal, ...shared])];
         return {
           id: employee.id,
           name: employee.name,
+          roleSlug: employee.employeeType.slug,
           roleName: this.roleName(employee.employeeType.slug, employee.employeeType.name, lang),
           seated: !summary.hasOffice || index < summary.stations,
+          // Carta (se abre al hacer clic en el empleado dentro de la sala).
+          trait: (() => {
+            const trait = traitOf(employee);
+            return { key: trait.key, tone: trait.tone, name: pick(trait.name, lang), description: pick(trait.description, lang) };
+          })(),
+          stats: statsOf(employee),
+          performance: performanceOf(employee),
+          card: cardStats(employee),
+          skin: skin ? { key: skin.key, spriteSheetUrl: skin.spriteSheetUrl, frameWidth: skin.frameWidth, frameHeight: skin.frameHeight } : null,
           npc: full
             ? {
                 key: full.key,
@@ -1426,7 +1468,7 @@ export class CodeStudioService {
                 directions: full.directions,
                 animations: full.animations,
                 greetingLines: [own[0]],
-                idleLines: own.slice(0, 4),
+                idleLines: own,
               }
             : null,
         };

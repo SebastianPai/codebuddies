@@ -111,8 +111,14 @@ export type OfficeState = {
 export type OfficeRoomEmployee = {
   id: string;
   name: string;
+  roleSlug: string;
   roleName: string;
   seated: boolean;
+  trait: { key: string; tone: string; name: string; description: string } | null;
+  stats: { featuresShipped: number; bugsFixed: number; bugsCaused: number } | null;
+  performance: number;
+  card: { overall: number; vel: number; cal: number; cre: number; pro: number; mot: number; exp: number } | null;
+  skin: { key: string; spriteSheetUrl: string | null; frameWidth: number; frameHeight: number } | null;
   npc: {
     key: string;
     name: string;

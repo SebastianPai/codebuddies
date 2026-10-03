@@ -1,6 +1,8 @@
 "use client";
 
-import { Landmark, Tag } from "lucide-react";
+import { useState } from "react";
+import { AlertTriangle, Landmark, Tag } from "lucide-react";
+import Modal from "../shared/Modal";
 import type { Catalog, CompanyView } from "./types";
 import { Stat, money } from "./ui";
 import { useTranslation } from "../../../i18n/useTranslation";
@@ -18,6 +20,11 @@ export default function FinanceView({ company, catalog, busy, onPricing, onFundi
   const m = company.metrics;
   const variable = Math.max(0, m.dailyCosts - m.dailySalaries - m.dailyInfra);
   const monetized = m.arpu > 0;
+  // Vender acciones no tiene vuelta atrás: se confirma siempre, y en la
+  // primera ronda (pre-seed) se avisa que vender temprano sale caro.
+  const [confirming, setConfirming] = useState(false);
+  const firstRound = !!company.funding && catalog.fundingRounds[0]?.name === company.funding.name;
+  const equityAfter = company.funding ? company.founderEquity * (1 - company.funding.equity / 100) : company.founderEquity;
 
   const rows = [
     { label: t("codestudio.finance.revenue"), value: m.dailyRevenue, good: true },
@@ -99,7 +106,7 @@ export default function FinanceView({ company, catalog, busy, onPricing, onFundi
                 {t("codestudio.finance.fundingRequires", { stage: company.funding.minStageName, rating: company.funding.minRating })}
               </p>
             )}
-            <button type="button" className="cs2-btn cs2-btn-primary" disabled={busy || !company.funding.available} onClick={onFunding}>
+            <button type="button" className="cs2-btn cs2-btn-primary" disabled={busy || !company.funding.available} onClick={() => setConfirming(true)}>
               {t("codestudio.finance.raise", { name: company.funding.name })}
             </button>
             <p className="cs2-muted">{t("codestudio.finance.fundingLesson")}</p>
@@ -108,6 +115,43 @@ export default function FinanceView({ company, catalog, busy, onPricing, onFundi
           <p className="cs2-muted">{t("codestudio.finance.fundingDone")}</p>
         )}
       </section>
+
+      {confirming && company.funding && (
+        <Modal className="cs2-modal" title={t("codestudio.finance.confirmTitle", { name: company.funding.name })} onClose={() => setConfirming(false)}>
+          <div className="cs2-stack">
+            <p>
+              {t("codestudio.finance.confirmText", {
+                equity: company.funding.equity,
+                raise: money(company.funding.raise),
+                before: company.founderEquity.toFixed(1),
+                after: equityAfter.toFixed(1),
+              })}
+            </p>
+            {firstRound && (
+              <p className="cs2-warn-text">
+                <AlertTriangle size={14} /> {t("codestudio.finance.confirmPreSeed")}
+              </p>
+            )}
+            <p className="cs2-muted">{t("codestudio.finance.confirmIrreversible")}</p>
+            <div className="cs2-row-actions">
+              <button type="button" className="cs2-btn" onClick={() => setConfirming(false)}>
+                {t("codestudio.finance.confirmCancel")}
+              </button>
+              <button
+                type="button"
+                className="cs2-btn cs2-btn-primary"
+                disabled={busy}
+                onClick={() => {
+                  setConfirming(false);
+                  onFunding();
+                }}
+              >
+                {t("codestudio.finance.confirmSell", { equity: company.funding.equity })}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
