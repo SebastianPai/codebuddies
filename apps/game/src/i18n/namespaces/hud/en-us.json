@@ -195,5 +195,12 @@
       "text": "We recommend starting with CodeStudio: it has a step-by-step guide for total beginners.",
       "cta": "Open CodeStudio"
     }
+  },
+  "mobile": {
+    "rotateTitle": "Rotate your phone",
+    "rotateText": "CodeBuddies plays best in landscape and full screen.",
+    "fullscreen": "Full screen",
+    "stayPortrait": "Stay in portrait",
+    "iosTip": "On iPhone: tap Share and then \"Add to Home Screen\" to play full screen."
   }
 }

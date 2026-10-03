@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { LanguageProvider } from "../i18n/LanguageContext";
 
@@ -17,6 +17,18 @@ export const metadata: Metadata = {
   title: "CodeBuddies — Juego",
   description:
     "El mundo multijugador de CodeBuddies: explorá salas, personalizá tu avatar y jugá con la comunidad.",
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "CodeBuddies" },
+};
+
+// Celular: ocupa toda la pantalla (también bajo el notch) y no hace zoom con
+// doble toque, que en un juego se confunde con mover la cámara.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+  themeColor: "#0b0b0d",
 };
 
 export default function RootLayout({
@@ -25,7 +37,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="es">
       <body>
         <LanguageProvider>{children}</LanguageProvider>
       </body>

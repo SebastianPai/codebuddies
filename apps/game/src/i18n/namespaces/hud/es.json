@@ -195,5 +195,12 @@
       "text": "Te recomendamos empezar por CodeStudio: tiene una guía paso a paso para quien no sabe nada.",
       "cta": "Abrir CodeStudio"
     }
+  },
+  "mobile": {
+    "rotateTitle": "Gira tu teléfono",
+    "rotateText": "CodeBuddies se juega mejor en horizontal y en pantalla completa.",
+    "fullscreen": "Pantalla completa",
+    "stayPortrait": "Seguir en vertical",
+    "iosTip": "En iPhone: toca Compartir y luego \"Agregar a inicio\" para jugar a pantalla completa."
   }
 }

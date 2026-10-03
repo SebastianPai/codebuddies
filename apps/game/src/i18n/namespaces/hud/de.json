@@ -195,5 +195,12 @@
       "text": "Am besten startest du mit CodeStudio: Es hat eine Schritt-für-Schritt-Anleitung für absolute Anfänger.",
       "cta": "CodeStudio öffnen"
     }
+  },
+  "mobile": {
+    "rotateTitle": "Dreh dein Handy",
+    "rotateText": "CodeBuddies spielt sich am besten im Querformat und im Vollbild.",
+    "fullscreen": "Vollbild",
+    "stayPortrait": "Im Hochformat bleiben",
+    "iosTip": "Auf dem iPhone: Tippe auf Teilen und dann auf \"Zum Home-Bildschirm\", um im Vollbild zu spielen."
   }
 }

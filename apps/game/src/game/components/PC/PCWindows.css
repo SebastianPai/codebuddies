@@ -160,6 +160,9 @@
 
 /* Área de contenido */
 .pc-content-area {
+  /* Contenedor para las container queries de CodeStudio: .cs2-shell no
+     puede responder a su propio ancho, así que el ancho lo mide su padre. */
+  container-type: inline-size;
   flex: 1;
   padding: 20px;
   overflow-y: auto;
@@ -491,4 +494,9 @@
   text-align: center;
   color: var(--pcsim-empty-text);
   margin-top: 40px;
+}
+
+/* CodeStudio ya trae su propio marco: sin el relleno extra de la ventana. */
+.pc-content-area:has(.cs2-shell) {
+  padding: 0;
 }
