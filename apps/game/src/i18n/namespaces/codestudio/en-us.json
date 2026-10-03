@@ -673,5 +673,63 @@
       "badTraits": "{count} people with a bad attitude drag morale down",
       "noBuilders": "Nobody codes: the product does not move"
     }
+  },
+  "goalGuide": {
+    "how": "How do I get there?",
+    "hide": "Hide",
+    "core-feature": {
+      "step1": "Open the Tree.",
+      "step2": "Build in order: Landing, Login and the Core feature.",
+      "step3": "While it builds, hire a developer to go faster.",
+      "go": "Go to the Tree"
+    },
+    "server": {
+      "step1": "Open Servers.",
+      "step2": "Install the App server. Short on cash? PixelHost is half price.",
+      "step3": "Without a server nobody can use your app: users start arriving as soon as it is online.",
+      "go": "Go to Servers"
+    },
+    "users": {
+      "step1": "Turn on always-on ads or launch a campaign on a channel that fits your app (the ones marked \"ideal\").",
+      "step2": "Make sure the server is not full: if it is slow, people leave.",
+      "step3": "Build features and fix bugs: happy users bring their friends.",
+      "go": "Go to Marketing"
+    },
+    "revenue": {
+      "step1": "In the Tree, build something from Monetization: Ads or Payments.",
+      "step2": "Pick the price in Finance: pricier earns more per user, but more people leave.",
+      "step3": "More users = more revenue: keep growing.",
+      "go": "Go to the Tree"
+    },
+    "rating": {
+      "step1": "Fix open bugs: they hurt the rating the most.",
+      "step2": "Hire UX and Support: the app is easier to use and they reply fast.",
+      "step3": "Keep the server from filling up: slowness costs stars too.",
+      "go": "Go to Bugs"
+    },
+    "churn": {
+      "step1": "Build retention features: Onboarding and Notifications.",
+      "step2": "Keep satisfaction high (no bugs, no full server).",
+      "step3": "Do not raise the price too much: it is the #1 reason people leave.",
+      "go": "Go to the Tree"
+    },
+    "profit": {
+      "step1": "Check your costs in Finance: salaries and servers.",
+      "step2": "Raise revenue: monetization and a fair price.",
+      "step3": "If someone is not performing, it may be time to let them go.",
+      "go": "Go to Finance"
+    },
+    "stability": {
+      "step1": "Upgrade your server or move to OrbitCloud, which almost never goes down.",
+      "step2": "Hire DevOps: more stability and less latency.",
+      "step3": "Fix bugs and cut tech debt with QA.",
+      "go": "Go to Servers"
+    },
+    "valuation": {
+      "step1": "Valuation comes from your users and revenue: keep growing.",
+      "step2": "Raising money in Finance gives you cash to grow faster.",
+      "step3": "Keep the rating high: investors look at it.",
+      "go": "Go to Marketing"
+    }
   }
 }

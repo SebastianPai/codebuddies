@@ -1,4 +1,8 @@
-import { BadRequestException, Controller, Get, Injectable, Module, Param, Post, UseGuards } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Injectable, Logger, Module, Param, Post, UseGuards } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
+import { NotificationType, Prisma } from '@prisma/client';
+import { EmailModule } from '../email/email.module';
+import { EmailService } from '../email/email.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { JwtAuthGuard } from '../identity/guards/jwt.guard';
@@ -88,6 +92,89 @@ export class StarterService {
   }
 }
 
+// ─── Recordatorios para quien no volvió ─────────────────────────────────
+//
+// Día 1 (se registró ayer y no volvió) y día 3 (sigue sin volver): una
+// notificación en la app para todos y, solo a quien aceptó correos de
+// marketing, un correo con enlace de baja. Cada recordatorio se manda una
+// sola vez (queda marcado en la notificación).
+
+const STEP_NAMES: Record<string, string> = {
+  lesson: 'completar tu primera lección (2 minutos)',
+  exercise: 'resolver tu primer ejercicio',
+  avatar: 'entrar al mundo y crear tu avatar',
+  startup: 'fundar tu startup en CodeStudio',
+  streak: 'volver hoy para empezar tu racha',
+};
+
+const HOUR = 3_600_000;
+const SITE_URL = (process.env.WEB_URL || 'https://codebuddies.tech').replace(/\/+$/, '');
+
+@Injectable()
+export class StarterRemindersService {
+  private readonly logger = new Logger(StarterRemindersService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly starter: StarterService,
+    private readonly email: EmailService,
+  ) {}
+
+  @Cron('15 * * * *')
+  async run() {
+    if (process.env.NODE_ENV === 'test') return;
+    const now = Date.now();
+    await this.remind('starter-d1', new Date(now - 48 * HOUR), new Date(now - 24 * HOUR), 20 * HOUR);
+    await this.remind('starter-d3', new Date(now - 96 * HOUR), new Date(now - 72 * HOUR), 48 * HOUR);
+  }
+
+  /** Usuarios registrados en [from, to) que no han vuelto en `quietMs`. */
+  private async remind(kind: string, from: Date, to: Date, quietMs: number) {
+    const users = await this.prisma.user.findMany({
+      where: { createdAt: { gte: from, lt: to } },
+      select: { id: true, email: true, username: true, createdAt: true, lastLoginAt: true },
+      take: 500,
+    });
+    let sent = 0;
+    for (const user of users) {
+      const lastSeen = user.lastLoginAt?.getTime() ?? user.createdAt.getTime();
+      if (Date.now() - lastSeen < quietMs) continue;
+      const already = await this.prisma.notification.findFirst({
+        where: { userId: user.id, metadata: { path: ['kind'], equals: kind } },
+        select: { id: true },
+      });
+      if (already) continue;
+      const overview = await this.starter.overview(user.id);
+      if (overview.finished) continue;
+      const pending = overview.steps.filter((step) => !step.claimed);
+      if (pending.length === 0) continue;
+      const coins = pending.reduce((sum, step) => sum + step.coins, 0) + overview.bonus;
+      const next = pending.find((step) => !step.done) ?? pending[0];
+      const title = kind === 'starter-d1' ? `Te esperan ${coins} monedas` : `Todavía estás a tiempo: ${coins} monedas`;
+      const body = `Te faltan ${pending.length} paso${pending.length === 1 ? '' : 's'}. El siguiente: ${STEP_NAMES[next.key]}.`;
+      await this.prisma.notification.create({
+        data: {
+          userId: user.id,
+          type: NotificationType.MISSION_AVAILABLE,
+          title,
+          body,
+          metadata: { kind, coins, nextStep: next.key, href: '/dashboard' } as Prisma.InputJsonValue,
+        },
+      });
+      await this.email.sendMarketingMessage(
+        user,
+        title,
+        `<p>Hola ${user.username},</p>
+<p>${body}</p>
+<p>Cada paso te da monedas y al completarlos todos te llevas un bono de ${overview.bonus}.</p>
+<p><a href="${SITE_URL}/dashboard" style="display:inline-block;padding:12px 20px;border-radius:999px;background:#facc15;color:#000;font-weight:700;text-decoration:none">Seguir donde quedé</a></p>`,
+      );
+      sent++;
+    }
+    if (sent > 0) this.logger.log(`Recordatorios ${kind}: ${sent}`);
+  }
+}
+
 @UseGuards(JwtAuthGuard)
 @Controller('starter')
 export class StarterController {
@@ -105,8 +192,8 @@ export class StarterController {
 }
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, EmailModule],
   controllers: [StarterController],
-  providers: [StarterService],
+  providers: [StarterService, StarterRemindersService],
 })
 export class StarterModule {}

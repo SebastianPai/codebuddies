@@ -7,6 +7,8 @@ import DailyMissions from "./DailyMissions";
 import FirstSteps from "./FirstSteps";
 import { ActiveBoosts, GrowthCeiling, WhileAway } from "./GrowthCeiling";
 import type { OfficeState } from "../../network/codestudio";
+import { useState } from "react";
+import GoalGuide, { hasGoalGuide } from "./GoalGuide";
 import { useTranslation } from "../../../i18n/useTranslation";
 
 type Props = {
@@ -21,6 +23,10 @@ export default function PanelView({ company, catalog, office = null, onNavigate,
   const t = useTranslation();
   const m = company.metrics;
   const step = nextStep(company, catalog, t, office);
+  // Meta con su "¿Cómo?" abierto (por defecto, la primera que falta).
+  const firstPending = company.stage.goals.find((goal) => !goal.met && hasGoalGuide(goal.key))?.key ?? null;
+  const [openGuide, setOpenGuide] = useState<string | null | undefined>(undefined);
+  const guideKey = openGuide === undefined ? firstPending : openGuide;
   const profitTone = m.dailyProfit >= 0 ? "good" : "bad";
 
   return (
@@ -80,6 +86,17 @@ export default function PanelView({ company, catalog, office = null, onNavigate,
                   </b>
                 </div>
                 <ProgressBar value={goalProgress(goal)} tone={goal.met ? "good" : "accent"} />
+                {!goal.met && hasGoalGuide(goal.key) && (
+                  <button
+                    type="button"
+                    className="cs2-goal-how"
+                    aria-expanded={guideKey === goal.key}
+                    onClick={() => setOpenGuide(guideKey === goal.key ? null : goal.key)}
+                  >
+                    {guideKey === goal.key ? t("codestudio.goalGuide.hide") : t("codestudio.goalGuide.how")}
+                  </button>
+                )}
+                {!goal.met && guideKey === goal.key && goal.key && <GoalGuide goalKey={goal.key} onNavigate={onNavigate} />}
               </div>
             ))}
           </div>

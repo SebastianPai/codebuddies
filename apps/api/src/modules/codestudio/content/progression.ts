@@ -17,6 +17,8 @@ export type StageMetrics = {
 };
 
 export type StageGoal = {
+  /** Qué mide (para que el juego explique cómo lograrlo). */
+  key: 'core-feature' | 'server' | 'users' | 'revenue' | 'rating' | 'churn' | 'profit' | 'stability' | 'valuation';
   label: string;
   current: (m: StageMetrics) => number;
   target: number;
@@ -41,7 +43,7 @@ export const STAGES: StageDefinition[] = [
     index: 0,
     name: 'Idea',
     tagline: 'Tienes una idea y $6.000. Construye tu MVP: landing, login y la funcionalidad principal.',
-    goals: [{ label: 'Publicar la Funcionalidad principal', current: (m) => has(m, 'core-feature'), target: 1, kind: 'flag', format: 'flag' }],
+    goals: [{ key: 'core-feature', label: 'Publicar la Funcionalidad principal', current: (m) => has(m, 'core-feature'), target: 1, kind: 'flag', format: 'flag' }],
     reward: { cash: 0, xp: 0, coins: 0 },
   },
   {
@@ -49,8 +51,8 @@ export const STAGES: StageDefinition[] = [
     name: 'MVP',
     tagline: 'Tu MVP existe. Ponlo en un servidor y consigue tus primeros 50 usuarios.',
     goals: [
-      { label: 'Tener un servidor en línea', current: (m) => (m.hasInfrastructure ? 1 : 0), target: 1, kind: 'flag', format: 'flag' },
-      { label: 'Usuarios activos', current: (m) => m.activeUsers, target: 50, format: 'users' },
+      { key: 'server', label: 'Tener un servidor en línea', current: (m) => (m.hasInfrastructure ? 1 : 0), target: 1, kind: 'flag', format: 'flag' },
+      { key: 'users', label: 'Usuarios activos', current: (m) => m.activeUsers, target: 50, format: 'users' },
     ],
     reward: { cash: 500, xp: 30, coins: 5 },
   },
@@ -59,8 +61,8 @@ export const STAGES: StageDefinition[] = [
     name: 'Lanzamiento',
     tagline: 'La gente llega. Ahora demuestra que alguien paga por esto.',
     goals: [
-      { label: 'Usuarios activos', current: (m) => m.activeUsers, target: 700, format: 'users' },
-      { label: 'Ingresos por día', current: (m) => m.dailyRevenue, target: 80, format: 'money' },
+      { key: 'users', label: 'Usuarios activos', current: (m) => m.activeUsers, target: 700, format: 'users' },
+      { key: 'revenue', label: 'Ingresos por día', current: (m) => m.dailyRevenue, target: 80, format: 'money' },
     ],
     reward: { cash: 1000, xp: 60, coins: 10 },
   },
@@ -69,9 +71,9 @@ export const STAGES: StageDefinition[] = [
     name: 'Tracción',
     tagline: 'Busca el Product-Market Fit: que la gente se quede y te recomiende.',
     goals: [
-      { label: 'Usuarios activos', current: (m) => m.activeUsers, target: 1600, format: 'users' },
-      { label: 'Rating', current: (m) => m.rating, target: 3.8, format: 'rating' },
-      { label: 'Churn diario máximo', current: (m) => m.churn * 100, target: 3, kind: 'min', format: 'percent' },
+      { key: 'users', label: 'Usuarios activos', current: (m) => m.activeUsers, target: 1600, format: 'users' },
+      { key: 'rating', label: 'Rating', current: (m) => m.rating, target: 3.8, format: 'rating' },
+      { key: 'churn', label: 'Churn diario máximo', current: (m) => m.churn * 100, target: 3, kind: 'min', format: 'percent' },
     ],
     reward: { cash: 2000, xp: 120, coins: 15 },
   },
@@ -80,8 +82,8 @@ export const STAGES: StageDefinition[] = [
     name: 'Product-Market Fit',
     tagline: 'Encontraste tu mercado. Crece sin quemar dinero: ganancia diaria positiva.',
     goals: [
-      { label: 'Usuarios activos', current: (m) => m.activeUsers, target: 12000, format: 'users' },
-      { label: 'Ganancia por día', current: (m) => m.dailyProfit, target: 150, format: 'money' },
+      { key: 'users', label: 'Usuarios activos', current: (m) => m.activeUsers, target: 12000, format: 'users' },
+      { key: 'profit', label: 'Ganancia por día', current: (m) => m.dailyProfit, target: 150, format: 'money' },
     ],
     reward: { cash: 4000, xp: 250, coins: 30 },
   },
@@ -90,8 +92,8 @@ export const STAGES: StageDefinition[] = [
     name: 'Crecimiento',
     tagline: 'Escala a 100.000 usuarios sin que la app se caiga.',
     goals: [
-      { label: 'Usuarios activos', current: (m) => m.activeUsers, target: 100000, format: 'users' },
-      { label: 'Estabilidad', current: (m) => m.stability, target: 97, format: 'percent' },
+      { key: 'users', label: 'Usuarios activos', current: (m) => m.activeUsers, target: 100000, format: 'users' },
+      { key: 'stability', label: 'Estabilidad', current: (m) => m.stability, target: 97, format: 'percent' },
     ],
     reward: { cash: 10000, xp: 500, coins: 50 },
   },
@@ -99,14 +101,14 @@ export const STAGES: StageDefinition[] = [
     index: 6,
     name: 'Escala',
     tagline: 'Eres una empresa seria. Llega a una valuación de $300 millones.',
-    goals: [{ label: 'Valuación', current: (m) => m.valuation, target: 300_000_000, format: 'money' }],
+    goals: [{ key: 'valuation', label: 'Valuación', current: (m) => m.valuation, target: 300_000_000, format: 'money' }],
     reward: { cash: 50000, xp: 1000, coins: 80 },
   },
   {
     index: 7,
     name: 'Líder del mercado',
     tagline: 'Dominas tu categoría. El último escalón: $1.000 millones.',
-    goals: [{ label: 'Valuación', current: (m) => m.valuation, target: 1_000_000_000, format: 'money' }],
+    goals: [{ key: 'valuation', label: 'Valuación', current: (m) => m.valuation, target: 1_000_000_000, format: 'money' }],
     reward: { cash: 0, xp: 2000, coins: 120 },
   },
   {

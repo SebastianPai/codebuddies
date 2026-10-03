@@ -184,6 +184,39 @@ export class EmailService {
     });
   }
 
+  /**
+   * Correo de marketing con contenido propio (no plantilla de la base):
+   * solo a quien aceptó marketing, con enlace de baja. Lo usan los
+   * recordatorios de "Primeros pasos". Devuelve si se envió.
+   */
+  async sendMarketingMessage(user: TransactionalRecipient, subject: string, bodyHtml: string) {
+    const prefs = await this.prisma.user.findUnique({ where: { id: user.id }, select: { marketingEmailsEnabled: true } });
+    if (!prefs?.marketingEmailsEnabled) return false;
+    try {
+      const unsubscribe = unsubscribeUrl(user.id);
+      const result = await this.mailer.send({
+        to: user.email,
+        subject,
+        html: wrapBrandedEmailHtml(subject, bodyHtml, { unsubscribeUrl: unsubscribe }),
+        headers: marketingHeaders(unsubscribe),
+      });
+      await this.prisma.emailLog.create({
+        data: {
+          campaignId: null,
+          userId: user.id,
+          email: user.email,
+          templateType: null,
+          status: result.success ? EmailLogStatus.SENT : EmailLogStatus.FAILED,
+          sentAt: result.success ? new Date() : null,
+        },
+      });
+      return result.success;
+    } catch (error) {
+      this.logger.warn(`No se pudo enviar "${subject}" a ${user.email}: ${String(error)}`);
+      return false;
+    }
+  }
+
   async sendWelcomeEmail(user: TransactionalRecipient) {
     await this.sendTransactionalEmail(EmailTemplateType.WELCOME, user);
   }

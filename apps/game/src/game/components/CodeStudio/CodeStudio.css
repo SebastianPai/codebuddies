@@ -3895,3 +3895,48 @@ div.cs2-modal.cs2-candidates-modal {
   font-weight: 800;
 }
 
+/* ─── "¿Cómo lo logro?" de las metas ──────────────────────────────────── */
+.cs2-goal .cs2-goal-how {
+  display: block;
+  justify-self: start;
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--px-yellow);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cs2-goal .cs2-goal-how:hover,
+.cs2-goal .cs2-goal-how:focus-visible {
+  text-decoration: underline;
+  outline: none;
+}
+
+.cs2-goal > .cs2-goal-guide {
+  /* Pisa ".cs2-goal > div" (fila con el nombre y el número). */
+  display: grid;
+  justify-content: stretch;
+  font-weight: 400;
+  gap: 10px;
+  margin-top: 6px;
+  padding: 12px;
+  border-radius: var(--r-md);
+  background: var(--fill);
+}
+
+.cs2-goal-guide ol {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+}
+
+.cs2-goal-guide .cs2-btn {
+  justify-self: start;
+}
+

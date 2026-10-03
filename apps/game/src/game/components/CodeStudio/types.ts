@@ -171,6 +171,8 @@ export type Metrics = {
 export type TreeState = "installed" | "developing" | "queued" | "available" | "locked" | "locked-stage";
 
 export type StageGoal = {
+  /** Qué mide (core-feature, server, users, revenue, rating, churn, profit, stability, valuation). */
+  key?: string;
   label: string;
   current: number;
   target: number;

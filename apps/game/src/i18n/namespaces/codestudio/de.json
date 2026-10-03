@@ -673,5 +673,63 @@
       "badTraits": "{count} Leute mit schlechter Einstellung drücken die Stimmung",
       "noBuilders": "Niemand programmiert: das Produkt kommt nicht voran"
     }
+  },
+  "goalGuide": {
+    "how": "Wie schaffe ich das?",
+    "hide": "Ausblenden",
+    "core-feature": {
+      "step1": "Öffne den Baum.",
+      "step2": "Baue der Reihe nach: Landing, Login und die Hauptfunktion.",
+      "step3": "Stell währenddessen einen Entwickler ein, um schneller zu sein.",
+      "go": "Zum Baum"
+    },
+    "server": {
+      "step1": "Öffne Server.",
+      "step2": "Installiere den App-Server. Wenig Geld? PixelHost kostet die Hälfte.",
+      "step3": "Ohne Server kann niemand deine App nutzen: Sobald sie online ist, kommen Nutzer.",
+      "go": "Zu Server"
+    },
+    "users": {
+      "step1": "Schalte Dauerwerbung ein oder starte eine Kampagne in einem passenden Kanal (die als „ideal\" markierten).",
+      "step2": "Achte darauf, dass der Server nicht voll ist: Wenn er langsam ist, gehen Leute.",
+      "step3": "Baue Funktionen und behebe Bugs: Zufriedene Nutzer bringen Freunde mit.",
+      "go": "Zu Marketing"
+    },
+    "revenue": {
+      "step1": "Baue im Baum etwas aus Monetarisierung: Werbung oder Zahlungen.",
+      "step2": "Wähle den Preis in Finanzen: teurer bringt mehr pro Nutzer, aber mehr gehen.",
+      "step3": "Mehr Nutzer = mehr Umsatz: Wachse weiter.",
+      "go": "Zum Baum"
+    },
+    "rating": {
+      "step1": "Behebe offene Bugs: Sie senken das Rating am meisten.",
+      "step2": "Stell UX und Support ein: Die App ist verständlicher und sie antworten schnell.",
+      "step3": "Lass den Server nicht volllaufen: Langsamkeit kostet auch Sterne.",
+      "go": "Zu Bugs"
+    },
+    "churn": {
+      "step1": "Baue Bindungsfunktionen: Onboarding und Benachrichtigungen.",
+      "step2": "Halte die Zufriedenheit hoch (keine Bugs, kein voller Server).",
+      "step3": "Erhöhe den Preis nicht zu sehr: Das ist der Hauptgrund, warum Leute gehen.",
+      "go": "Zum Baum"
+    },
+    "profit": {
+      "step1": "Prüfe deine Kosten in Finanzen: Gehälter und Server.",
+      "step2": "Steigere den Umsatz: Monetarisierung und ein fairer Preis.",
+      "step3": "Wenn jemand nicht liefert, ist es vielleicht Zeit, ihn gehen zu lassen.",
+      "go": "Zu Finanzen"
+    },
+    "stability": {
+      "step1": "Rüste deinen Server auf oder wechsle zu OrbitCloud, das fast nie ausfällt.",
+      "step2": "Stell DevOps ein: mehr Stabilität und weniger Latenz.",
+      "step3": "Behebe Bugs und senke technische Schulden mit QA.",
+      "go": "Zu Server"
+    },
+    "valuation": {
+      "step1": "Die Bewertung kommt von Nutzern und Umsatz: Wachse weiter.",
+      "step2": "Investitionen in Finanzen geben dir Geld, um schneller zu wachsen.",
+      "step3": "Halte das Rating hoch: Investoren schauen darauf.",
+      "go": "Zu Marketing"
+    }
   }
 }

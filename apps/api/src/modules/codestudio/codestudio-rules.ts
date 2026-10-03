@@ -53,6 +53,7 @@ export function evaluateStage(current: number, metrics: StageMetrics) {
 export function stageProgress(stage: number, metrics: StageMetrics) {
   const definition = STAGES[Math.min(stage, MAX_STAGE)];
   return definition.goals.map((goal) => ({
+    key: goal.key,
     label: goal.label,
     current: goal.current(metrics),
     target: goal.target,

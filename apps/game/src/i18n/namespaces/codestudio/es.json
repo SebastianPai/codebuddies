@@ -673,5 +673,63 @@
       "badTraits": "{count} personas con mala actitud bajan el ánimo",
       "noBuilders": "Nadie programa: el producto no avanza"
     }
+  },
+  "goalGuide": {
+    "how": "¿Cómo lo logro?",
+    "hide": "Ocultar",
+    "core-feature": {
+      "step1": "Abre el Árbol.",
+      "step2": "Construye en orden: Landing, Login y la Funcionalidad principal.",
+      "step3": "Mientras se construye, contrata a un programador para ir más rápido.",
+      "go": "Ir al Árbol"
+    },
+    "server": {
+      "step1": "Abre Servidores.",
+      "step2": "Instala el Servidor de aplicación. Si tienes poca plata, PixelHost sale a mitad de precio.",
+      "step3": "Sin servidor nadie puede usar tu app: los usuarios empiezan a llegar en cuanto está en línea.",
+      "go": "Ir a Servidores"
+    },
+    "users": {
+      "step1": "Activa la publicidad siempre activa o lanza una campaña en un canal ideal para tu app (los que dicen \"ideal\").",
+      "step2": "Revisa que el servidor no esté lleno: si va lento, la gente se va.",
+      "step3": "Construye funciones y arregla bugs: usuarios contentos traen a sus amigos.",
+      "go": "Ir a Marketing"
+    },
+    "revenue": {
+      "step1": "En el Árbol, construye algo de Monetización: Publicidad o Pagos.",
+      "step2": "Elige el precio en Finanzas: más caro deja más por usuario, pero se van más.",
+      "step3": "Más usuarios = más ingresos: no dejes de crecer.",
+      "go": "Ir al Árbol"
+    },
+    "rating": {
+      "step1": "Arregla los bugs abiertos: son lo que más baja el rating.",
+      "step2": "Contrata UX y Soporte: la app se entiende mejor y responden rápido.",
+      "step3": "Que el servidor no esté lleno: la lentitud también baja estrellas.",
+      "go": "Ir a Bugs"
+    },
+    "churn": {
+      "step1": "Construye funciones de retención: Onboarding y Notificaciones.",
+      "step2": "Mantén la satisfacción alta (sin bugs ni servidor lleno).",
+      "step3": "No subas mucho el precio: es la razón #1 por la que la gente se va.",
+      "go": "Ir al Árbol"
+    },
+    "profit": {
+      "step1": "Mira tus gastos en Finanzas: sueldos y servidores.",
+      "step2": "Sube ingresos: monetización y un precio razonable.",
+      "step3": "Si alguien no rinde, quizá es hora de dejarlo ir.",
+      "go": "Ir a Finanzas"
+    },
+    "stability": {
+      "step1": "Mejora tu servidor o pásate a OrbitCloud, que casi nunca se cae.",
+      "step2": "Contrata DevOps: sube la estabilidad y baja la latencia.",
+      "step3": "Arregla bugs y baja la deuda técnica con QA.",
+      "go": "Ir a Servidores"
+    },
+    "valuation": {
+      "step1": "La valuación sale de tus usuarios e ingresos: sigue creciendo.",
+      "step2": "Levantar inversión en Finanzas te da caja para crecer más rápido.",
+      "step3": "Mantén el rating alto: los inversores lo miran.",
+      "go": "Ir a Marketing"
+    }
   }
 }
