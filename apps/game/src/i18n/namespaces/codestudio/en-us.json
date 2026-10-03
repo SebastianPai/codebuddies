@@ -518,5 +518,19 @@
     "learnText": "Everything you build here (landing, login, servers...) is taught in the CodeBuddies courses, from scratch.",
     "learnCta": "See courses",
     "back": "Back"
+  },
+  "card": {
+    "vel": "SPD",
+    "cal": "QUA",
+    "cre": "CRE",
+    "pro": "PRD",
+    "mot": "MOT",
+    "exp": "EXP",
+    "velHint": "Speed: how fast they build",
+    "calHint": "Quality: fewer bugs when shipping",
+    "creHint": "Creativity: ideas and design",
+    "proHint": "Productivity: daily output",
+    "motHint": "Motivation: drive to work",
+    "expHint": "Experience: level and time on the team"
   }
 }

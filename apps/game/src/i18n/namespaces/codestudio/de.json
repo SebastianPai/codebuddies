@@ -518,5 +518,19 @@
     "learnText": "Alles, was du hier baust (Landingpage, Login, Server...), lernst du in den CodeBuddies-Kursen von Grund auf.",
     "learnCta": "Kurse ansehen",
     "back": "Zurück"
+  },
+  "card": {
+    "vel": "TEM",
+    "cal": "QUA",
+    "cre": "KRE",
+    "pro": "PRO",
+    "mot": "MOT",
+    "exp": "ERF",
+    "velHint": "Tempo: wie schnell gebaut wird",
+    "calHint": "Qualität: weniger Bugs beim Veröffentlichen",
+    "creHint": "Kreativität: Ideen und Design",
+    "proHint": "Produktivität: Leistung pro Tag",
+    "motHint": "Motivation: Lust zu arbeiten",
+    "expHint": "Erfahrung: Level und Zeit im Team"
   }
 }

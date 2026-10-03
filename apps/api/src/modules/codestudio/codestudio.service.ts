@@ -20,6 +20,7 @@ import { CodeStudioCatalogService } from './codestudio-catalog.service';
 import { CodeStudioRewardsService } from './codestudio-rewards.service';
 import { campaignQuote, evaluateStage, fundingOffer, stageProgress } from './codestudio-rules';
 import { TRAITS, bumpStats, performanceOf, rollTrait, statsOf, traitOf } from './content/traits';
+import { cardStats, employeeName, genderOf, resolveSkin, rollGender } from './content/employee-card';
 import {
   BUG_CAPABLE_ROLES,
   ROLE_BY_SLUG,
@@ -339,6 +340,12 @@ export class CodeStudioService {
     if (company.employees.length >= MAX_EMPLOYEES) throw new BadRequestException(pick(MSG.maxEmployees(MAX_EMPLOYEES), lang));
     const bonus = Math.round(type.salary * HIRE_BONUS_FACTOR);
     const stats = (type.baseStats ?? {}) as Record<string, number>;
+    // Género, nombre y skin (NPC EMPLOYEE del admin de ese género; si no
+    // hay, el mayordomo) de la persona contratada.
+    const gender = rollGender();
+    const name = employeeName(gender);
+    const tempEmployee = { id: `${company.id}:${Date.now()}`, name, avatar: null, metadata: { gender } };
+    const skin = resolveSkin(tempEmployee, await this.skinNpcs());
 
     await this.prisma.$transaction(async (tx) => {
       await this.spend(tx, company.id, bonus, lang);
@@ -346,15 +353,15 @@ export class CodeStudioService {
         data: {
           companyId: company.id,
           employeeTypeId: type.id,
-          name: this.generateEmployeeName(),
-          avatar: `avatar-${type.slug}`,
+          name,
+          avatar: skin?.key ?? `avatar-${type.slug}`,
           age: 20 + Math.floor(Math.random() * 22),
           salary: type.salary,
           productivity: Number(stats.productivity ?? 1),
           creativity: Number(stats.creativity ?? 1),
           speed: Number(stats.speed ?? 1),
           quality: Number(stats.quality ?? 1),
-          metadata: { trait: rollTrait(), stats: { featuresShipped: 0, bugsFixed: 0, bugsCaused: 0 } },
+          metadata: { trait: rollTrait(), gender, stats: { featuresShipped: 0, bugsFixed: 0, bugsCaused: 0 } },
         },
       });
       await this.log(tx, company.id, MSG.hiredTitle(employee.name, this.roleName(type.slug, type.name, lang)), MSG.hiredText(bonus, type.salary), 'team', 'neutral', lang);
@@ -1022,6 +1029,7 @@ export class CodeStudioService {
     const pending = events.find((event) => (event.effects as Record<string, any> | null)?.status === 'pending');
     const pendingEffects = (pending?.effects ?? {}) as Record<string, any>;
     const busyEmployeeIds = new Set(company.bugReports.map((bug) => bug.assignedEmployeeId).filter(Boolean) as string[]);
+    const skinNpcs = await this.skinNpcs();
 
     return {
       id: company.id,
@@ -1095,6 +1103,13 @@ export class CodeStudioService {
         stats: statsOf(employee),
         performance: performanceOf(employee),
         daysInTeam: Math.max(0, Math.floor((Date.now() - employee.hiredAt.getTime()) / 60_000)),
+        gender: genderOf(employee),
+        age: employee.age,
+        card: cardStats(employee),
+        skin: (() => {
+          const npc = resolveSkin(employee, skinNpcs);
+          return npc ? { key: npc.key, spriteSheetUrl: npc.spriteSheetUrl, frameWidth: npc.frameWidth, frameHeight: npc.frameHeight } : null;
+        })(),
       })),
       hosting: company.infrastructure.map((item) => {
         const scaling = (item.infrastructureType.scaling ?? {}) as Record<string, number>;
@@ -1194,6 +1209,25 @@ export class CodeStudioService {
   }
 
   // ─── Equipo: rasgos, estadísticas y Product Manager ──────────────────
+
+  // Skins de empleados (NPC EMPLOYEE + el mayordomo como respaldo). Cambian
+  // poco: se cachean un minuto para no consultarlas en cada poll.
+  private skinCache: { at: number; npcs: Awaited<ReturnType<CodeStudioService['loadSkinNpcs']>> } | null = null;
+
+  private loadSkinNpcs() {
+    return this.prisma.npcConfig.findMany({
+      where: { enabled: true, kind: { in: ['EMPLOYEE', 'BUTLER'] } },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      select: { key: true, kind: true, gender: true, spriteSheetUrl: true, frameWidth: true, frameHeight: true },
+    });
+  }
+
+  private async skinNpcs() {
+    if (this.skinCache && Date.now() - this.skinCache.at < 60_000) return this.skinCache.npcs;
+    const npcs = await this.loadSkinNpcs();
+    this.skinCache = { at: Date.now(), npcs };
+    return npcs;
+  }
 
   /** Cada Mentor suma 5% a todo el equipo (máximo 2). */
   private mentorBoost(company: LoadedCompany) {
@@ -1543,12 +1577,6 @@ export class CodeStudioService {
     const company = await this.requireOwned(userId, companyId, lang);
     if (company.status === CodeStudioCompanyStatus.FAILED) throw new BadRequestException(pick(MSG.companyFailed(), lang));
     return company;
-  }
-
-  private generateEmployeeName() {
-    const first = ['Nico', 'Luna', 'Max', 'Ari', 'Sofi', 'Kai', 'Vale', 'Leo', 'Mara', 'Noah', 'Iris', 'Tomi', 'Juli', 'Emi', 'Sam'];
-    const last = ['Pixel', 'Stack', 'Cloud', 'Sprint', 'Byte', 'Nova', 'Cache', 'Loop', 'Script', 'Rocket', 'Commit', 'Deploy'];
-    return `${first[Math.floor(Math.random() * first.length)]} ${last[Math.floor(Math.random() * last.length)]}`;
   }
 
   // ─── Admin (catálogo editable desde /admin/codestudio) ──────────────────

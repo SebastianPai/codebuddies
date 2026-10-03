@@ -518,5 +518,19 @@
     "learnText": "Todo lo que construyes aquí (landing, login, servidores...) se aprende en los cursos de CodeBuddies, desde cero.",
     "learnCta": "Ver cursos",
     "back": "Volver"
+  },
+  "card": {
+    "vel": "VEL",
+    "cal": "CAL",
+    "cre": "CRE",
+    "pro": "PRO",
+    "mot": "MOT",
+    "exp": "EXP",
+    "velHint": "Velocidad: qué tan rápido construye",
+    "calHint": "Calidad: menos bugs al publicar",
+    "creHint": "Creatividad: ideas y diseño",
+    "proHint": "Productividad: cuánto rinde por día",
+    "motHint": "Motivación: ganas de trabajar",
+    "expHint": "Experiencia: nivel y tiempo en el equipo"
   }
 }

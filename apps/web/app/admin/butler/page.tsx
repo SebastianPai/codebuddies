@@ -19,6 +19,7 @@ type Npc = {
   key: string;
   kind: string;
   name: string;
+  gender?: "MALE" | "FEMALE" | null;
   spriteSheetUrl: string | null;
   frameWidth: number;
   frameHeight: number;
@@ -53,8 +54,14 @@ const EMPTY: Partial<Npc> = {
   sortOrder: 0,
 };
 
+// Mismo editor para el mayordomo y para las skins de empleados de
+// CodeStudio (kind EMPLOYEE, con género): mientras no haya skins de
+// empleados, el juego usa la del mayordomo.
+type NpcKind = "BUTLER" | "EMPLOYEE";
+
 export default function AdminButlerPage() {
   const t = useTranslation();
+  const [kind, setKind] = useState<NpcKind>("BUTLER");
   const [list, setList] = useState<Npc[]>([]);
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState<Partial<Npc>>(EMPTY);
@@ -62,14 +69,17 @@ export default function AdminButlerPage() {
 
   async function load() {
     try {
-      setList(await api.get<Npc[]>("/admin/npcs?kind=BUTLER"));
+      setList(await api.get<Npc[]>(`/admin/npcs?kind=${kind}`));
     } finally {
       setLoading(false);
     }
   }
   useEffect(() => {
+    setLoading(true);
+    setDraft({ ...EMPTY, kind });
     load();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kind]);
 
   const editing = Boolean(draft.id);
   const set = (patch: Partial<Npc>) => setDraft((d) => ({ ...d, ...patch }));
@@ -77,7 +87,7 @@ export default function AdminButlerPage() {
   async function save() {
     setSaving(true);
     try {
-      const payload = { ...draft, kind: "BUTLER" };
+      const payload = { ...draft, kind, gender: kind === "EMPLOYEE" ? draft.gender ?? null : null };
       if (editing) await api.patch(`/admin/npcs/${draft.id}`, payload);
       else await api.post("/admin/npcs", payload);
       setDraft(EMPTY);
@@ -106,6 +116,21 @@ export default function AdminButlerPage() {
         </p>
       </div>
 
+      <div className="flex gap-2" role="tablist">
+        {(["BUTLER", "EMPLOYEE"] as const).map((value) => (
+          <button
+            key={value}
+            role="tab"
+            aria-selected={kind === value}
+            onClick={() => setKind(value)}
+            className={`rounded-lg px-4 py-2 text-sm font-bold ${kind === value ? "bg-yellow-400 text-black" : "border border-zinc-700 text-zinc-300"}`}
+          >
+            {value === "BUTLER" ? t("admin.npcKindButler") : t("admin.npcKindEmployee")}
+          </button>
+        ))}
+      </div>
+      {kind === "EMPLOYEE" && <p className="max-w-2xl text-sm text-zinc-400">{t("admin.npcEmployeeHint")}</p>}
+
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-5 rounded-xl border border-zinc-800 bg-[#111] p-6">
           <h2 className="text-lg font-bold">
@@ -128,6 +153,20 @@ export default function AdminButlerPage() {
               />
             </Field>
           </div>
+
+          {kind === "EMPLOYEE" && (
+            <Field label={t("admin.npcGender")}>
+              <select
+                value={draft.gender ?? ""}
+                onChange={(e) => set({ gender: (e.target.value || null) as Npc["gender"] })}
+                className="w-full rounded-lg border border-zinc-700 bg-black px-3 py-2 text-white"
+              >
+                <option value="">{t("admin.npcGenderAny")}</option>
+                <option value="FEMALE">{t("admin.npcGenderFemale")}</option>
+                <option value="MALE">{t("admin.npcGenderMale")}</option>
+              </select>
+            </Field>
+          )}
 
           <Field
             label={t("admin.companionSheet")}
@@ -311,6 +350,11 @@ export default function AdminButlerPage() {
                 <h3 className="font-bold">
                   {n.name}{" "}
                   <span className="text-xs text-zinc-500">({n.key})</span>
+                  {n.kind === "EMPLOYEE" && (
+                    <span className="ml-2 rounded bg-zinc-800 px-2 py-0.5 text-xs text-zinc-300">
+                      {n.gender === "FEMALE" ? t("admin.npcGenderFemale") : n.gender === "MALE" ? t("admin.npcGenderMale") : t("admin.npcGenderAny")}
+                    </span>
+                  )}
                 </h3>
                 {!n.enabled && (
                   <span className="text-xs text-red-400">

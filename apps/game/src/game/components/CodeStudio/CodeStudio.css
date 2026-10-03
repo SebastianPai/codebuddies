@@ -3026,3 +3026,219 @@
 [data-pc-theme="light"] .cs2-eyebrow svg {
   color: var(--px-yellow-dark);
 }
+
+/* ─── Cartas de empleados (estilo carta de fútbol) ───────────────────── */
+.cs2-fut-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 14px;
+}
+
+.cs2-fut {
+  --fut-a: #6b4a2b;
+  --fut-b: #3a2817;
+  --fut-ink: #fbe7c6;
+  --fut-line: rgba(251, 231, 198, 0.25);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 14px 14px 12px;
+  border-radius: 20px 20px 26px 26px;
+  border: 1px solid var(--fut-line);
+  background: linear-gradient(160deg, var(--fut-a), var(--fut-b));
+  color: var(--fut-ink);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+  transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease);
+}
+
+.cs2-fut::after {
+  /* Brillo diagonal de las cartas. */
+  content: "";
+  position: absolute;
+  inset: -40% -60% auto auto;
+  width: 120%;
+  height: 120%;
+  background: linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, 0.12) 50%, transparent 60%);
+  pointer-events: none;
+}
+
+.cs2-fut:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.cs2-fut-silver {
+  --fut-a: #c9ced6;
+  --fut-b: #7d8591;
+  --fut-ink: #15181d;
+  --fut-line: rgba(21, 24, 29, 0.2);
+}
+
+.cs2-fut-gold {
+  --fut-a: #f6d365;
+  --fut-b: #c08a1e;
+  --fut-ink: #2b1d00;
+  --fut-line: rgba(43, 29, 0, 0.22);
+}
+
+.cs2-fut-special {
+  --fut-a: #1c1c1f;
+  --fut-b: #050506;
+  --fut-ink: #facc15;
+  --fut-line: rgba(250, 204, 21, 0.45);
+  box-shadow: 0 10px 30px rgba(250, 204, 21, 0.18), inset 0 1px 0 rgba(250, 204, 21, 0.3);
+}
+
+.cs2-fut-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  position: relative;
+  z-index: 1;
+}
+
+.cs2-fut-rating {
+  display: grid;
+  line-height: 1;
+}
+
+.cs2-fut-rating b {
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+
+.cs2-fut-rating span {
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  opacity: 0.85;
+}
+
+.cs2-fut .cs2-trait {
+  background: rgba(0, 0, 0, 0.22);
+  color: inherit;
+}
+
+.cs2-fut-portrait {
+  display: grid;
+  place-items: center;
+  height: 140px;
+  margin-top: -22px;
+  position: relative;
+  z-index: 1;
+}
+
+.cs2-card-portrait {
+  height: 160px;
+  width: auto;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.35));
+}
+
+.cs2-card-portrait-fallback {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.2);
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.cs2-fut-name {
+  display: grid;
+  gap: 1px;
+  text-align: center;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--fut-line);
+  min-width: 0;
+}
+
+.cs2-fut-name b {
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cs2-fut-name small {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.cs2-fut-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px 6px;
+  margin: 0;
+}
+
+.cs2-fut-stats > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+}
+
+.cs2-fut-stats dt {
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.cs2-fut-stats dd {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.75;
+}
+
+.cs2-fut-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--fut-line);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.cs2-fut-record {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.cs2-fut-record span {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.cs2-fut-salary {
+  margin-left: auto;
+  opacity: 0.85;
+  white-space: nowrap;
+}
+
+.cs2-fut .cs2-icon-btn {
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  background: rgba(0, 0, 0, 0.2);
+  border-color: transparent;
+  color: inherit;
+}
+
+.cs2-fut .cs2-tone-bad {
+  color: #ff453a;
+}
+

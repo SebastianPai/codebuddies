@@ -1005,8 +1005,11 @@ model NpcConfig {
   id  String @id @default(uuid())
   key String @unique
 
-  kind String @default("BUTLER") // BUTLER | GUIDE | SHOPKEEPER ...
+  kind String @default("BUTLER") // BUTLER | EMPLOYEE | GUIDE | SHOPKEEPER ...
   name String
+  // Solo EMPLOYEE (skins de empleados de CodeStudio): MALE | FEMALE; null =
+  // sirve para cualquiera.
+  gender String?
 
   spriteSheetUrl String?
   previewUrl     String?

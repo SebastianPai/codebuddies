@@ -9,6 +9,7 @@ type NpcInput = {
   key?: string;
   kind?: string;
   name?: string;
+  gender?: string | null;
   spriteSheetUrl?: string | null;
   previewUrl?: string | null;
   avatarConfig?: unknown;
@@ -68,6 +69,9 @@ export class NpcService {
         kind: String(data.kind || 'BUTLER').trim().toUpperCase().slice(0, 24),
       }),
       ...(data.name !== undefined && { name: String(data.name).trim().slice(0, 64) }),
+      ...(data.gender !== undefined && {
+        gender: data.gender === 'MALE' || data.gender === 'FEMALE' ? data.gender : null,
+      }),
       ...(data.spriteSheetUrl !== undefined && {
         spriteSheetUrl: data.spriteSheetUrl || null,
       }),
@@ -117,6 +121,7 @@ export class NpcService {
         key: p.key ?? `npc-${Date.now()}`,
         kind: p.kind ?? 'BUTLER',
         name: p.name ?? 'Sin nombre',
+        gender: p.gender ?? null,
         spriteSheetUrl: p.spriteSheetUrl ?? null,
         previewUrl: p.previewUrl ?? null,
         avatarConfig: p.avatarConfig ?? null,
