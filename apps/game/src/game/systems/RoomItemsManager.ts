@@ -273,6 +273,13 @@ export default class RoomItemsManager {
           //   · botón derecho      → seleccionar, así el menú sigue siendo
           //                          alcanzable en un objeto interactivo
           //   · objeto sin CLICK   → seleccionar, igual que antes
+          // Un PC de oficina (tag office:pc) propio abre CodeStudio: así se
+          // trabaja en la empresa desde su oficina, sentado en la compu.
+          if (this.isOwnOfficePc(worldObject) && isLeftButton(pointer)) {
+            (window as any).openPC?.();
+            return;
+          }
+
           if (this.canInteractByClick(id, worldObject) && isLeftButton(pointer)) {
             emitRoomItemInteraction(id, "CLICK");
             return;
@@ -329,6 +336,16 @@ export default class RoomItemsManager {
     applySpriteOffset(worldObject.sprite, worldData, worldObject.rotation);
 
     this.updateSingleItemDepth(worldObject);
+  }
+
+  /** ¿Es un PC de oficina (tag office:pc) del jugador actual? */
+  private isOwnOfficePc(worldObject: WorldObject): boolean {
+    if ((this.scene as any).isBuildModeActive?.()) return false;
+    const tags: unknown = worldObject.item?.tags;
+    if (!Array.isArray(tags) || !tags.includes("office:pc")) return false;
+    const user = (this.scene.game as any).user;
+    const myId = user?.userId ?? user?.id;
+    return !!myId && worldObject.ownerId === myId;
   }
 
   /**

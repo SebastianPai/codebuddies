@@ -1,5 +1,6 @@
 "use client";
 
+import type { OfficeState } from "../../network/codestudio";
 import type { ReactNode } from "react";
 import type { Catalog, CompanyView, FeatureEffects, Severity, StageGoal, ViewKey } from "./types";
 
@@ -146,12 +147,21 @@ export type NextStep = { text: string; view: ViewKey; tone: "bad" | "warn" | "ac
 
 // Una sola recomendación, la más urgente. Es lo que evita que el jugador
 // se sienta perdido: siempre hay un próximo paso claro.
-export function nextStep(company: CompanyView, catalog: Catalog, t: TFn): NextStep {
+export function nextStep(company: CompanyView, catalog: Catalog, t: TFn, office: OfficeState | null = null): NextStep {
   const m = company.metrics;
   const installed = new Set(company.tree.filter((node) => node.state === "installed").map((node) => node.slug));
   if (company.pendingDecision) return { text: t("codestudio.next.decision", { title: company.pendingDecision.title }), view: "panel", tone: "warn" };
   if (company.daysUntilBankruptcy !== null)
     return { text: t("codestudio.next.debt", { days: company.daysUntilBankruptcy.toFixed(1) }), view: "finance", tone: "bad" };
+  // Montar la oficina es obligatorio: sala y un puesto por persona (tú incluido).
+  if (office && !office.room && office.layouts.length > 0) return { text: t("codestudio.next.office"), view: "office", tone: "warn" };
+  if (office?.room && office.furnitureAvailable) {
+    const missing = company.employees.length + 1 - Math.min(office.counts?.desk ?? 0, office.counts?.chair ?? 0, office.counts?.pc ?? 0);
+    if (missing > 0) {
+      if (office.kit.available && office.kit.pending > 0) return { text: t("codestudio.next.officeKit"), view: "office", tone: "warn" };
+      return { text: t("codestudio.next.officeFurniture", { count: missing }), view: "office", tone: "warn" };
+    }
+  }
   const waitingBug = company.bugs.find((bug) => !bug.assignedEmployeeId);
   if (waitingBug) return { text: t("codestudio.next.bug", { title: waitingBug.title }), view: "bugs", tone: "bad" };
   if (installed.has("core-feature") && company.hosting.length === 0) return { text: t("codestudio.next.server"), view: "infra", tone: "warn" };

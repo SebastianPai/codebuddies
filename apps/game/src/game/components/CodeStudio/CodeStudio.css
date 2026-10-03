@@ -2790,12 +2790,10 @@
   letter-spacing: -0.02em;
 }
 
-/* Tutorial */
+/* Tutorial: fondo sólido; el vidrio dejaba leer el contenido de atrás en el celular. */
 .cs2-tour {
   border: 1px solid var(--px-line-hi);
-  background: var(--glass);
-  backdrop-filter: saturate(180%) blur(24px);
-  -webkit-backdrop-filter: saturate(180%) blur(24px);
+  background: var(--px-panel);
   box-shadow: var(--shadow-lg);
   animation: cs2-rise 0.35s var(--ease);
 }
@@ -3300,3 +3298,14 @@
   color: var(--px-yellow);
 }
 
+.cs2-tour-required {
+  margin: 8px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--px-yellow);
+}
+
+.cs2-tour-action {
+  width: 100%;
+  margin: 10px 0 8px;
+}

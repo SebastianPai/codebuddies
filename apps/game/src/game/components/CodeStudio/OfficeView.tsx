@@ -14,7 +14,7 @@ import { useTranslation } from "../../../i18n/useTranslation";
 
 const AMENITY_ICONS: Record<string, typeof Coffee> = { snacks: CookingPot, water: Droplets, coffee: Coffee };
 
-export default function OfficeView({ company }: { company: CompanyView }) {
+export default function OfficeView({ company, onChange }: { company: CompanyView; onChange?: () => void }) {
   const t = useTranslation();
   const [office, setOffice] = useState<OfficeState | null>(null);
   const [busy, setBusy] = useState(false);
@@ -40,6 +40,7 @@ export default function OfficeView({ company }: { company: CompanyView }) {
     try {
       await createCodeStudioOffice(company.id, layoutId);
       load();
+      onChange?.();
     } catch (err) {
       sileo.error({ title: t("codestudio.errors.actionFailed"), description: err instanceof Error ? err.message : String(err) });
     } finally {
@@ -53,6 +54,7 @@ export default function OfficeView({ company }: { company: CompanyView }) {
       const { granted } = await claimCodeStudioOfficeKit(company.id);
       sileo.success({ title: t("codestudio.office.kitClaimed", { count: granted }) });
       load();
+      onChange?.();
     } catch (err) {
       sileo.error({ title: t("codestudio.errors.actionFailed"), description: err instanceof Error ? err.message : String(err) });
     } finally {

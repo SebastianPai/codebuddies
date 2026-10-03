@@ -1288,10 +1288,13 @@ export class CodeStudioService {
       counts,
       summary,
       tags: OFFICE_TAGS,
+      // Hay escritorio, silla y PC en el catálogo: armar puestos es posible (y obligatorio).
+      furnitureAvailable: await this.officeFurnitureExists(),
       kit: {
         available: kitItems.length > 0,
         claimed: Number(stats.officeKits ?? 0),
-        pending: Math.max(0, company.employees.length - Number(stats.officeKits ?? 0)),
+        // Uno por empleado y uno para el fundador (su PC abre CodeStudio).
+        pending: Math.max(0, company.employees.length + 1 - Number(stats.officeKits ?? 0)),
       },
     };
   }
@@ -1344,7 +1347,7 @@ export class CodeStudioService {
     if (items.length === 0) throw new BadRequestException(pick(L('Todavía no hay kit básico.', 'There is no basic kit yet.', 'Es gibt noch kein Basis-Set.'), lang));
     const stats = (company.stats ?? {}) as Record<string, any>;
     const claimed = Number(stats.officeKits ?? 0);
-    const pending = Math.max(0, company.employees.length - claimed);
+    const pending = Math.max(0, company.employees.length + 1 - claimed);
     if (pending === 0) throw new BadRequestException(pick(L('Ya reclamaste un kit por cada empleado.', 'You already claimed one kit per employee.', 'Du hast schon ein Set pro Angestellten geholt.'), lang));
     await this.prisma.$transaction(async (tx) => {
       for (const item of items) {

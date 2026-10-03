@@ -80,7 +80,10 @@
     "hire": "Contrata a tu primer programador para ir más rápido",
     "funding": "Los inversores de {name} te esperan",
     "goal": "Meta: {goal} ({value})",
-    "keepGrowing": "Sigue creciendo: prueba nuevas campañas de marketing"
+    "keepGrowing": "Sigue creciendo: prueba nuevas campañas de marketing",
+    "office": "Crea la oficina de tu empresa: la sala más chica es gratis.",
+    "officeKit": "Reclama el kit básico gratis de tu oficina (escritorio, silla y PC).",
+    "officeFurniture": "Coloca escritorio, silla y PC en tu oficina: faltan {count} puesto(s)."
   },
   "kpi": {
     "cash": "Caja",
@@ -390,7 +393,13 @@
     "guide": {
       "title": "Guía",
       "text": "Si una palabra no la entiendes (landing, servidor, churn...), aquí está explicada sin tecnicismos."
-    }
+    },
+    "office": {
+      "title": "Oficina",
+      "text": "Tu empresa necesita una oficina: elige la sala (la más chica es gratis). Después reclama el kit básico y coloca un escritorio, una silla y un PC por persona: quien no tiene puesto rinde 15% menos. Haz clic en tu PC de la oficina para abrir CodeStudio."
+    },
+    "required": "Crea tu oficina para seguir con el tutorial.",
+    "createOffice": "Crear oficina gratis"
   },
   "guide": {
     "title": "Guía de CodeStudio",
@@ -540,7 +549,7 @@
     "createText": "Tu equipo trabajará ahí y cualquiera que entre lo verá. La más chica es gratis; las grandes cuestan monedas del juego (no el dinero de la empresa). Sin oficina, el equipo trabaja desde casa.",
     "free": "Gratis",
     "noMaps": "No hay mapas disponibles todavía.",
-    "visitText": "Tus empleados están ahí trabajando. Decórala con escritorios, sillas, PCs y comodidades.",
+    "visitText": "Tus empleados están ahí trabajando. Decórala con escritorios, sillas, PCs y comodidades. Haz clic en tu PC para abrir CodeStudio desde ahí.",
     "go": "Ir a la oficina",
     "stations": "Con puesto",
     "unseated": "{count} sin puesto: rinden 15% menos",
@@ -558,7 +567,7 @@
       "coffee": "Café"
     },
     "kitTitle": "Kit básico gratis",
-    "kitText": "Un escritorio, una silla y un PC por cada empleado, para que nadie se quede sin puesto.",
+    "kitText": "Un escritorio, una silla y un PC por cada empleado y uno para ti, para que nadie se quede sin puesto.",
     "kitClaim": "Reclamar {count}",
     "kitDone": "Ya reclamado",
     "kitClaimed": "Recibiste {count} kit(s): están en tu inventario."

@@ -80,7 +80,10 @@
     "hire": "Stell deinen ersten Entwickler ein, um schneller zu werden",
     "funding": "Die Investoren der Runde {name} warten auf dich",
     "goal": "Ziel: {goal} ({value})",
-    "keepGrowing": "Wachse weiter: probiere neue Marketingkampagnen"
+    "keepGrowing": "Wachse weiter: probiere neue Marketingkampagnen",
+    "office": "Erstelle das Büro deiner Firma: der kleinste Raum ist gratis.",
+    "officeKit": "Hol dir das gratis Basis-Set für dein Büro (Schreibtisch, Stuhl und PC).",
+    "officeFurniture": "Stell Schreibtisch, Stuhl und PC in dein Büro: es fehlen {count} Arbeitsplatz/plätze."
   },
   "kpi": {
     "cash": "Kasse",
@@ -390,7 +393,13 @@
     "guide": {
       "title": "Anleitung",
       "text": "Wenn du ein Wort nicht verstehst (Landingpage, Server, Churn...), wird es hier ohne Fachchinesisch erklärt."
-    }
+    },
+    "office": {
+      "title": "Büro",
+      "text": "Deine Firma braucht ein Büro: Wähle den Raum (der kleinste ist gratis). Hol dir dann das Basis-Set und stell pro Person einen Schreibtisch, einen Stuhl und einen PC auf: Wer keinen Arbeitsplatz hat, leistet 15% weniger. Klick auf deinen Büro-PC, um CodeStudio zu öffnen."
+    },
+    "required": "Erstelle dein Büro, um mit dem Tutorial weiterzumachen.",
+    "createOffice": "Gratis-Büro erstellen"
   },
   "guide": {
     "title": "CodeStudio-Anleitung",
@@ -540,7 +549,7 @@
     "createText": "Dein Team arbeitet dort und alle, die reinkommen, sehen es. Der kleinste ist gratis; größere kosten Spielmünzen (nicht das Firmengeld). Ohne Büro arbeitet das Team von zu Hause.",
     "free": "Gratis",
     "noMaps": "Noch keine Karten verfügbar.",
-    "visitText": "Deine Angestellten arbeiten dort. Richte es mit Schreibtischen, Stühlen, PCs und Extras ein.",
+    "visitText": "Deine Angestellten arbeiten dort. Richte es mit Schreibtischen, Stühlen, PCs und Extras ein. Klick auf deinen PC, um dort CodeStudio zu öffnen.",
     "go": "Zum Büro",
     "stations": "Mit Arbeitsplatz",
     "unseated": "{count} ohne Arbeitsplatz: 15% weniger Leistung",
@@ -558,7 +567,7 @@
       "coffee": "Kaffee"
     },
     "kitTitle": "Gratis Basis-Set",
-    "kitText": "Ein Schreibtisch, ein Stuhl und ein PC pro Angestellten, damit niemand ohne Arbeitsplatz bleibt.",
+    "kitText": "Ein Schreibtisch, ein Stuhl und ein PC pro Angestellten und einer für dich, damit niemand ohne Arbeitsplatz bleibt.",
     "kitClaim": "{count} holen",
     "kitDone": "Schon geholt",
     "kitClaimed": "Du hast {count} Set(s) bekommen: Sie sind in deinem Inventar."

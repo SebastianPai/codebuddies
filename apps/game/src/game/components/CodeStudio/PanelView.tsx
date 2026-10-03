@@ -5,19 +5,21 @@ import type { Catalog, CompanyView, ViewKey } from "./types";
 import { ProgressBar, Sparkline, Stat, goalProgress, goalValue, money, nextStep, num, pct } from "./ui";
 import DailyMissions from "./DailyMissions";
 import FirstSteps from "./FirstSteps";
+import type { OfficeState } from "../../network/codestudio";
 import { useTranslation } from "../../../i18n/useTranslation";
 
 type Props = {
   company: CompanyView;
   catalog: Catalog;
+  office?: OfficeState | null;
   onNavigate: (view: ViewKey) => void;
   onOpenDecision: () => void;
 };
 
-export default function PanelView({ company, catalog, onNavigate, onOpenDecision }: Props) {
+export default function PanelView({ company, catalog, office = null, onNavigate, onOpenDecision }: Props) {
   const t = useTranslation();
   const m = company.metrics;
-  const step = nextStep(company, catalog, t);
+  const step = nextStep(company, catalog, t, office);
   const profitTone = m.dailyProfit >= 0 ? "good" : "bad";
 
   return (

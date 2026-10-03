@@ -9,7 +9,7 @@ import { useTranslation } from "../../../i18n/useTranslation";
 // Sale solo la primera vez que el jugador tiene una empresa y se puede volver
 // a ver con el botón "?" del encabezado.
 
-export const TOUR_STEPS: ViewKey[] = ["panel", "tree", "bugs", "team", "infra", "marketing", "finance", "career", "guide"];
+export const TOUR_STEPS: ViewKey[] = ["panel", "tree", "bugs", "team", "office", "infra", "marketing", "finance", "career", "guide"];
 const TOUR_KEY = "cs-tour-done";
 
 export function tourSeen() {
@@ -32,9 +32,13 @@ type Props = {
   step: number;
   onStep: (step: number) => void;
   onClose: () => void;
+  /** El paso actual exige una acción (crear la oficina) antes de seguir. */
+  blocked?: boolean;
+  /** Acción que destraba el paso, a mano dentro del globo (en el celular tapa la pantalla). */
+  action?: { label: string; run: () => void; busy?: boolean };
 };
 
-export default function Tour({ step, onStep, onClose }: Props) {
+export default function Tour({ step, onStep, onClose, blocked = false, action }: Props) {
   const t = useTranslation();
   const key = TOUR_STEPS[step];
   const last = step === TOUR_STEPS.length - 1;
@@ -47,9 +51,11 @@ export default function Tour({ step, onStep, onClose }: Props) {
     <aside className="cs2-tour" role="dialog" aria-live="polite" aria-label={t("codestudio.tour.label", { step: step + 1, total: TOUR_STEPS.length })}>
       <header>
         <span>{t("codestudio.tour.label", { step: step + 1, total: TOUR_STEPS.length })}</span>
-        <button type="button" className="cs2-icon-btn" onClick={close} aria-label={t("codestudio.tour.skip")} title={t("codestudio.tour.skip")}>
-          <X size={14} />
-        </button>
+        {!blocked && (
+          <button type="button" className="cs2-icon-btn" onClick={close} aria-label={t("codestudio.tour.skip")} title={t("codestudio.tour.skip")}>
+            <X size={14} />
+          </button>
+        )}
       </header>
       <div className="cs2-tour-dots" aria-hidden>
         {TOUR_STEPS.map((item, index) => (
@@ -58,11 +64,17 @@ export default function Tour({ step, onStep, onClose }: Props) {
       </div>
       <h4>{t(`codestudio.tour.${key}.title`)}</h4>
       <p>{t(`codestudio.tour.${key}.text`)}</p>
+      {blocked && <p className="cs2-tour-required">{t("codestudio.tour.required")}</p>}
+      {blocked && action && (
+        <button type="button" className="cs2-btn cs2-btn-primary cs2-tour-action" disabled={action.busy} onClick={action.run}>
+          {action.label}
+        </button>
+      )}
       <footer>
         <button type="button" className="cs2-btn" onClick={() => (step === 0 ? close() : onStep(step - 1))}>
           {step === 0 ? t("codestudio.tour.skip") : t("codestudio.tour.back")}
         </button>
-        <button type="button" className="cs2-btn cs2-btn-primary" onClick={() => (last ? close() : onStep(step + 1))}>
+        <button type="button" className="cs2-btn cs2-btn-primary" disabled={blocked} onClick={() => (last ? close() : onStep(step + 1))}>
           {last ? t("codestudio.tour.done") : t("codestudio.tour.next")}
         </button>
       </footer>

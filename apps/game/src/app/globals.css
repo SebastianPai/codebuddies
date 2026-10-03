@@ -112,3 +112,9 @@ a {
     color-scheme: dark;
   }
 }
+
+/* Los toasts (sileo) van encima de cualquier panel abierto: CodeStudio,
+   avatar, construcción, diálogos. Sileo trae z-index 50 y quedaban detrás. */
+[data-sileo-viewport] {
+  z-index: 18000 !important;
+}

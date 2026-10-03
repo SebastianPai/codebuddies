@@ -105,6 +105,7 @@ export type OfficeState = {
   layouts: OfficeLayout[];
   counts: { desk: number; chair: number; pc: number; snacks: number; water: number; coffee: number } | null;
   summary: { hasOffice: boolean; stations: number; seated: number; unseated: number; amenities: string[]; bonus: number };
+  furnitureAvailable: boolean;
   kit: { available: boolean; claimed: number; pending: number };
 };
 export type OfficeRoomEmployee = {

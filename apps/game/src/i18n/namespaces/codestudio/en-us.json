@@ -80,7 +80,10 @@
     "hire": "Hire your first developer to go faster",
     "funding": "{name} investors are waiting for you",
     "goal": "Goal: {goal} ({value})",
-    "keepGrowing": "Keep growing: try new marketing campaigns"
+    "keepGrowing": "Keep growing: try new marketing campaigns",
+    "office": "Create your company's office: the smallest room is free.",
+    "officeKit": "Claim your office's free basic kit (desk, chair and PC).",
+    "officeFurniture": "Place a desk, a chair and a PC in your office: {count} workstation(s) missing."
   },
   "kpi": {
     "cash": "Cash",
@@ -390,7 +393,13 @@
     "guide": {
       "title": "Guide",
       "text": "If you don't understand a word (landing, server, churn...), it's explained here without jargon."
-    }
+    },
+    "office": {
+      "title": "Office",
+      "text": "Your company needs an office: pick the room (the smallest is free). Then claim the basic kit and place a desk, a chair and a PC per person: anyone without a workstation works 15% slower. Click your office PC to open CodeStudio."
+    },
+    "required": "Create your office to continue the tutorial.",
+    "createOffice": "Create free office"
   },
   "guide": {
     "title": "CodeStudio guide",
@@ -540,7 +549,7 @@
     "createText": "Your team will work there and anyone who comes in will see them. The smallest is free; bigger ones cost game coins (not company cash). Without an office the team works from home.",
     "free": "Free",
     "noMaps": "No maps available yet.",
-    "visitText": "Your employees are working there. Furnish it with desks, chairs, PCs and amenities.",
+    "visitText": "Your employees are working there. Furnish it with desks, chairs, PCs and amenities. Click your PC there to open CodeStudio.",
     "go": "Go to the office",
     "stations": "With a desk",
     "unseated": "{count} without a desk: 15% less output",
@@ -558,7 +567,7 @@
       "coffee": "Coffee"
     },
     "kitTitle": "Free basic kit",
-    "kitText": "A desk, a chair and a PC for each employee, so nobody is left without a workstation.",
+    "kitText": "A desk, a chair and a PC for each employee and one for you, so nobody is left without a workstation.",
     "kitClaim": "Claim {count}",
     "kitDone": "Already claimed",
     "kitClaimed": "You got {count} kit(s): they are in your inventory."

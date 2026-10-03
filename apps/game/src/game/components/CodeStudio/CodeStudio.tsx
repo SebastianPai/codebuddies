@@ -11,12 +11,15 @@ import {
   fixCodeStudioBug,
   getCodeStudio,
   getCodeStudioCompany,
+  getCodeStudioOffice,
+  createCodeStudioOffice,
   hireCodeStudioEmployee,
   installCodeStudioInfrastructure,
   launchCodeStudioCampaign,
   raiseCodeStudioFunding,
   setCodeStudioPricing,
   startCodeStudioDevelopment,
+  type OfficeState,
 } from "../../network/codestudio";
 import "./CodeStudio.css";
 import { nav, type ActivityEvent, type BugFixResult, type CompanyView, type StudioState, type ViewKey } from "./types";
@@ -174,6 +177,35 @@ export default function CodeStudio({ initialView }: { initialView?: string }) {
     setView(TOUR_STEPS[step]);
   };
   const tourView = tourStep !== null ? TOUR_STEPS[tourStep] : null;
+
+  // Oficina: la usan el tutorial (paso obligatorio), el "¿Y ahora qué?" y la pestaña.
+  const [office, setOffice] = useState<OfficeState | null>(null);
+  const officeCompanyId = company && company.status !== "FAILED" ? company.id : null;
+  const employeeCount = company?.employees.length ?? 0;
+  const reloadOffice = useCallback(() => {
+    if (!officeCompanyId) return setOffice(null);
+    getCodeStudioOffice(officeCompanyId)
+      .then(setOffice)
+      .catch(() => setOffice(null));
+  }, [officeCompanyId]);
+  useEffect(() => {
+    reloadOffice();
+  }, [reloadOffice, employeeCount, view]);
+  const officeBlocking = tourView === "office" && !!office && !office.room && office.layouts.length > 0;
+  const freeLayout = office?.layouts.find((layout) => layout.price === 0) ?? null;
+  const [creatingOffice, setCreatingOffice] = useState(false);
+  const createFreeOffice = async () => {
+    if (!officeCompanyId || !freeLayout) return;
+    setCreatingOffice(true);
+    try {
+      await createCodeStudioOffice(officeCompanyId, freeLayout.id);
+      reloadOffice();
+    } catch (err) {
+      sileo.error({ title: t("codestudio.errors.actionFailed"), description: err instanceof Error ? err.message : String(err) });
+    } finally {
+      setCreatingOffice(false);
+    }
+  };
 
   // Abre la decisión sola la primera vez que aparece.
   const lastDecisionRef = useRef<string | null>(null);
@@ -333,7 +365,7 @@ export default function CodeStudio({ initialView }: { initialView?: string }) {
           <FailedView company={company} onFoundNew={() => setShowFound(true)} />
         ) : (
           <>
-            {view === "panel" && <PanelView company={company} catalog={studio.catalog} onNavigate={setView} onOpenDecision={() => setShowDecision(true)} />}
+            {view === "panel" && <PanelView company={company} catalog={studio.catalog} office={office} onNavigate={setView} onOpenDecision={() => setShowDecision(true)} />}
             {view === "tree" && (
               <TreeView
                 company={company}
@@ -353,7 +385,7 @@ export default function CodeStudio({ initialView }: { initialView?: string }) {
                 onFire={(employeeId) => void act(() => fireCodeStudioEmployee(company.id, employeeId))}
               />
             )}
-            {view === "office" && <OfficeView company={company} />}
+            {view === "office" && <OfficeView company={company} onChange={reloadOffice} />}
             {view === "infra" && (
               <InfraView company={company} catalog={studio.catalog} busy={busy} onInstall={(typeId) => void act(() => installCodeStudioInfrastructure(company.id, typeId))} />
             )}
@@ -390,7 +422,9 @@ export default function CodeStudio({ initialView }: { initialView?: string }) {
         )}
       </main>
 
-      {tourStep !== null && company && !failed && <Tour step={tourStep} onStep={goTourStep} onClose={() => setTourStep(null)} />}
+      {tourStep !== null && company && !failed && <Tour step={tourStep} onStep={goTourStep} onClose={() => setTourStep(null)} blocked={officeBlocking}
+          action={freeLayout ? { label: t("codestudio.tour.createOffice"), run: () => void createFreeOffice(), busy: creatingOffice } : undefined}
+        />}
 
       {showFound && <FoundingModal catalog={studio.catalog} profile={profile} onFound={found} onClose={() => setShowFound(false)} />}
       {showDecision && company?.pendingDecision && !failed && (
