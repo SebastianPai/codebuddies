@@ -4,6 +4,7 @@ import { Award, Check, Lock, Unlock } from "lucide-react";
 import type { Catalog, Profile } from "./types";
 import { ProgressBar, Stat, money } from "./ui";
 import DailyMissions from "./DailyMissions";
+import ReferralsCard from "./ReferralsCard";
 import { CoinIcon } from "../shared/ThemeIcons";
 import { useTranslation } from "../../../i18n/useTranslation";
 
@@ -33,6 +34,8 @@ export default function CareerView({ profile, catalog }: { profile: Profile; cat
       </section>
 
       <DailyMissions daily={profile.daily} />
+
+      <ReferralsCard />
 
       <section className="cs2-stats">
         <Stat label={t("codestudio.career.startingBonus")} value={`+${money(profile.startingCashBonus)}`} hint={t("codestudio.career.startingBonusHint")} />

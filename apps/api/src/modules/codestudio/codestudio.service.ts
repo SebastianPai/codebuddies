@@ -27,6 +27,7 @@ import { applyDeal, marketingDeal } from './content/marketing-deal';
 import { CHANNELS } from './content/economy';
 import { candidateImpact, candidatesFor, minutesUntilNewCandidates, promotionFor, seniorityOf, type TeamMember } from './content/seniority';
 import { FOUNDER_DEV_POWER } from './codestudio-engine.service';
+import { CodeStudioReferralsService, REFERRED_STARTING_BONUS } from '../referrals/codestudio-referrals.service';
 import {
   BUG_CAPABLE_ROLES,
   ROLE_BY_SLUG,
@@ -121,6 +122,7 @@ export class CodeStudioService {
     private readonly engine: CodeStudioEngineService,
     private readonly catalogService: CodeStudioCatalogService,
     private readonly rewards: CodeStudioRewardsService,
+    private readonly referrals: CodeStudioReferralsService,
   ) {}
 
   // ─── Lectura ────────────────────────────────────────────────────────────
@@ -250,7 +252,10 @@ export class CodeStudioService {
     const alive = await this.prisma.codeStudioCompany.count({ where: { userId, status: { not: CodeStudioCompanyStatus.FAILED } } });
     if (alive >= MAX_ALIVE_COMPANIES) throw new BadRequestException(pick(MSG.tooManyCompanies(MAX_ALIVE_COMPANIES), lang));
 
-    const cash = Number(appProfile.startingCash ?? 6000) + startingCashBonus(profile.level);
+    // Primera startup de alguien invitado por un amigo: arranca con ventaja.
+    const firstCompany = (await this.prisma.codeStudioCompany.count({ where: { userId } })) === 0;
+    const referredBonus = firstCompany && (await this.referrals.referrerOf(userId)) ? REFERRED_STARTING_BONUS : 0;
+    const cash = Number(appProfile.startingCash ?? 6000) + startingCashBonus(profile.level) + referredBonus;
     const company = await this.prisma.$transaction(async (tx) => {
       const created = await tx.codeStudioCompany.create({
         data: {
@@ -277,6 +282,8 @@ export class CodeStudioService {
       return created;
     });
     this.rankingCache = null;
+    // Premio para quien lo invitó (una vez por amigo; no frena la creación).
+    void this.referrals.reward(userId, 'founded');
     return this.buildView(userId, company.id, lang);
   }
 
@@ -393,6 +400,11 @@ export class CodeStudioService {
       await this.rewards.bumpDaily(tx, userId, { hires: 1 }, company.id, lang);
     });
     return this.getCompany(userId, companyId, lang);
+  }
+
+  /** Amigos invitados y lo que ganas cuando avanzan en CodeStudio. */
+  referralOverview(userId: string) {
+    return this.referrals.overview(userId);
   }
 
   /** 3 candidatos del rol (Junior, Semi-senior, Senior) y qué le hacen al equipo. */
@@ -918,6 +930,8 @@ export class CodeStudioService {
         lang,
       );
       await this.rewards.grantRepeatable(tx, userId, `stage-${reached}`, company.id, lang);
+      // Llegó a Lanzamiento: premio para quien lo invitó (fuera de la transacción, una sola vez).
+      if (reached === 2) void this.referrals.reward(userId, 'launched');
       if (reached === 4 && company.fundingRound === 0) await this.rewards.grantMilestone(tx, userId, 'bootstrapped', company.id, lang);
       if (reached === 3) {
         const profile = await tx.codeStudioProfile.findUnique({ where: { userId }, select: { bankruptcies: true } });
@@ -1795,7 +1809,7 @@ export class CodeStudioService {
       multiplier,
       rating: company.rating,
       fit: profile.channelEffectiveness[channelSlug] ?? 1,
-      cacDiscount: this.metricsOf(company).cacDiscount,
+      cacDiscount: this.metricsOf(company).cacDiscount + (await this.referrals.networkDiscount(company.userId)),
       recentRuns,
       penetration: company.activeUsers / profile.tam,
     });
@@ -1814,6 +1828,7 @@ export class CodeStudioService {
     const profile = resolveProfile((company.appType.simulationProfile ?? {}) as Record<string, any>);
     const metrics = this.metricsOf(company);
     const deal = this.dealOf(company);
+    const network = await this.referrals.networkDiscount(company.userId);
     return catalog.channels.map((channel) => ({
       deal: deal?.slug === channel.slug ? deal.discount : 0,
       id: channel.id,
@@ -1830,7 +1845,7 @@ export class CodeStudioService {
           multiplier,
           rating: company.rating,
           fit: profile.channelEffectiveness[channel.slug] ?? 1,
-          cacDiscount: metrics.cacDiscount,
+          cacDiscount: metrics.cacDiscount + network,
           recentRuns: recentById.get(channel.id) ?? 0,
           penetration: company.activeUsers / profile.tam,
         });

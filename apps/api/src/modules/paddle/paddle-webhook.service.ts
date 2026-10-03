@@ -1,3 +1,4 @@
+import { CodeStudioReferralsService } from '../referrals/codestudio-referrals.service';
 import { Injectable, Logger } from '@nestjs/common';
 import { EventName } from '@paddle/paddle-node-sdk';
 import type {
@@ -37,6 +38,7 @@ export class PaddleWebhookService {
     private readonly coinPurchasesService: CoinPurchasesService,
     private readonly coinBoostsService: CoinBoostsService,
     private readonly emailService: EmailService,
+    private readonly codeStudioReferrals: CodeStudioReferralsService,
   ) {}
 
   // event ya viene verificado y tipado (paddle.webhooks.unmarshal(), ver
@@ -125,6 +127,11 @@ export class PaddleWebhookService {
     const userId = data.customData?.userId as string | undefined;
 
     if (userId) await this.linkPaddleCustomer(userId, data.customerId);
+
+    // Primera compra de alguien invitado: premio para quien lo invitó (una vez).
+    if (userId && ['certificate_order', 'premium_subscription', 'coin_purchase', 'coin_boost'].includes(kind ?? '')) {
+      void this.codeStudioReferrals.reward(userId, 'purchase');
+    }
 
     if (kind === 'certificate_order') {
       const orderId = data.customData?.orderId as string | undefined;

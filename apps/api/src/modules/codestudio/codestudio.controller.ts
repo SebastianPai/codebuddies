@@ -43,6 +43,11 @@ export class CodeStudioController {
     return this.codeStudio.achievements(user.userId, langFromHeader(lang));
   }
 
+  @Get('referrals')
+  referrals(@CurrentUser() user: AuthUser) {
+    return this.codeStudio.referralOverview(user.userId);
+  }
+
   @Get('ranking')
   ranking(@Query('lang') lang?: string) {
     return this.codeStudio.ranking(langFromHeader(lang));

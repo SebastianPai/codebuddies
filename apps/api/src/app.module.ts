@@ -1,3 +1,4 @@
+import { CodeStudioReferralsModule } from './modules/referrals/codestudio-referrals.service';
 import { Module } from '@nestjs/common';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
@@ -65,6 +66,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
+    CodeStudioReferralsModule,
     ConfigModule.forRoot({ isGlobal: true }),
     ScheduleModule.forRoot(),
     // Límite genérico por IP para toda la API HTTP (no cubre WebSockets, que

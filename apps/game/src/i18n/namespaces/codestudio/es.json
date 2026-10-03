@@ -592,5 +592,21 @@
     "hired": "Ya trabaja contigo",
     "open": "Ver candidatos",
     "promotion": "Ascenso: {value}%"
+  },
+  "referrals": {
+    "eyebrow": "Referidos",
+    "title": "Invita amigos y gana cuando ellos avanzan",
+    "text": "Comparte tu enlace. Tu amigo arranca su primera startup con {bonus} extra, y tú ganas monedas en cada paso que dé:",
+    "step": {
+      "founded": "Funda su primera startup",
+      "launched": "Su startup llega a Lanzamiento",
+      "purchase": "Hace su primera compra en CodeBuddies"
+    },
+    "network": "Red de contactos: cada amigo que funda abarata tus campañas {per}% (máx. {max}%)",
+    "copy": "Copiar enlace",
+    "copied": "Copiado",
+    "noLink": "Tu enlace de referido aparece cuando el programa de referidos se activa para tu cuenta (desde la web, en Referidos).",
+    "friends": "Tus amigos ({count})",
+    "earned": "{coins} monedas ganadas"
   }
 }

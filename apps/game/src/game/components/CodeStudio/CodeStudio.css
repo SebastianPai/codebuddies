@@ -3456,3 +3456,105 @@ div.cs2-modal.cs2-candidates-modal {
   max-width: 96vw;
 }
 
+/* ─── Invita amigos ───────────────────────────────────────────────────── */
+.cs2-referrals {
+  display: grid;
+  gap: 10px;
+}
+
+.cs2-referral-steps {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cs2-referral-steps li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  background: var(--fill);
+  font-size: 13px;
+}
+
+.cs2-referral-steps li > svg {
+  flex: none;
+  color: var(--px-yellow);
+}
+
+.cs2-referral-steps li span {
+  flex: 1;
+  min-width: 0;
+}
+
+.cs2-referral-steps li b {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.cs2-referral-link {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.cs2-referral-link code {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 12px;
+  border-radius: var(--r-sm);
+  background: var(--fill-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.cs2-referral-friends {
+  display: grid;
+  gap: 8px;
+}
+
+.cs2-referral-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.cs2-referral-head span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cs2-referral-friends ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cs2-referral-friends li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.cs2-referral-name {
+  flex: 1;
+  min-width: 100px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+

@@ -78,6 +78,20 @@ export const cancelCodeStudioDevelopment = (companyId: string, taskId: string) =
 export const hireCodeStudioEmployee = (companyId: string, employeeTypeId: string, candidateIndex?: number) =>
   post<CompanyView>(`/codestudio/companies/${companyId}/employees`, { employeeTypeId, ...(candidateIndex !== undefined ? { candidateIndex } : {}) });
 
+export type ReferralOverview = {
+  link: string | null;
+  code: string | null;
+  milestones: { founded: number; launched: number; purchase: number };
+  friendStartingBonus: number;
+  networkDiscount: number;
+  networkDiscountPerFriend: number;
+  networkDiscountMax: number;
+  coinsEarned: number;
+  friends: Array<{ username: string; avatarUrl: string | null; founded: boolean; launched: boolean; purchase: boolean }>;
+  invitedBySomeone: boolean;
+};
+export const getCodeStudioReferrals = () => request<ReferralOverview>(`/codestudio/referrals`);
+
 export type Candidate = {
   index: number;
   name: string;

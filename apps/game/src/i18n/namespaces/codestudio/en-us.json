@@ -592,5 +592,21 @@
     "hired": "Already on your team",
     "open": "See candidates",
     "promotion": "Promotion: {value}%"
+  },
+  "referrals": {
+    "eyebrow": "Referrals",
+    "title": "Invite friends and earn as they progress",
+    "text": "Share your link. Your friend starts their first startup with {bonus} extra, and you earn coins at every step they take:",
+    "step": {
+      "founded": "Founds their first startup",
+      "launched": "Their startup reaches Launch",
+      "purchase": "Makes their first purchase on CodeBuddies"
+    },
+    "network": "Network: each friend who founds makes your campaigns {per}% cheaper (max {max}%)",
+    "copy": "Copy link",
+    "copied": "Copied",
+    "noLink": "Your referral link appears once the referral program is active for your account (on the web, under Referrals).",
+    "friends": "Your friends ({count})",
+    "earned": "{coins} coins earned"
   }
 }

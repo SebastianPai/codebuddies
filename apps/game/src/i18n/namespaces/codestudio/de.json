@@ -592,5 +592,21 @@
     "hired": "Schon in deinem Team",
     "open": "Kandidaten ansehen",
     "promotion": "Beförderung: {value}%"
+  },
+  "referrals": {
+    "eyebrow": "Empfehlungen",
+    "title": "Lade Freunde ein und verdiene, wenn sie vorankommen",
+    "text": "Teile deinen Link. Dein Freund startet sein erstes Startup mit {bonus} extra, und du bekommst Münzen bei jedem Schritt:",
+    "step": {
+      "founded": "Gründet sein erstes Startup",
+      "launched": "Sein Startup erreicht den Launch",
+      "purchase": "Macht seinen ersten Kauf bei CodeBuddies"
+    },
+    "network": "Netzwerk: Jeder Freund, der gründet, macht deine Kampagnen {per}% günstiger (max. {max}%)",
+    "copy": "Link kopieren",
+    "copied": "Kopiert",
+    "noLink": "Dein Empfehlungslink erscheint, sobald das Programm für dein Konto aktiv ist (im Web unter Empfehlungen).",
+    "friends": "Deine Freunde ({count})",
+    "earned": "{coins} Münzen verdient"
   }
 }
