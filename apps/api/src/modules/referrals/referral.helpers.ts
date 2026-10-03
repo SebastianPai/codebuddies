@@ -24,9 +24,25 @@ export async function getOrCreateReferralProgramConfig(
   });
 }
 
+// En producción nunca se reparte un enlace a localhost (pasaba porque la
+// configuración guardada quedó con la URL de desarrollo): se usa la web.
+const PUBLIC_REGISTER_URL = `${(process.env.WEB_URL || 'https://codebuddies.tech').replace(/\/+$/, '')}/register`;
+
+function isLocalUrl(url: string) {
+  return /\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(url);
+}
+
 export function buildReferralLink(baseUrl: string, referralCode: string) {
-  const safeBaseUrl = (baseUrl || DEFAULT_BASE_URL).replace(/\/+$/, '');
+  let base = baseUrl || DEFAULT_BASE_URL;
+  if (process.env.NODE_ENV === 'production' && isLocalUrl(base)) base = PUBLIC_REGISTER_URL;
+  const safeBaseUrl = base.replace(/\/+$/, '');
   return `${safeBaseUrl}?ref=${encodeURIComponent(referralCode)}`;
+}
+
+/** Enlace guardado, corregido si quedó apuntando a localhost en producción. */
+export function publicReferralLink(storedLink: string | null | undefined, referralCode: string) {
+  if (!storedLink || (process.env.NODE_ENV === 'production' && isLocalUrl(storedLink))) return buildReferralLink('', referralCode);
+  return storedLink;
 }
 
 export function createReferralPeriodKey(date: Date) {

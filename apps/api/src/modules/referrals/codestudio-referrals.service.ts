@@ -2,13 +2,15 @@ import { Global, Injectable, Logger, Module } from '@nestjs/common';
 import { NotificationType, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PrismaModule } from '../../prisma/prisma.module';
+import { publicReferralLink } from './referral.helpers';
 
 // Referidos en CodeStudio: quien invita gana cuando su amigo avanza de
 // verdad (no solo por registrarse), y el amigo arranca con ventaja.
 //
 //   - Funda su primera startup  → quien invita +200 monedas; el amigo
 //     arranca con +$1.500 de caja.
-//   - Su startup llega a Lanzamiento → +400 monedas.
+//   - Su startup llega a Product-Market Fit (mitad del camino) → +400.
+//   - Su startup llega a Unicornio (el final) → +1.500 monedas.
 //   - Hace su primera compra (monedas, premium o boost) → +500 monedas.
 //   - Red de contactos: cada amigo que fundó abarata un 3% tus campañas
 //     (hasta 15%).
@@ -16,11 +18,12 @@ import { PrismaModule } from '../../prisma/prisma.module';
 // Cada premio se paga una sola vez por amigo: la razón del CoinTransaction
 // es la llave (los webhooks de pago pueden llegar repetidos).
 
-export type ReferralMilestone = 'founded' | 'launched' | 'purchase';
+export type ReferralMilestone = 'founded' | 'pmf' | 'unicorn' | 'purchase';
 
 export const REFERRAL_MILESTONES: Record<ReferralMilestone, { coins: number; title: string; body: (friend: string) => string }> = {
   founded: { coins: 200, title: 'Tu amigo fundó su startup', body: (friend) => `${friend} fundó su primera startup en CodeStudio: +200 monedas.` },
-  launched: { coins: 400, title: 'La startup de tu amigo despegó', body: (friend) => `La startup de ${friend} llegó a Lanzamiento: +400 monedas.` },
+  pmf: { coins: 400, title: 'La startup de tu amigo encontró su mercado', body: (friend) => `La startup de ${friend} llegó a Product-Market Fit: +400 monedas.` },
+  unicorn: { coins: 1500, title: '¡Tu amigo creó un unicornio!', body: (friend) => `La startup de ${friend} llegó a Unicornio: +1.500 monedas.` },
   purchase: { coins: 500, title: 'Tu amigo apoyó CodeBuddies', body: (friend) => `${friend} hizo su primera compra: +500 monedas.` },
 };
 
@@ -111,12 +114,13 @@ export class CodeStudioReferralsService {
       username: referral.referred.username,
       avatarUrl: referral.referred.avatarUrl,
       founded: done.has(this.reasonFor('founded', referral.referredUserId)),
-      launched: done.has(this.reasonFor('launched', referral.referredUserId)),
+      pmf: done.has(this.reasonFor('pmf', referral.referredUserId)),
+      unicorn: done.has(this.reasonFor('unicorn', referral.referredUserId)),
       purchase: done.has(this.reasonFor('purchase', referral.referredUserId)),
     }));
     const founders = friends.filter((friend) => friend.founded).length;
     return {
-      link: profile?.referralLink ?? null,
+      link: profile ? publicReferralLink(profile.referralLink, profile.referralCode) : null,
       code: profile?.referralCode ?? null,
       milestones: Object.fromEntries(Object.entries(REFERRAL_MILESTONES).map(([key, value]) => [key, value.coins])),
       friendStartingBonus: REFERRED_STARTING_BONUS,

@@ -963,8 +963,10 @@ export class CodeStudioService {
         lang,
       );
       await this.rewards.grantRepeatable(tx, userId, `stage-${reached}`, company.id, lang);
-      // Llegó a Lanzamiento: premio para quien lo invitó (fuera de la transacción, una sola vez).
-      if (reached === 2) void this.referrals.reward(userId, 'launched');
+      // Hitos para quien lo invitó (fuera de la transacción, una sola vez):
+      // Product-Market Fit a mitad del camino y Unicornio al final.
+      if (reached === 4) void this.referrals.reward(userId, 'pmf');
+      if (reached === STAGES.length - 1) void this.referrals.reward(userId, 'unicorn');
       if (reached === 4 && company.fundingRound === 0) await this.rewards.grantMilestone(tx, userId, 'bootstrapped', company.id, lang);
       if (reached === 3) {
         const profile = await tx.codeStudioProfile.findUnique({ where: { userId }, select: { bankruptcies: true } });

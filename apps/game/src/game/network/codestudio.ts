@@ -83,13 +83,13 @@ export const hireCodeStudioEmployee = (companyId: string, employeeTypeId: string
 export type ReferralOverview = {
   link: string | null;
   code: string | null;
-  milestones: { founded: number; launched: number; purchase: number };
+  milestones: { founded: number; pmf: number; unicorn: number; purchase: number };
   friendStartingBonus: number;
   networkDiscount: number;
   networkDiscountPerFriend: number;
   networkDiscountMax: number;
   coinsEarned: number;
-  friends: Array<{ username: string; avatarUrl: string | null; founded: boolean; launched: boolean; purchase: boolean }>;
+  friends: Array<{ username: string; avatarUrl: string | null; founded: boolean; pmf: boolean; unicorn: boolean; purchase: boolean }>;
   invitedBySomeone: boolean;
 };
 export const getCodeStudioReferrals = () => request<ReferralOverview>(`/codestudio/referrals`);

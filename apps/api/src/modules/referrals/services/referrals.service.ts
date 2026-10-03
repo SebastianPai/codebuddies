@@ -1,3 +1,4 @@
+import { publicReferralLink } from '../referral.helpers';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ReferralStatus } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
@@ -159,7 +160,7 @@ export class ReferralsService {
       : null;
 
     return {
-      profile,
+      profile: { ...profile, referralLink: publicReferralLink(profile.referralLink, profile.referralCode) },
       config,
       stats,
       referrals: sent,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Copy, Megaphone, Rocket, ShoppingBag, Sparkles, UserPlus } from "lucide-react";
+import { Check, Copy, Crown, Megaphone, Rocket, ShoppingBag, Target, UserPlus } from "lucide-react";
 import { getCodeStudioReferrals, type ReferralOverview } from "../../network/codestudio";
 import { CoinIcon } from "../shared/ThemeIcons";
 import { money } from "./ui";
@@ -37,7 +37,8 @@ export default function ReferralsCard() {
 
   const steps = [
     { key: "founded", icon: Rocket, coins: data.milestones.founded },
-    { key: "launched", icon: Sparkles, coins: data.milestones.launched },
+    { key: "pmf", icon: Target, coins: data.milestones.pmf },
+    { key: "unicorn", icon: Crown, coins: data.milestones.unicorn },
     { key: "purchase", icon: ShoppingBag, coins: data.milestones.purchase },
   ] as const;
 
