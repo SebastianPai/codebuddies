@@ -203,6 +203,8 @@ export type ChannelQuote = {
   locked: boolean;
   fit: number;
   fatigue: number;
+      /** Descuento de la oferta del momento (0 si no hay). */
+      deal?: number;
   quotes: Array<{ multiplier: number; cost: number; users: number; cac: number }>;
 };
 
@@ -268,6 +270,7 @@ export type CompanyView = {
     gender?: "MALE" | "FEMALE";
     age?: number;
     card?: { overall: number; vel: number; cal: number; cre: number; pro: number; mot: number; exp: number };
+    seniority?: { key: string; name: string; progress: number };
     skin?: { key: string; spriteSheetUrl: string | null; frameWidth: number; frameHeight: number } | null;
   }>;
   hosting: Array<{ typeId: string; slug: string; name: string; level: number; maxLevel: number; capacity: number; monthly: number; upgradeCost: number; legacy: boolean }>;

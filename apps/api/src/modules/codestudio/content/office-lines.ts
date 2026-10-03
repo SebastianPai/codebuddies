@@ -24,7 +24,7 @@ export type EmployeeLineInput = {
   fixingBug: string | null;
 };
 
-export type EmployeeLineContext = OfficeContext & { rating: number; hasCoffee: boolean };
+export type EmployeeLineContext = OfficeContext & { rating: number; hasCoffee: boolean; deal?: { name: string; discount: number } | null };
 
 const MOOD_WINDOW_MS = 10 * 60_000;
 
@@ -118,6 +118,15 @@ const ROLE_LINES: Record<string, RoleLines> = {
       : L('Automaticé el deploy: ahora sale solo.', 'I automated the deploy: it ships by itself now.', 'Ich habe das Deployment automatisiert: Es läuft jetzt von selbst.'),
   ],
   marketing: (ctx) => [
+    ...(ctx.deal
+      ? [
+          L(
+            `¡Ojo! ${ctx.deal.name} está ${ctx.deal.discount}% más barato estos días. Hay que aprovechar.`,
+            `Heads up! ${ctx.deal.name} is ${ctx.deal.discount}% cheaper these days. Let's use it.`,
+            `Achtung! ${ctx.deal.name} ist gerade ${ctx.deal.discount}% günstiger. Das sollten wir nutzen.`,
+          ),
+        ]
+      : []),
     ctx.campaigns === 0
       ? L('Denme presupuesto y les traigo usuarios.', "Give me a budget and I'll bring you users.", 'Gebt mir Budget und ich bringe euch Nutzer.')
       : ctx.activeUsers >= 100

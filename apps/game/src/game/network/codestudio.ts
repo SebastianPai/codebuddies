@@ -75,8 +75,29 @@ export const startCodeStudioDevelopment = (companyId: string, moduleId: string) 
 export const cancelCodeStudioDevelopment = (companyId: string, taskId: string) =>
   request<CompanyView>(`/codestudio/companies/${companyId}/development/${taskId}`, { method: "DELETE" });
 
-export const hireCodeStudioEmployee = (companyId: string, employeeTypeId: string) =>
-  post<CompanyView>(`/codestudio/companies/${companyId}/employees`, { employeeTypeId });
+export const hireCodeStudioEmployee = (companyId: string, employeeTypeId: string, candidateIndex?: number) =>
+  post<CompanyView>(`/codestudio/companies/${companyId}/employees`, { employeeTypeId, ...(candidateIndex !== undefined ? { candidateIndex } : {}) });
+
+export type Candidate = {
+  index: number;
+  name: string;
+  gender: string;
+  age: number;
+  seniority: { key: string; name: string };
+  trait: { key: string; tone: "good" | "neutral" | "bad"; name: string; description: string };
+  salary: number;
+  hireCost: number;
+  hired: boolean;
+  impact: {
+    speed: { delta: number; total: number };
+    bugs: number | null;
+    salaries: number;
+    fit: number;
+    reasons: Array<{ tone: "good" | "bad"; text: string }>;
+  };
+};
+export const getCodeStudioCandidates = (companyId: string, roleId: string) =>
+  request<{ refreshInMinutes: number; candidates: Candidate[] }>(`/codestudio/companies/${companyId}/candidates/${roleId}`);
 
 export const fireCodeStudioEmployee = (companyId: string, employeeId: string) =>
   request<CompanyView>(`/codestudio/companies/${companyId}/employees/${employeeId}`, { method: "DELETE" });

@@ -381,7 +381,7 @@ export default function CodeStudio({ initialView }: { initialView?: string }) {
                 company={company}
                 catalog={studio.catalog}
                 busy={busy}
-                onHire={(roleId) => void act(() => hireCodeStudioEmployee(company.id, roleId))}
+                onHire={(roleId, candidateIndex) => void act(() => hireCodeStudioEmployee(company.id, roleId, candidateIndex))}
                 onFire={(employeeId) => void act(() => fireCodeStudioEmployee(company.id, employeeId))}
               />
             )}

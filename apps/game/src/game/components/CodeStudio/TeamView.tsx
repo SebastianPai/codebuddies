@@ -7,18 +7,20 @@ import type { Catalog, CompanyView } from "./types";
 import { Stat, money, pct } from "./ui";
 import { useTranslation } from "../../../i18n/useTranslation";
 import EmployeeCard from "./EmployeeCard";
+import CandidatesModal from "./CandidatesModal";
 
 type Props = {
   company: CompanyView;
   catalog: Catalog;
   busy: boolean;
-  onHire: (roleId: string) => void;
+  onHire: (roleId: string, candidateIndex?: number) => void;
   onFire: (employeeId: string) => void;
 };
 
 export default function TeamView({ company, catalog, busy, onHire, onFire }: Props) {
   const t = useTranslation();
   const [firing, setFiring] = useState<CompanyView["employees"][number] | null>(null);
+  const [choosing, setChoosing] = useState<{ id: string; name: string } | null>(null);
   const m = company.metrics;
   const hasPm = company.employees.some((employee) => employee.roleSlug === "product-manager");
   const counts = company.employees.reduce<Record<string, number>>((acc, employee) => {
@@ -79,13 +81,27 @@ export default function TeamView({ company, catalog, busy, onHire, onFire }: Pro
                   </>
                 )}
               </small>
-              <button type="button" className="cs2-btn" disabled={busy || company.cash < role.hireCost} onClick={() => onHire(role.id)}>
-                <UserPlus size={14} /> {t("codestudio.team.hire", { amount: money(role.hireCost) })}
+              <button type="button" className="cs2-btn" disabled={busy} onClick={() => setChoosing({ id: role.id, name: role.name })}>
+                <UserPlus size={14} /> {t("codestudio.candidates.open")}
               </button>
             </article>
           ))}
         </div>
       </section>
+
+      {choosing && (
+        <CandidatesModal
+          companyId={company.id}
+          role={choosing}
+          cash={company.cash}
+          busy={busy}
+          onHire={(index) => {
+            onHire(choosing.id, index);
+            setChoosing(null);
+          }}
+          onClose={() => setChoosing(null)}
+        />
+      )}
 
       {firing && (
         <Modal className="cs2-modal" title={t("codestudio.team.fireTitle", { name: firing.name })} onClose={() => setFiring(null)}>

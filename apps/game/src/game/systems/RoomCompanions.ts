@@ -87,6 +87,7 @@ export default class RoomCompanions {
           {
             nameplate: { name: employee.name, subtitle: employee.roleName },
             wanderRadius: 240,
+            colorSeed: employee.id,
             // El de mejor rendimiento se queda con la primera silla, igual
             // que en el cálculo de puestos del servidor.
             seat: () => this.officeChairs()[index] ?? null,

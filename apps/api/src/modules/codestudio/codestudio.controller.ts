@@ -97,6 +97,11 @@ export class CodeStudioController {
     return this.codeStudio.cancelDevelopment(user.userId, id, taskId, langFromHeader(lang));
   }
 
+  @Get('companies/:id/candidates/:roleId')
+  candidates(@CurrentUser() user: AuthUser, @Param('id') id: string, @Param('roleId') roleId: string, @Query('lang') lang?: string) {
+    return this.codeStudio.candidates(user.userId, id, roleId, langFromHeader(lang));
+  }
+
   @Post('companies/:id/employees')
   hireEmployee(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() dto: HireEmployeeDto, @Query('lang') lang?: string) {
     return this.codeStudio.hireEmployee(user.userId, id, dto, langFromHeader(lang));

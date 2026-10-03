@@ -3335,3 +3335,124 @@
 .cs2-warn-text svg {
   vertical-align: -2px;
 }
+
+/* ─── Seniority y candidatos ──────────────────────────────────────────── */
+.cs2-seniority {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--fill-strong);
+  color: var(--px-text);
+  white-space: nowrap;
+}
+
+.cs2-seniority-junior { color: #7dd3fc; }
+.cs2-seniority-mid { color: #a7f3d0; }
+.cs2-seniority-senior { color: #fcd34d; }
+.cs2-seniority-lead { color: #f0abfc; }
+
+.cs2-fut-top { gap: 6px; flex-wrap: wrap; }
+
+.cs2-candidates {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 12px;
+}
+
+.cs2-candidate {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cs2-candidate-bad { border-color: rgba(229, 51, 42, 0.45); }
+.cs2-candidate-good { border-color: rgba(31, 157, 71, 0.45); }
+
+.cs2-candidate header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cs2-candidate header > div {
+  display: grid;
+  min-width: 0;
+}
+
+.cs2-candidate header b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cs2-candidate-fit {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.cs2-candidate-impact {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.cs2-candidate-impact > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.cs2-candidate-impact dt {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--px-muted);
+}
+
+.cs2-candidate-impact dd {
+  display: grid;
+  justify-items: end;
+  margin: 0;
+}
+
+.cs2-candidate-impact small {
+  color: var(--px-muted);
+  font-size: 11px;
+}
+
+.cs2-candidate-reasons {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+
+.cs2-candidate-reasons li {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.cs2-candidate-reasons svg {
+  flex: none;
+  margin-top: 2px;
+}
+
+.cs2-candidate .cs2-btn {
+  margin-top: auto;
+}
+
+/* Más ancha que el modal normal (520px) para ver los 3 candidatos lado a lado. */
+div.cs2-modal.cs2-candidates-modal {
+  width: min(900px, 96vw);
+  max-width: 96vw;
+}
+

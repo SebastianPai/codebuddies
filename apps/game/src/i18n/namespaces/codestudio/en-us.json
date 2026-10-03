@@ -250,7 +250,9 @@
     "users": "+{count} users",
     "cac": "{amount} each",
     "history": "Results by channel",
-    "historyRow": "+{users} users · {spent} over {runs} campaigns · {cac} per user"
+    "historyRow": "+{users} users · {spent} over {runs} campaigns · {cac} per user",
+    "deal": "-{value}% deal",
+    "dealHint": "Your marketing team found this channel cheaper for a few days."
   },
   "finance": {
     "runway": "Runway",
@@ -577,5 +579,18 @@
     "kitClaim": "Claim {count}",
     "kitDone": "Already claimed",
     "kitClaimed": "You got {count} kit(s): they are in your inventory."
+  },
+  "candidates": {
+    "title": "Candidates: {role}",
+    "hint": "Choose who to hire. New candidates arrive in {minutes} min.",
+    "age": "{age} years old",
+    "fit": "Fit with your company",
+    "speed": "Team speed",
+    "total": "team = {value}× just you",
+    "bugs": "Bugs on release",
+    "salaries": "Team salaries",
+    "hired": "Already on your team",
+    "open": "See candidates",
+    "promotion": "Promotion: {value}%"
   }
 }

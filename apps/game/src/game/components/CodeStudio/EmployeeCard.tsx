@@ -7,7 +7,7 @@ import { money } from "./ui";
 import { useTranslation } from "../../../i18n/useTranslation";
 
 type Employee = Pick<CompanyView["employees"][number], "name" | "roleSlug" | "roleName" | "trait" | "skin" | "card" | "performance" | "stats"> &
-  Partial<Pick<CompanyView["employees"][number], "busy" | "salary">>;
+  Partial<Pick<CompanyView["employees"][number], "busy" | "salary" | "seniority">>;
 
 // Carta de empleado estilo "carta de fútbol": media grande, rol, retrato
 // (primer cuadro de su skin), seis estadísticas y el color según la media
@@ -97,6 +97,11 @@ export default function EmployeeCard({ employee, busy = false, onFire }: { emplo
           <b>{overall}</b>
           <span>{ROLE_SHORT[employee.roleSlug] ?? employee.roleSlug.slice(0, 3).toUpperCase()}</span>
         </div>
+        {employee.seniority && (
+          <span className={`cs2-seniority cs2-seniority-${employee.seniority.key}`} title={t("codestudio.candidates.promotion", { value: Math.round(employee.seniority.progress * 100) })}>
+            {employee.seniority.name}
+          </span>
+        )}
         {employee.trait && (
           <span className={`cs2-trait cs2-trait-${employee.trait.tone}`} title={employee.trait.description}>
             {employee.trait.name}

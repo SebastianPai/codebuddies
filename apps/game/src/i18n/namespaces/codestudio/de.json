@@ -250,7 +250,9 @@
     "users": "+{count} Nutzer",
     "cac": "{amount} pro Nutzer",
     "history": "Ergebnisse nach Kanal",
-    "historyRow": "+{users} Nutzer · {spent} in {runs} Kampagnen · {cac} pro Nutzer"
+    "historyRow": "+{users} Nutzer · {spent} in {runs} Kampagnen · {cac} pro Nutzer",
+    "deal": "-{value}% Angebot",
+    "dealHint": "Dein Marketing-Team hat diesen Kanal für ein paar Tage günstiger gefunden."
   },
   "finance": {
     "runway": "Runway",
@@ -577,5 +579,18 @@
     "kitClaim": "{count} holen",
     "kitDone": "Schon geholt",
     "kitClaimed": "Du hast {count} Set(s) bekommen: Sie sind in deinem Inventar."
+  },
+  "candidates": {
+    "title": "Kandidaten: {role}",
+    "hint": "Wähle, wen du einstellst. Neue Kandidaten kommen in {minutes} Min.",
+    "age": "{age} Jahre",
+    "fit": "Passt zu deiner Firma",
+    "speed": "Team-Tempo",
+    "total": "Team = {value}× du allein",
+    "bugs": "Bugs beim Release",
+    "salaries": "Team-Gehälter",
+    "hired": "Schon in deinem Team",
+    "open": "Kandidaten ansehen",
+    "promotion": "Beförderung: {value}%"
   }
 }

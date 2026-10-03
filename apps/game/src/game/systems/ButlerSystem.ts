@@ -11,7 +11,32 @@ import {
   frameToCanvas,
   hudStyles,
 } from "../hud/domHud";
-import { resolveChatBubbleTheme } from "../hud/nameplateStyles";
+import { CHAT_BUBBLE_THEMES, resolveChatBubbleTheme } from "../hud/nameplateStyles";
+
+const BUBBLE_THEME_IDS = Object.keys(CHAT_BUBBLE_THEMES);
+
+// Empleados (con colorSeed): cada decisión sale de su semilla + la hora,
+// así dos personas en la misma oficina ven lo mismo sin mandar nada por red.
+const SYNC_SLOT_MS = 9000;
+
+function seededRng(seed: string) {
+  let state = seedHash(seed);
+  return () => {
+    state = (state + 0x6d2b79f5) | 0;
+    let value = Math.imul(state ^ (state >>> 15), 1 | state);
+    value = (value + Math.imul(value ^ (value >>> 7), 61 | value)) ^ value;
+    return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function seedHash(text: string) {
+  let value = 2166136261;
+  for (let index = 0; index < text.length; index++) {
+    value ^= text.charCodeAt(index);
+    value = Math.imul(value, 16777619);
+  }
+  return value >>> 0;
+}
 
 // El mayordomo comparte el renderizado direccional con PetSystem (mismo
 // layout de spritesheet: `directions` filas por clip, orden estándar de
@@ -45,6 +70,8 @@ export type ButlerOptions = {
   onSelect?: () => void;
   /** Cuánto se aleja al pasear (px). Por defecto WANDER_RADIUS. */
   wanderRadius?: number;
+  /** Semilla de colores (nombre y globo); sin ella, tema oscuro fijo. */
+  colorSeed?: string;
   /** Su silla en la oficina: ahí vuelve y se sienta. Se pregunta seguido (los muebles cargan después). */
   seat?: () => { x: number; y: number } | null;
 };
@@ -174,7 +201,15 @@ export default class ButlerSystem {
     // "Home" = un paso al costado del jugador; a partir de ahí deambula.
     // Empleados: aparecen sentados en su silla, o repartidos por la sala.
     const seat = this.options.seat?.() ?? null;
-    const scattered = !seat && this.options.nameplate ? this.randomPoint(px, py, this.options.wanderRadius ?? WANDER_RADIUS) : null;
+    // Sin silla: alrededor del centro de la sala (igual para todos los que miran).
+    const grid = (this.scene as any).isoGrid;
+    const center = this.options.colorSeed && grid ? grid.groundCenter?.(Math.floor(grid.width / 2), Math.floor(grid.height / 2)) : null;
+    const cx = center?.x ?? px;
+    const cy = center?.y ?? py;
+    const scattered =
+      !seat && this.options.nameplate
+        ? this.randomPoint(cx, cy, this.options.wanderRadius ?? WANDER_RADIUS, this.options.colorSeed ? seededRng(this.options.colorSeed) : Math.random)
+        : null;
     this.seatPoint = seat;
     this.homeX = seat?.x ?? scattered?.x ?? px - 28;
     this.homeY = seat?.y ?? scattered?.y ?? py;
@@ -255,6 +290,7 @@ export default class ButlerSystem {
     const name = document.createElement("span");
     name.className = hudStyles.nameDefault;
     name.textContent = label.name;
+    if (this.options.colorSeed) name.style.color = `hsl(${seedHash(this.options.colorSeed) % 360} 85% 72%)`;
     plate.appendChild(name);
     if (label.subtitle) {
       const role = document.createElement("span");
@@ -406,7 +442,9 @@ export default class ButlerSystem {
     const bubble = createBubbleElement({
       message: text,
       // Tema oscuro fijo: se distingue de un jugador (que usa el suyo).
-      theme: resolveChatBubbleTheme("midnight"),
+      theme: resolveChatBubbleTheme(
+        this.options.colorSeed ? BUBBLE_THEME_IDS[seedHash(this.options.colorSeed) % BUBBLE_THEME_IDS.length] : "midnight",
+      ),
       name: this.butlerName || this.npc?.name || undefined,
       face: frameToCanvas(this.sprite.frame),
     });
@@ -435,10 +473,10 @@ export default class ButlerSystem {
   }
 
   /** Punto caminable al azar alrededor de (cx, cy); null si no encontró. */
-  private randomPoint(cx: number, cy: number, radius: number) {
+  private randomPoint(cx: number, cy: number, radius: number, rng: () => number = Math.random) {
     for (let attempt = 0; attempt < 10; attempt++) {
-      const angle = Math.random() * Math.PI * 2;
-      const r = radius * (0.35 + Math.random() * 0.65);
+      const angle = rng() * Math.PI * 2;
+      const r = radius * (0.35 + rng() * 0.65);
       const x = cx + Math.cos(angle) * r;
       const y = cy + Math.sin(angle) * r * 0.5; // iso: el piso se ve achatado
       if (this.walkable(x, y) && this.walkable((x + cx) / 2, (y + cy) / 2)) return { x, y };
@@ -460,6 +498,38 @@ export default class ButlerSystem {
     this.modeUntil = this.timer + Math.max(WALK_TIMEOUT_MS, (dist / WANDER_SPEED) * 1000 + 1500);
     this.resting = false;
     this.idleTime = 0;
+  }
+
+  private lastSlot = -1;
+
+  /** Lo mismo para todos los que miran: destino y frase salen de (semilla, slot). */
+  private syncedDecide(slot: number) {
+    if (!this.sprite || !this.npc) return;
+    const seed = this.options.colorSeed!;
+    const rng = seededRng(`${seed}:${slot}`);
+    const seat = this.options.seat?.() ?? null;
+    this.seatPoint = seat;
+    const radius = this.options.wanderRadius ?? WANDER_RADIUS;
+    const wander = rng();
+    if (seat) {
+      const point = wander < LEAVE_SEAT_CHANCE ? this.randomPoint(seat.x, seat.y, radius, rng) : null;
+      if (point) this.walkTo(point.x, point.y);
+      else if (!this.atSeat()) this.walkTo(seat.x, seat.y);
+    } else if (wander < 0.6) {
+      const point = this.randomPoint(this.homeX, this.homeY, radius, rng);
+      if (point) this.walkTo(point.x, point.y);
+    }
+    // Frase: más o menos cada 3 slots, recorriendo su lista en orden
+    // barajado por su semilla (no repite hasta decirlas todas).
+    const lines = this.npc.idleLines ?? [];
+    if (lines.length > 0 && rng() < 0.33) {
+      const cycle = Math.floor(slot / 3);
+      const order = lines.map((_, index) => index).sort((a, b) => seedHash(`${seed}:${a}`) - seedHash(`${seed}:${b}`));
+      const line = lines[order[cycle % order.length]];
+      if (line && line !== this.lastLine) {
+        this.say([line], true);
+      }
+    }
   }
 
   private decideNext() {
@@ -495,8 +565,15 @@ export default class ButlerSystem {
       this.say(this.npc.greetingLines, true);
     }
 
-    // Cambios de estado del deambular.
-    if (this.timer >= this.modeUntil) {
+    // Empleados: decisiones sincronizadas por reloj (ver SYNC_SLOT_MS).
+    const synced = !!this.options.colorSeed;
+    if (synced) {
+      const slot = Math.floor(Date.now() / SYNC_SLOT_MS);
+      if (slot !== this.lastSlot) {
+        this.lastSlot = slot;
+        this.syncedDecide(slot);
+      }
+    } else if (this.timer >= this.modeUntil) {
       if (this.mode === "PAUSE") {
         this.decideNext();
       } else {
@@ -544,7 +621,7 @@ export default class ButlerSystem {
         this.resting = true;
       }
       // Frase suelta: solo cuando está quieto, para que se lea natural.
-      if (this.timer >= this.nextIdleLineAt) {
+      if (!synced && this.timer >= this.nextIdleLineAt) {
         this.say(this.npc.idleLines);
         this.nextIdleLineAt = this.timer + this.randIdleGap();
       }

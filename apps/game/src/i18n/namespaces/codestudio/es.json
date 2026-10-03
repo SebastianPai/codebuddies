@@ -250,7 +250,9 @@
     "users": "+{count} usuarios",
     "cac": "{amount} c/u",
     "history": "Resultados por canal",
-    "historyRow": "+{users} usuarios · {spent} en {runs} campañas · {cac} por usuario"
+    "historyRow": "+{users} usuarios · {spent} en {runs} campañas · {cac} por usuario",
+    "deal": "-{value}% oferta",
+    "dealHint": "Tu equipo de marketing encontró este canal más barato por unos días."
   },
   "finance": {
     "runway": "Runway",
@@ -577,5 +579,18 @@
     "kitClaim": "Reclamar {count}",
     "kitDone": "Ya reclamado",
     "kitClaimed": "Recibiste {count} kit(s): están en tu inventario."
+  },
+  "candidates": {
+    "title": "Candidatos: {role}",
+    "hint": "Elige a quién contratar. Llegan candidatos nuevos en {minutes} min.",
+    "age": "{age} años",
+    "fit": "Compatibilidad con tu empresa",
+    "speed": "Velocidad del equipo",
+    "total": "equipo = {value}× tú solo",
+    "bugs": "Bugs al publicar",
+    "salaries": "Sueldos del equipo",
+    "hired": "Ya trabaja contigo",
+    "open": "Ver candidatos",
+    "promotion": "Ascenso: {value}%"
   }
 }

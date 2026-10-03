@@ -1,6 +1,6 @@
 "use client";
 
-import { Lock, Megaphone, Sparkles, Star, TrendingDown } from "lucide-react";
+import { Lock, Megaphone, Sparkles, Star, Tag, TrendingDown } from "lucide-react";
 import type { Catalog, CompanyView } from "./types";
 import { Stat, money, num, pct } from "./ui";
 import { useTranslation } from "../../../i18n/useTranslation";
@@ -46,6 +46,11 @@ export default function MarketingView({ company, catalog, busy, onLaunch }: Prop
               {channel.fit >= 1.3 && (
                 <span className="cs2-fit good">
                   <Sparkles size={11} /> {t("codestudio.marketing.fitGood")}
+                </span>
+              )}
+              {(channel.deal ?? 0) > 0 && (
+                <span className="cs2-fit good" title={t("codestudio.marketing.dealHint")}>
+                  <Tag size={11} /> {t("codestudio.marketing.deal", { value: Math.round((channel.deal ?? 0) * 100) })}
                 </span>
               )}
               {channel.fit <= 0.7 && (

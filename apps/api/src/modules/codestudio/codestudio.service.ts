@@ -19,10 +19,14 @@ import {
 import { CodeStudioCatalogService } from './codestudio-catalog.service';
 import { CodeStudioRewardsService } from './codestudio-rewards.service';
 import { campaignQuote, evaluateStage, fundingOffer, stageProgress } from './codestudio-rules';
-import { TRAITS, bumpStats, performanceOf, rollTrait, statsOf, traitOf } from './content/traits';
+import { TRAITS, bumpStats, performanceOf, readMeta, rollTrait, statsOf, traitOf } from './content/traits';
 import { cardStats, employeeName, genderOf, resolveSkin, rollGender } from './content/employee-card';
 import { OFFICE_TAGS, OfficeCounts, countOffice, officeFactors, officeLines, officePrice, officeSummary } from './content/office';
 import { employeeLines } from './content/office-lines';
+import { applyDeal, marketingDeal } from './content/marketing-deal';
+import { CHANNELS } from './content/economy';
+import { candidateImpact, candidatesFor, minutesUntilNewCandidates, promotionFor, seniorityOf, type TeamMember } from './content/seniority';
+import { FOUNDER_DEV_POWER } from './codestudio-engine.service';
 import {
   BUG_CAPABLE_ROLES,
   ROLE_BY_SLUG,
@@ -340,12 +344,20 @@ export class CodeStudioService {
     const type = await this.prisma.codeStudioEmployeeType.findUnique({ where: { id: dto.employeeTypeId } });
     if (!type || !type.active) throw new NotFoundException(pick(MSG.roleUnavailable(), lang));
     if (company.employees.length >= MAX_EMPLOYEES) throw new BadRequestException(pick(MSG.maxEmployees(MAX_EMPLOYEES), lang));
-    const bonus = Math.round(type.salary * HIRE_BONUS_FACTOR);
     const stats = (type.baseStats ?? {}) as Record<string, number>;
+    // Candidato elegido (seniority, rasgo y nombre fijos por la semilla) o,
+    // sin índice, alguien Semi-senior al azar como antes.
+    const candidate = dto.candidateIndex !== undefined ? candidatesFor(company.id, type, HIRE_BONUS_FACTOR)[dto.candidateIndex] : null;
+    if (dto.candidateIndex !== undefined && !candidate) throw new NotFoundException(pick(MSG.roleUnavailable(), lang));
+    if (candidate && company.employees.some((entry) => readMeta(entry.metadata).candidateKey === candidate.key)) {
+      throw new BadRequestException(pick(L('Esa persona ya trabaja contigo.', 'That person already works for you.', 'Diese Person arbeitet schon für dich.'), lang));
+    }
+    const salary = candidate?.salary ?? type.salary;
+    const bonus = candidate?.hireCost ?? Math.round(type.salary * HIRE_BONUS_FACTOR);
     // Género, nombre y skin (NPC EMPLOYEE del admin de ese género; si no
     // hay, el mayordomo) de la persona contratada.
-    const gender = rollGender();
-    const name = employeeName(gender);
+    const gender = candidate?.gender ?? rollGender();
+    const name = candidate?.name ?? employeeName(gender);
     const tempEmployee = { id: `${company.id}:${Date.now()}`, name, avatar: null, metadata: { gender } };
     const skin = resolveSkin(tempEmployee, await this.skinNpcs());
 
@@ -357,16 +369,23 @@ export class CodeStudioService {
           employeeTypeId: type.id,
           name,
           avatar: skin?.key ?? `avatar-${type.slug}`,
-          age: 20 + Math.floor(Math.random() * 22),
-          salary: type.salary,
+          age: candidate?.age ?? 20 + Math.floor(Math.random() * 22),
+          salary,
+          level: candidate?.seniority.level ?? 2,
           productivity: Number(stats.productivity ?? 1),
           creativity: Number(stats.creativity ?? 1),
           speed: Number(stats.speed ?? 1),
           quality: Number(stats.quality ?? 1),
-          metadata: { trait: rollTrait(), gender, stats: { featuresShipped: 0, bugsFixed: 0, bugsCaused: 0 } },
+          metadata: {
+            trait: candidate?.trait ?? rollTrait(),
+            gender,
+            seniority: candidate?.seniority.key ?? 'mid',
+            ...(candidate ? { candidateKey: candidate.key } : {}),
+            stats: { featuresShipped: 0, bugsFixed: 0, bugsCaused: 0 },
+          },
         },
       });
-      await this.log(tx, company.id, MSG.hiredTitle(employee.name, this.roleName(type.slug, type.name, lang)), MSG.hiredText(bonus, type.salary), 'team', 'neutral', lang);
+      await this.log(tx, company.id, MSG.hiredTitle(employee.name, this.roleName(type.slug, type.name, lang)), MSG.hiredText(bonus, salary), 'team', 'neutral', lang);
       await this.rewards.grantMilestone(tx, userId, 'first-hire', company.id, lang);
       const teamSize = company.employees.length + 1;
       if (teamSize >= 5) await this.rewards.grantMilestone(tx, userId, 'team-5', company.id, lang);
@@ -374,6 +393,63 @@ export class CodeStudioService {
       await this.rewards.bumpDaily(tx, userId, { hires: 1 }, company.id, lang);
     });
     return this.getCompany(userId, companyId, lang);
+  }
+
+  /** 3 candidatos del rol (Junior, Semi-senior, Senior) y qué le hacen al equipo. */
+  async candidates(userId: string, companyId: string, roleId: string, lang: Lang = 'es') {
+    const company = await this.requireAlive(userId, companyId, lang);
+    const type = await this.prisma.codeStudioEmployeeType.findUnique({ where: { id: roleId } });
+    if (!type || !type.active) throw new NotFoundException(pick(MSG.roleUnavailable(), lang));
+    const stats = (type.baseStats ?? {}) as Record<string, number>;
+    const basePower = Number(stats.productivity ?? 1) * Number(stats.speed ?? 1);
+    const team: TeamMember[] = company.employees.map((employee) => ({
+      roleSlug: employee.employeeType.slug,
+      power: employee.productivity * employee.speed * traitOf(employee).power * seniorityOf(employee).power,
+      bugRisk: this.riskOf(employee),
+      salary: employee.salary,
+    }));
+    const companyStats = (company.stats ?? {}) as Record<string, any>;
+    const context = {
+      cash: company.cash,
+      dailyRevenue: Number(companyStats.dailyRevenue ?? 0),
+      supportGap: Number(companyStats.supportGap ?? 0),
+      openBugs: company.bugReports.length,
+      utilization: Number(companyStats.utilization ?? 0),
+      activeUsers: company.activeUsers,
+      campaigns: await this.prisma.codeStudioCampaignRun.count({ where: { companyId: company.id } }),
+      founderPower: FOUNDER_DEV_POWER,
+    };
+    const hiredKeys = new Set(company.employees.map((employee) => readMeta(employee.metadata).candidateKey));
+    return {
+      refreshInMinutes: minutesUntilNewCandidates(),
+      candidates: candidatesFor(company.id, type, HIRE_BONUS_FACTOR).map((candidate) => {
+        const trait = TRAITS[candidate.trait];
+        const impact = candidateImpact(
+          team,
+          {
+            roleSlug: type.slug,
+            power: basePower * trait.power * candidate.seniority.power,
+            bugRisk: trait.bugRisk * candidate.seniority.bugRisk,
+            salary: candidate.salary,
+            trait: candidate.trait,
+            seniority: candidate.seniority,
+          },
+          context,
+        );
+        return {
+          index: candidate.index,
+          name: candidate.name,
+          gender: candidate.gender,
+          age: candidate.age,
+          seniority: { key: candidate.seniority.key, name: pick(candidate.seniority.name, lang) },
+          trait: { key: trait.key, tone: trait.tone, name: pick(trait.name, lang), description: pick(trait.description, lang) },
+          salary: candidate.salary,
+          hireCost: candidate.hireCost,
+          hired: hiredKeys.has(candidate.key),
+          impact: { ...impact, reasons: impact.reasons.map((reason) => ({ tone: reason.tone, text: pick(reason.text, lang) })) },
+        };
+      }),
+    };
   }
 
   // Despedir cuesta medio sueldo de indemnización — aunque no tengas caja
@@ -654,7 +730,7 @@ export class CodeStudioService {
     for (const bug of company.bugReports.filter((entry) => entry.fixReadyAt && entry.fixReadyAt <= now)) {
       const employee = company.employees.find((entry) => entry.id === bug.assignedEmployeeId);
       await tx.codeStudioBug.update({ where: { id: bug.id }, data: { status: CodeStudioBugStatus.FIXED, fixedAt: now, resolution: 'employee' } });
-      if (employee) await this.bumpEmployee(tx, employee, { bugsFixed: 1 });
+      if (employee) await this.bumpEmployee(tx, employee, { bugsFixed: 1 }, lang);
       const base = bug.scenarioKey ? BUG_SCENARIO_BY_KEY.get(bug.scenarioKey) : undefined;
       const scenario = base ? localizeScenario(base, lang) : undefined;
       await this.log(
@@ -726,12 +802,12 @@ export class CodeStudioService {
       await this.log(tx, company.id, MSG.releaseTitle(this.featureName(task.module.slug, lang, task.module.name)), MSG.releaseText(lesson, xp), 'release', 'good', lang);
       await this.rewards.grantMilestone(tx, userId, 'first-feature', company.id, lang);
       const builders = this.builders(company, openBugs);
-      for (const builder of builders) await this.bumpEmployee(tx, builder, { featuresShipped: 1 });
+      for (const builder of builders) await this.bumpEmployee(tx, builder, { featuresShipped: 1 }, lang);
       if (Math.random() < Math.min(0.75, releaseBugChance(update.difficulty, metrics.quality, profile.bugSeverityFactor) * this.teamBugRisk(builders))) {
         const before = openCount;
         await spawn('release', task.module.slug);
         const culprit = before < openCount ? this.pickCulprit(builders) : null;
-        if (culprit) await this.bumpEmployee(tx, culprit, { bugsCaused: 1 });
+        if (culprit) await this.bumpEmployee(tx, culprit, { bugsCaused: 1 }, lang);
       }
       const branch = FEATURES.find((feature) => feature.slug === task.module.slug)?.branch;
       if (branch && FEATURES.filter((feature) => feature.branch === branch).every((feature) => installed.has(feature.slug))) {
@@ -1110,6 +1186,11 @@ export class CodeStudioService {
         gender: genderOf(employee),
         age: employee.age,
         card: cardStats(employee),
+        seniority: (() => {
+          const level = seniorityOf(employee);
+          const work = statsOf(employee).featuresShipped + statsOf(employee).bugsFixed;
+          return { key: level.key, name: pick(level.name, lang), progress: level.promoteAt ? Math.min(1, work / level.promoteAt) : 1 };
+        })(),
         skin: (() => {
           const npc = resolveSkin(employee, skinNpcs);
           return npc ? { key: npc.key, spriteSheetUrl: npc.spriteSheetUrl, frameWidth: npc.frameWidth, frameHeight: npc.frameHeight } : null;
@@ -1415,7 +1496,13 @@ export class CodeStudioService {
     };
     // Lo de la empresa (sin la queja del escritorio: esa la dice cada uno).
     const lines = officeLines({ ...context, unseated: 0 }).map((line) => pick(line, lang));
-    const lineContext = { ...context, rating: company.rating, hasCoffee: summary.amenities.includes('coffee') };
+    const deal = this.dealOf({ id: company.id, stage: company.stage, employees: company.employees });
+    const lineContext = {
+      ...context,
+      rating: company.rating,
+      hasCoffee: summary.amenities.includes('coffee'),
+      deal: deal ? { name: CHANNELS.find((channel) => channel.slug === deal.slug)?.name ?? deal.slug, discount: Math.round(deal.discount * 100) } : null,
+    };
     const ordered = [...company.employees].sort((a, b) => performanceOf(b) - performanceOf(a));
     return {
       company: { id: company.id, name: company.name },
@@ -1512,16 +1599,21 @@ export class CodeStudioService {
   /** Riesgo de bug del equipo que publica: promedio de sus rasgos (1 si no hay nadie). */
   private teamBugRisk(builders: LoadedCompany['employees']) {
     if (builders.length === 0) return 1;
-    return builders.reduce((sum, employee) => sum + traitOf(employee).bugRisk, 0) / builders.length;
+    return builders.reduce((sum, employee) => sum + this.riskOf(employee), 0) / builders.length;
+  }
+
+  /** Riesgo de bug de una persona: su rasgo × su seniority. */
+  private riskOf(employee: { id: string; metadata: unknown }) {
+    return traitOf(employee).bugRisk * seniorityOf(employee).bugRisk;
   }
 
   /** Quién metió el bug: más probable cuanto más descuidado. */
   private pickCulprit(builders: LoadedCompany['employees']) {
     if (builders.length === 0) return null;
-    const total = builders.reduce((sum, employee) => sum + traitOf(employee).bugRisk, 0);
+    const total = builders.reduce((sum, employee) => sum + this.riskOf(employee), 0);
     let roll = Math.random() * total;
     for (const employee of builders) {
-      roll -= traitOf(employee).bugRisk;
+      roll -= this.riskOf(employee);
       if (roll <= 0) return employee;
     }
     return builders[builders.length - 1];
@@ -1532,10 +1624,35 @@ export class CodeStudioService {
   }
 
   /** Suma estadísticas al empleado (y guarda su rasgo si era de antes). */
-  private async bumpEmployee(tx: Tx, employee: LoadedCompany['employees'][number], delta: Parameters<typeof bumpStats>[1]) {
-    const metadata = bumpStats(employee.metadata, delta, traitOf(employee).key);
+  private async bumpEmployee(tx: Tx, employee: LoadedCompany['employees'][number], delta: Parameters<typeof bumpStats>[1], lang: Lang = 'es') {
+    let metadata: Record<string, unknown> = bumpStats(employee.metadata, delta, traitOf(employee).key);
+    // Ascenso: con suficiente trabajo sube de nivel y de sueldo.
+    const before = seniorityOf(employee);
+    const next = promotionFor({ metadata });
+    let salary = employee.salary;
+    if (next) {
+      metadata = { ...metadata, seniority: next.key };
+      salary = Math.round((employee.salary * next.salary) / before.salary);
+      await this.log(
+        tx,
+        employee.companyId,
+        L(`${employee.name} ascendió a ${next.name.es}`, `${employee.name} was promoted to ${next.name.en}`, `${employee.name} wurde zu ${next.name.de} befördert`),
+        L(
+          `Construye más y mete menos bugs. Su sueldo sube a $${salary}/día.`,
+          `Builds more and ships fewer bugs. Salary goes up to $${salary}/day.`,
+          `Baut mehr und macht weniger Bugs. Gehalt steigt auf $${salary}/Tag.`,
+        ),
+        'team',
+        'good',
+        lang,
+      );
+    }
     employee.metadata = metadata as typeof employee.metadata;
-    await tx.codeStudioEmployee.update({ where: { id: employee.id }, data: { metadata: metadata as Prisma.InputJsonValue } });
+    employee.salary = salary;
+    await tx.codeStudioEmployee.update({
+      where: { id: employee.id },
+      data: { metadata: metadata as Prisma.InputJsonValue, salary, level: (next ?? before).level },
+    });
   }
 
   /**
@@ -1593,7 +1710,7 @@ export class CodeStudioService {
       employees: company.employees.map((employee) => ({
         id: employee.id,
         roleSlug: employee.employeeType.slug,
-        productivity: employee.productivity * traitOf(employee).power * this.mentorBoost(company) * (this.officeFactorsOf(company).get(employee.id) ?? 1),
+        productivity: employee.productivity * traitOf(employee).power * seniorityOf(employee).power * this.mentorBoost(company) * (this.officeFactorsOf(company).get(employee.id) ?? 1),
         speed: employee.speed,
         salary: employee.salary,
         busy: busy.has(employee.id),
@@ -1662,12 +1779,18 @@ export class CodeStudioService {
     };
   }
 
+  /** Canal en oferta (solo con alguien de marketing en el equipo). */
+  private dealOf(company: { id: string; stage: number; employees: Array<{ employeeType: { slug: string } }> }) {
+    const unlocked = CHANNELS.filter((channel) => channel.minStage <= company.stage).map((channel) => channel.slug);
+    return marketingDeal(company.id, unlocked, company.employees.some((employee) => employee.employeeType.slug === 'marketing'));
+  }
+
   private async quoteCampaign(company: LoadedCompany, channelSlug: string, multiplier: number) {
     const recentRuns = await this.prisma.codeStudioCampaignRun.count({
       where: { companyId: company.id, campaign: { slug: channelSlug }, createdAt: { gte: new Date(Date.now() - CAMPAIGN_FATIGUE_WINDOW_MS) } },
     });
     const profile = resolveProfile((company.appType.simulationProfile ?? {}) as Record<string, any>);
-    return campaignQuote({
+    const quote = campaignQuote({
       channelSlug,
       multiplier,
       rating: company.rating,
@@ -1676,6 +1799,8 @@ export class CodeStudioService {
       recentRuns,
       penetration: company.activeUsers / profile.tam,
     });
+    const deal = this.dealOf(company);
+    return quote && deal?.slug === channelSlug ? applyDeal(quote, deal.discount) : quote;
   }
 
   private async campaignQuotes(company: LoadedCompany, lang: Lang) {
@@ -1688,7 +1813,9 @@ export class CodeStudioService {
     const recentById = new Map(recent.map((row) => [row.campaignId, row._count._all]));
     const profile = resolveProfile((company.appType.simulationProfile ?? {}) as Record<string, any>);
     const metrics = this.metricsOf(company);
+    const deal = this.dealOf(company);
     return catalog.channels.map((channel) => ({
+      deal: deal?.slug === channel.slug ? deal.discount : 0,
       id: channel.id,
       slug: channel.slug,
       name: channel.name,
@@ -1707,7 +1834,8 @@ export class CodeStudioService {
           recentRuns: recentById.get(channel.id) ?? 0,
           penetration: company.activeUsers / profile.tam,
         });
-        return { multiplier, cost: quote?.cost ?? 0, users: quote?.users ?? 0, cac: quote?.cac ?? 0 };
+        const priced = quote && deal?.slug === channel.slug ? applyDeal(quote, deal.discount) : quote;
+        return { multiplier, cost: priced?.cost ?? 0, users: priced?.users ?? 0, cac: priced?.cac ?? 0 };
       }),
     }));
   }
