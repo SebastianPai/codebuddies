@@ -255,7 +255,18 @@ export type CompanyView = {
     goals: StageGoal[];
     next: { name: string; reward: { cash: number; xp: number; coins: number } } | null;
   };
-  tree: Array<{ slug: string; state: TreeState; fit: number; missing: string[] }>;
+  tree: Array<{
+    slug: string;
+    state: TreeState;
+    fit: number;
+    missing: string[];
+    /** Versión instalada (0 = no está; 1-3 = v1..v3) y la mejora siguiente. */
+    level?: number;
+    maxLevel?: number;
+    upgrading?: boolean;
+    upgradeCost?: number | null;
+    upgradeSeconds?: number | null;
+  }>;
   legacyFeatures: Array<{ name: string; category: string }>;
   development: Array<{ id: string; slug: string; name: string; progress: number; queued: boolean; remainingSeconds: number | null; refund: number }>;
   employees: Array<{
@@ -280,6 +291,8 @@ export type CompanyView = {
     avatar?: import("../../network/codestudio").EmployeeAvatarLook | null;
     /** Estilo de ropa (casual, elegant, sport, urban o cheerful). */
     style?: string | null;
+    /** De vacaciones o enfermo: no trabaja por unos días. */
+    away?: { kind: "vacation" | "sick"; daysLeft: number } | null;
     skin?: { key: string; spriteSheetUrl: string | null; frameWidth: number; frameHeight: number } | null;
   }>;
   hosting: Array<{ typeId: string; slug: string; name: string; level: number; maxLevel: number; capacity: number; monthly: number; upgradeCost: number; provider?: string; legacy: boolean }>;

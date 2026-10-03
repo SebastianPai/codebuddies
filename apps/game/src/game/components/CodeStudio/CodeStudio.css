@@ -3940,3 +3940,10 @@ div.cs2-modal.cs2-candidates-modal {
   justify-self: start;
 }
 
+.cs2-version {
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--px-yellow);
+}
+

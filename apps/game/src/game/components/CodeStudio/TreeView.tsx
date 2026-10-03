@@ -116,6 +116,8 @@ export default function TreeView({ company, catalog, busy, onBuild, onCancel }: 
                       {(state === "developing" || state === "queued") && <Hammer size={14} />}
                       {(state === "locked" || state === "locked-stage") && <Lock size={13} />}
                       <b>{feature.name}</b>
+                      {(node?.level ?? 0) > 1 && <span className="cs2-chip cs2-version">v{node?.level}</span>}
+                      {node?.upgrading && <Hammer size={12} />}
                     </div>
                     {fit >= 1.3 && (
                       <span className="cs2-fit good">
@@ -203,9 +205,31 @@ export default function TreeView({ company, catalog, busy, onBuild, onCancel }: 
               <p>{selected.lesson}</p>
             </div>
             {selectedNode.state === "installed" ? (
-              <p className="cs2-done">
-                <CheckCircle2 size={15} /> {t("codestudio.tree.installed")}
-              </p>
+              <>
+                <p className="cs2-done">
+                  <CheckCircle2 size={15} /> {t("codestudio.tree.installedVersion", { version: selectedNode.level ?? 1 })}
+                </p>
+                {selectedNode.upgrading ? (
+                  <p className="cs2-muted">{t("codestudio.tree.upgrading")}</p>
+                ) : selectedNode.upgradeCost ? (
+                  <>
+                    <p className="cs2-muted">{t("codestudio.tree.upgradeHint", { version: (selectedNode.level ?? 1) + 1 })}</p>
+                    <button
+                      type="button"
+                      className="cs2-btn cs2-btn-primary cs2-btn-block"
+                      disabled={busy || company.cash < selectedNode.upgradeCost}
+                      onClick={() => {
+                        onBuild(selected.id);
+                        setSelected(null);
+                      }}
+                    >
+                      <Hammer size={15} /> {t("codestudio.tree.upgrade", { version: (selectedNode.level ?? 1) + 1, amount: money(selectedNode.upgradeCost) })}
+                    </button>
+                  </>
+                ) : (
+                  <p className="cs2-muted">{t("codestudio.tree.maxVersion")}</p>
+                )}
+              </>
             ) : selectedNode.state === "developing" || selectedNode.state === "queued" ? (
               <p className="cs2-muted">{t("codestudio.tree.inProgress")}</p>
             ) : (

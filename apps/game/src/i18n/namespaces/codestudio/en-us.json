@@ -128,7 +128,12 @@
     "installed": "Already in production",
     "inProgress": "Your team is already building it.",
     "build": "Build for {amount}",
-    "legacy": "You also have {count} features from the old system; they still add a little."
+    "legacy": "You also have {count} features from the old system; they still add a little.",
+    "installedVersion": "Installed (v{version})",
+    "upgrading": "Upgrading to the next version...",
+    "upgradeHint": "v{version} performs better: more effect on users, satisfaction or revenue. It joins the development queue.",
+    "upgrade": "Upgrade to v{version} ({amount})",
+    "maxVersion": "Already at its best version."
   },
   "effects": {
     "growth": "+{value} new users per day",
@@ -561,6 +566,10 @@
       "sport": "Sporty",
       "urban": "Urban",
       "cheerful": "Cheerful"
+    },
+    "away": {
+      "vacation": "on vacation ({days} d)",
+      "sick": "sick ({days} d)"
     }
   },
   "office": {
@@ -672,7 +681,8 @@
       "mentor": "A mentor lifting everyone up",
       "badTraits": "{count} people with a bad attitude drag morale down",
       "noBuilders": "Nobody codes: the product does not move"
-    }
+    },
+    "effect": "Team output from chemistry: {value}"
   },
   "goalGuide": {
     "how": "How do I get there?",

@@ -94,6 +94,9 @@ export default function SquadBoard({ company, catalog, onHire }: { company: Comp
         </div>
       </header>
       <ProgressBar value={chemistry.value} tone={chemistry.value >= 70 ? "good" : chemistry.value >= 45 ? "warn" : "bad"} />
+      <small className="cs2-muted">
+        {t("codestudio.squad.effect", { value: `${chemistry.value >= 50 ? "+" : ""}${Math.round((chemistry.value - 50) / 5)}%` })}
+      </small>
 
       <div className="cs2-pitch">
         {LINES.map((line) => {

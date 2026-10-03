@@ -6,7 +6,7 @@ import type { CompanyView } from "./types";
 import { money } from "./ui";
 import { useTranslation } from "../../../i18n/useTranslation";
 
-type Employee = Pick<CompanyView["employees"][number], "name" | "roleSlug" | "roleName" | "trait" | "skin" | "card" | "performance" | "stats" | "avatar" | "style"> &
+type Employee = Pick<CompanyView["employees"][number], "name" | "roleSlug" | "roleName" | "trait" | "skin" | "card" | "performance" | "stats" | "avatar" | "style" | "away"> &
   Partial<Pick<CompanyView["employees"][number], "busy" | "salary" | "seniority">>;
 
 // Carta de empleado estilo "carta de fútbol": media grande, rol, retrato
@@ -189,6 +189,7 @@ export default function EmployeeCard({ employee, busy = false, onFire }: { emplo
         <small>
           {employee.roleName}
           {employee.style ? ` · ${t(`codestudio.card.style.${employee.style}`)}` : ""}
+          {employee.away ? ` · ${t(`codestudio.card.away.${employee.away.kind}`, { days: employee.away.daysLeft })}` : ""}
           {employee.busy ? ` · ${t("codestudio.team.busy")}` : ""}
         </small>
       </div>

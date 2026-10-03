@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import ModularPlayer from "../players/ModularPlayer";
 import type { AvatarSlot } from "../types/avatar";
 import { syncActorDepth } from "../iso/IsoActorDepth";
-import { BubbleStack, createBubbleElement, createHudAnchor, hudStyles } from "../hud/domHud";
+import { BubbleStack, createBubbleElement, createHudAnchor, hudStyles, paintBubbleFace, snapshotHead } from "../hud/domHud";
 import { CHAT_BUBBLE_THEMES, resolveChatBubbleTheme } from "../hud/nameplateStyles";
 
 // Empleado de CodeStudio armado por piezas (cuerpo, pelo, ropa), igual que
@@ -60,6 +60,9 @@ export default class EmployeeAvatarSystem {
   private target: { x: number; y: number } | null = null;
   private home = { x: 0, y: 0 };
   private greetAt = 0;
+  // Retrato (cabeza) para los globos, como los de los jugadores.
+  private face: HTMLCanvasElement | null = null;
+  private faceCapture: Promise<HTMLCanvasElement | null> | null = null;
   private destroyed = false;
 
   constructor(
@@ -127,8 +130,29 @@ export default class EmployeeAvatarSystem {
       message: text,
       theme: resolveChatBubbleTheme(BUBBLE_THEME_IDS[seedHash(this.options.id) % BUBBLE_THEME_IDS.length]),
       name: this.options.name,
+      face: this.face,
+      withFace: true,
     });
     this.hud.stack.push(bubble, this.scene.time.now, BUBBLE_MS);
+    if (!this.face) void this.captureFace().then((face) => face && paintBubbleFace(bubble, face));
+  }
+
+  /** Captura la cabeza del avatar una vez (ya armado) y la reusa en cada globo. */
+  private captureFace(): Promise<HTMLCanvasElement | null> {
+    if (this.face) return Promise.resolve(this.face);
+    if (!this.actor) return Promise.resolve(null);
+    if (!this.faceCapture) {
+      this.faceCapture = snapshotHead(this.scene, this.actor)
+        .then((face) => {
+          if (face) this.face = face;
+          return this.face;
+        })
+        .catch(() => null)
+        .finally(() => {
+          this.faceCapture = null;
+        });
+    }
+    return this.faceCapture;
   }
 
   private walkable(x: number, y: number) {

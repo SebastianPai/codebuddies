@@ -128,7 +128,12 @@
     "installed": "Schon in Produktion",
     "inProgress": "Dein Team baut es gerade.",
     "build": "Für {amount} bauen",
-    "legacy": "Du hast außerdem {count} Features aus dem alten System; sie bringen noch ein bisschen."
+    "legacy": "Du hast außerdem {count} Features aus dem alten System; sie bringen noch ein bisschen.",
+    "installedVersion": "Installiert (v{version})",
+    "upgrading": "Wird auf die nächste Version verbessert...",
+    "upgradeHint": "v{version} leistet mehr: mehr Wirkung auf Nutzer, Zufriedenheit oder Umsatz. Kommt in die Entwicklungs-Warteschlange.",
+    "upgrade": "Auf v{version} verbessern ({amount})",
+    "maxVersion": "Schon in der besten Version."
   },
   "effects": {
     "growth": "+{value} neue Nutzer pro Tag",
@@ -561,6 +566,10 @@
       "sport": "Sportlich",
       "urban": "Urban",
       "cheerful": "Fröhlich"
+    },
+    "away": {
+      "vacation": "im Urlaub ({days} T)",
+      "sick": "krank ({days} T)"
     }
   },
   "office": {
@@ -672,7 +681,8 @@
       "mentor": "Ein Mentor hebt alle an",
       "badTraits": "{count} Leute mit schlechter Einstellung drücken die Stimmung",
       "noBuilders": "Niemand programmiert: das Produkt kommt nicht voran"
-    }
+    },
+    "effect": "Teamleistung durch Chemie: {value}"
   },
   "goalGuide": {
     "how": "Wie schaffe ich das?",

@@ -23,6 +23,18 @@ import { TRAITS, bumpStats, performanceOf, readMeta, rollTrait, statsOf, traitOf
 import { cardStats, employeeName, genderOf, resolveSkin, rollGender } from './content/employee-card';
 import { OFFICE_TAGS, OfficeCounts, countOffice, officeFactors, officeLines, officePrice, officeSummary } from './content/office';
 import { employeeLines } from './content/office-lines';
+import { chemistryFactor, chemistryScore } from './content/chemistry';
+
+// Mejoras de funciones (v2, v3): rinden más, cuestan y tardan más.
+const MAX_FEATURE_LEVEL = 3;
+const FEATURE_LEVEL_POWER = [1, 1, 1.4, 1.7];
+const upgradeCostOf = (cost: number, level: number) => Math.round(cost * (level <= 1 ? 1.5 : 2.2));
+const upgradeSecondsOf = (seconds: number, level: number) => Math.round(seconds * (level <= 1 ? 1.2 : 1.5));
+
+// Situaciones reales de los empleados (probabilidad por día de juego).
+const VACATION_PER_DAY = 0.012;
+const SICK_PER_DAY = 0.006;
+const QUIT_PER_DAY = 0.004; // solo los desmotivados
 import { PROVIDERS, PROVIDER_KEYS, providerOf } from './content/providers';
 import { officeConversations } from './content/office-talk';
 import { EMPLOYEE_WEAR_TAG, employeeAvatar, employeeStyle, isCheerful, prefersSkin, type WardrobeItem } from './content/employee-look';
@@ -306,7 +318,9 @@ export class CodeStudioService {
     const company = await this.requireAlive(userId, companyId, lang);
     const module = await this.prisma.codeStudioModule.findUnique({ where: { id: dto.moduleId } });
     if (!module || !module.active || !(module.metadata as { v2?: boolean } | null)?.v2) throw new NotFoundException(pick(MSG.featureUnavailable(), lang));
-    if (company.modules.some((entry) => entry.moduleId === module.id)) throw new BadRequestException(pick(MSG.featureInstalled(), lang));
+    // Ya instalada: es una mejora (v2, v3).
+    const owned = company.modules.find((entry) => entry.moduleId === module.id);
+    if (owned && owned.level >= MAX_FEATURE_LEVEL) throw new BadRequestException(pick(MSG.featureInstalled(), lang));
     if (company.development.some((task) => task.moduleId === module.id)) throw new BadRequestException(pick(MSG.featureInProgress(), lang));
     if (company.development.length >= MAX_DEVELOPMENT_QUEUE) throw new BadRequestException(pick(MSG.queueFull(MAX_DEVELOPMENT_QUEUE), lang));
     const requirements = (module.requirements ?? {}) as { requires?: string[]; minStage?: number };
@@ -320,13 +334,15 @@ export class CodeStudioService {
       throw new BadRequestException(pick(MSG.needsFirst(names.join(', ')), lang));
     }
 
+    const cost = owned ? upgradeCostOf(module.cost, owned.level) : module.cost;
+    const requiredSeconds = owned ? upgradeSecondsOf(module.developmentSeconds, owned.level) : module.developmentSeconds;
     await this.prisma.$transaction(async (tx) => {
-      await this.spend(tx, company.id, module.cost, lang);
+      await this.spend(tx, company.id, cost, lang);
       await tx.codeStudioDevelopmentTask.create({
         data: {
           companyId: company.id,
           moduleId: module.id,
-          requiredSeconds: module.developmentSeconds,
+          requiredSeconds,
           status: CodeStudioDevelopmentStatus.IN_PROGRESS,
           startedAt: new Date(),
         },
@@ -638,6 +654,9 @@ export class CodeStudioService {
         throw new BadRequestException(pick(MSG.notTechnical(this.roleName(employee.employeeType.slug, employee.employeeType.name, lang)), lang));
       }
       if (company.bugReports.some((entry) => entry.assignedEmployeeId === employee.id)) throw new BadRequestException(pick(MSG.employeeBusy(employee.name), lang));
+      if (this.awayOf(employee, company.gameDays)) {
+        throw new BadRequestException(pick(L(`${employee.name} no está (vacaciones o enfermedad).`, `${employee.name} is away (vacation or sick).`, `${employee.name} ist nicht da (Urlaub oder krank).`), lang));
+      }
       const seconds = this.employeeFixSeconds(employee, weight);
       await this.prisma.codeStudioBug.update({
         where: { id: bug.id },
@@ -847,15 +866,19 @@ export class CodeStudioService {
       });
       if (!update.completed) continue;
       released++;
+      // Si ya estaba instalada, era una mejora: sube de versión.
+      const wasInstalled = company.modules.find((entry) => entry.moduleId === task.moduleId);
       await tx.codeStudioCompanyModule.upsert({
         where: { companyId_moduleId: { companyId: company.id, moduleId: task.moduleId } },
-        update: {},
+        update: { level: Math.min(MAX_FEATURE_LEVEL, (wasInstalled?.level ?? 1) + 1) },
         create: { companyId: company.id, moduleId: task.moduleId },
       });
+      if (wasInstalled) wasInstalled.level = Math.min(MAX_FEATURE_LEVEL, wasInstalled.level + 1);
       installed.add(task.module.slug);
       const lesson = contentFor(lang)?.features[task.module.slug]?.lesson ?? (task.module.metadata as { lesson?: string } | null)?.lesson ?? '';
       const xp = (await this.rewards.addXp(tx, userId, task.module.difficulty ** 2 * 4, company.id, {}, lang)).xp;
-      await this.log(tx, company.id, MSG.releaseTitle(this.featureName(task.module.slug, lang, task.module.name)), MSG.releaseText(lesson, xp), 'release', 'good', lang);
+      const releasedName = this.featureName(task.module.slug, lang, task.module.name) + (wasInstalled ? ` v${wasInstalled.level}` : '');
+      await this.log(tx, company.id, MSG.releaseTitle(releasedName), MSG.releaseText(lesson, xp), 'release', 'good', lang);
       await this.rewards.grantMilestone(tx, userId, 'first-feature', company.id, lang);
       const builders = this.builders(company, openBugs);
       for (const builder of builders) await this.bumpEmployee(tx, builder, { featuresShipped: 1 }, lang);
@@ -984,6 +1007,7 @@ export class CodeStudioService {
         if ((profile?.bankruptcies ?? 0) >= 1) await this.rewards.grantMilestone(tx, userId, 'second-chance', company.id, lang);
       }
     }
+    await this.employeeSituations(tx, company, Math.max(0, result.state.gameDays - company.gameDays), result.state.gameDays, lang);
     if (metrics.dailyRevenue > 0) await this.grantOnce(tx, userId, 'first-revenue', company.id, stats, lang);
     if (metrics.dailyProfit > 0 && company.employees.length >= 2) await this.grantOnce(tx, userId, 'first-profitable-day', company.id, stats, lang);
     const usersNow = company.activeUsers + next.users;
@@ -1160,7 +1184,19 @@ export class CodeStudioService {
             : missing.length > 0
               ? 'locked'
               : 'available';
-      return { slug: feature.slug, state, fit: appProfile.featureFit[feature.slug] ?? 1, missing };
+      const owned = company.modules.find((entry) => entry.module.slug === feature.slug);
+      const level = owned?.level ?? 0;
+      return {
+        slug: feature.slug,
+        state,
+        fit: appProfile.featureFit[feature.slug] ?? 1,
+        missing,
+        level,
+        maxLevel: MAX_FEATURE_LEVEL,
+        upgrading: Boolean(owned && dev),
+        upgradeCost: owned && level < MAX_FEATURE_LEVEL ? upgradeCostOf(owned.module.cost, level) : null,
+        upgradeSeconds: owned && level < MAX_FEATURE_LEVEL ? upgradeSecondsOf(owned.module.developmentSeconds, level) : null,
+      };
     });
 
     const quotesByChannel = await this.campaignQuotes(company, lang);
@@ -1247,6 +1283,10 @@ export class CodeStudioService {
         gender: genderOf(employee),
         age: employee.age,
         card: cardStats(employee),
+        away: (() => {
+          const away = this.awayOf(employee, company.gameDays);
+          return away ? { kind: away.kind, daysLeft: Math.max(1, Math.ceil(away.until - company.gameDays)) } : null;
+        })(),
         seniority: (() => {
           const level = seniorityOf(employee);
           const work = statsOf(employee).featuresShipped + statsOf(employee).bugsFixed;
@@ -1583,6 +1623,20 @@ export class CodeStudioService {
     };
     // Lo de la empresa (sin la queja del escritorio: esa la dice cada uno).
     const lines = officeLines({ ...context, unseated: 0 }).map((line) => pick(line, lang));
+    // Quien está de vacaciones o enfermo no viene a la oficina: lo comentan los demás.
+    for (const employee of company.employees) {
+      const away = this.awayOf(employee, company.gameDays);
+      if (!away) continue;
+      const first = employee.name.split(' ')[0];
+      lines.unshift(
+        pick(
+          away.kind === 'vacation'
+            ? L(`${first} está de vacaciones, ¡qué envidia!`, `${first} is on vacation, so jealous!`, `${first} ist im Urlaub, wie neidisch!`)
+            : L(`${first} no vino: tiene incapacidad, ojalá se mejore pronto.`, `${first} is sick today, hope they feel better.`, `${first} ist heute krank, gute Besserung.`),
+          lang,
+        ),
+      );
+    }
     const deal = this.dealOf({ id: company.id, stage: company.stage, employees: company.employees });
     const lineContext = {
       ...context,
@@ -1590,7 +1644,7 @@ export class CodeStudioService {
       hasCoffee: summary.amenities.includes('coffee'),
       deal: deal ? { name: CHANNELS.find((channel) => channel.slug === deal.slug)?.name ?? deal.slug, discount: Math.round(deal.discount * 100) } : null,
     };
-    const ordered = [...company.employees].sort((a, b) => performanceOf(b) - performanceOf(a));
+    const ordered = company.employees.filter((employee) => !this.awayOf(employee, company.gameDays)).sort((a, b) => performanceOf(b) - performanceOf(a));
     // Charlas entre ellos (el PM pasa un bug, QA avisa, celebran un arreglo...).
     const conversations = officeConversations({
       employees: ordered.map((employee) => ({ id: employee.id, name: employee.name, roleSlug: employee.employeeType.slug, traitKey: traitOf(employee).key })),
@@ -1777,6 +1831,116 @@ export class CodeStudioService {
     return builders.reduce((sum, employee) => sum + this.riskOf(employee), 0) / builders.length;
   }
 
+  private scaledEffects(effects: Record<string, number> | null, level: number) {
+    if (!effects || level <= 1) return effects;
+    const power = FEATURE_LEVEL_POWER[Math.min(MAX_FEATURE_LEVEL, level)] ?? 1;
+    return Object.fromEntries(Object.entries(effects).map(([key, value]) => [key, key === 'load' ? value : value * power]));
+  }
+
+  /** Ausencia vigente (vacaciones o enfermedad) de un empleado. */
+  private awayOf(employee: { metadata: unknown }, gameDays: number) {
+    const away = readMeta(employee.metadata).away as { kind: 'vacation' | 'sick'; until: number } | undefined;
+    return away && away.until > gameDays ? away : null;
+  }
+
+  private workingEmployees(company: LoadedCompany) {
+    return company.employees.filter((employee) => !this.awayOf(employee, company.gameDays));
+  }
+
+  /** Multiplicador por química del equipo (0,9 a 1,1). */
+  private chemistryOf(company: LoadedCompany) {
+    return chemistryFactor(
+      chemistryScore(
+        company.employees.map((employee) => ({
+          roleSlug: employee.employeeType.slug,
+          seniority: seniorityOf(employee).key,
+          traitKey: traitOf(employee).key,
+          traitTone: traitOf(employee).tone,
+        })),
+      ),
+    );
+  }
+
+  /**
+   * Vacaciones, enfermedades y renuncias: cada tanto alguien no viene a
+   * trabajar unos días, y los desmotivados a veces se van. Queda en el log.
+   */
+  private async employeeSituations(tx: Tx, company: LoadedCompany, days: number, gameDays: number, lang: Lang) {
+    if (days <= 0) return;
+    const chance = (perDay: number) => 1 - Math.pow(1 - perDay, days);
+    let awayCount = company.employees.filter((employee) => this.awayOf(employee, gameDays)).length;
+    for (const employee of [...company.employees]) {
+      const meta = readMeta(employee.metadata);
+      const away = meta.away as { kind: 'vacation' | 'sick'; until: number } | undefined;
+      if (away && away.until > gameDays) continue;
+      if (away) {
+        // Volvió.
+        const { away: _done, ...rest } = meta;
+        void _done;
+        employee.metadata = rest as typeof employee.metadata;
+        await tx.codeStudioEmployee.update({ where: { id: employee.id }, data: { metadata: rest as Prisma.InputJsonValue } });
+        await this.log(
+          tx,
+          company.id,
+          away.kind === 'vacation'
+            ? L(`${employee.name} volvió de vacaciones`, `${employee.name} is back from vacation`, `${employee.name} ist aus dem Urlaub zurück`)
+            : L(`${employee.name} ya se recuperó`, `${employee.name} has recovered`, `${employee.name} ist wieder gesund`),
+          L('Vuelve a trabajar con todo.', 'Back to work at full speed.', 'Wieder voll bei der Arbeit.'),
+          'team',
+          'good',
+          lang,
+        );
+        continue;
+      }
+      const roll = Math.random();
+      const quit = traitOf(employee).key === 'unmotivated' ? chance(QUIT_PER_DAY) : 0;
+      // Nunca más de la mitad del equipo afuera al mismo tiempo.
+      const canLeave = awayCount < Math.ceil(company.employees.length / 2);
+      const vacation = canLeave ? chance(VACATION_PER_DAY) : 0;
+      const sick = canLeave ? chance(SICK_PER_DAY) : 0;
+      if (roll < quit) {
+        await tx.codeStudioBug.updateMany({ where: { companyId: company.id, assignedEmployeeId: employee.id }, data: { assignedEmployeeId: null, fixReadyAt: null } });
+        await tx.codeStudioEmployee.delete({ where: { id: employee.id } });
+        company.employees = company.employees.filter((entry) => entry.id !== employee.id);
+        await this.log(
+          tx,
+          company.id,
+          L(`${employee.name} renunció`, `${employee.name} quit`, `${employee.name} hat gekündigt`),
+          L(
+            'Estaba desmotivado y encontró otro trabajo. Un equipo con buena química y puestos cómodos retiene mejor.',
+            'They were unmotivated and found another job. A team with good chemistry and comfy desks keeps people.',
+            'Die Person war unmotiviert und hat einen anderen Job gefunden. Gute Chemie und bequeme Arbeitsplätze halten Leute.',
+          ),
+          'team',
+          'bad',
+          lang,
+        );
+      } else if (roll < quit + vacation + sick) {
+        const kind = roll < quit + vacation ? 'vacation' : 'sick';
+        const length = kind === 'vacation' ? 4 + Math.random() * 4 : 2 + Math.random() * 2;
+        const next = { ...meta, away: { kind, until: gameDays + length } };
+        employee.metadata = next as typeof employee.metadata;
+        await tx.codeStudioEmployee.update({ where: { id: employee.id }, data: { metadata: next as Prisma.InputJsonValue } });
+        awayCount++;
+        await this.log(
+          tx,
+          company.id,
+          kind === 'vacation'
+            ? L(`${employee.name} se fue de vacaciones`, `${employee.name} went on vacation`, `${employee.name} ist im Urlaub`)
+            : L(`${employee.name} se enfermó`, `${employee.name} got sick`, `${employee.name} ist krank`),
+          L(
+            `No trabaja por ${Math.round(length)} días. Si hacía algo importante, el equipo va más lento.`,
+            `Off for ${Math.round(length)} days. If they were on something important, the team slows down.`,
+            `Fällt ${Math.round(length)} Tage aus. Wenn die Person an etwas Wichtigem war, wird das Team langsamer.`,
+          ),
+          'team',
+          'neutral',
+          lang,
+        );
+      }
+    }
+  }
+
   /** Riesgo de bug de una persona: su rasgo × su seniority. */
   private riskOf(employee: { id: string; metadata: unknown }) {
     return traitOf(employee).bugRisk * seniorityOf(employee).bugRisk;
@@ -1840,7 +2004,7 @@ export class CodeStudioService {
     if (!company.employees.some((employee) => employee.employeeType.slug === 'product-manager')) return;
     const busy = new Set(openBugs.map((bug) => bug.assignedEmployeeId).filter(Boolean) as string[]);
     const free = company.employees
-      .filter((employee) => BUG_CAPABLE_ROLES.has(employee.employeeType.slug) && !busy.has(employee.id))
+      .filter((employee) => BUG_CAPABLE_ROLES.has(employee.employeeType.slug) && !busy.has(employee.id) && !this.awayOf(employee, company.gameDays))
       .sort((a, b) => performanceOf(b) - performanceOf(a));
     const waiting = openBugs
       .filter((bug) => !bug.assignedEmployeeId && now.getTime() - bug.createdAt.getTime() >= AUTO_ASSIGN_DELAY_MS)
@@ -1879,13 +2043,20 @@ export class CodeStudioService {
       profile: (company.appType.simulationProfile ?? {}) as Record<string, any>,
       features: company.modules.map((entry) => ({
         slug: entry.module.slug,
-        effects: entry.module.effects as Record<string, number> | null,
+        // v2/v3 rinden más (la carga del servidor no sube con la versión).
+        effects: this.scaledEffects(entry.module.effects as Record<string, number> | null, entry.level),
         legacy: !(entry.module.metadata as { v2?: boolean } | null)?.v2,
       })),
-      employees: company.employees.map((employee) => ({
+      // Quien está de vacaciones o enfermo no trabaja; la química del equipo suma o resta.
+      employees: this.workingEmployees(company).map((employee) => ({
         id: employee.id,
         roleSlug: employee.employeeType.slug,
-        productivity: employee.productivity * traitOf(employee).power * seniorityOf(employee).power * this.mentorBoost(company) * (this.officeFactorsOf(company).get(employee.id) ?? 1),
+        productivity:
+          employee.productivity *
+          traitOf(employee).power *
+          seniorityOf(employee).power *
+          this.chemistryOf(company) *
+          this.mentorBoost(company) * (this.officeFactorsOf(company).get(employee.id) ?? 1),
         speed: employee.speed,
         salary: employee.salary,
         busy: busy.has(employee.id),
@@ -2188,7 +2359,18 @@ export class CodeStudioService {
   }
 
   private async requireAlive(userId: string, companyId: string, lang: Lang) {
-    const company = await this.requireOwned(userId, companyId, lang);
+    let company = await this.requireOwned(userId, companyId, lang);
+    // Antes de aplicar una acción, la empresa se pone al día: si no, lo nuevo
+    // (una feature, un empleado...) se llevaba todo el tiempo que el jugador
+    // estuvo afuera y terminaba al instante.
+    if (company.status !== CodeStudioCompanyStatus.FAILED && Date.now() - company.lastSimulatedAt.getTime() > 5_000) {
+      try {
+        await this.simulateCompany(userId, companyId, lang);
+      } catch {
+        // Otra petición la está simulando: se usa el estado guardado.
+      }
+      company = await this.requireOwned(userId, companyId, lang);
+    }
     if (company.status === CodeStudioCompanyStatus.FAILED) throw new BadRequestException(pick(MSG.companyFailed(), lang));
     return company;
   }
