@@ -62,6 +62,10 @@ export type EngineInput = {
   tasks: EngineTask[];
   openBugWeight: number;
   elapsedSeconds: number;
+  /** Publicidad siempre activa: dólares por día (0 = apagada). */
+  adBudget?: number;
+  /** Impulsos temporales activos (eventos): +% usuarios nuevos y +satisfacción. */
+  boost?: { growth: number; satisfaction: number };
 };
 
 export type EngineMetrics = {
@@ -88,6 +92,10 @@ export type EngineMetrics = {
   satisfactionTarget: number;
   // Agentes de soporte que faltan (0 = cubierto).
   supportGap: number;
+  /** Usuarios por día que traen la publicidad siempre activa y el boca a boca. */
+  adDailyUsers: number;
+  adCac: number;
+  wordOfMouth: number;
 };
 
 export type EngineTaskUpdate = { id: string; featureSlug: string; spentSeconds: number; progress: number; completed: boolean; difficulty: number };
@@ -283,7 +291,22 @@ export class CodeStudioEngineService {
     let newTotal = 0;
     let lostTotal = 0;
     let latency = infraLatency;
-    let last = { churn: 0, arpu: 0, dailyNew: 0, dailyLost: 0, load: 0, utilization: 0, satTarget: satisfaction, dailyRevenue: 0, dailyCosts: fixedDailyCosts, supportGap: 0 };
+    let last = {
+      churn: 0,
+      arpu: 0,
+      dailyNew: 0,
+      dailyLost: 0,
+      load: 0,
+      utilization: 0,
+      satTarget: satisfaction,
+      dailyRevenue: 0,
+      dailyCosts: fixedDailyCosts,
+      supportGap: 0,
+      adUsers: 0,
+      adCac: 0,
+      wordOfMouth: 0,
+    };
+    const adBudget = Math.max(0, input.adBudget ?? 0);
 
     const steps = Math.max(1, Math.ceil(totalDays / MAX_SUBSTEP_DAYS));
     const days = totalDays / steps;
@@ -312,6 +335,7 @@ export class CodeStudioEngineService {
       const scalePenalty = users > 100 ? (Math.log10(users) - 2) * 3 : 0;
       const satTarget = clamp(
         55 +
+          (input.boost?.satisfaction ?? 0) +
           featureSatisfaction +
           Math.sqrt(role('ux')) * 4 +
           Math.min(6, role('frontend') * 2) +
@@ -344,10 +368,19 @@ export class CodeStudioEngineService {
       const network = profile.networkEffect * clamp((users - 100) / 2000, -0.5, 1) * 0.01;
       // La viralidad se satura: los primeros usuarios invitan a sus amigos
       // con entusiasmo; con cientos de miles, casi todos ya te conocen.
-      const viral = Math.max(0, fx.viral + role('community-manager') * 0.002 + network) / (1 + users / 150_000);
+      // Boca a boca: los usuarios contentos traen amigos (con satisfacción
+      // 75 ≈ 0,6% de los usuarios por día; 90 ≈ 1,2%). Un buen producto crece
+      // solo aunque no estés; uno malo, no.
+      const wordOfMouth = Math.max(0, (satisfaction - 60) / 30) * 0.012;
+      const viral = Math.max(0, fx.viral + role('community-manager') * 0.002 + network + wordOfMouth) / (1 + users / 150_000);
       const tamFactor = Math.max(0, 1 - users / profile.tam) ** 1.5;
       const priceGrowth = monetized ? clamp(1 - (price - 1) * 0.3, 0.7, 1.15) : 1;
-      const dailyNew = launched ? (organic + users * viral) * profile.growthMultiplier * ratingFactor * tamFactor * priceGrowth : 0;
+      // Publicidad siempre activa: el presupuesto diario compra usuarios al
+      // costo por usuario (CAC) del momento: sube con mal rating y con el
+      // mercado saturado; marketing la abarata.
+      const adCac = (4.5 / Math.max(0.2, ratingFactor)) * (1 - cacDiscount) * (1 + 4 * clamp(users / profile.tam, 0, 1));
+      const adUsers = launched && adBudget > 0 ? adBudget / adCac : 0;
+      const dailyNew = launched ? (organic + users * viral) * profile.growthMultiplier * ratingFactor * tamFactor * priceGrowth * (1 + (input.boost?.growth ?? 0)) + adUsers : 0;
       const dailyLost = users * churn;
 
       const newUsers = stochasticRound(dailyNew * days, rng);
@@ -360,7 +393,7 @@ export class CodeStudioEngineService {
       const dailyRevenue = users * arpu;
       // Costos variables: servidores/almacenamiento por usuario y 3% de
       // comisión de la pasarela de pagos sobre lo que cobras.
-      const dailyCosts = fixedDailyCosts + users * 0.002 + dailyRevenue * 0.03;
+      const dailyCosts = fixedDailyCosts + users * 0.002 + dailyRevenue * 0.03 + (launched ? adBudget : 0);
       revenueTotal += dailyRevenue * days;
       costsTotal += dailyCosts * days;
       cashFloat += (dailyRevenue - dailyCosts) * days;
@@ -372,7 +405,7 @@ export class CodeStudioEngineService {
         100,
       );
 
-      last = { churn, arpu, dailyNew, dailyLost, load, utilization, satTarget, dailyRevenue, dailyCosts, supportGap };
+      last = { churn, arpu, dailyNew, dailyLost, load, utilization, satTarget, dailyRevenue, dailyCosts, supportGap, adUsers, adCac, wordOfMouth };
     }
 
     // Desarrollo: el poder del equipo se reparte entre las tareas activas
@@ -446,6 +479,9 @@ export class CodeStudioEngineService {
         cacDiscount,
         satisfactionTarget: last.satTarget,
         supportGap: last.supportGap,
+        adDailyUsers: last.adUsers,
+        adCac: last.adCac,
+        wordOfMouth: last.wordOfMouth,
       },
       tasks,
     };

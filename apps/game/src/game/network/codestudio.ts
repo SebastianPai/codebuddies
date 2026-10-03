@@ -75,6 +75,8 @@ export const startCodeStudioDevelopment = (companyId: string, moduleId: string) 
 export const cancelCodeStudioDevelopment = (companyId: string, taskId: string) =>
   request<CompanyView>(`/codestudio/companies/${companyId}/development/${taskId}`, { method: "DELETE" });
 
+export const setCodeStudioAdBudget = (companyId: string, budget: number) => post<CompanyView>(`/codestudio/companies/${companyId}/ads`, { budget });
+
 export const hireCodeStudioEmployee = (companyId: string, employeeTypeId: string, candidateIndex?: number) =>
   post<CompanyView>(`/codestudio/companies/${companyId}/employees`, { employeeTypeId, ...(candidateIndex !== undefined ? { candidateIndex } : {}) });
 

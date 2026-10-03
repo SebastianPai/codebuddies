@@ -142,6 +142,11 @@ export class CodeStudioController {
     return this.codeStudio.raiseFunding(user.userId, id, langFromHeader(lang));
   }
 
+  @Post('companies/:id/ads')
+  setAdBudget(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() body: { budget?: number }, @Query('lang') lang?: string) {
+    return this.codeStudio.setAdBudget(user.userId, id, Number(body?.budget ?? 0), langFromHeader(lang));
+  }
+
   @Post('companies/:id/pricing')
   setPricing(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() dto: SetPricingDto, @Query('lang') lang?: string) {
     return this.codeStudio.setPricing(user.userId, id, dto, langFromHeader(lang));

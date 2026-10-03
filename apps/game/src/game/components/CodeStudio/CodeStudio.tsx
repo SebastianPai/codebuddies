@@ -18,6 +18,7 @@ import {
   launchCodeStudioCampaign,
   raiseCodeStudioFunding,
   setCodeStudioPricing,
+  setCodeStudioAdBudget,
   startCodeStudioDevelopment,
   type OfficeState,
 } from "../../network/codestudio";
@@ -395,6 +396,7 @@ export default function CodeStudio({ initialView }: { initialView?: string }) {
                 catalog={studio.catalog}
                 busy={busy}
                 onLaunch={(campaignId, multiplier) => void act(() => launchCodeStudioCampaign(company.id, campaignId, multiplier))}
+                onAdBudget={(budget) => void act(() => setCodeStudioAdBudget(company.id, budget))}
               />
             )}
             {view === "finance" && (

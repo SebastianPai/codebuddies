@@ -26,6 +26,9 @@ import { employeeLines } from './content/office-lines';
 import { officeConversations } from './content/office-talk';
 import { EMPLOYEE_WEAR_TAG, employeeAvatar, prefersSkin, type WardrobeItem } from './content/employee-look';
 import { applyDeal, marketingDeal } from './content/marketing-deal';
+
+/** Presupuestos diarios de la publicidad siempre activa. */
+const AD_BUDGETS = [0, 50, 150, 400, 1000] as const;
 import { CHANNELS } from './content/economy';
 import { candidateImpact, candidatesFor, minutesUntilNewCandidates, promotionFor, seniorityOf, type TeamMember } from './content/seniority';
 import { FOUNDER_DEV_POWER } from './codestudio-engine.service';
@@ -689,6 +692,34 @@ export class CodeStudioService {
     return this.getCompany(userId, companyId, lang);
   }
 
+  /** Publicidad siempre activa: presupuesto diario (0 la apaga). Trae usuarios aunque no estés. */
+  async setAdBudget(userId: string, companyId: string, budget: number, lang: Lang = 'es') {
+    const company = await this.requireAlive(userId, companyId, lang);
+    if (!(AD_BUDGETS as readonly number[]).includes(budget)) throw new BadRequestException(pick(MSG.invalidBudget(), lang));
+    const stats = (company.stats ?? {}) as Record<string, unknown>;
+    await this.prisma.$transaction(async (tx) => {
+      await tx.codeStudioCompany.update({ where: { id: company.id }, data: { stats: { ...stats, adBudget: budget } as Prisma.InputJsonValue } });
+      await this.log(
+        tx,
+        company.id,
+        budget > 0
+          ? L(`Publicidad siempre activa: $${budget}/día`, `Always-on ads: $${budget}/day`, `Dauerwerbung: $${budget}/Tag`)
+          : L('Publicidad siempre activa apagada', 'Always-on ads turned off', 'Dauerwerbung ausgeschaltet'),
+        budget > 0
+          ? L(
+              'Trae usuarios todos los días, también cuando no estás. Vigila que lo que cuesta cada usuario (CAC) sea menor a lo que te deja (LTV).',
+              'It brings users every day, even while you are away. Make sure each user costs (CAC) less than they bring in (LTV).',
+              'Bringt jeden Tag Nutzer, auch wenn du weg bist. Achte darauf, dass ein Nutzer (CAC) weniger kostet, als er einbringt (LTV).',
+            )
+          : L('Solo crecerás por boca a boca y campañas.', 'You will only grow through word of mouth and campaigns.', 'Du wächst nur noch durch Mundpropaganda und Kampagnen.'),
+        'marketing',
+        'neutral',
+        lang,
+      );
+    });
+    return this.getCompany(userId, companyId, lang);
+  }
+
   async setPricing(userId: string, companyId: string, dto: SetPricingDto, lang: Lang = 'es') {
     const company = await this.requireAlive(userId, companyId, lang);
     const level = PRICE_LEVELS.find((entry) => entry.value === dto.level);
@@ -1262,7 +1293,16 @@ export class CodeStudioService {
         rating: snapshot.rating,
         createdAt: snapshot.createdAt,
       })),
+      boosts: this.activeBoosts(company).map((boost) => ({
+        key: boost.key,
+        label: pick(boost.label, lang),
+        daysLeft: Math.max(0, Math.ceil(boost.until - company.gameDays)),
+        growth: boost.growth,
+        satisfaction: boost.satisfaction,
+      })),
       marketing: {
+        adBudget: Number(((company.stats ?? {}) as Record<string, unknown>).adBudget ?? 0),
+        adBudgets: AD_BUDGETS,
         channels: quotesByChannel,
         summary: campaignSummary
           .map((row) => ({ channel: row.channel, gainedUsers: row._sum.gainedUsers ?? 0, spent: row._sum.cost ?? 0, runs: row._count._all }))
@@ -1832,7 +1872,24 @@ export class CodeStudioService {
       })),
       openBugWeight: openBugs.reduce((sum, bug) => sum + BUG_SEVERITY_WEIGHT[bug.severity], 0),
       elapsedSeconds,
+      adBudget: Number(((company.stats ?? {}) as Record<string, unknown>).adBudget ?? 0),
+      boost: this.activeBoosts(company).reduce(
+        (sum, boost) => ({ growth: sum.growth + boost.growth, satisfaction: sum.satisfaction + boost.satisfaction }),
+        { growth: 0, satisfaction: 0 },
+      ),
     };
+  }
+
+  /** Impulsos de eventos que siguen vigentes (por días de juego). */
+  private activeBoosts(company: { stats: unknown; gameDays: number }) {
+    const list = (((company.stats ?? {}) as Record<string, unknown>).boosts ?? []) as Array<{
+      key: string;
+      until: number;
+      growth: number;
+      satisfaction: number;
+      label: Localized;
+    }>;
+    return list.filter((boost) => boost.until > company.gameDays);
   }
 
   private hostingOf(company: LoadedCompany): EngineHosting[] {
@@ -2018,6 +2075,30 @@ export class CodeStudioService {
         data: { assignedEmployeeId: null, fixReadyAt: null },
       });
       await tx.codeStudioEmployee.delete({ where: { id: outcome.removeEmployeeId } });
+    }
+    if (outcome.boost) {
+      const stats = (company.stats ?? {}) as Record<string, unknown>;
+      const boost = outcome.boost;
+      const boosts = this.activeBoosts(company).filter((entry) => entry.key !== boost.key);
+      boosts.push({ key: boost.key, until: company.gameDays + boost.days, growth: boost.growth, satisfaction: boost.satisfaction, label: boost.label });
+      company.stats = { ...stats, boosts } as typeof company.stats;
+      await tx.codeStudioCompany.update({ where: { id: company.id }, data: { stats: company.stats as Prisma.InputJsonValue } });
+    }
+    if (outcome.startFeature) {
+      // Lo que pidieron los usuarios entra a construirse (si se puede).
+      const module = await tx.codeStudioModule.findFirst({ where: { slug: outcome.startFeature, active: true } });
+      const requirements = (module?.requirements ?? {}) as { requires?: string[] };
+      const installed = new Set(company.modules.map((entry) => entry.module.slug));
+      const ready =
+        module &&
+        !installed.has(module.slug) &&
+        !company.development.some((task) => task.moduleId === module.id) &&
+        (requirements.requires ?? []).every((slug) => installed.has(slug));
+      if (ready) {
+        await tx.codeStudioDevelopmentTask.create({
+          data: { companyId: company.id, moduleId: module.id, requiredSeconds: module.developmentSeconds, status: CodeStudioDevelopmentStatus.IN_PROGRESS, startedAt: new Date() },
+        });
+      }
     }
     if (outcome.spawnBugKey) {
       const scenario = BUG_SCENARIO_BY_KEY.get(outcome.spawnBugKey);

@@ -3559,3 +3559,123 @@ div.cs2-modal.cs2-candidates-modal {
   white-space: nowrap;
 }
 
+/* ─── Techo de usuarios, impulsos, publicidad, mientras no estabas ────── */
+.cs2-ceiling {
+  display: grid;
+  gap: 10px;
+}
+
+.cs2-ceiling.stuck {
+  border-color: rgba(250, 204, 21, 0.45);
+}
+
+.cs2-ceiling-head {
+  display: grid;
+  gap: 4px;
+}
+
+.cs2-ceiling-head b {
+  font-size: 15px;
+}
+
+.cs2-ceiling-tips {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cs2-ceiling-tips button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: var(--fill);
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cs2-ceiling-tips button:hover,
+.cs2-ceiling-tips button:focus-visible {
+  background: var(--fill-strong);
+  outline: none;
+}
+
+.cs2-ceiling-tips span {
+  flex: 1;
+}
+
+.cs2-ceiling-tips svg:first-child {
+  color: var(--px-yellow);
+}
+
+.cs2-boosts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cs2-away {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-color: rgba(250, 204, 21, 0.45);
+}
+
+.cs2-away > svg {
+  flex: none;
+  color: var(--px-yellow);
+}
+
+.cs2-away > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.cs2-away p {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--px-muted);
+}
+
+.cs2-ads {
+  display: grid;
+  gap: 10px;
+}
+
+.cs2-ads-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 8px;
+}
+
+.cs2-ads-option {
+  display: grid;
+  gap: 2px;
+  padding: 10px;
+  border: 1px solid var(--px-line);
+  border-radius: var(--r-md);
+  background: var(--fill);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cs2-ads-option small {
+  font-size: 11px;
+  color: var(--px-muted);
+}
+
+.cs2-ads-option.on {
+  border-color: var(--px-yellow);
+  background: rgba(250, 204, 21, 0.12);
+}
+

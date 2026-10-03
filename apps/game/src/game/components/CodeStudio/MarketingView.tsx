@@ -2,6 +2,7 @@
 
 import { Lock, Megaphone, Sparkles, Star, Tag, TrendingDown } from "lucide-react";
 import type { Catalog, CompanyView } from "./types";
+import { AlwaysOnAds } from "./GrowthCeiling";
 import { Stat, money, num, pct } from "./ui";
 import { useTranslation } from "../../../i18n/useTranslation";
 
@@ -10,9 +11,10 @@ type Props = {
   catalog: Catalog;
   busy: boolean;
   onLaunch: (campaignId: string, multiplier: number) => void;
+  onAdBudget: (budget: number) => void;
 };
 
-export default function MarketingView({ company, catalog, busy, onLaunch }: Props) {
+export default function MarketingView({ company, catalog, busy, onLaunch, onAdBudget }: Props) {
   const t = useTranslation();
   const m = company.metrics;
   const offline = !m.launched;
@@ -35,6 +37,8 @@ export default function MarketingView({ company, catalog, busy, onLaunch }: Prop
       </section>
 
       {offline && <p className="cs2-alert cs2-alert-warn">{t("codestudio.marketing.offline")}</p>}
+
+      <AlwaysOnAds company={company} busy={busy} onBudget={onAdBudget} />
 
       <section className="cs2-cards">
         {company.marketing.channels.map((channel) => (

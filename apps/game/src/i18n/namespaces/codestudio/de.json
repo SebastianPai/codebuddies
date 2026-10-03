@@ -608,5 +608,32 @@
     "noLink": "Dein Empfehlungslink erscheint, sobald das Programm für dein Konto aktiv ist (im Web unter Empfehlungen).",
     "friends": "Deine Freunde ({count})",
     "earned": "{coins} Münzen verdient"
+  },
+  "ceiling": {
+    "eyebrow": "Wachstum",
+    "stuck": "Du stagnierst bei ~{users} Nutzern",
+    "growing": "Unterwegs zu ~{users} Nutzern",
+    "flow": "~{plus}/Tag kommen und ~{minus}/Tag gehen ({churn}% täglich). Es wächst, bis beides gleich ist.",
+    "fromAds": "{users}/Tag durch Werbung ({cac} pro Nutzer)",
+    "server": "Dein Server ist voll: Die App ist langsam und Leute gehen. Rüste ihn auf.",
+    "satisfaction": "Die Zufriedenheit ist niedrig: Mehr Leute gehen. Baue Funktionen oder behebe Bugs.",
+    "ads": "Schalte Dauerwerbung ein: Sie bringt jeden Tag Nutzer, auch wenn du weg bist.",
+    "retention": "Bindungsfunktionen (Onboarding, Benachrichtigungen) senken den Anteil, der geht.",
+    "boost": "+{growth}% neue Nutzer, {days} Tage"
+  },
+  "away": {
+    "title": "Während du weg warst, vergingen {days} Tage",
+    "users": "Nutzer {value}",
+    "cash": "Kasse {value}",
+    "close": "Schließen"
+  },
+  "ads": {
+    "title": "Dauerwerbung",
+    "text": "Ein Tagesbudget, das jeden Tag Nutzer bringt, auch wenn du weg bist. Jeder Nutzer kostet deinen CAC: Er steigt bei schlechtem Rating und sinkt mit Marketing-Leuten.",
+    "off": "Aus",
+    "offHint": "Nur Mundpropaganda",
+    "perDay": "{amount}/Tag",
+    "users": "~{users} Nutzer/Tag",
+    "losing": "Jeder Nutzer kostet dich {cac} und bringt {ltv}: Du verlierst bei jedem Geld."
   }
 }

@@ -608,5 +608,32 @@
     "noLink": "Tu enlace de referido aparece cuando el programa de referidos se activa para tu cuenta (desde la web, en Referidos).",
     "friends": "Tus amigos ({count})",
     "earned": "{coins} monedas ganadas"
+  },
+  "ceiling": {
+    "eyebrow": "Crecimiento",
+    "stuck": "Te estancaste en ~{users} usuarios",
+    "growing": "Vas camino a ~{users} usuarios",
+    "flow": "Llegan ~{plus}/día y se van ~{minus}/día ({churn}% diario). Crece donde se igualan.",
+    "fromAds": "{users}/día por publicidad (a {cac} cada uno)",
+    "server": "Tu servidor está lleno: la app va lenta y la gente se va. Mejóralo.",
+    "satisfaction": "La satisfacción está baja: se va más gente. Construye funciones o arregla bugs.",
+    "ads": "Activa la publicidad siempre activa: trae usuarios todos los días, aunque no estés.",
+    "retention": "Funciones de retención (onboarding, notificaciones) bajan el % que se va.",
+    "boost": "+{growth}% usuarios nuevos, {days} días"
+  },
+  "away": {
+    "title": "Mientras no estabas pasaron {days} días",
+    "users": "Usuarios {value}",
+    "cash": "Caja {value}",
+    "close": "Cerrar"
+  },
+  "ads": {
+    "title": "Publicidad siempre activa",
+    "text": "Un presupuesto diario que trae usuarios todos los días, también cuando no estás. Cada usuario cuesta su CAC: sube si tu rating es malo y baja con gente de marketing.",
+    "off": "Apagada",
+    "offHint": "Solo boca a boca",
+    "perDay": "{amount}/día",
+    "users": "~{users} usuarios/día",
+    "losing": "Cada usuario te cuesta {cac} y te deja {ltv}: pierdes plata con cada uno."
   }
 }

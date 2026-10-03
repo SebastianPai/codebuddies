@@ -5,6 +5,7 @@ import type { Catalog, CompanyView, ViewKey } from "./types";
 import { ProgressBar, Sparkline, Stat, goalProgress, goalValue, money, nextStep, num, pct } from "./ui";
 import DailyMissions from "./DailyMissions";
 import FirstSteps from "./FirstSteps";
+import { ActiveBoosts, GrowthCeiling, WhileAway } from "./GrowthCeiling";
 import type { OfficeState } from "../../network/codestudio";
 import { useTranslation } from "../../../i18n/useTranslation";
 
@@ -24,6 +25,7 @@ export default function PanelView({ company, catalog, office = null, onNavigate,
 
   return (
     <div className="cs2-stack">
+      <WhileAway company={company} />
       {/* Camino: las etapas de la startup, siempre a la vista. */}
       <section className="cs2-card">
         <div className="cs2-path" aria-label={t("codestudio.panel.pathLabel")}>
@@ -90,7 +92,11 @@ export default function PanelView({ company, catalog, office = null, onNavigate,
         <ArrowRight size={18} />
       </button>
 
+      <ActiveBoosts company={company} />
+
       {company.stage.index <= 1 && <FirstSteps company={company} onNavigate={onNavigate} />}
+
+      <GrowthCeiling company={company} onNavigate={onNavigate} />
 
       <DailyMissions daily={company.profile.daily} compact />
 

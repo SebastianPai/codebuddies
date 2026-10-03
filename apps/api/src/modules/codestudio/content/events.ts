@@ -40,6 +40,10 @@ export type EventOutcome = {
   raiseSalary?: { employeeId: string; factor: number };
   removeEmployeeId?: string;
   spawnBugKey?: string;
+  /** Impulso temporal visible en el panel: más usuarios nuevos y/o satisfacción por unos días. */
+  boost?: { key: string; days: number; growth: number; satisfaction: number; label: Localized };
+  /** Empieza a construir esta función del árbol (el costo ya va en `cash`). */
+  startFeature?: string;
 };
 
 type Rng = () => number;
@@ -617,23 +621,33 @@ export const DECISION_EVENTS: DecisionEvent[] = [
     weight: 7,
     eligible: (ctx) => ctx.stage >= 2 && ctx.activeUsers >= 100,
     build: (ctx, rng) => {
-      const requests = [
-        L('modo oscuro', 'dark mode', 'Dark Mode'),
-        L('exportar sus datos a Excel', 'export their data to Excel', 'Datenexport nach Excel'),
-        L('iniciar sesión con Google', 'sign in with Google', 'Login mit Google'),
-        L('una app para tablet', 'a tablet app', 'eine Tablet-App'),
-      ];
+      // Lo que piden puede ser una función del árbol: entonces "Hacerlo ya"
+      // la pone a construir con descuento. Si ya la tienes, no la piden.
+      const requests: Array<{ text: Localized; feature: string | null }> = [
+        { text: L('modo oscuro', 'dark mode', 'Dark Mode'), feature: null },
+        { text: L('exportar sus datos a Excel', 'export their data to Excel', 'Datenexport nach Excel'), feature: null },
+        { text: L('una app para el celular y la tablet', 'a phone and tablet app', 'eine Handy- und Tablet-App'), feature: 'mobile-app' },
+        { text: L('notificaciones cuando pasa algo', 'notifications when something happens', 'Benachrichtigungen, wenn etwas passiert'), feature: 'push' },
+        { text: L('un buscador', 'a search bar', 'eine Suchfunktion'), feature: 'search' },
+      ].filter((request) => !request.feature || !ctx.installed.has(request.feature));
       const request = requests[Math.floor(rng() * requests.length)];
       const cost = 400 + ctx.stage * 250;
+      const inTree = Boolean(request.feature);
       return {
         description: L(
-          `Cientos de usuarios piden ${request.es}. No está en tu roadmap, pero lo piden en todas las reseñas.`,
-          `Hundreds of users are asking for ${request.en}. It's not on your roadmap, but it's in every review.`,
-          `Hunderte Nutzer wünschen sich ${request.de}. Es steht nicht auf deiner Roadmap, aber in jeder Bewertung.`,
+          `Cientos de usuarios piden ${request.text.es}. No está en tu roadmap, pero lo piden en todas las reseñas.`,
+          `Hundreds of users are asking for ${request.text.en}. It's not on your roadmap, but it's in every review.`,
+          `Hunderte Nutzer wünschen sich ${request.text.de}. Es steht nicht auf deiner Roadmap, aber in jeder Bewertung.`,
         ),
-        params: { cost },
+        params: { cost, feature: request.feature },
         choices: [
-          { key: 'build', label: L(`Hacerlo ya (${$(cost)})`, `Build it now (${$(cost)})`, `Sofort bauen (${$(cost)})`), hint: L('+satisfacción y reputación.', '+satisfaction and reputation.', '+Zufriedenheit und Ruf.') },
+          {
+            key: 'build',
+            label: L(`Hacerlo ya (${$(cost)})`, `Build it now (${$(cost)})`, `Sofort bauen (${$(cost)})`),
+            hint: inTree
+              ? L('Empieza a construirse en el árbol y, por pedirlo la gente, +25% usuarios nuevos por 10 días.', 'It starts building in the tree and, since people asked for it, +25% new users for 10 days.', 'Es wird im Baum gebaut und, weil die Leute es wollen, +25% neue Nutzer für 10 Tage.')
+              : L('Por pedirlo la gente: +25% usuarios nuevos y +satisfacción por 10 días.', 'Since people asked for it: +25% new users and +satisfaction for 10 days.', 'Weil die Leute es wollen: +25% neue Nutzer und +Zufriedenheit für 10 Tage.'),
+          },
           { key: 'later', label: L('Dejarlo para después', 'Leave it for later', 'Auf später verschieben'), hint: L('Los usuarios se molestan un poco.', 'Users get a little annoyed.', 'Die Nutzer sind etwas verärgert.') },
         ],
       };
@@ -645,9 +659,21 @@ export const DECISION_EVENTS: DecisionEvent[] = [
         ? {
             tone: 'good',
             cash: -params.cost,
-            satisfaction: 6,
+            satisfaction: 3,
             reputation: 2,
-            message: L('Lo lanzaste y las reseñas se llenaron de estrellas. Escuchar a los usuarios paga.', 'You shipped it and the reviews filled with stars. Listening to users pays off.', 'Du hast es veröffentlicht und die Bewertungen sind voller Sterne. Auf Nutzer zu hören lohnt sich.'),
+            startFeature: params.feature ?? undefined,
+            boost: {
+              key: 'feature-request',
+              days: 10,
+              growth: 0.25,
+              satisfaction: 4,
+              label: L('Lo que pedían tus usuarios', 'What your users asked for', 'Was deine Nutzer wollten'),
+            },
+            message: L(
+              'Escuchaste a tus usuarios: las reseñas se llenaron de estrellas y llega más gente por 10 días.',
+              'You listened to your users: reviews filled with stars and more people arrive for 10 days.',
+              'Du hast auf deine Nutzer gehört: Die Bewertungen sind voller Sterne und 10 Tage lang kommen mehr Leute.',
+            ),
           }
         : { tone: 'bad', satisfaction: -3, message: L('Lo dejaste para después. Algunos usuarios se quejan en redes.', 'You left it for later. Some users complain on social media.', 'Du hast es verschoben. Einige Nutzer beschweren sich in sozialen Netzwerken.') },
   },

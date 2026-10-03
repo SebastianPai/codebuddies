@@ -608,5 +608,32 @@
     "noLink": "Your referral link appears once the referral program is active for your account (on the web, under Referrals).",
     "friends": "Your friends ({count})",
     "earned": "{coins} coins earned"
+  },
+  "ceiling": {
+    "eyebrow": "Growth",
+    "stuck": "You plateaued at ~{users} users",
+    "growing": "Heading toward ~{users} users",
+    "flow": "~{plus}/day arrive and ~{minus}/day leave ({churn}% daily). Growth stops where they meet.",
+    "fromAds": "{users}/day from ads ({cac} each)",
+    "server": "Your server is full: the app is slow and people leave. Upgrade it.",
+    "satisfaction": "Satisfaction is low: more people leave. Build features or fix bugs.",
+    "ads": "Turn on always-on ads: they bring users every day, even while you are away.",
+    "retention": "Retention features (onboarding, notifications) lower the % who leave.",
+    "boost": "+{growth}% new users, {days} days"
+  },
+  "away": {
+    "title": "{days} days passed while you were away",
+    "users": "Users {value}",
+    "cash": "Cash {value}",
+    "close": "Close"
+  },
+  "ads": {
+    "title": "Always-on ads",
+    "text": "A daily budget that brings users every day, even while you are away. Each user costs your CAC: it rises with a bad rating and drops with marketing staff.",
+    "off": "Off",
+    "offHint": "Word of mouth only",
+    "perDay": "{amount}/day",
+    "users": "~{users} users/day",
+    "losing": "Each user costs you {cac} and brings {ltv}: you lose money on every one."
   }
 }

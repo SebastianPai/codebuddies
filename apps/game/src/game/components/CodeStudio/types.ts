@@ -148,6 +148,9 @@ export type Metrics = {
   dailySalaries: number;
   dailyInfra: number;
   dailyNewUsers: number;
+  adDailyUsers: number;
+  adCac: number;
+  wordOfMouth: number;
   dailyLostUsers: number;
   churn: number;
   arpu: number;
@@ -280,7 +283,8 @@ export type CompanyView = {
   pendingDecision: { id: string; title: string; description: string | null; choices: Array<{ key: string; label: string; hint: string }>; daysLeft: number } | null;
   events: ActivityEvent[];
   snapshots: Array<{ activeUsers: number; revenue: number; expenses: number; rating: number; createdAt: string }>;
-  marketing: { channels: ChannelQuote[]; summary: Array<{ channel: string; gainedUsers: number; spent: number; runs: number }> };
+  marketing: { adBudget?: number; adBudgets?: number[]; channels: ChannelQuote[]; summary: Array<{ channel: string; gainedUsers: number; spent: number; runs: number }> };
+  boosts?: Array<{ key: string; label: string; daysLeft: number; growth: number; satisfaction: number }>;
   funding: { name: string; raise: number; equity: number; minStage: number; minStageName: string; available: boolean; minRating: number } | null;
   profile: Profile;
 };
