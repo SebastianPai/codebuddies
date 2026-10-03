@@ -38,6 +38,7 @@ export default function OfficeEmployeeModal() {
             stats: employee.stats ?? undefined,
             card: employee.card ?? undefined,
             skin: employee.skin ?? undefined,
+            avatar: employee.avatar ?? null,
           }}
         />
       </div>

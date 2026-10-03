@@ -7,6 +7,8 @@ export type SlotMap = {
   [slotName: string]: {
     base?: Phaser.GameObjects.Sprite;
     anim?: Phaser.GameObjects.Sprite;
+    /** Prefijo de sus animaciones (uno por hoja de sprites, no por slot). */
+    animPrefix?: string;
   };
 };
 
@@ -18,8 +20,6 @@ export default class AvatarBuilder {
     slotMap: SlotMap,
     skinColor: number = 0xffffff,
   ) {
-    console.log("[AvatarBuilder PRO] build START");
-
     const scale = 0.5;
 
     const sortedSlots = [...avatarSlots].sort(
@@ -29,14 +29,6 @@ export default class AvatarBuilder {
     for (const slot of sortedSlots) {
       const spriteSheet = slot?.sprites?.[0];
       const baseTextureKey = slot.imageUrl;
-
-      console.log("SLOT:", {
-        slot: slot.slot,
-        base: baseTextureKey,
-        anim: spriteSheet?.imageUrl,
-        colorable: slot.colorable,
-        color: slot.color,
-      });
 
       // ───────────── BASE (IDLE) ─────────────
       let baseSprite: Phaser.GameObjects.Sprite | undefined;
@@ -61,6 +53,7 @@ export default class AvatarBuilder {
 
       // ───────────── ANIMACIÓN ─────────────
       let animSprite: Phaser.GameObjects.Sprite | undefined;
+      let animPrefix: string | undefined;
 
       if (spriteSheet?.imageUrl) {
         const textureKey = spriteSheet.imageUrl;
@@ -101,8 +94,12 @@ export default class AvatarBuilder {
               right: 3,
             };
 
+            // Una animación por hoja de sprites: antes la llave era solo el
+            // slot ("SHIRT_down") y el segundo personaje con otra camisa
+            // caminaba con la camisa del primero.
+            animPrefix = `avatar:${textureKey}:${fw}x${fh}`;
             Object.entries(dirMap).forEach(([dir, rowIndex]) => {
-              const animKey = `${slot.slot}_${dir}`;
+              const animKey = `${animPrefix}:${dir}`;
 
               if (scene.anims.exists(animKey)) return;
               if (rowIndex >= rows) return;
@@ -146,9 +143,8 @@ export default class AvatarBuilder {
       slotMap[slot.slot] = {
         base: baseSprite,
         anim: animSprite,
+        animPrefix,
       };
     }
-
-    console.log("[AvatarBuilder PRO] Avatar COMPLETO");
   }
 }

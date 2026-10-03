@@ -6,7 +6,7 @@ import type { CompanyView } from "./types";
 import { money } from "./ui";
 import { useTranslation } from "../../../i18n/useTranslation";
 
-type Employee = Pick<CompanyView["employees"][number], "name" | "roleSlug" | "roleName" | "trait" | "skin" | "card" | "performance" | "stats"> &
+type Employee = Pick<CompanyView["employees"][number], "name" | "roleSlug" | "roleName" | "trait" | "skin" | "card" | "performance" | "stats" | "avatar"> &
   Partial<Pick<CompanyView["employees"][number], "busy" | "salary" | "seniority">>;
 
 // Carta de empleado estilo "carta de fútbol": media grande, rol, retrato
@@ -33,6 +33,73 @@ const ROLE_SHORT: Record<string, string> = {
   "community-manager": "CM",
   "data-scientist": "DS",
 };
+
+const IMAGE_CACHE = new Map<string, HTMLImageElement>();
+
+function loadImage(url: string) {
+  const cached = IMAGE_CACHE.get(url);
+  if (cached?.complete) return Promise.resolve(cached);
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => {
+      IMAGE_CACHE.set(url, image);
+      resolve(image);
+    };
+    image.onerror = reject;
+    image.src = url;
+  });
+}
+
+/** Retrato de un empleado por piezas: sus capas una encima de otra, con su tono de piel y color de pelo. */
+function AvatarPortrait({ avatar, label }: { avatar: NonNullable<Employee["avatar"]>; label: string }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const layers = avatar.slots.filter((slot) => slot.imageUrl).sort((a, b) => a.layer - b.layer);
+    Promise.all(layers.map((slot) => loadImage(slot.imageUrl!).then((image) => ({ slot, image })).catch(() => null))).then((loaded) => {
+      const canvas = canvasRef.current;
+      if (cancelled || !canvas) return;
+      const parts = loaded.filter(Boolean) as Array<{ slot: (typeof layers)[number]; image: HTMLImageElement }>;
+      const width = Math.max(1, ...parts.map((part) => part.image.width));
+      const height = Math.max(1, ...parts.map((part) => part.image.height));
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.imageSmoothingEnabled = false;
+      const scratch = document.createElement("canvas");
+      scratch.width = width;
+      scratch.height = height;
+      const sctx = scratch.getContext("2d")!;
+      sctx.imageSmoothingEnabled = false;
+      for (const { slot, image } of parts) {
+        const x = Math.round((width - image.width) / 2);
+        const y = Math.round((height - image.height) / 2);
+        const tint = slot.colorable ? (slot.color ?? avatar.skinColor) : null;
+        if (tint === null || tint === 0xffffff) {
+          ctx.drawImage(image, x, y);
+          continue;
+        }
+        // Teñir como Phaser (multiplicar) conservando la transparencia.
+        sctx.clearRect(0, 0, width, height);
+        sctx.globalCompositeOperation = "source-over";
+        sctx.drawImage(image, x, y);
+        sctx.globalCompositeOperation = "multiply";
+        sctx.fillStyle = `#${tint.toString(16).padStart(6, "0")}`;
+        sctx.fillRect(0, 0, width, height);
+        sctx.globalCompositeOperation = "destination-in";
+        sctx.drawImage(image, x, y);
+        ctx.drawImage(scratch, 0, 0);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [avatar]);
+
+  return <canvas ref={canvasRef} className="cs2-card-portrait" role="img" aria-label={label} />;
+}
 
 /** Retrato: el primer cuadro de la hoja de la skin, pixelado y centrado. */
 function SkinPortrait({ skin, label }: { skin: Employee["skin"]; label: string }) {
@@ -110,7 +177,11 @@ export default function EmployeeCard({ employee, busy = false, onFire }: { emplo
       </header>
 
       <div className="cs2-fut-portrait">
-        <SkinPortrait skin={employee.skin} label={employee.name} />
+        {!employee.skin?.spriteSheetUrl && employee.avatar ? (
+          <AvatarPortrait avatar={employee.avatar} label={employee.name} />
+        ) : (
+          <SkinPortrait skin={employee.skin} label={employee.name} />
+        )}
       </div>
 
       <div className="cs2-fut-name">

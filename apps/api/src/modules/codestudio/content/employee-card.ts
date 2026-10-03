@@ -43,13 +43,14 @@ type SkinNpc = { key: string; kind: string; gender: string | null; spriteSheetUr
 
 /** Skin de un empleado: la guardada, o una del admin según su género, o el mayordomo. */
 export function resolveSkin(employee: { id: string; name: string; avatar: string | null; metadata: unknown }, npcs: SkinNpc[]) {
-  const usable = npcs.filter((npc) => npc.spriteSheetUrl);
+  // Solo skins de empleados: el mayordomo es otra cosa y no se mezcla.
+  const usable = npcs.filter((npc) => npc.spriteSheetUrl && npc.kind === 'EMPLOYEE');
   const saved = usable.find((npc) => npc.key === employee.avatar);
   if (saved) return saved;
   const gender = genderOf(employee);
-  const pool = usable.filter((npc) => npc.kind === 'EMPLOYEE' && (!npc.gender || npc.gender === gender));
+  const pool = usable.filter((npc) => !npc.gender || npc.gender === gender);
   if (pool.length > 0) return pool[Math.floor(hashUnit(employee.id) * pool.length)];
-  return usable.find((npc) => npc.kind === 'BUTLER') ?? null;
+  return null;
 }
 
 const stat = (value: number) => Math.round(Math.max(20, Math.min(99, 40 + (value - 0.7) * 100)));

@@ -143,6 +143,19 @@ export type OfficeState = {
   furnitureAvailable: boolean;
   kit: { available: boolean; claimed: number; pending: number };
 };
+export type EmployeeAvatarLook = {
+  skinColor: number;
+  slots: Array<{
+    slot: string;
+    itemId: string | null;
+    imageUrl: string | null;
+    layer: number;
+    color: number | null;
+    colorable: boolean;
+    sprites: Array<{ imageUrl: string; frameWidth: number; frameHeight: number; framesCount: number; rows: number; animation: { speed: number; loop: boolean } }>;
+  }>;
+};
+
 export type OfficeRoomEmployee = {
   id: string;
   name: string;
@@ -154,6 +167,9 @@ export type OfficeRoomEmployee = {
   performance: number;
   card: { overall: number; vel: number; cal: number; cre: number; pro: number; mot: number; exp: number } | null;
   skin: { key: string; spriteSheetUrl: string | null; frameWidth: number; frameHeight: number } | null;
+  /** Armado por piezas, como un jugador (si no tiene skin completa). */
+  avatar?: EmployeeAvatarLook | null;
+  lines?: string[];
   npc: {
     key: string;
     name: string;

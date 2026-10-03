@@ -271,6 +271,8 @@ export type CompanyView = {
     age?: number;
     card?: { overall: number; vel: number; cal: number; cre: number; pro: number; mot: number; exp: number };
     seniority?: { key: string; name: string; progress: number };
+    /** Armado por piezas (si no tiene skin completa). */
+    avatar?: import("../../network/codestudio").EmployeeAvatarLook | null;
     skin?: { key: string; spriteSheetUrl: string | null; frameWidth: number; frameHeight: number } | null;
   }>;
   hosting: Array<{ typeId: string; slug: string; name: string; level: number; maxLevel: number; capacity: number; monthly: number; upgradeCost: number; legacy: boolean }>;

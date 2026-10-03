@@ -3344,8 +3344,9 @@
   border-radius: 999px;
   font-size: 11px;
   font-weight: 700;
-  background: var(--fill-strong);
-  color: var(--px-text);
+  /* Oscuro: se lee igual sobre cartas doradas, plateadas o de bronce. */
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
   white-space: nowrap;
 }
 

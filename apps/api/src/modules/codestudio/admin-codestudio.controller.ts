@@ -10,6 +10,17 @@ import { CodeStudioService } from './codestudio.service';
 export class AdminCodeStudioController {
   constructor(private readonly codeStudio: CodeStudioService) {}
 
+  // Ropa de empleados (antes de las rutas genéricas :resource).
+  @Get('wardrobe/items')
+  wardrobe() {
+    return this.codeStudio.adminWardrobe();
+  }
+
+  @Patch('wardrobe/items/:itemId')
+  setWardrobe(@Param('itemId') itemId: string, @Body() body: { wear?: boolean }) {
+    return this.codeStudio.adminSetWardrobe(itemId, Boolean(body?.wear));
+  }
+
   @Get(':resource')
   list(@Param('resource') resource: string) {
     return this.codeStudio.adminList(resource);

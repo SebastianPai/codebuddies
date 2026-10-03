@@ -15,7 +15,8 @@ describe('empleados como cartas', () => {
     const woman = npc('dev-mujer', 'EMPLOYEE', 'FEMALE');
     const man = npc('dev-hombre', 'EMPLOYEE', 'MALE');
     const emp = { id: 'e1', name: 'Luna Byte', avatar: 'avatar-frontend', metadata: { gender: 'FEMALE' } };
-    expect(resolveSkin(emp, [butler])?.key).toBe('butler-main');
+    // El mayordomo nunca se usa para empleados.
+    expect(resolveSkin(emp, [butler])).toBeNull();
     expect(resolveSkin(emp, [butler, woman, man])?.key).toBe('dev-mujer');
     expect(resolveSkin({ ...emp, avatar: 'dev-hombre' }, [butler, woman, man])?.key).toBe('dev-hombre');
   });

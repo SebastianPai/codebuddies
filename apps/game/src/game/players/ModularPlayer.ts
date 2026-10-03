@@ -192,8 +192,8 @@ export default class ModularPlayer extends Phaser.GameObjects.Container {
 
       slot.base?.setVisible(false);
 
-      if (slot.anim) {
-        const animKey = `${slotName}_${direction}`;
+      if (slot.anim && slot.animPrefix) {
+        const animKey = `${slot.animPrefix}:${direction}`;
 
         if (!this.scene.anims.exists(animKey)) continue;
 

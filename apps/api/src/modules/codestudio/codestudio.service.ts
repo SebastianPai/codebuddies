@@ -24,6 +24,7 @@ import { cardStats, employeeName, genderOf, resolveSkin, rollGender } from './co
 import { OFFICE_TAGS, OfficeCounts, countOffice, officeFactors, officeLines, officePrice, officeSummary } from './content/office';
 import { employeeLines } from './content/office-lines';
 import { officeConversations } from './content/office-talk';
+import { EMPLOYEE_WEAR_TAG, employeeAvatar, prefersSkin, type WardrobeItem } from './content/employee-look';
 import { applyDeal, marketingDeal } from './content/marketing-deal';
 import { CHANNELS } from './content/economy';
 import { candidateImpact, candidatesFor, minutesUntilNewCandidates, promotionFor, seniorityOf, type TeamMember } from './content/seniority';
@@ -1124,6 +1125,7 @@ export class CodeStudioService {
     const pendingEffects = (pending?.effects ?? {}) as Record<string, any>;
     const busyEmployeeIds = new Set(company.bugReports.map((bug) => bug.assignedEmployeeId).filter(Boolean) as string[]);
     const skinNpcs = await this.skinNpcs();
+    const wardrobe = await this.employeeWardrobe();
     await this.officeCountsFor(company);
 
     return {
@@ -1206,9 +1208,13 @@ export class CodeStudioService {
           const work = statsOf(employee).featuresShipped + statsOf(employee).bugsFixed;
           return { key: level.key, name: pick(level.name, lang), progress: level.promoteAt ? Math.min(1, work / level.promoteAt) : 1 };
         })(),
-        skin: (() => {
-          const npc = resolveSkin(employee, skinNpcs);
-          return npc ? { key: npc.key, spriteSheetUrl: npc.spriteSheetUrl, frameWidth: npc.frameWidth, frameHeight: npc.frameHeight } : null;
+        ...(() => {
+          const look = this.lookOf(employee, skinNpcs, wardrobe);
+          const npc = look.skin;
+          return {
+            skin: npc ? { key: npc.key, spriteSheetUrl: npc.spriteSheetUrl, frameWidth: npc.frameWidth, frameHeight: npc.frameHeight } : null,
+            avatar: look.avatar,
+          };
         })(),
       })),
       hosting: company.infrastructure.map((item) => {
@@ -1484,9 +1490,10 @@ export class CodeStudioService {
       return base ? localizeScenario(base, lang).title : bug.title;
     };
     const npcs = await this.prisma.npcConfig.findMany({
-      where: { enabled: true, kind: { in: ['EMPLOYEE', 'BUTLER'] } },
+      where: { enabled: true, kind: 'EMPLOYEE' },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
     });
+    const wardrobe = await this.employeeWardrobe();
     await this.officeCountsFor(company);
     const summary = this.officeSummaryOf(company as unknown as LoadedCompany);
     const stats = (company.stats ?? {}) as Record<string, any>;
@@ -1531,7 +1538,8 @@ export class CodeStudioService {
       company: { id: company.id, name: company.name },
       conversations,
       employees: ordered.map((employee, index) => {
-        const skin = resolveSkin(employee, npcs);
+        const look = this.lookOf(employee, npcs, wardrobe);
+        const skin = look.skin;
         const full = skin ? npcs.find((npc) => npc.key === skin.key) : null;
         // Lo suyo primero (rol, ánimo, su bug); luego un par de cosas de la
         // empresa, distintas para cada uno para que no digan todos lo mismo.
@@ -1569,6 +1577,9 @@ export class CodeStudioService {
           performance: performanceOf(employee),
           card: cardStats(employee),
           skin: skin ? { key: skin.key, spriteSheetUrl: skin.spriteSheetUrl, frameWidth: skin.frameWidth, frameHeight: skin.frameHeight } : null,
+          avatar: look.avatar,
+          // Lo que dice (con skin o por piezas).
+          lines: own,
           npc: full
             ? {
                 key: full.key,
@@ -1589,16 +1600,88 @@ export class CodeStudioService {
 
   // ─── Equipo: rasgos, estadísticas y Product Manager ──────────────────
 
-  // Skins de empleados (NPC EMPLOYEE + el mayordomo como respaldo). Cambian
+  // Skins de empleados (NPC EMPLOYEE; el mayordomo no se mezcla). Cambian
   // poco: se cachean un minuto para no consultarlas en cada poll.
   private skinCache: { at: number; npcs: Awaited<ReturnType<CodeStudioService['loadSkinNpcs']>> } | null = null;
 
   private loadSkinNpcs() {
     return this.prisma.npcConfig.findMany({
-      where: { enabled: true, kind: { in: ['EMPLOYEE', 'BUTLER'] } },
+      where: { enabled: true, kind: 'EMPLOYEE' },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
       select: { key: true, kind: true, gender: true, spriteSheetUrl: true, frameWidth: true, frameHeight: true },
     });
+  }
+
+  // Ropa para armar empleados por piezas: lo marcado como "ropa de
+  // empleados" en el admin + los items por defecto de cada slot.
+  private wardrobeCache: { at: number; items: WardrobeItem[] } | null = null;
+
+  private async employeeWardrobe(): Promise<WardrobeItem[]> {
+    if (this.wardrobeCache && Date.now() - this.wardrobeCache.at < 60_000) return this.wardrobeCache.items;
+    const rows = await this.prisma.item.findMany({
+      where: { avatarData: { isNot: null }, OR: [{ isDefaultForSlot: { not: null } }, { tags: { has: EMPLOYEE_WEAR_TAG } }] },
+      select: {
+        id: true,
+        imageUrl: true,
+        layer: true,
+        colorable: true,
+        isDefaultForSlot: true,
+        tags: true,
+        avatarData: { select: { slot: true } },
+        sprites: { select: { imageUrl: true, frameWidth: true, frameHeight: true, framesCount: true, animation: { select: { speed: true, loop: true } } } },
+      },
+    });
+    const items: WardrobeItem[] = rows.map((row) => ({
+      id: row.id,
+      slot: row.avatarData!.slot,
+      imageUrl: row.imageUrl,
+      layer: row.layer,
+      colorable: row.colorable,
+      isDefault: row.isDefaultForSlot === row.avatarData!.slot,
+      wear: row.tags.includes(EMPLOYEE_WEAR_TAG),
+      sprites: row.sprites.map((sprite) => ({
+        imageUrl: sprite.imageUrl,
+        frameWidth: Number(sprite.frameWidth),
+        frameHeight: Number(sprite.frameHeight),
+        framesCount: Number(sprite.framesCount),
+        animation: sprite.animation ? { speed: Number(sprite.animation.speed), loop: sprite.animation.loop } : null,
+      })),
+    }));
+    this.wardrobeCache = { at: Date.now(), items };
+    return items;
+  }
+
+  /** Admin: items de avatar y si los pueden usar los empleados. */
+  async adminWardrobe() {
+    const rows = await this.prisma.item.findMany({
+      where: { avatarData: { isNot: null } },
+      select: { id: true, imageUrl: true, isDefaultForSlot: true, tags: true, avatarData: { select: { slot: true } }, translations: { select: { name: true }, take: 1 } },
+      orderBy: { createdAt: 'desc' },
+    });
+    return rows.map((row) => ({
+      id: row.id,
+      name: row.translations[0]?.name ?? row.id.slice(0, 8),
+      slot: row.avatarData!.slot,
+      imageUrl: row.imageUrl,
+      isDefault: row.isDefaultForSlot === row.avatarData!.slot,
+      wear: row.tags.includes(EMPLOYEE_WEAR_TAG),
+    }));
+  }
+
+  async adminSetWardrobe(itemId: string, wear: boolean) {
+    const item = await this.prisma.item.findUnique({ where: { id: itemId }, select: { tags: true } });
+    if (!item) throw new NotFoundException('Item no encontrado');
+    const tags = item.tags.filter((tag) => tag !== EMPLOYEE_WEAR_TAG);
+    await this.prisma.item.update({ where: { id: itemId }, data: { tags: wear ? [...tags, EMPLOYEE_WEAR_TAG] : tags } });
+    this.wardrobeCache = null;
+    return { id: itemId, wear };
+  }
+
+  /** Skin completa o avatar por piezas (nunca el mayordomo). */
+  private lookOf<T extends { key: string }>(employee: { id: string; name: string; avatar: string | null; metadata: unknown }, npcs: T[], wardrobe: WardrobeItem[]) {
+    const skin = resolveSkin(employee, npcs as never) as (T & { key: string }) | null;
+    if (skin && prefersSkin(employee.id, true, wardrobe)) return { skin, avatar: null };
+    return { skin: null, avatar: employeeAvatar(employee.id, wardrobe) };
   }
 
   private async skinNpcs() {

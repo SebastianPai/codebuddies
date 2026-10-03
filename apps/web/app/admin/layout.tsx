@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "../../hooks/useAuth";
 import Link from "next/link";
-import { History, Ticket, LayoutDashboard, BookOpen, Layers, Code, Terminal, Award, User, Image, Palette, BarChart3, Settings, LogOut, MapPin, Mail, Bell, Crown, Users, Target, DollarSign, GitBranch, Shield, AlertTriangle, Activity, ChevronDown, ChevronsLeft, ChevronsRight, CreditCard, Webhook, GitCompare, ShoppingBag, Search, ChevronRight, ShieldAlert, Gift } from "lucide-react";
+import { Briefcase, History, Ticket, LayoutDashboard, BookOpen, Layers, Code, Terminal, Award, User, Image, Palette, BarChart3, Settings, LogOut, MapPin, Mail, Bell, Crown, Users, Target, DollarSign, GitBranch, Shield, AlertTriangle, Activity, ChevronDown, ChevronsLeft, ChevronsRight, CreditCard, Webhook, GitCompare, ShoppingBag, Search, ChevronRight, ShieldAlert, Gift } from "lucide-react";
 import { useTranslation } from "../../src/i18n/useTranslation";
 import { useDisclosure } from "../../src/shared/hooks/use-disclosure";
 import { CommandPalette } from "../../src/features/admin/command-palette";
@@ -185,6 +185,7 @@ export default function AdminLayout({
         items: [
           { href: "/admin/pets", label: t("admin.petsTitle"), icon: <Gift size={18} /> },
           { href: "/admin/butler", label: t("admin.butlerTitle"), icon: <Users size={18} /> },
+          { href: "/admin/employees", label: t("admin.employeesTitle"), icon: <Briefcase size={18} /> },
         ],
       },
       {

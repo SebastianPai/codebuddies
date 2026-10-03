@@ -1,6 +1,8 @@
 import Phaser from "phaser";
 import PetSystem from "./PetSystem";
 import ButlerSystem from "./ButlerSystem";
+import EmployeeAvatarSystem from "./EmployeeAvatarSystem";
+import type { AvatarSlot } from "../types/avatar";
 import { getRoomPets } from "../network/pets";
 import { getRoomButlers, type ButlerNpc } from "../network/butlers";
 import { getOfficeRoomEmployees } from "../network/codestudio";
@@ -21,7 +23,7 @@ export default class RoomCompanions {
   private pets = new Map<string, PetSystem>();
   private butlers = new Map<string, ButlerSystem>();
   // Empleados de CodeStudio si esta sala es la oficina de una empresa.
-  private employees = new Map<string, ButlerSystem>();
+  private employees = new Map<string, ButlerSystem | EmployeeAvatarSystem>();
   private sinceRefresh = 0;
   private conversations: Array<Array<{ employeeId: string; text: string }>> = [];
   private lastTalkSlot = -1;
@@ -78,15 +80,39 @@ export default class RoomCompanions {
 
       this.conversations = office.conversations ?? [];
       const employeeIds = new Set<string>();
-      const withSkin = office.employees.filter((employee) => !!employee.npc?.spriteSheetUrl);
-      withSkin.forEach((employee, index) => {
-        if (!employee.npc) return;
+      const visible = office.employees.filter((employee) => !!employee.npc?.spriteSheetUrl || !!employee.avatar);
+      visible.forEach((employee, index) => {
         employeeIds.add(employee.id);
         const existing = this.employees.get(employee.id);
+        const lines = employee.lines ?? employee.npc?.idleLines ?? [];
+        // El de mejor rendimiento se queda con la primera silla, igual que
+        // en el cálculo de puestos del servidor.
+        const seat = () => this.officeChairs()[index] ?? null;
+        const onSelect = () =>
+          window.dispatchEvent(new CustomEvent("codestudio:employee-selected", { detail: { employee, companyName: office.company?.name ?? "" } }));
         if (existing) {
-          existing.setLines(employee.npc.greetingLines, employee.npc.idleLines);
+          if (existing instanceof EmployeeAvatarSystem) existing.setLines(lines);
+          else existing.setLines(employee.npc?.greetingLines ?? [], lines);
           return;
         }
+        // Por piezas (como un jugador) o con skin completa.
+        if (!employee.npc && employee.avatar) {
+          const system = new EmployeeAvatarSystem(this.scene, {
+            id: employee.id,
+            name: employee.name,
+            subtitle: employee.roleName,
+            avatar: { skinColor: employee.avatar.skinColor, slots: employee.avatar.slots as AvatarSlot[] },
+            lines,
+            greeting: lines[0] ?? null,
+            wanderRadius: 240,
+            seat,
+            onSelect,
+          });
+          this.employees.set(employee.id, system);
+          system.sync();
+          return;
+        }
+        if (!employee.npc) return;
         const npc = { ...employee.npc, name: employee.name, animations: (employee.npc.animations ?? []) as ButlerNpc["animations"] } as ButlerNpc;
         const system = new ButlerSystem(
           this.scene,
@@ -96,13 +122,8 @@ export default class RoomCompanions {
             nameplate: { name: employee.name, subtitle: employee.roleName },
             wanderRadius: 240,
             colorSeed: employee.id,
-            // El de mejor rendimiento se queda con la primera silla, igual
-            // que en el cálculo de puestos del servidor.
-            seat: () => this.officeChairs()[index] ?? null,
-            onSelect: () =>
-              window.dispatchEvent(
-                new CustomEvent("codestudio:employee-selected", { detail: { employee, companyName: office.company?.name ?? "" } }),
-              ),
+            seat,
+            onSelect,
           },
         );
         this.employees.set(employee.id, system);
