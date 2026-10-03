@@ -41,5 +41,14 @@
   "roomPrivate": "Privat",
   "joinRoomAction": "Beitreten",
   "requestJoinAction": "Zugang anfragen",
-  "joinRequestSentMessage": "Wir haben {username} mitgeteilt, dass du \"{roomName}\" beitreten möchtest. Du bekommst eine Benachrichtigung, wenn du hereingelassen wirst."
+  "joinRequestSentMessage": "Wir haben {username} mitgeteilt, dass du \"{roomName}\" beitreten möchtest. Du bekommst eine Benachrichtigung, wenn du hereingelassen wirst.",
+  "work": {
+    "line": "{role} bei {company}",
+    "goOffice": "Zum Büro",
+    "experience": "Erfahrung",
+    "role": "{role} · {equity}% Anteil",
+    "present": "heute",
+    "users": "{count} Nutzer",
+    "closed": "Geschlossen"
+  }
 }

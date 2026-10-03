@@ -41,5 +41,14 @@
   "roomPrivate": "Private",
   "joinRoomAction": "Join",
   "requestJoinAction": "Request access",
-  "joinRequestSentMessage": "We let {username} know you want to join \"{roomName}\". You'll get a notification if they let you in."
+  "joinRequestSentMessage": "We let {username} know you want to join \"{roomName}\". You'll get a notification if they let you in.",
+  "work": {
+    "line": "{role} at {company}",
+    "goOffice": "Go to their office",
+    "experience": "Experience",
+    "role": "{role} · owns {equity}%",
+    "present": "present",
+    "users": "{count} users",
+    "closed": "Closed"
+  }
 }

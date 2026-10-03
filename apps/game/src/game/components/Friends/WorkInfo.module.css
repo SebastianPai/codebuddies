@@ -1,0 +1,133 @@
+.line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 0;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--cb-text, #e5e7eb);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+}
+
+.line span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.line small {
+  flex: none;
+  color: var(--cb-text-muted, #9ca3af);
+}
+
+.line svg {
+  flex: none;
+  color: #facc15;
+}
+
+.link {
+  cursor: pointer;
+}
+
+.link:hover,
+.link:focus-visible {
+  background: rgba(250, 204, 21, 0.12);
+  outline: none;
+}
+
+.experience {
+  display: grid;
+  gap: 8px;
+}
+
+.title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--cb-text-muted, #9ca3af);
+}
+
+.job {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.closed {
+  opacity: 0.6;
+}
+
+.logo {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: #3f3f46;
+  color: #fff;
+}
+
+.jobInfo {
+  display: grid;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+}
+
+.jobInfo b {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jobInfo span,
+.jobInfo small {
+  color: var(--cb-text-muted, #9ca3af);
+}
+
+.metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.metrics span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.office {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--cb-border, rgba(255, 255, 255, 0.12));
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.office:hover,
+.office:focus-visible {
+  border-color: #facc15;
+  color: #facc15;
+  outline: none;
+}

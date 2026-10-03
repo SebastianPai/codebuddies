@@ -53,6 +53,36 @@ export function getPublicProfileRooms(username: string) {
   return apiGet<ProfileRoom[]>(`/profiles/${encodeURIComponent(username)}/rooms`);
 }
 
+export type CareerCompany = {
+  id: string;
+  name: string;
+  role: string;
+  active: boolean;
+  appType: { name: string; color: string | null };
+  stage: string;
+  stageIndex: number;
+  equity: number;
+  valuation: number;
+  activeUsers: number;
+  employees: number;
+  since: string;
+  until: string | null;
+  rank: number | null;
+  officeRoomId: string | null;
+};
+
+export type Career = {
+  current: CareerCompany | null;
+  companies: CareerCompany[];
+  totals: { companies: number; active: number; bestRank: number | null; employees: number };
+};
+
+/** Empresas de CodeStudio del usuario (nombres de etapa en el idioma del juego). */
+export function getPublicCareer(username: string) {
+  const lang = (typeof window !== "undefined" && window.localStorage.getItem("lang")) || "es";
+  return apiGet<Career>(`/profiles/${encodeURIComponent(username)}/career?lang=${encodeURIComponent(lang)}`);
+}
+
 export function followUser(username: string) {
   return apiPost(`/profiles/${encodeURIComponent(username)}/follow`);
 }

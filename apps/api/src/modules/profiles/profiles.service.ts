@@ -7,6 +7,8 @@ import { NotificationType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { BadgesService } from '../badges/badges.service';
+import { contentFor, stageText } from '../codestudio/content/i18n';
+import { langFromHeader } from '../codestudio/content/i18n/localized';
 
 @Injectable()
 export class ProfilesService {
@@ -15,6 +17,73 @@ export class ProfilesService {
     private readonly notificationsService: NotificationsService,
     private readonly badgesService: BadgesService,
   ) {}
+
+  /**
+   * Trayectoria en CodeStudio para el perfil (estilo LinkedIn): sus empresas
+   * con cargo (CEO), % que conserva, fechas, etapa, usuarios, valoración y
+   * puesto en el ranking. La empresa activa más valiosa es "dónde trabaja".
+   */
+  async getCareer(username: string, langRaw?: string) {
+    const lang = langFromHeader(langRaw);
+    const user = await this.prisma.user.findUnique({ where: { username }, select: { id: true } });
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+    const companies = await this.prisma.codeStudioCompany.findMany({
+      where: { userId: user.id },
+      orderBy: [{ createdAt: 'desc' }],
+      take: 20,
+      select: {
+        id: true,
+        name: true,
+        status: true,
+        stage: true,
+        valuation: true,
+        activeUsers: true,
+        founderEquity: true,
+        createdAt: true,
+        failedAt: true,
+        officeRoomId: true,
+        _count: { select: { employees: true } },
+        appType: { select: { name: true, slug: true, color: true } },
+      },
+    });
+    const t = contentFor(lang);
+    const rows = await Promise.all(
+      companies.map(async (company) => {
+        const active = company.status !== 'FAILED';
+        const rank = active
+          ? (await this.prisma.codeStudioCompany.count({ where: { status: { not: 'FAILED' }, valuation: { gt: company.valuation } } })) + 1
+          : null;
+        return {
+          id: company.id,
+          name: company.name,
+          role: 'CEO',
+          active,
+          appType: { name: t?.appTypes[company.appType.slug]?.name ?? company.appType.name, color: company.appType.color },
+          stage: stageText(company.stage, lang).name,
+          stageIndex: company.stage,
+          equity: Math.round(company.founderEquity * 10) / 10,
+          valuation: Math.round(company.valuation),
+          activeUsers: company.activeUsers,
+          employees: company._count.employees,
+          since: company.createdAt,
+          until: company.failedAt,
+          rank,
+          officeRoomId: company.officeRoomId,
+        };
+      }),
+    );
+    const current = rows.filter((row) => row.active).sort((a, b) => b.valuation - a.valuation)[0] ?? null;
+    return {
+      current,
+      companies: rows,
+      totals: {
+        companies: rows.length,
+        active: rows.filter((row) => row.active).length,
+        bestRank: rows.reduce<number | null>((best, row) => (row.rank && (best === null || row.rank < best) ? row.rank : best), null),
+        employees: rows.filter((row) => row.active).reduce((sum, row) => sum + row.employees, 0),
+      },
+    };
+  }
 
   async getPublicProfile(username: string, viewerId?: string) {
     const user = await this.prisma.user.findUnique({

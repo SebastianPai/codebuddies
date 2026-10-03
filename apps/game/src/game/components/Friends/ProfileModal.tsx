@@ -20,6 +20,7 @@ import UserBadges from "../shared/UserBadges";
 import RarityText from "../shared/RarityText";
 import { Globe, Lock, MessageCircle } from "lucide-react";
 import { useTranslation } from "../../../i18n/useTranslation";
+import { WorkExperience, WorkLine, useCareer } from "./WorkInfo";
 
 type Props = {
   username: string;
@@ -38,6 +39,7 @@ export default function ProfileModal({ username, onClose, onOpenChat }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [busy, setBusy] = useState(false);
+  const career = useCareer(username);
   const [rooms, setRooms] = useState<ProfileRoom[]>([]);
   const [requestingRoomId, setRequestingRoomId] = useState<string | null>(null);
 
@@ -204,6 +206,8 @@ export default function ProfileModal({ username, onClose, onOpenChat }: Props) {
             <div className={styles.level}>{t("quickmenu.level", { level: profile.level })}</div>
           </div>
 
+          <WorkLine career={career} onNavigate={onClose} />
+
           <div className={styles.stats}>
             <div className={styles.stat}>
               <div className={styles.statValue}>{profile.followers}</div>
@@ -245,6 +249,8 @@ export default function ProfileModal({ username, onClose, onOpenChat }: Props) {
               {friendActionLabel()}
             </Button>
           </div>
+
+          <WorkExperience career={career} onNavigate={onClose} />
 
           {rooms.length > 0 && (
             <div className={styles.rooms}>

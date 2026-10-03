@@ -12,6 +12,7 @@ import { useChat } from "../Chat/ChatProvider";
 import Button from "../shared/Button";
 import RarityText from "../shared/RarityText";
 import { useTranslation } from "../../../i18n/useTranslation";
+import { WorkLine, useCareer } from "../Friends/WorkInfo";
 
 type Props = {
   username: string;
@@ -31,6 +32,7 @@ export default function PlayerQuickMenu({ username, x, y, onClose }: Props) {
   const [busy, setBusy] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const { openChat, openProfile } = useChat();
+  const career = useCareer(username);
 
   const load = async () => {
     setLoading(true);
@@ -144,6 +146,8 @@ export default function PlayerQuickMenu({ username, x, y, onClose }: Props) {
           {profile && <span className={styles.level}>{t("quickmenu.level", { level: profile.level })}</span>}
         </div>
       </div>
+
+      <WorkLine career={career} onNavigate={onClose} />
 
       {loading ? (
         <div className={styles.loading}>{t("common.loading")}</div>

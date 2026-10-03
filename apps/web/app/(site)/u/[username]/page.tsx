@@ -3,6 +3,7 @@
 import { use, useEffect, useState, useCallback } from "react";
 import {
   Award,
+  Briefcase,
   CalendarDays,
   Flame,
   Trophy,
@@ -18,6 +19,7 @@ import Image from "next/image";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
 import { CurrencyIcon } from "@/shared/ui/currency-icon";
 import { RarityText } from "@/shared/ui/rarity-text";
+import { CareerHeadline, ExperienceSection, RoomsSection, useCareer, useDateFormat } from "./ProfileCareer";
 
 type Profile = {
   id: string;
@@ -52,6 +54,8 @@ export default function PublicProfilePage({
   const { username } = use(params);
   const { user } = useAuth();
   const t = useTranslation();
+  const career = useCareer(username);
+  const formatDate = useDateFormat();
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -173,161 +177,128 @@ export default function PublicProfilePage({
   const isFriend = profile.friendshipStatus === "ACCEPTED";
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-12">
-      {/* Hero */}
-      <div className="rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-10 shadow-2xl">
-        <div className="flex flex-col md:flex-row gap-10 items-center md:items-start">
-          {/* Avatar */}
-          <div className="relative flex-shrink-0">
-            <div
-              className="h-40 w-40 rounded-full overflow-hidden ring-4 ring-offset-8 ring-offset-[rgb(var(--background))] ring-[rgb(var(--primary))]"
-              style={
-                profile.avatarBorder
-                  ? { borderColor: profile.avatarBorder }
-                  : undefined
-              }
-            >
-              {profile.avatarUrl ? (
-                <Image
-                  src={profile.avatarUrl}
-                  alt={profile.username}
-                  width={160}
-                  height={160}
-                  className="object-cover"
-                  priority
-                />
-              ) : (
-                <div className="h-full w-full bg-gradient-to-br from-zinc-700 to-black flex items-center justify-center text-7xl font-black text-white">
-                  {profile.username[0].toUpperCase()}
-                </div>
-              )}
-            </div>
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
+      {/* Cabecera: portada, avatar, nombre, dónde trabaja y acciones. */}
+      <section className="overflow-hidden rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]">
+        <div className="h-28 bg-gradient-to-r from-[rgb(var(--primary)/0.35)] via-[rgb(var(--primary)/0.12)] to-transparent sm:h-36" aria-hidden />
+        <div className="flex flex-col items-center gap-6 px-6 pb-8 sm:px-10 md:flex-row md:items-end">
+          <div
+            className="-mt-16 h-32 w-32 flex-none overflow-hidden rounded-full ring-4 ring-[rgb(var(--card))] sm:h-36 sm:w-36"
+            style={profile.avatarBorder ? { boxShadow: `0 0 0 4px ${profile.avatarBorder}` } : undefined}
+          >
+            {profile.avatarUrl ? (
+              <Image src={profile.avatarUrl} alt={profile.username} width={144} height={144} className="h-full w-full object-cover" priority />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-zinc-700 to-black text-6xl font-black text-white">
+                {profile.username[0].toUpperCase()}
+              </div>
+            )}
           </div>
 
-          {/* Información */}
-          <div className="flex-1 text-center md:text-left">
-            <h1 className="text-6xl font-black tracking-tighter">
+          <div className="min-w-0 flex-1 text-center md:text-left">
+            <h1 className="break-all text-3xl font-black tracking-tight sm:text-5xl">
               <RarityText effect={profile.nameEffectId}>@{profile.username}</RarityText>
             </h1>
-            <p className="text-2xl text-zinc-400 mt-2">
-              {t("site.globalRank", { rank: profile.xpRank })}
+            <CareerHeadline career={career} />
+            <p className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm text-[rgb(var(--secondary-text))] md:justify-start">
+              <span className="inline-flex items-center gap-1.5">
+                <Trophy className="h-4 w-4" aria-hidden /> {t("site.globalRank", { rank: profile.xpRank })}
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <CalendarDays className="h-4 w-4" aria-hidden /> {t("site.joinedLabel")} {formatDate(profile.joinDate, { year: "numeric", month: "long" })}
+              </span>
+              <span>
+                <b className="text-[rgb(var(--text))]">{profile.followers.toLocaleString()}</b> {t("site.followersLabel")} ·{" "}
+                <b className="text-[rgb(var(--text))]">{profile.following.toLocaleString()}</b> {t("site.followingLabel")}
+              </span>
             </p>
-
-            {!isSelf && (
-              <div className="flex flex-wrap gap-4 justify-center md:justify-start mt-8">
-                <button
-                  onClick={toggleFollow}
-                  disabled={actionLoading === "follow"}
-                  className="flex items-center gap-3 px-8 py-3.5 rounded-2xl bg-[rgb(var(--primary))] font-bold text-black hover:scale-105 active:scale-95 transition disabled:opacity-70"
-                >
-                  <UserPlus className="w-5 h-5" />
-                  {profile.isFollowing ? t("site.unfollowAction") : t("site.followAction")}
-                </button>
-
-                <button
-                  onClick={handleFriendship}
-                  disabled={actionLoading === "friend"}
-                  className={`flex items-center gap-3 px-8 py-3.5 rounded-2xl border-2 font-semibold transition hover:scale-105 active:scale-95 disabled:opacity-70 ${
-                    isFriend
-                      ? "border-emerald-500 text-emerald-400"
-                      : profile.friendshipStatus === "PENDING" &&
-                          profile.friendshipDirection === "OUTGOING"
-                        ? "border-amber-500 text-amber-400"
-                        : "border-[rgb(var(--border))]"
-                  }`}
-                >
-                  {isFriend ? (
-                    <>
-                      {" "}
-                      <UserCheck className="w-5 h-5" /> {t("site.friendsTitle")}{" "}
-                    </>
-                  ) : profile.friendshipStatus === "PENDING" &&
-                    profile.friendshipDirection === "OUTGOING" ? (
-                    <>
-                      {" "}
-                      <UserX className="w-5 h-5" /> {t("site.cancelRequestAction")}{" "}
-                    </>
-                  ) : (
-                    <>
-                      {" "}
-                      <UserPlus className="w-5 h-5" /> {t("site.sendRequestAction")}{" "}
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
-
             {profile.mutualFriends > 0 && (
-              <div className="mt-6 flex items-center gap-2 justify-center md:justify-start text-zinc-400">
-                <Users className="w-5 h-5" />
-                <span>
-                  {profile.mutualFriends}{" "}
-                  {t(profile.mutualFriends > 1 ? "site.mutualFriendPlural" : "site.mutualFriendSingular")}
-                </span>
-              </div>
+              <p className="mt-2 flex items-center justify-center gap-2 text-sm text-[rgb(var(--secondary-text))] md:justify-start">
+                <Users className="h-4 w-4" aria-hidden />
+                {profile.mutualFriends} {t(profile.mutualFriends > 1 ? "site.mutualFriendPlural" : "site.mutualFriendSingular")}
+              </p>
             )}
           </div>
-        </div>
-      </div>
 
-      {/* Estadísticas */}
-      <div className="mt-10 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        <Stat icon={<Trophy />} label={t("gamification.levelLabel")} value={profile.level} />
-        <Stat
-          icon={<Award />}
-          label={t("site.experienceLabel")}
-          value={profile.xp.toLocaleString()}
-        />
-        <Stat
-          icon={<CurrencyIcon currency="coins" size={16} />}
-          label={t("site.coinsStatLabel")}
-          value={<RarityText effect="goldRank">{profile.coins.toLocaleString()}</RarityText>}
-        />
-        <Stat
-          icon={<Flame />}
-          label={t("site.currentStreakLabel")}
-          value={profile.currentStreak}
-        />
-        <Stat
-          icon={<Flame />}
-          label={t("site.bestStreakLabel")}
-          value={profile.bestStreak}
-        />
-        <Stat label={t("site.coursesCompletedLabel")} value={profile.coursesCompleted} />
-        <Stat label={t("site.certificates")} value={profile.certificatesEarned} />
-        <Stat
-          icon={<UserPlus />}
-          label={t("site.followersLabel")}
-          value={profile.followers.toLocaleString()}
-        />
-        <Stat label={t("site.followingLabel")} value={profile.following.toLocaleString()} />
-        <Stat
-          icon={<CalendarDays />}
-          label={t("site.joinedLabel")}
-          value={new Date(profile.joinDate).toLocaleDateString("es-ES", {
-            year: "numeric",
-            month: "long",
-          })}
-        />
+          {!isSelf && (
+            <div className="flex flex-wrap justify-center gap-3">
+              <button
+                onClick={toggleFollow}
+                disabled={actionLoading === "follow"}
+                className="inline-flex items-center gap-2 rounded-full bg-[rgb(var(--primary))] px-6 py-2.5 font-bold text-black transition hover:opacity-90 active:scale-95 disabled:opacity-60"
+              >
+                <UserPlus className="h-4 w-4" aria-hidden />
+                {profile.isFollowing ? t("site.unfollowAction") : t("site.followAction")}
+              </button>
+              <button
+                onClick={handleFriendship}
+                disabled={actionLoading === "friend"}
+                className={`inline-flex items-center gap-2 rounded-full border px-6 py-2.5 font-semibold transition active:scale-95 disabled:opacity-60 ${
+                  isFriend
+                    ? "border-emerald-500 text-emerald-500"
+                    : profile.friendshipStatus === "PENDING" && profile.friendshipDirection === "OUTGOING"
+                      ? "border-amber-500 text-amber-500"
+                      : "border-[rgb(var(--border))] hover:border-[rgb(var(--primary))]"
+                }`}
+              >
+                {isFriend ? (
+                  <>
+                    <UserCheck className="h-4 w-4" aria-hidden /> {t("site.friendsTitle")}
+                  </>
+                ) : profile.friendshipStatus === "PENDING" && profile.friendshipDirection === "OUTGOING" ? (
+                  <>
+                    <UserX className="h-4 w-4" aria-hidden /> {t("site.cancelRequestAction")}
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="h-4 w-4" aria-hidden /> {t("site.sendRequestAction")}
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_320px]">
+        <div className="grid min-w-0 content-start gap-6">
+          <ExperienceSection career={career} />
+          <RoomsSection username={profile.username} />
+        </div>
+
+        {/* Resumen: números del perfil en una lista compacta. */}
+        <aside className="h-fit rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6">
+          <h2 className="text-lg font-black">{t("site.profileSummary")}</h2>
+          <dl className="mt-4 grid grid-cols-2 gap-3">
+            <Stat icon={<Award className="h-4 w-4" />} label={t("gamification.levelLabel")} value={profile.level} />
+            <Stat icon={<Award className="h-4 w-4" />} label={t("site.experienceLabel")} value={profile.xp.toLocaleString()} />
+            <Stat
+              icon={<CurrencyIcon currency="coins" size={14} />}
+              label={t("site.coinsStatLabel")}
+              value={<RarityText effect="goldRank">{profile.coins.toLocaleString()}</RarityText>}
+            />
+            <Stat icon={<Flame className="h-4 w-4" />} label={t("site.currentStreakLabel")} value={profile.currentStreak} />
+            <Stat icon={<Flame className="h-4 w-4" />} label={t("site.bestStreakLabel")} value={profile.bestStreak} />
+            <Stat label={t("site.coursesCompletedLabel")} value={profile.coursesCompleted} />
+            <Stat label={t("site.certificates")} value={profile.certificatesEarned} />
+            {career && career.totals.companies > 0 && (
+              <Stat icon={<Briefcase className="h-4 w-4" />} label={t("site.profileCompanies")} value={career.totals.companies} />
+            )}
+          </dl>
+        </aside>
       </div>
     </div>
   );
 }
 
-function Stat({
-  icon,
-  label,
-  value,
-}: {
-  icon?: React.ReactNode;
-  label: string;
-  value: React.ReactNode;
-}) {
+function Stat({ icon, label, value }: { icon?: React.ReactNode; label: string; value: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6 hover:border-[rgb(var(--primary))/40] transition-all">
-      {icon && <div className="text-[rgb(var(--primary))] mb-4">{icon}</div>}
-      <p className="text-sm text-zinc-400">{label}</p>
-      <p className="text-3xl font-black mt-2 tracking-tighter">{value}</p>
+    <div className="rounded-2xl bg-[rgb(var(--background))] p-3">
+      <dt className="flex items-center gap-1.5 text-xs text-[rgb(var(--secondary-text))]">
+        {icon && <span className="text-[rgb(var(--primary))]">{icon}</span>}
+        {label}
+      </dt>
+      <dd className="mt-1 text-xl font-black tracking-tight">{value}</dd>
     </div>
   );
 }

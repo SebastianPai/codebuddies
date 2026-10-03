@@ -4,6 +4,7 @@ import {
   Param,
   Post,
   Delete,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -29,6 +30,12 @@ export class ProfilesController {
     @Req() req: { user?: { userId: string } },
   ) {
     return this.profilesService.getPublicProfile(username, req.user?.userId);
+  }
+
+  // Empresas de CodeStudio del usuario (público, como el resto del perfil).
+  @Get(':username/career')
+  getCareer(@Param('username') username: string, @Query('lang') lang?: string) {
+    return this.profilesService.getCareer(username, lang);
   }
 
   @Get(':username/rooms')
