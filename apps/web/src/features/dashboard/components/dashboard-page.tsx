@@ -1,4 +1,5 @@
 "use client";
+import { CodeStudioCard } from "@/features/codestudio";
 import { useTranslation } from "@/i18n/useTranslation";
 import { Button, ErrorState, Loader } from "@/shared/ui";
 import { WorldPulseBar } from "@/features/world-pulse/world-pulse-bar";
@@ -57,7 +58,9 @@ export function DashboardPage() {
       <div className="relative z-10 mx-auto max-w-7xl px-4 py-6 md:px-8 md:py-8">
         <DashboardHeader user={user} xp={metrics.xp} coins={metrics.coins} streak={metrics.streak} rank={metrics.rank} />
         <WorldPulseBar variant="compact" className="mb-6" />
+        <CodeStudioCard />
         <section className="grid grid-cols-1 gap-6 lg:grid-cols-[1.6fr_0.8fr]">
+          <div data-tour="continue-learning" className="min-w-0">
           <LearningSection
             level={metrics.level}
             xp={metrics.xp}
@@ -66,6 +69,7 @@ export function DashboardPage() {
             continueLearning={continueLearning}
             continueLearningStatus={continueLearningStatus}
           />
+          </div>
           <DashboardSidebar
             user={user}
             referrals={referrals}

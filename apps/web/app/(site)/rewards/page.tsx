@@ -1,5 +1,6 @@
 "use client";
 
+import { EarnXpWays } from "@/features/codestudio";
 import { useEffect, useState } from "react";
 import { Coins, Filter, Gift, Ticket, Zap } from "lucide-react";
 import { toast } from "react-toastify";
@@ -147,6 +148,10 @@ export default function RewardsPage() {
           </div>
         </div>
       </section>
+
+      <div className="mt-6">
+        <EarnXpWays />
+      </div>
 
       <section className="mt-6 rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">

@@ -227,7 +227,7 @@ function RightSidebar({
           </div>
         </div>
 
-        <div className="sidebar-block">
+        <div className="sidebar-block" data-tour="missions">
           <div className="block-header">
             <div>
               <div className="block-label">{t("hud.missions.label")}</div>

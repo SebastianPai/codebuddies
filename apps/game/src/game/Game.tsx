@@ -43,6 +43,7 @@ import MessagesPanel from "./components/Chat/MessagesPanel";
 import NotificationsPanel from "./components/Notifications/NotificationsPanel";
 import NotificationsToastBridge from "./components/Notifications/NotificationsToastBridge";
 import RewardCelebrationHost from "./components/Rewards/RewardCelebrationHost";
+import GameOnboarding from "./components/Onboarding/GameOnboarding";
 import SettingsWindow from "./components/Settings/SettingsWindow";
 import {
   GameDialogRequest,
@@ -786,6 +787,7 @@ export default function Game() {
 
       {currentUser && <NotificationsToastBridge />}
       {currentUser && <RewardCelebrationHost />}
+      {currentUser && inGame && <GameOnboarding onOpenPc={handleOpenPc} />}
 
       {/* ================= INVENTORY ================= */}
 

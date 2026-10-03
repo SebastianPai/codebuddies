@@ -155,6 +155,40 @@ export class CodeStudioService {
     };
   }
 
+  // Resumen liviano para la web (dashboard, misiones, recompensas): la
+  // empresa principal, el progreso y las misiones de hoy, sin el catálogo
+  // ni simular nada (la web solo invita a jugar, no avanza el juego).
+  async summary(userId: string, lang: Lang = 'es') {
+    const [companies, profile] = await Promise.all([
+      this.prisma.codeStudioCompany.findMany({
+        where: { userId },
+        orderBy: { updatedAt: 'desc' },
+        select: { id: true, name: true, status: true, stage: true, cash: true, activeUsers: true, valuation: true },
+      }),
+      this.rewards.getProfile(userId, lang),
+    ]);
+    const main = companies.find((company) => company.status !== 'FAILED') ?? null;
+    return {
+      company: main
+        ? {
+            ...main,
+            stageName: stageText(main.stage, lang).name,
+            stageCount: STAGES.length,
+          }
+        : null,
+      companiesCount: companies.length,
+      level: profile.level,
+      xp: profile.xp,
+      levelXp: profile.levelXp,
+      nextLevelXp: profile.nextLevelXp,
+      gameXpToday: profile.gameXpToday,
+      gameXpCap: profile.gameXpCap,
+      daily: profile.daily,
+      milestones: profile.milestones.length,
+      totalMilestones: profile.totalMilestones,
+    };
+  }
+
   // Logros de CodeStudio para la página de logros de la web.
   achievements(userId: string, lang: Lang = 'es') {
     return this.rewards.achievements(userId, lang);

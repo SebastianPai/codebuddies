@@ -1,8 +1,9 @@
 "use client";
 
+import { START_WEB_ONBOARDING } from "@/features/onboarding/WebOnboarding";
 import Link from "next/link";
 import { useAuth } from "../hooks/useAuth";
-import { Award, BarChart3, Bell, BookOpen, ChevronDown, CreditCard, Flame, Gamepad2, Gift, Globe, GraduationCap, Home, Languages, LogIn, LogOut, Menu, MessageSquare, Moon, Settings, Shield, Sparkles, Sun, Tag, Target, Ticket, Trophy, User, UserPlus, Users, X, Zap } from "lucide-react";
+import { Award, BarChart3, Bell, BookOpen, ChevronDown, CircleHelp, CreditCard, Flame, Gamepad2, Gift, Globe, GraduationCap, Home, Languages, LogIn, LogOut, Menu, MessageSquare, Moon, Settings, Shield, Sparkles, Sun, Tag, Target, Ticket, Trophy, User, UserPlus, Users, X, Zap } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useCallback, useEffect, useState, useRef } from "react";
 import { usePathname } from "next/navigation";
@@ -287,18 +288,21 @@ export default function Navbar() {
           </Link>
 
           <div className="hidden lg:flex items-center gap-1">
+            <span data-tour="nav-links" className="flex items-center gap-1">
             {primaryLinks.map((link) => (
               <NavLink key={link.href} href={link.href} active={pathname === link.href}>
                 {link.label}
               </NavLink>
             ))}
+            </span>
 
+            <span data-tour="nav-play" className="ml-1 inline-flex">
             <RainbowButton
               href={getGameUrl()}
               text={t("navbar.playGame")}
               icon={<Gamepad2 size={16} className="text-[rgb(var(--text))]" />}
-              className="ml-1"
             />
+            </span>
 
             <div className="w-[1px] h-6 bg-[rgb(var(--border))] mx-3" />
 
@@ -586,6 +590,7 @@ function StatsPill({
 }) {
   return (
     <div
+      data-tour={fullWidth ? undefined : "nav-stats"}
       className={`
         hidden xl:flex items-center gap-2 px-3 py-1.5
         bg-[rgba(var(--background),0.6)] backdrop-blur-md rounded-full
@@ -663,6 +668,13 @@ function AccountMenuContent({
       <DropdownItem href="/friends" icon={<Users size={16} />} label={t("navbar.friends")} />
       <DropdownItem href="/messages" icon={<MessageSquare size={16} />} label={t("navbar.messages")} />
       <DropdownItem href="/courses" icon={<BookOpen size={16} />} label={t("navbar.myCourses")} />
+      <button
+        type="button"
+        onClick={() => window.dispatchEvent(new Event(START_WEB_ONBOARDING))}
+        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-[rgb(var(--text))] hover:bg-[rgb(var(--border)/0.5)] transition-colors"
+      >
+        <CircleHelp size={16} /> {t("site.onboarding.replay")}
+      </button>
 
       <button
         onClick={handleLogout}

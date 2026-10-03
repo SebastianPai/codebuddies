@@ -1,0 +1,160 @@
+/* Onboarding guiado del juego: fondo oscuro con un "agujero" sobre el
+   elemento real del HUD y una tarjeta al lado. Mismo lenguaje visual que
+   CodeStudio (esquinas redondeadas, vidrio, amarillo de la marca). */
+
+.cb-onb {
+  position: fixed;
+  inset: 0;
+  z-index: 17000;
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+.cb-onb-dim {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.62);
+}
+
+.cb-onb-hole {
+  position: fixed;
+  border-radius: 16px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.62), 0 0 0 2px #facc15;
+  transition: top 0.3s ease, left 0.3s ease, width 0.3s ease, height 0.3s ease;
+  pointer-events: none;
+}
+
+.cb-onb-catch {
+  position: fixed;
+  inset: 0;
+}
+
+.cb-onb-card {
+  position: fixed;
+  padding: 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(28, 28, 31, 0.92);
+  backdrop-filter: saturate(180%) blur(24px);
+  -webkit-backdrop-filter: saturate(180%) blur(24px);
+  color: #f5f5f7;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  transition: top 0.3s ease, left 0.3s ease;
+  animation: cb-onb-in 0.3s ease;
+}
+
+.cb-onb-card header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #a1a1a6;
+}
+
+.cb-onb-card header button {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #a1a1a6;
+  cursor: pointer;
+}
+
+.cb-onb-card header button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.cb-onb-body {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.cb-onb-body > i {
+  display: grid;
+  place-items: center;
+  flex: 0 0 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #facc15, #f59e0b);
+  color: #111;
+}
+
+.cb-onb-body h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.cb-onb-body p {
+  margin: 6px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #c7c7cc;
+}
+
+.cb-onb-dots {
+  display: flex;
+  gap: 4px;
+  margin-top: 14px;
+}
+
+.cb-onb-dots span {
+  flex: 1;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.cb-onb-dots span.on {
+  background: #facc15;
+}
+
+.cb-onb-card footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.cb-onb-card footer button {
+  border: 0;
+  border-radius: 10px;
+  padding: 8px 14px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cb-onb-ghost {
+  background: transparent;
+  color: #a1a1a6;
+}
+
+.cb-onb-ghost:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.cb-onb-primary {
+  background: #facc15;
+  color: #111;
+}
+
+.cb-onb-primary:hover {
+  background: #fde047;
+}
+
+@keyframes cb-onb-in {
+  from {
+    opacity: 0;
+  }
+}

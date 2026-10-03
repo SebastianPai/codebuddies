@@ -145,5 +145,55 @@
     "release": "Despedir",
     "releaseTitle": "¿Despedir al mayordomo?",
     "releaseMessage": "Vas a perder al mayordomo. Esta acción no se puede deshacer."
+  },
+  "onboarding": {
+    "next": "Siguiente",
+    "back": "Atrás",
+    "skip": "Saltar",
+    "progress": "Paso {step} de {total}",
+    "replay": "Ver tutorial",
+    "replayTitle": "Tutorial",
+    "replayHint": "Vuelve a ver la guía de cómo funciona el juego.",
+    "welcome": {
+      "title": "Bienvenido al mundo de CodeBuddies",
+      "text": "Este es tu espacio para aprender programación jugando con otras personas. Te mostramos lo importante en 1 minuto."
+    },
+    "move": {
+      "title": "Moverte",
+      "text": "Haz clic en el piso para caminar. Con la rueda del mouse o los botones de zoom te acercas o alejas."
+    },
+    "profile": {
+      "title": "Tu perfil",
+      "text": "Tu nivel, XP y monedas. Lo que ganas aquí y en la web suma al mismo nivel."
+    },
+    "pc": {
+      "title": "El PC y CodeStudio",
+      "text": "Abre el PC para entrar a CodeStudio: fundas tu propia startup, construyes tu app y aprendes cómo se hace software de verdad."
+    },
+    "customize": {
+      "title": "Tu avatar",
+      "text": "Cambia tu ropa, pelo y estilo cuando quieras."
+    },
+    "shop": {
+      "title": "Tienda",
+      "text": "Muebles, ropa y efectos con tus monedas. Lo que se viste es personal: uno por persona, o regálaselo a un amigo."
+    },
+    "friends": {
+      "title": "Amigos",
+      "text": "Agrega amigos, chatea con ellos, visita sus salas y regálales cosas."
+    },
+    "missions": {
+      "title": "Misiones",
+      "text": "Retos del día con recompensas. Revisa aquí cuánto te falta."
+    },
+    "chat": {
+      "title": "Chat y reacciones",
+      "text": "Escribe a quienes están en tu sala o reacciona con un clic."
+    },
+    "end": {
+      "title": "¡A jugar!",
+      "text": "Te recomendamos empezar por CodeStudio: tiene una guía paso a paso para quien no sabe nada.",
+      "cta": "Abrir CodeStudio"
+    }
   }
 }

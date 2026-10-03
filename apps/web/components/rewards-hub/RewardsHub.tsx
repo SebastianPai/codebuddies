@@ -239,6 +239,7 @@ export default function RewardsHub() {
           aria-label={t("battlePass.hub.launcher")}
           aria-expanded={open}
           aria-haspopup="dialog"
+          data-tour="rewards-launcher"
           whileTap={{ scale: 0.94 }}
           className="pointer-events-auto relative flex h-12 w-12 items-center justify-center rounded-2xl border border-[rgb(var(--primary)/0.5)] bg-[rgb(var(--card))] text-[rgb(var(--primary))] shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition hover:-translate-y-0.5 hover:border-[rgb(var(--primary))] sm:h-14 sm:w-14"
         >

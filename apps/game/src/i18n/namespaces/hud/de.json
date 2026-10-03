@@ -145,5 +145,55 @@
     "release": "Entlassen",
     "releaseTitle": "Butler entlassen?",
     "releaseMessage": "Du verlierst den Butler. Das kann nicht rückgängig gemacht werden."
+  },
+  "onboarding": {
+    "next": "Weiter",
+    "back": "Zurück",
+    "skip": "Überspringen",
+    "progress": "Schritt {step} von {total}",
+    "replay": "Tutorial ansehen",
+    "replayTitle": "Tutorial",
+    "replayHint": "Sieh dir die Anleitung zum Spiel noch einmal an.",
+    "welcome": {
+      "title": "Willkommen in der CodeBuddies-Welt",
+      "text": "Hier lernst du Programmieren, während du mit anderen spielst. Wir zeigen dir das Wichtigste in 1 Minute."
+    },
+    "move": {
+      "title": "Bewegen",
+      "text": "Klicke auf den Boden, um zu laufen. Mit dem Mausrad oder den Zoom-Buttons gehst du näher ran oder weiter weg."
+    },
+    "profile": {
+      "title": "Dein Profil",
+      "text": "Dein Level, XP und Münzen. Was du hier und im Web verdienst, zählt zum selben Level."
+    },
+    "pc": {
+      "title": "Der PC und CodeStudio",
+      "text": "Öffne den PC, um CodeStudio zu starten: Gründe dein eigenes Startup, baue deine App und lerne, wie echte Software entsteht."
+    },
+    "customize": {
+      "title": "Dein Avatar",
+      "text": "Ändere Kleidung, Haare und Stil, wann immer du willst."
+    },
+    "shop": {
+      "title": "Shop",
+      "text": "Möbel, Kleidung und Effekte für deine Münzen. Tragbares ist persönlich: eins pro Person, oder verschenk es an einen Freund."
+    },
+    "friends": {
+      "title": "Freunde",
+      "text": "Füge Freunde hinzu, chatte, besuche ihre Räume und mach ihnen Geschenke."
+    },
+    "missions": {
+      "title": "Missionen",
+      "text": "Tägliche Aufgaben mit Belohnungen. Hier siehst du, wie viel noch fehlt."
+    },
+    "chat": {
+      "title": "Chat und Reaktionen",
+      "text": "Schreib Leuten in deinem Raum oder reagiere mit einem Klick."
+    },
+    "end": {
+      "title": "Los geht's!",
+      "text": "Am besten startest du mit CodeStudio: Es hat eine Schritt-für-Schritt-Anleitung für absolute Anfänger.",
+      "cta": "CodeStudio öffnen"
+    }
   }
 }

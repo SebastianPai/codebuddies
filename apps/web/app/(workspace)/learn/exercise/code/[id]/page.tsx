@@ -31,6 +31,7 @@ import { exercisePath, lessonPath, nextStepPath } from "@/shared/utils/exercise-
 import { ExerciseLockedState } from "@/features/academy";
 import { trackEvent } from "../../../../../../components/analytics/events";
 import { useApiLang } from "@/shared/hooks/use-api-lang";
+import { PracticeInCodeStudio } from "@/features/codestudio";
 import { useReward } from "../../../../../../contexts/RewardContext";
 import { useTrackToolUsed, trackToolAction, trackCodeStarted, trackCodeResult } from "../../../../../../components/analytics/tool-tracking";
 
@@ -618,6 +619,7 @@ try {
             {t("site.academyLesson.noContentYet")}
           </p>
         )}
+        {completed && <PracticeInCodeStudio className="mt-6" />}
       </div>
     </div>
   );

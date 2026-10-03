@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BadgeCheck, Check, Globe, Lock, MessageSquare, Sparkles, User } from "lucide-react";
+import { BadgeCheck, Check, CircleHelp, Globe, Lock, MessageSquare, Sparkles, User } from "lucide-react";
+import { START_GAME_ONBOARDING } from "../Onboarding/GameOnboarding";
 import { getNameEffectCatalog } from "@codebuddies/visual-effects";
 
 import Modal from "../shared/Modal";
@@ -153,6 +154,30 @@ export default function SettingsWindow({ username, onClose, onUsernameChanged }:
       style={{ width: "min(720px, calc(100vw - 24px))" }}
     >
       <div className={styles.sections}>
+        <section className={styles.section}>
+          <header className={styles.sectionHeader}>
+            <span className={styles.sectionIcon}>
+              <CircleHelp size={15} />
+            </span>
+            <div>
+              <h3 className={styles.sectionTitle}>{t("hud.onboarding.replayTitle")}</h3>
+              <p className={styles.sectionHint}>{t("hud.onboarding.replayHint")}</p>
+            </div>
+          </header>
+          <div className={styles.sectionBody}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                onClose();
+                window.dispatchEvent(new Event(START_GAME_ONBOARDING));
+              }}
+            >
+              {t("hud.onboarding.replay")}
+            </Button>
+          </div>
+        </section>
+
         <section className={styles.section}>
           <header className={styles.sectionHeader}>
             <span className={styles.sectionIcon}>

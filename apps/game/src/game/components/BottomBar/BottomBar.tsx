@@ -67,7 +67,7 @@ function BottomBar() {
         {/* COMPOSER — el mensaje de texto es el protagonista de la barra;
             las reacciones rápidas quedan como atajos secundarios dentro del
             mismo cuerpo, en vez de un bloque grande compitiendo al centro. */}
-        <div className="composer">
+        <div className="composer" data-tour="chat">
           <button
             ref={themeButtonRef}
             type="button"

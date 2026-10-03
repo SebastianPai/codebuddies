@@ -5,6 +5,7 @@ import type { Metadata, Viewport } from "next";
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "../src/config/site";
 import { ThemeProvider } from "next-themes";
 import { BoostBanner } from "@/features/boosts/BoostBanner";
+import { WebOnboarding } from "@/features/onboarding/WebOnboarding";
 import { RewardProvider } from "../contexts/RewardContext";
 import { LanguageProvider } from "../src/i18n/LanguageContext";
 import GlobalChatProvider from "../components/chat/GlobalChatProvider";
@@ -96,6 +97,7 @@ export default function RootLayout({
                   <AppToastContainer />
                   <CookieBanner />
                   <BoostBanner />
+                  <WebOnboarding />
                 </GlobalChatProvider>
               </GlobalNotificationsProvider>
             </RewardProvider>

@@ -1,5 +1,6 @@
 "use client";
 
+import { HomeCodeStudio } from "@/features/codestudio";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
@@ -356,6 +357,8 @@ export default function BrutalistLanding() {
             </div>
           </div>
         </section>
+
+        <HomeCodeStudio />
 
         {/* --- HECHOS CIENTÍFICOS Y HUD --- */}
         <section className="py-32 px-6 max-w-7xl mx-auto border-b-4 border-black">

@@ -1,5 +1,6 @@
 "use client";
 
+import { PracticeInCodeStudio } from "@/features/codestudio";
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { fetcher } from "../../../../../utils/fetcher";
@@ -361,9 +362,12 @@ export default function QuizExercisePage() {
         )}
 
         {completed && (
-          <p className="text-center text-green-500 font-black text-3xl mt-12 animate-pulse">
-            {t("site.exerciseCompletedMessage")}
-          </p>
+          <>
+            <p className="text-center text-green-500 font-black text-3xl mt-12 animate-pulse">
+              {t("site.exerciseCompletedMessage")}
+            </p>
+            <PracticeInCodeStudio className="mx-auto mt-6 max-w-xl" />
+          </>
         )}
       </div>
     </div>

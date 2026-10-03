@@ -1,5 +1,6 @@
 "use client";
 
+import { CodeStudioMissions } from "@/features/codestudio";
 import { useEffect, useMemo, useState } from "react";
 import { Award, Coins, Gift, Target, Trophy, Zap } from "lucide-react";
 import { toast } from "react-toastify";
@@ -95,6 +96,10 @@ export default function MissionsPage() {
           <Metric icon={<Award size={16} />} label={t("gamification.claimedCount")} value={data.summary.claimed} />
         </div>
       </section>
+
+      <div className="mt-6">
+        <CodeStudioMissions />
+      </div>
 
       <section className="mt-6 space-y-4">
         {data.items.length ? (

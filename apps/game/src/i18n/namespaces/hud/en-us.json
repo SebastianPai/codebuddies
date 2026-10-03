@@ -145,5 +145,55 @@
     "release": "Dismiss",
     "releaseTitle": "Dismiss the butler?",
     "releaseMessage": "You'll lose the butler. This can't be undone."
+  },
+  "onboarding": {
+    "next": "Next",
+    "back": "Back",
+    "skip": "Skip",
+    "progress": "Step {step} of {total}",
+    "replay": "Show tutorial",
+    "replayTitle": "Tutorial",
+    "replayHint": "See the guide on how the game works again.",
+    "welcome": {
+      "title": "Welcome to the CodeBuddies world",
+      "text": "This is your space to learn programming by playing with others. We'll show you the important bits in 1 minute."
+    },
+    "move": {
+      "title": "Moving around",
+      "text": "Click the floor to walk. Use the mouse wheel or the zoom buttons to get closer or further."
+    },
+    "profile": {
+      "title": "Your profile",
+      "text": "Your level, XP and coins. What you earn here and on the web adds to the same level."
+    },
+    "pc": {
+      "title": "The PC and CodeStudio",
+      "text": "Open the PC to enter CodeStudio: found your own startup, build your app and learn how real software is made."
+    },
+    "customize": {
+      "title": "Your avatar",
+      "text": "Change your clothes, hair and style whenever you want."
+    },
+    "shop": {
+      "title": "Shop",
+      "text": "Furniture, clothes and effects with your coins. Wearables are personal: one per person, or gift it to a friend."
+    },
+    "friends": {
+      "title": "Friends",
+      "text": "Add friends, chat with them, visit their rooms and send them gifts."
+    },
+    "missions": {
+      "title": "Missions",
+      "text": "Daily challenges with rewards. Check here how much you have left."
+    },
+    "chat": {
+      "title": "Chat and reactions",
+      "text": "Write to people in your room or react with one click."
+    },
+    "end": {
+      "title": "Let's play!",
+      "text": "We recommend starting with CodeStudio: it has a step-by-step guide for total beginners.",
+      "cta": "Open CodeStudio"
+    }
   }
 }

@@ -163,6 +163,8 @@ function LeftSidebar({
     accent?: boolean;
     badge?: number;
     icon: ReactElement;
+    // Ancla del onboarding guiado (ver Onboarding/GameOnboarding.tsx).
+    tour?: string;
   };
 
   const menu: MenuItem[] = [
@@ -187,6 +189,7 @@ function LeftSidebar({
     {
       name: t("hud.sidebar.openPc"),
       onClick: onOpenPc,
+      tour: "pc",
       icon: (
         <svg
           viewBox="0 0 24 24"
@@ -204,6 +207,7 @@ function LeftSidebar({
     {
       name: t("hud.sidebar.wardrobe"),
       onClick: onCustomize,
+      tour: "customize",
       icon: (
         <svg
           viewBox="0 0 24 24"
@@ -221,6 +225,7 @@ function LeftSidebar({
     {
       name: t("hud.sidebar.friends"),
       onClick: onOpenFriends,
+      tour: "friends",
       icon: (
         <svg
           viewBox="0 0 24 24"
@@ -298,6 +303,7 @@ function LeftSidebar({
     {
       name: t("hud.sidebar.shop"),
       onClick: onOpenShop,
+      tour: "shop",
       icon: (
         <svg
           viewBox="0 0 24 24"
@@ -461,7 +467,7 @@ function LeftSidebar({
         </div>
 
         {/* PROFILE */}
-        <div className="profile-card">
+        <div className="profile-card" data-tour="profile">
           <div className="profile-top">
             <div className="avatar-container">
               <div className="avatar-ring" style={ringStyle}>
@@ -531,6 +537,7 @@ function LeftSidebar({
             <button
               key={item.name}
               className={`menu-btn ${item.danger ? "danger-btn" : ""} ${item.accent ? "accent-btn" : ""}`}
+              data-tour={item.tour}
               onClick={item.onClick}
             >
               <div className="menu-icon">
