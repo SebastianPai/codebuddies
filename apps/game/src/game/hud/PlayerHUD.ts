@@ -178,10 +178,10 @@ export default class PlayerHUD {
       sprite.style.height = `${height}px`;
       sprite.style.backgroundImage = `url("${config.iconUrl}")`;
       sprite.style.backgroundSize = `${config.frameCount * 100}% 100%`;
-      // steps(N-1, jump-none) recorre exactamente los N cuadros de la tira;
+      // steps(N, jump-none) da N posiciones de 0% a 100%: una por cuadro
       // PINGPONG = ida y vuelta, LOOP = corte directo al primero.
       sprite.style.animationDuration = `${config.frameCount / Math.max(1, config.frameRate)}s`;
-      sprite.style.animationTimingFunction = `steps(${config.frameCount - 1}, jump-none)`;
+      sprite.style.animationTimingFunction = `steps(${Math.max(2, config.frameCount)}, jump-none)`;
       sprite.style.animationDirection = config.direction === "PINGPONG" ? "alternate" : "normal";
       return sprite;
     }

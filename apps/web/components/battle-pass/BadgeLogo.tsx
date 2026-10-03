@@ -54,7 +54,7 @@ export function BadgeLogo({ icon, height }: { icon: BattlePassBadgeIcon; height:
             imageRendering: "pixelated",
             animationName: "bp-badge-sprite",
             animationDuration: `${icon.frameCount / Math.max(1, icon.frameRate)}s`,
-            animationTimingFunction: `steps(${icon.frameCount - 1}, jump-none)`,
+            animationTimingFunction: `steps(${Math.max(2, icon.frameCount)}, jump-none)`,
             animationIterationCount: "infinite",
             animationDirection: icon.direction === "PINGPONG" ? "alternate" : "normal",
           }}

@@ -64,7 +64,8 @@ export function ThemeImage({
   }
 
   if (asset.mode === "SPRITE") {
-    const steps = Math.max(1, asset.frameCount - 1);
+    // jump-none: un paso por cuadro (N posiciones de 0% a 100%); mínimo 2.
+  const steps = Math.max(2, asset.frameCount);
     const duration = asset.frameCount / Math.max(1, asset.frameRate);
 
     return (
@@ -82,7 +83,7 @@ export function ThemeImage({
           animationName: "theme-image-sprite-slide",
           animationIterationCount: "infinite",
           animationDuration: `${duration}s`,
-          animationTimingFunction: `steps(${steps})`,
+          animationTimingFunction: `steps(${steps}, jump-none)`,
           animationDirection: asset.direction === "PINGPONG" ? "alternate" : "normal",
         }}
       />

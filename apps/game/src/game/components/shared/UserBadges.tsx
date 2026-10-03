@@ -116,7 +116,8 @@ function SpriteBadgeIcon({ config, size, label }: { config: BadgeIconConfig; siz
   // Se mantiene el alto fijo (para alinear con los demás íconos) y el ancho
   // sigue la proporción real del frame.
   const aspect = useSpriteFrameAspect(config.iconUrl, config.frameCount);
-  const steps = Math.max(1, config.frameCount - 1);
+  // jump-none: un paso por cuadro (N posiciones de 0% a 100%); mínimo 2.
+  const steps = Math.max(2, config.frameCount);
   const duration = config.frameCount / Math.max(1, config.frameRate);
 
   return (
@@ -131,7 +132,7 @@ function SpriteBadgeIcon({ config, size, label }: { config: BadgeIconConfig; siz
         backgroundImage: `url(${config.iconUrl})`,
         backgroundSize: `${config.frameCount * 100}% 100%`,
         animationDuration: `${duration}s`,
-        animationTimingFunction: `steps(${steps})`,
+        animationTimingFunction: `steps(${steps}, jump-none)`,
         animationDirection: config.direction === "PINGPONG" ? "alternate" : "normal",
       }}
     />

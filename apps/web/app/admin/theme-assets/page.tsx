@@ -82,7 +82,8 @@ function useFrameAspect(url: string | null, frameCount: number): number {
 }
 
 function spriteStyle(variant: ThemeAssetVariant, size: number, aspect: number): CSSProperties {
-  const steps = Math.max(1, variant.frameCount - 1);
+  // jump-none: un paso por cuadro (N posiciones de 0% a 100%); mínimo 2.
+  const steps = Math.max(2, variant.frameCount);
   const duration = variant.frameCount / Math.max(1, variant.frameRate);
 
   return {
@@ -94,7 +95,7 @@ function spriteStyle(variant: ThemeAssetVariant, size: number, aspect: number): 
     animationName: "theme-asset-sprite-slide",
     animationIterationCount: "infinite",
     animationDuration: `${duration}s`,
-    animationTimingFunction: `steps(${steps})`,
+    animationTimingFunction: `steps(${steps}, jump-none)`,
     animationDirection: variant.direction === "PINGPONG" ? "alternate" : "normal",
   };
 }

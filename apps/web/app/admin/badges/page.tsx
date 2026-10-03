@@ -548,7 +548,8 @@ function BadgeCard({
 }
 
 function spriteStyle(config: BadgeIconConfig, size: number, aspect: number): CSSProperties {
-  const steps = Math.max(1, config.frameCount - 1);
+  // jump-none: un paso por cuadro (N posiciones de 0% a 100%); mínimo 2.
+  const steps = Math.max(2, config.frameCount);
   const duration = config.frameCount / Math.max(1, config.frameRate);
 
   return {
@@ -560,7 +561,7 @@ function spriteStyle(config: BadgeIconConfig, size: number, aspect: number): CSS
     animationName: "admin-badge-sprite-slide",
     animationIterationCount: "infinite",
     animationDuration: `${duration}s`,
-    animationTimingFunction: `steps(${steps})`,
+    animationTimingFunction: `steps(${steps}, jump-none)`,
     animationDirection: config.direction === "PINGPONG" ? "alternate" : "normal",
   };
 }
