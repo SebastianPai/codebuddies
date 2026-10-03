@@ -11,7 +11,9 @@ function assetsHostname(): string | null {
   }
 }
 
-const hostname = assetsHostname();
+// Sin la variable (producción hoy) igual se optimizan las fotos del bucket
+// público: si no, el optimizador de imágenes rechaza las URLs del admin.
+const hostname = assetsHostname() ?? "assets.codebuddies.tech";
 
 const nextConfig: NextConfig = {
   /* config options here */

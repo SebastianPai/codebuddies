@@ -13,6 +13,13 @@ import type { ResolvedThemeAsset } from "../hooks/useThemeAsset";
 // Sin variante activa: si hay fallbackSrc se muestra esa imagen fija (ej. el
 // robot-head.png de siempre); si no, no se renderiza nada -- así un slot que
 // nunca tuvo imagen (login/registro) no deja un hueco vacío.
+// Anchos permitidos por el optimizador de Next (deviceSizes por defecto).
+const OPTIMIZED_WIDTHS = [640, 828, 1200] as const;
+
+function optimizedUrl(src: string, width: number) {
+  return `/_next/image?url=${encodeURIComponent(src)}&w=${width}&q=75`;
+}
+
 export function ThemeFramedPhoto({
   asset,
   fallbackSrc,
@@ -38,6 +45,17 @@ export function ThemeFramedPhoto({
       }
     : undefined;
 
+  // Las fotos del admin llegan como PNG de varios MB: se piden al optimizador
+  // de Next (WebP/AVIF, redimensionadas al ancho que se ve). Antes la home
+  // bajaba 4 MB de imágenes en el celular.
+  const optimized = /^https?:\/\//.test(src) || src.startsWith("/")
+    ? {
+        src: optimizedUrl(src, 828),
+        srcSet: OPTIMIZED_WIDTHS.map((width) => `${optimizedUrl(src, width)} ${width}w`).join(", "),
+        sizes: "(max-width: 768px) 90vw, 560px",
+      }
+    : { src };
+
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src={src} alt={alt} className={className} style={style} />;
+  return <img {...optimized} alt={alt} className={className} style={style} decoding="async" />;
 }
