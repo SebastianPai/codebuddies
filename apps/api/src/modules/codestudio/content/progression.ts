@@ -59,8 +59,8 @@ export const STAGES: StageDefinition[] = [
     name: 'Lanzamiento',
     tagline: 'La gente llega. Ahora demuestra que alguien paga por esto.',
     goals: [
-      { label: 'Usuarios activos', current: (m) => m.activeUsers, target: 300, format: 'users' },
-      { label: 'Ingresos por día', current: (m) => m.dailyRevenue, target: 10, format: 'money' },
+      { label: 'Usuarios activos', current: (m) => m.activeUsers, target: 700, format: 'users' },
+      { label: 'Ingresos por día', current: (m) => m.dailyRevenue, target: 80, format: 'money' },
     ],
     reward: { cash: 1000, xp: 60, coins: 10 },
   },
@@ -69,7 +69,7 @@ export const STAGES: StageDefinition[] = [
     name: 'Tracción',
     tagline: 'Busca el Product-Market Fit: que la gente se quede y te recomiende.',
     goals: [
-      { label: 'Usuarios activos', current: (m) => m.activeUsers, target: 1000, format: 'users' },
+      { label: 'Usuarios activos', current: (m) => m.activeUsers, target: 1600, format: 'users' },
       { label: 'Rating', current: (m) => m.rating, target: 3.8, format: 'rating' },
       { label: 'Churn diario máximo', current: (m) => m.churn * 100, target: 3, kind: 'min', format: 'percent' },
     ],
@@ -80,8 +80,8 @@ export const STAGES: StageDefinition[] = [
     name: 'Product-Market Fit',
     tagline: 'Encontraste tu mercado. Crece sin quemar dinero: ganancia diaria positiva.',
     goals: [
-      { label: 'Usuarios activos', current: (m) => m.activeUsers, target: 10000, format: 'users' },
-      { label: 'Ganancia por día', current: (m) => m.dailyProfit, target: 1, format: 'money' },
+      { label: 'Usuarios activos', current: (m) => m.activeUsers, target: 12000, format: 'users' },
+      { label: 'Ganancia por día', current: (m) => m.dailyProfit, target: 150, format: 'money' },
     ],
     reward: { cash: 4000, xp: 250, coins: 30 },
   },
