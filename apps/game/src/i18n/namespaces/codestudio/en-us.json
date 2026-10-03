@@ -549,7 +549,14 @@
     "creHint": "Creativity: ideas and design",
     "proHint": "Productivity: daily output",
     "motHint": "Motivation: drive to work",
-    "expHint": "Experience: level and time on the team"
+    "expHint": "Experience: level and time on the team",
+    "style": {
+      "casual": "Casual",
+      "elegant": "Elegant",
+      "sport": "Sporty",
+      "urban": "Urban",
+      "cheerful": "Cheerful"
+    }
   },
   "office": {
     "title": "Office",

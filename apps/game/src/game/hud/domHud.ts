@@ -144,6 +144,71 @@ interface BubbleEntry {
   lifetime: number;
   y: number;
   height: number;
+  /** Cuánto la sube el árbitro para no tapar globos de otros (px, sin zoom). */
+  liftTarget: number;
+  lift: number;
+}
+
+// ── Árbitro de globos (como el chat de Habbo: nunca se tapan) ─────────────
+//
+// Cada personaje tiene su pila (BubbleStack), pero dos personajes cerca
+// tapaban sus globos entre sí. Una vez por frame se miden TODOS los globos
+// de la sala en una sola pasada (una lectura de layout) y, si dos chocan,
+// el más viejo sube lo justo para quedar encima del más nuevo. El más nuevo
+// queda siempre sobre quien habla.
+
+const ARBITER_GAP = 4;
+const stacks = new Set<BubbleStack>();
+let arbiterFrame = 0;
+
+function arbitrate() {
+  arbiterFrame = 0;
+  type Box = { entry: BubbleEntry; left: number; right: number; top: number; bottom: number; scale: number };
+  const boxes: Box[] = [];
+  for (const stack of stacks) {
+    if (!stack.element.isConnected) {
+      stacks.delete(stack);
+      continue;
+    }
+    for (const entry of stack.liveEntries()) {
+      const rect = entry.el.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) continue;
+      const scale = rect.height / Math.max(1, entry.height);
+      // Posición "natural" (sin lo que ya la subió el árbitro).
+      const offset = entry.lift * scale;
+      boxes.push({ entry, left: rect.left, right: rect.right, top: rect.top + offset, bottom: rect.bottom + offset, scale });
+    }
+  }
+  if (boxes.length > 1) {
+    // Los más nuevos se quedan en su lugar; los viejos se acomodan encima.
+    boxes.sort((a, b) => b.entry.bornAt - a.entry.bornAt);
+    const placed: Box[] = [];
+    for (const box of boxes) {
+      let raise = 0;
+      for (let pass = 0; pass < 8; pass++) {
+        let moved = false;
+        for (const other of placed) {
+          const overlapX = box.left < other.right - 2 && box.right > other.left + 2;
+          const overlapY = box.top - raise < other.bottom + ARBITER_GAP && box.bottom - raise > other.top - ARBITER_GAP;
+          if (overlapX && overlapY) {
+            raise = box.bottom - other.top + ARBITER_GAP;
+            moved = true;
+          }
+        }
+        if (!moved) break;
+      }
+      box.entry.liftTarget = raise / box.scale;
+      placed.push({ ...box, top: box.top - raise, bottom: box.bottom - raise });
+    }
+  } else if (boxes.length === 1) {
+    boxes[0].entry.liftTarget = 0;
+  }
+  if (stacks.size > 0) arbiterFrame = requestAnimationFrame(arbitrate);
+}
+
+function watchStack(stack: BubbleStack) {
+  stacks.add(stack);
+  if (!arbiterFrame && typeof requestAnimationFrame === "function") arbiterFrame = requestAnimationFrame(arbitrate);
 }
 
 export class BubbleStack {
@@ -155,6 +220,11 @@ export class BubbleStack {
     this.element.className = styles.stack;
   }
 
+  /** Para el árbitro: globos visibles ahora. */
+  liveEntries(): readonly BubbleEntry[] {
+    return this.entries;
+  }
+
   get size() {
     return this.entries.length;
   }
@@ -163,7 +233,8 @@ export class BubbleStack {
     this.element.appendChild(el);
     // Una sola lectura de layout por burbuja (al crearla), no por frame.
     const height = el.offsetHeight;
-    this.entries.unshift({ el, bornAt: now, lifetime, y: 0, height });
+    this.entries.unshift({ el, bornAt: now, lifetime, y: 0, height, liftTarget: 0, lift: 0 });
+    watchStack(this);
 
     while (this.entries.length > MAX_BUBBLES) {
       this.entries.pop()?.el.remove();
@@ -194,7 +265,8 @@ export class BubbleStack {
         continue;
       }
 
-      entry.el.style.translate = `-50% ${-entry.y.toFixed(1)}px`;
+      entry.lift += (entry.liftTarget - entry.lift) * BUBBLE_EASE;
+      entry.el.style.translate = `-50% ${-(entry.y + entry.lift).toFixed(1)}px`;
       entry.el.style.opacity = opacity.toFixed(3);
       alive.push(entry);
     }
@@ -205,6 +277,7 @@ export class BubbleStack {
   clear() {
     this.entries.forEach((entry) => entry.el.remove());
     this.entries = [];
+    stacks.delete(this);
   }
 }
 

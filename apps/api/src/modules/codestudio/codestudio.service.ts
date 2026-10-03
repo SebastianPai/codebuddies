@@ -24,7 +24,7 @@ import { cardStats, employeeName, genderOf, resolveSkin, rollGender } from './co
 import { OFFICE_TAGS, OfficeCounts, countOffice, officeFactors, officeLines, officePrice, officeSummary } from './content/office';
 import { employeeLines } from './content/office-lines';
 import { officeConversations } from './content/office-talk';
-import { EMPLOYEE_WEAR_TAG, employeeAvatar, prefersSkin, type WardrobeItem } from './content/employee-look';
+import { EMPLOYEE_WEAR_TAG, employeeAvatar, employeeStyle, isCheerful, prefersSkin, type WardrobeItem } from './content/employee-look';
 import { applyDeal, marketingDeal } from './content/marketing-deal';
 
 /** Presupuestos diarios de la publicidad siempre activa. */
@@ -1247,6 +1247,7 @@ export class CodeStudioService {
           return {
             skin: npc ? { key: npc.key, spriteSheetUrl: npc.spriteSheetUrl, frameWidth: npc.frameWidth, frameHeight: npc.frameHeight } : null,
             avatar: look.avatar,
+            style: look.style,
           };
         })(),
       })),
@@ -1675,6 +1676,7 @@ export class CodeStudioService {
     });
     const items: WardrobeItem[] = rows.map((row) => ({
       id: row.id,
+      tags: row.tags,
       slot: row.avatarData!.slot,
       imageUrl: row.imageUrl,
       layer: row.layer,
@@ -1722,8 +1724,10 @@ export class CodeStudioService {
   /** Skin completa o avatar por piezas (nunca el mayordomo). */
   private lookOf<T extends { key: string }>(employee: { id: string; name: string; avatar: string | null; metadata: unknown }, npcs: T[], wardrobe: WardrobeItem[]) {
     const skin = resolveSkin(employee, npcs as never) as (T & { key: string }) | null;
-    if (skin && prefersSkin(employee.id, true, wardrobe)) return { skin, avatar: null };
-    return { skin: null, avatar: employeeAvatar(employee.id, wardrobe) };
+    const gender = genderOf(employee);
+    if (skin && prefersSkin(employee.id, true, wardrobe)) return { skin, avatar: null, style: null };
+    const style = isCheerful(employee.id) ? 'cheerful' : employeeStyle(employee.id, wardrobe, gender);
+    return { skin: null, avatar: employeeAvatar(employee.id, wardrobe, gender), style };
   }
 
   private async skinNpcs() {

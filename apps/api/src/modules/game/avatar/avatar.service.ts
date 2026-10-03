@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
   ForbiddenException,
@@ -201,6 +202,20 @@ export class AvatarService {
         throw new ForbiddenException('No tienes este item en tu inventario');
       }
 
+      // Ropa de mujer u hombre (tag gender:female|male; sin tag = unisex):
+      // el cuerpo equipado define para quién es el avatar.
+      const itemGender = genderTag(item.tags);
+      if (itemGender && parsedSlot !== 'BODY') {
+        const body = await this.prisma.avatarSlot.findUnique({
+          where: { avatarId_slot: { avatarId: avatar.id, slot: 'BODY' } },
+          select: { item: { select: { tags: true } } },
+        });
+        const bodyGender = genderTag(body?.item?.tags ?? []);
+        if (bodyGender && bodyGender !== itemGender) {
+          throw new BadRequestException(itemGender === 'female' ? 'Este item es de mujer: tu avatar tiene cuerpo de hombre.' : 'Este item es de hombre: tu avatar tiene cuerpo de mujer.');
+        }
+      }
+
       // Opcional: validar que el item esté diseñado para ese slot
       // if (item.avatarData?.slot !== parsedSlot) {
       //   throw new BadRequestException('Este item no corresponde al slot indicado');
@@ -216,6 +231,19 @@ export class AvatarService {
           color: color ?? null,
         },
       });
+
+      // Cambió el cuerpo a mujer u hombre: se quita lo que ya no le queda.
+      if (parsedSlot === 'BODY' && itemGender) {
+        const worn = await this.prisma.avatarSlot.findMany({
+          where: { avatarId: avatar.id, slot: { not: 'BODY' }, itemId: { not: null } },
+          select: { id: true, item: { select: { tags: true } } },
+        });
+        const mismatched = worn.filter((slotEntry) => {
+          const gender = genderTag(slotEntry.item?.tags ?? []);
+          return gender && gender !== itemGender;
+        });
+        if (mismatched.length > 0) await this.prisma.avatarSlot.deleteMany({ where: { id: { in: mismatched.map((entry) => entry.id) } } });
+      }
 
       await this.prisma.marketplacePurchase.updateMany({
         where: {
@@ -316,4 +344,11 @@ export class AvatarService {
 
     return this.getUserAvatar(userId);
   }
+}
+
+/** "female" | "male" según el tag gender:*; null = unisex. */
+function genderTag(tags: string[]): 'female' | 'male' | null {
+  if (tags.includes('gender:female')) return 'female';
+  if (tags.includes('gender:male')) return 'male';
+  return null;
 }

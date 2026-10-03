@@ -449,5 +449,20 @@
     "water": "Agua",
     "coffee": "Café",
     "basic": "Kit básico gratis"
+  },
+  "wearTagsLabel": "Ropa de avatar",
+  "wearGroup": {
+    "gender": "Para",
+    "style": "Estilo"
+  },
+  "wearTag": {
+    "female": "Mujer",
+    "male": "Hombre",
+    "unisex": "Sin marcar = unisex",
+    "casual": "Casual",
+    "elegant": "Elegante",
+    "sport": "Deportivo",
+    "urban": "Urbano",
+    "employee": "La pueden usar los empleados de CodeStudio"
   }
 }

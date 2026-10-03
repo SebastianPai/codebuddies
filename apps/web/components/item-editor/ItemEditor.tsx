@@ -57,6 +57,12 @@ function LabeledField({ text, hint, children }: { text: string; hint?: string; c
 const ROOM_TAG_PREFIX = "room:";
 const ITEM_ROOM_KEYS = ["living", "kitchen", "bedroom", "bathroom", "office", "outdoor"] as const;
 const OFFICE_TAG_KEYS = ["desk", "chair", "pc", "snacks", "water", "coffee", "basic"] as const;
+// Ropa de avatar: para quién es (sin marca = unisex) y su estilo. Un grupo
+// es exclusivo: elegir uno quita el otro del mismo grupo.
+const WEAR_TAG_GROUPS = [
+  { key: "gender", values: ["female", "male"] },
+  { key: "style", values: ["casual", "elegant", "sport", "urban"] },
+] as const;
 const FURNITURE_CATEGORY_KEYS = [
   "CHAIR",
   "TABLE",
@@ -1054,6 +1060,52 @@ export default function ItemEditor({
                 );
               })}
             </div>
+          </div>
+          {/* Ropa de avatar: mujer/hombre (sin marca = unisex), estilo y si la
+              pueden usar los empleados de CodeStudio. */}
+          <div className="space-y-3">
+            <p className="text-xs font-bold uppercase tracking-wide text-zinc-400">{t("items.wearTagsLabel")}</p>
+            {WEAR_TAG_GROUPS.map((group) => {
+              const list = compactTags(tags);
+              return (
+                <div key={group.key} className="flex flex-wrap items-center gap-2">
+                  <span className="w-20 text-xs text-zinc-500">{t(`items.wearGroup.${group.key}`)}</span>
+                  {group.values.map((value) => {
+                    const tag = `${group.key}:${value}`;
+                    const active = list.includes(tag);
+                    const others = list.filter((entry) => !entry.startsWith(`${group.key}:`));
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() => setTags((active ? others : [...others, tag]).join(", "))}
+                        className={`rounded-full border px-3 py-1 text-xs font-bold ${active ? "border-yellow-400 bg-yellow-400 text-black" : "border-zinc-700 text-zinc-300"}`}
+                      >
+                        {t(`items.wearTag.${value}`)}
+                      </button>
+                    );
+                  })}
+                  {group.key === "gender" && !list.some((entry) => entry.startsWith("gender:")) && (
+                    <span className="text-xs text-zinc-500">{t("items.wearTag.unisex")}</span>
+                  )}
+                </div>
+              );
+            })}
+            {(() => {
+              const list = compactTags(tags);
+              const active = list.includes("employee:wear");
+              return (
+                <button
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => setTags((active ? list.filter((entry) => entry !== "employee:wear") : [...list, "employee:wear"]).join(", "))}
+                  className={`rounded-full border px-3 py-1 text-xs font-bold ${active ? "border-yellow-400 bg-yellow-400 text-black" : "border-zinc-700 text-zinc-300"}`}
+                >
+                  {t("items.wearTag.employee")}
+                </button>
+              );
+            })()}
           </div>
         </div>
 

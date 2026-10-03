@@ -27,10 +27,34 @@ export const AVATAR_SLOTS = [
 ] as const;
 
 const SKIN_TONES = [0xffe0bd, 0xffdbac, 0xf1c27d, 0xe0ac69, 0xc68642, 0x8d5524];
+// Pelo natural para casi todos; solo la personalidad "alegre" (~1 de cada
+// 8) se anima con colores de fantasía.
 const HAIR_COLORS = [0x2b1b0e, 0x4a2c17, 0x8b5a2b, 0xd4a24c, 0x1a1a1a, 0xa83232, 0x7a7a7a];
+const FUN_HAIR_COLORS = [0x3fbf7f, 0xff6fae, 0x4f8cff, 0x9b5cff, 0xff8a3d];
+const CHEERFUL_CHANCE = 8; // 1 de cada 8
+
+// Paletas que combinan, por estilo: arriba, abajo y zapatos salen de la
+// misma paleta (nada de pelo verde + camisa azul + pantalón rosado... salvo
+// la gente alegre).
+const PALETTES: Record<string, { top: number[]; bottom: number[]; shoes: number[] }> = {
+  casual: { top: [0xffffff, 0x9fb7d4, 0xd9c7a7, 0x7a8b5a, 0xb0b0b0], bottom: [0x3b5b8c, 0x2f3e57, 0xc9b38f], shoes: [0xffffff, 0x5a3d2b, 0x2b2b2b] },
+  elegant: { top: [0xffffff, 0x1f2a44, 0x2b2b2b, 0x6b1f2a], bottom: [0x1f2a44, 0x2b2b2b, 0x3a3a3a], shoes: [0x1a1a1a, 0x4a2c17] },
+  sport: { top: [0xe63946, 0x1d70b8, 0xffffff, 0x2b2b2b], bottom: [0x2b2b2b, 0x1f2a44, 0x9a9a9a], shoes: [0xffffff, 0x2b2b2b] },
+  urban: { top: [0x2b2b2b, 0x5b6b3a, 0xc9a227, 0x8a8a8a], bottom: [0x2b2b2b, 0x3a3f33, 0x5a5a5a], shoes: [0x1a1a1a, 0xffffff] },
+  cheerful: { top: [0xffd23f, 0xff6fae, 0x3fbf7f, 0x4f8cff], bottom: [0xffffff, 0x2f3e57, 0x9b5cff], shoes: [0xff8a3d, 0xffffff] },
+};
+
+/** Personalidad visual: "alegre" se viste y peina con color; el resto, sobrio. */
+export function isCheerful(employeeId: string) {
+  return hash(`${employeeId}:cheerful`) % CHEERFUL_CHANCE === 0;
+}
+
+export const WEAR_STYLES = ['casual', 'elegant', 'sport', 'urban'] as const;
+export type WearStyle = (typeof WEAR_STYLES)[number];
 
 export type WardrobeItem = {
   id: string;
+  tags: string[];
   slot: string;
   imageUrl: string | null;
   layer: number;
@@ -67,19 +91,60 @@ export function hasEmployeeWardrobe(wardrobe: WardrobeItem[]) {
   return wardrobe.some((item) => item.wear);
 }
 
-/** Avatar por piezas de un empleado: siempre el mismo para la misma persona. */
-export function employeeAvatar(employeeId: string, wardrobe: WardrobeItem[]): EmployeeAvatar | null {
+function genderOfItem(item: WardrobeItem): 'MALE' | 'FEMALE' | null {
+  if (item.tags.includes('gender:female')) return 'FEMALE';
+  if (item.tags.includes('gender:male')) return 'MALE';
+  return null;
+}
+
+function styleOfItem(item: WardrobeItem): WearStyle | null {
+  return WEAR_STYLES.find((style) => item.tags.includes(`style:${style}`)) ?? null;
+}
+
+/**
+ * Estilo de un empleado (casual, elegante...): siempre el mismo para la
+ * misma persona, elegido entre los estilos que hay en la ropa marcada.
+ */
+export function employeeStyle(employeeId: string, wardrobe: WardrobeItem[], gender: 'MALE' | 'FEMALE'): WearStyle | null {
+  const available = WEAR_STYLES.filter((style) =>
+    wardrobe.some((item) => item.wear && styleOfItem(item) === style && (genderOfItem(item) ?? gender) === gender),
+  );
+  if (available.length === 0) return null;
+  return available[hash(`${employeeId}:style`) % available.length];
+}
+
+/**
+ * Avatar por piezas de un empleado: siempre el mismo para la misma persona.
+ * Solo usa ropa de su género (o unisex) y, si tiene estilo, prefiere esa.
+ */
+export function employeeAvatar(employeeId: string, wardrobe: WardrobeItem[], gender: 'MALE' | 'FEMALE' = 'MALE'): EmployeeAvatar | null {
+  const style = employeeStyle(employeeId, wardrobe, gender);
+  const fits = (item: WardrobeItem) => (genderOfItem(item) ?? gender) === gender;
   const slots = AVATAR_SLOTS.map((slot) => {
-    const worn = wardrobe.filter((item) => item.slot === slot && item.wear);
-    const fallback = wardrobe.find((item) => item.slot === slot && item.isDefault) ?? null;
-    const item = worn.length > 0 ? worn[hash(`${employeeId}:${slot}`) % worn.length] : fallback;
-    const hairColor = HAIR_COLORS[hash(`${employeeId}:hair`) % HAIR_COLORS.length];
+    const worn = wardrobe.filter((item) => item.slot === slot && item.wear && fits(item));
+    const styled = style ? worn.filter((item) => styleOfItem(item) === style) : [];
+    const plain = worn.filter((item) => !styleOfItem(item));
+    // Su estilo primero; si no hay de ese estilo en este slot, algo neutro; si no, cualquiera que le quede.
+    const pool = styled.length > 0 ? styled : plain.length > 0 ? plain : worn;
+    const fallback = wardrobe.find((item) => item.slot === slot && item.isDefault && fits(item)) ?? wardrobe.find((item) => item.slot === slot && item.isDefault) ?? null;
+    const item = pool.length > 0 ? pool[hash(`${employeeId}:${slot}`) % pool.length] : fallback;
+    const cheerful = isCheerful(employeeId);
+    const hairPalette = cheerful ? FUN_HAIR_COLORS : HAIR_COLORS;
+    const palette = PALETTES[cheerful ? 'cheerful' : (style ?? 'casual')];
+    const pickColor = (colors: number[], part: string) => colors[hash(`${employeeId}:${part}`) % colors.length];
+    const colorFor: Record<string, number> = {
+      HAIR: pickColor(hairPalette, 'hair'),
+      SHIRT: pickColor(palette.top, 'top'),
+      LEGS: pickColor(palette.bottom, 'bottom'),
+      SHOES: pickColor(palette.shoes, 'shoes'),
+    };
     return {
       slot,
       itemId: item?.id ?? null,
       imageUrl: item?.imageUrl ?? null,
       layer: item?.layer ?? 0,
-      color: item && slot === 'HAIR' && item.colorable ? hairColor : null,
+      // Solo se tiñe lo que se puede teñir (el cuerpo usa el tono de piel).
+      color: item && item.colorable && colorFor[slot] !== undefined ? colorFor[slot] : null,
       colorable: item?.colorable ?? false,
       sprites: (item?.sprites ?? [])
         .filter((sprite) => sprite.imageUrl)

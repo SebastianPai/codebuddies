@@ -449,5 +449,20 @@
     "water": "Water",
     "coffee": "Coffee",
     "basic": "Free basic kit"
+  },
+  "wearTagsLabel": "Avatar clothing",
+  "wearGroup": {
+    "gender": "For",
+    "style": "Style"
+  },
+  "wearTag": {
+    "female": "Women",
+    "male": "Men",
+    "unisex": "Unmarked = unisex",
+    "casual": "Casual",
+    "elegant": "Elegant",
+    "sport": "Sporty",
+    "urban": "Urban",
+    "employee": "CodeStudio employees can wear it"
   }
 }
