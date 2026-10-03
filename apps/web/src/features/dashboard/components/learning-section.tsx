@@ -19,7 +19,7 @@ interface LearningSectionProps {
   continueLearningStatus: LoadStatus;
 }
 
-function courseHref(course: ContinueLearningCourse) {
+export function courseHref(course: ContinueLearningCourse) {
   if (course.nextExercise) {
     return exercisePath(course.nextExercise.id, course.nextExercise.type);
   }

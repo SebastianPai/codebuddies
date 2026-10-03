@@ -6,6 +6,7 @@ import { BookOpen, Compass, Gamepad2, Gift, PlayCircle, Sparkles, Trophy } from 
 import { useTranslation } from "@/i18n/useTranslation";
 import { SpotlightTour, type TourStep } from "@/shared/ui/spotlight-tour";
 import { useAuth } from "../../../hooks/useAuth";
+import { readConsent } from "../../../components/consent/consent";
 
 // Onboarding guiado de la web: la primera vez que alguien entra al
 // dashboard le mostramos, sobre los elementos reales, qué es cada cosa. Se
@@ -38,10 +39,16 @@ export function WebOnboarding() {
   const [open, setOpen] = useState(false);
 
   // Primera vez en el dashboard, con sesión.
+  // Espera a que responda el aviso de cookies: no apilar dos ventanas
+  // encima de alguien que acaba de llegar.
   useEffect(() => {
     if (loading || !isAuthenticated || pathname !== "/dashboard" || seen()) return;
-    const timer = window.setTimeout(() => setOpen(true), 900);
-    return () => window.clearTimeout(timer);
+    const timer = window.setInterval(() => {
+      if (!readConsent()) return;
+      window.clearInterval(timer);
+      setOpen(true);
+    }, 900);
+    return () => window.clearInterval(timer);
   }, [loading, isAuthenticated, pathname]);
 
   // Repetir desde el menú de usuario.
