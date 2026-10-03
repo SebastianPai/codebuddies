@@ -3,5 +3,6 @@ import PlayerHUD from "../hud/PlayerHUD";
 
 export interface OtherPlayer extends ModularPlayer {
   playerId: string;
+  username?: string;
   hud: PlayerHUD;
 }

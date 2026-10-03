@@ -45,6 +45,17 @@ export interface PetSpecies {
 }
 
 export const getMyPet = () => apiGet<Pet | null>("/pets/me");
+
+/** Mascota de alguien (o la propia) sacada en una sala: la ven todos. */
+export interface RoomPet {
+  id: string;
+  species: string;
+  name: string;
+  mood: PetMood;
+  activeRoomId: string | null;
+  ownerUsername: string;
+}
+export const getRoomPets = (roomId: string) => apiGet<RoomPet[]>(`/pets/room/${encodeURIComponent(roomId)}`);
 export const getPetSpeciesList = () => apiGet<PetSpecies[]>("/pet-species");
 export const doPetAction = (action: PetAction) =>
   apiPost<Pet>(`/pets/me/actions/${action}`);

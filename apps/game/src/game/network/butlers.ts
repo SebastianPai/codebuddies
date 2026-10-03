@@ -24,6 +24,10 @@ export interface ButlerNpc {
 }
 
 export const getMyButler = () => apiGet<Butler | null>("/butlers/me");
+
+/** Mayordomo de alguien sacado en una sala: lo ven todos. */
+export type RoomButler = Butler & { ownerUsername: string };
+export const getRoomButlers = (roomId: string) => apiGet<RoomButler[]>(`/butlers/room/${encodeURIComponent(roomId)}`);
 export const getButlerCatalog = () =>
   apiGet<ButlerNpc[]>("/npcs?kind=BUTLER");
 export const renameButler = (name: string) =>

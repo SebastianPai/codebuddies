@@ -28,6 +28,16 @@ export class ButlerService {
     return butler;
   }
 
+  // Mayordomos "sacados" en una sala: visibles para cualquiera que entre.
+  async listInRoom(roomId: string) {
+    const butlers = await this.prisma.userButler.findMany({
+      where: { activeRoomId: roomId },
+      take: 20,
+      include: { user: { select: { username: true } } },
+    });
+    return butlers.map((butler) => ({ ...this.serialize(butler), ownerUsername: butler.user.username }));
+  }
+
   async getMine(userId: string) {
     const butler = await this.prisma.userButler.findUnique({ where: { userId } });
     return butler ? this.serialize(butler) : null;

@@ -66,6 +66,25 @@ export class PetService {
     return pet;
   }
 
+  // Mascotas "sacadas" en una sala: las ven todos los que entran, no solo
+  // su dueño. Solo lo visual (especie, nombre, ánimo) + el dueño, para que
+  // el cliente sepa a quién seguir.
+  async listInRoom(roomId: string) {
+    const pets = await this.prisma.pet.findMany({
+      where: { activeRoomId: roomId },
+      take: 20,
+      include: { user: { select: { username: true } } },
+    });
+    return pets.map((pet) => ({
+      id: pet.id,
+      species: pet.species,
+      name: pet.name,
+      mood: deriveMood(pet),
+      activeRoomId: pet.activeRoomId,
+      ownerUsername: pet.user.username,
+    }));
+  }
+
   async getMyPet(userId: string) {
     const pet = await this.prisma.pet.findFirst({
       where: { userId },

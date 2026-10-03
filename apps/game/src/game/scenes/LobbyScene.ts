@@ -6,6 +6,7 @@ import PlayerHUD from "../hud/PlayerHUD";
 import { AvatarSlot } from "../types/avatar";
 
 import BuildSystem from "../systems/BuildSystem";
+import RoomCompanions from "../systems/RoomCompanions";
 import PetSystem from "../systems/PetSystem";
 import ButlerSystem from "../systems/ButlerSystem";
 import BuildCommandStack from "../systems/BuildCommandStack";
@@ -72,6 +73,8 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
   private petSystem?: PetSystem;
   private onPetChanged = () => this.petSystem?.sync();
   private butlerSystem?: ButlerSystem;
+  // Mascotas/mayordomos de otras personas sacados en esta sala.
+  private roomCompanions?: RoomCompanions;
   private onButlerChanged = () => this.butlerSystem?.sync();
   private placementValidator!: PlacementValidator;
   private ambientLight!: AmbientLightOverlay;
@@ -1161,6 +1164,14 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     window.removeEventListener("butler:changed", this.onButlerChanged);
     this.petSystem?.destroy();
     this.butlerSystem?.destroy();
+    this.roomCompanions?.destroy();
+
+    this.roomCompanions = new RoomCompanions(this, (this.game as any).user?.username ?? null);
+    void this.roomCompanions.refresh();
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.roomCompanions?.destroy();
+      this.roomCompanions = undefined;
+    });
 
     this.petSystem = new PetSystem(this);
     void this.petSystem.sync();
@@ -1315,6 +1326,17 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     // vayan entrando) se vuelcan por el listener de ocupación.
     this.navDirty = true;
     this.flushNavIfDirty();
+  }
+
+  /**
+   * ¿El punto de apoyo (x, y) en el mundo cae sobre un tile caminable?
+   * Lo usan las mascotas y mayordomos para pasear sin atravesar paredes.
+   */
+  isGroundWalkable(x: number, y: number): boolean {
+    if (!this.isoGrid || !this.navGrid) return true;
+    const tile = this.isoGrid.worldToGroundTile(x, y);
+    if (!tile) return false;
+    return this.navGrid.isWalkable(Math.floor(tile.x), Math.floor(tile.y));
   }
 
   private isWalkable(tx: number, ty: number): boolean {
@@ -1765,6 +1787,7 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     this.roomItems?.update(Date.now());
     this.petSystem?.update(this.game.loop.delta);
     this.butlerSystem?.update(this.game.loop.delta);
+    this.roomCompanions?.update(this.game.loop.delta);
     if (!this.player || !this.isoGrid || !this.navGrid) return;
 
     const socket = (this.game as any).socket;
@@ -2051,6 +2074,8 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
       [],
     ) as OtherPlayer;
     other.playerId = playerData.id;
+    // Para que su mascota/mayordomo lo encuentre y lo siga (RoomCompanions).
+    other.username = playerData.username;
 
     other.hud = new PlayerHUD({
       scene: this,

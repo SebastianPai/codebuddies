@@ -26,6 +26,11 @@ export class PetController {
     return this.petService.getMyPet(user.userId);
   }
 
+  @Get('room/:roomId')
+  inRoom(@Param('roomId') roomId: string) {
+    return this.petService.listInRoom(roomId);
+  }
+
   @Post()
   adopt(
     @CurrentUser() user: AuthUser,

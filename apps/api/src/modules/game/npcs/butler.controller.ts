@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Param,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -19,6 +20,11 @@ export class ButlerController {
   @Get('me')
   getMine(@CurrentUser() user: AuthUser) {
     return this.butlerService.getMine(user.userId);
+  }
+
+  @Get('room/:roomId')
+  inRoom(@Param('roomId') roomId: string) {
+    return this.butlerService.listInRoom(roomId);
   }
 
   @Post('me/name')

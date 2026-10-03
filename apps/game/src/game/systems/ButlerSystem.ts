@@ -1,8 +1,9 @@
 import Phaser from "phaser";
 import { loadTextureOnce } from "../utils/phaserAssetCache";
-import { getMyButler, getButlerCatalog, type ButlerNpc } from "../network/butlers";
+import { getMyButler, getButlerCatalog, type ButlerNpc, type RoomButler } from "../network/butlers";
 import type { PetAnimClip } from "../network/pets";
 import { resolveActorGroundPoint, syncActorDepth } from "../iso/IsoActorDepth";
+import { measureOpaqueBox, playerVisualHeight } from "../utils/spriteMeasure";
 import {
   BubbleStack,
   createBubbleElement,
@@ -73,18 +74,22 @@ export default class ButlerSystem {
   private hud?: { element: Phaser.GameObjects.DOMElement; root: HTMLDivElement; stack: BubbleStack };
   private butlerName = "";
 
-  constructor(scene: Phaser.Scene) {
+  /**
+   * Sin `record`: el mayordomo propio (lee /butlers/me). Con `record`: el
+   * de otra persona sacado en esta sala (lo ven todos los que entran).
+   */
+  constructor(scene: Phaser.Scene, private readonly record?: RoomButler) {
     this.scene = scene;
   }
 
-  /** Lee /butlers/me y decide si el mayordomo debe estar en esta sala. */
+  /** Lee /butlers/me (o usa el registro dado) y decide si debe estar en esta sala. */
   async sync(): Promise<void> {
     if (this.syncing || this.destroyed) return;
     this.syncing = true;
     try {
       const roomId: string | null =
         (typeof window !== "undefined" && (window as any).currentRoomId) || null;
-      const mine = await getMyButler().catch(() => null);
+      const mine = this.record ?? (await getMyButler().catch(() => null));
       // Destruido mientras esperaba la red (cambio de sala/reconexión): no
       // crear un mayordomo huérfano.
       if (this.destroyed) return;
@@ -147,6 +152,7 @@ export default class ButlerSystem {
     this.sprite = this.scene.add
       .sprite(this.homeX, this.homeY, this.textureKey)
       .setOrigin(0.5, 1);
+    this.applyScale();
     syncActorDepth(this.scene, this.sprite);
     this.lastX = this.homeX;
     this.lastY = this.homeY;
@@ -164,6 +170,24 @@ export default class ButlerSystem {
 
     this.animKey = "";
     this.setClipFrame(this.pickClip(false), 0);
+  }
+
+  // Tamaño real del dibujo (sin el margen transparente de la celda) para
+  // que el mayordomo mida lo mismo que un avatar, no el doble. Antes se
+  // dibujaba la celda 1:1 (128×224 en la hoja actual) y quedaba gigante.
+  private displayScale = 1;
+  private figureHeight = 0;
+
+  private applyScale(): void {
+    if (!this.sprite || !this.textureKey || !this.npc) return;
+    const fw = Math.max(1, Number(this.npc.frameWidth) || 32);
+    const fh = Math.max(1, Number(this.npc.frameHeight) || 48);
+    const box = measureOpaqueBox(this.scene, this.textureKey, 0, 0, fw, fh);
+    const figure = box?.height ?? fh * 0.7;
+    const target = playerVisualHeight((this.scene as any).player) * 1.05;
+    this.displayScale = Phaser.Math.Clamp(target / figure, 0.25, 1.5);
+    this.figureHeight = figure * this.displayScale;
+    this.sprite.setScale(this.displayScale);
   }
 
   despawn(): void {
@@ -300,8 +324,9 @@ export default class ButlerSystem {
 
   private positionBubble(): void {
     if (!this.hud || !this.sprite) return;
-    const fh = Math.max(1, Number(this.npc?.frameHeight) || 48);
-    this.hud.element.setPosition(this.sprite.x, this.sprite.y - fh - 6);
+    // Globo justo sobre la cabeza del dibujo (no sobre el borde de la celda).
+    const head = this.figureHeight || Math.max(1, Number(this.npc?.frameHeight) || 48) * this.displayScale;
+    this.hud.element.setPosition(this.sprite.x, this.sprite.y - head - 6);
     this.hud.element.setDepth(Math.round(this.sprite.y));
   }
 
