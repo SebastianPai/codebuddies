@@ -8,6 +8,7 @@ import { Stat, money, pct } from "./ui";
 import { useTranslation } from "../../../i18n/useTranslation";
 import EmployeeCard from "./EmployeeCard";
 import CandidatesModal from "./CandidatesModal";
+import SquadBoard from "./SquadBoard";
 
 type Props = {
   company: CompanyView;
@@ -42,6 +43,8 @@ export default function TeamView({ company, catalog, busy, onHire, onFire }: Pro
           hint={t("codestudio.team.supportHint")}
         />
       </section>
+
+      <SquadBoard company={company} catalog={catalog} onHire={setChoosing} />
 
       <section className={`cs2-card cs2-pm-note ${hasPm ? "on" : ""}`}>
         <ClipboardList size={18} />

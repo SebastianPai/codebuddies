@@ -388,7 +388,7 @@ export default function CodeStudio({ initialView }: { initialView?: string }) {
             )}
             {view === "office" && <OfficeView company={company} onChange={reloadOffice} />}
             {view === "infra" && (
-              <InfraView company={company} catalog={studio.catalog} busy={busy} onInstall={(typeId) => void act(() => installCodeStudioInfrastructure(company.id, typeId))} />
+              <InfraView company={company} catalog={studio.catalog} busy={busy} onInstall={(typeId, provider) => void act(() => installCodeStudioInfrastructure(company.id, typeId, provider))} />
             )}
             {view === "marketing" && (
               <MarketingView

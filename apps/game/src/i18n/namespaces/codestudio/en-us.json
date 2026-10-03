@@ -231,7 +231,12 @@
     "maxed": "Max level",
     "install": "Install ({amount})",
     "upgrade": "Upgrade ({amount})",
-    "legacy": "Some servers are from the old system: they still add capacity."
+    "legacy": "Some servers are from the old system: they still add capacity.",
+    "provider": "Provider",
+    "current": "current",
+    "month": "mo",
+    "usersShort": "users",
+    "migrate": "Move to {name} ({amount})"
   },
   "marketing": {
     "title": "Marketing",
@@ -643,5 +648,30 @@
     "perDay": "{amount}/day",
     "users": "~{users} users/day",
     "losing": "Each user costs you {cac} and brings {ltv}: you lose money on every one."
+  },
+  "squad": {
+    "eyebrow": "Squad",
+    "title": "Your team on the pitch",
+    "average": "Average",
+    "chemistry": "Chemistry",
+    "hire": "Hire {role}",
+    "line": {
+      "leadership": "Leadership",
+      "product": "Product",
+      "quality": "Quality & design",
+      "operations": "Operations",
+      "growth": "Growth"
+    },
+    "reason": {
+      "pm": "A PM keeps the developers organized",
+      "noPm": "Several developers and no PM: everyone on their own",
+      "noQa": "Lots of code and no QA reviewing it",
+      "qa": "QA reviews what ships",
+      "juniorsAlone": "Juniors without a senior to guide them",
+      "mentoring": "Seniors guiding the juniors",
+      "mentor": "A mentor lifting everyone up",
+      "badTraits": "{count} people with a bad attitude drag morale down",
+      "noBuilders": "Nobody codes: the product does not move"
+    }
   }
 }

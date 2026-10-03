@@ -3679,3 +3679,219 @@ div.cs2-modal.cs2-candidates-modal {
   background: rgba(250, 204, 21, 0.12);
 }
 
+/* ─── Proveedores de hosting ──────────────────────────────────────────── */
+.cs2-providers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 6px;
+}
+
+.cs2-provider {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--px-line);
+  border-radius: var(--r-md);
+  background: var(--fill);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cs2-provider b {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  font-size: 13px;
+}
+
+.cs2-provider b .cs2-chip {
+  padding: 1px 6px;
+  font-size: 10px;
+}
+
+.cs2-provider small {
+  font-size: 11px;
+  color: var(--px-muted);
+}
+
+.cs2-provider.on {
+  border-color: var(--px-yellow);
+  background: rgba(250, 204, 21, 0.1);
+}
+
+.cs2-provider-budget b::after {
+  content: "$";
+  color: var(--px-good);
+}
+
+.cs2-provider-premium b::after {
+  content: "$$$";
+  color: var(--px-yellow);
+}
+
+.cs2-provider-pitch {
+  margin: 0;
+  font-size: 12px;
+}
+
+/* ─── Plantilla estilo FIFA ───────────────────────────────────────────── */
+.cs2-squad {
+  display: grid;
+  gap: 12px;
+}
+
+.cs2-squad-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cs2-squad-scores {
+  display: flex;
+  gap: 18px;
+}
+
+.cs2-squad-scores div {
+  display: grid;
+  justify-items: end;
+}
+
+.cs2-squad-scores span {
+  font-size: 11px;
+  color: var(--px-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cs2-squad-scores b {
+  font-size: 26px;
+  line-height: 1;
+}
+
+/* Cancha: franjas de pasto con líneas suaves. */
+.cs2-pitch {
+  display: grid;
+  gap: 10px;
+  padding: 14px 10px;
+  border-radius: var(--r-lg);
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.04) 0 48px, transparent 48px 96px),
+    linear-gradient(180deg, #1e5a32, #164426);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.12);
+}
+
+.cs2-pitch-line {
+  display: grid;
+  gap: 6px;
+}
+
+.cs2-pitch-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+  text-align: center;
+}
+
+.cs2-pitch-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.cs2-squad-card,
+.cs2-squad-empty {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  width: 70px;
+  min-height: 92px;
+  padding: 6px 4px 5px;
+  border-radius: 12px 12px 16px 16px;
+}
+
+.cs2-squad-card {
+  /* Bronce por defecto (las clases cs2-fut-silver/gold/special lo pisan). */
+  --fut-a: #6b4a2b;
+  --fut-b: #3a2817;
+  --fut-ink: #fbe7c6;
+  --fut-line: rgba(251, 231, 198, 0.25);
+  background: linear-gradient(160deg, var(--fut-a), var(--fut-b));
+  border: 1px solid var(--fut-line);
+  color: var(--fut-ink);
+}
+
+.cs2-squad-card > b {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.cs2-squad-portrait {
+  display: grid;
+  place-items: center;
+  height: 50px;
+  margin-top: 6px;
+}
+
+.cs2-squad-portrait canvas,
+.cs2-squad-portrait .cs2-card-portrait {
+  height: 50px;
+  max-height: 50px;
+  width: auto;
+}
+
+.cs2-squad-portrait .cs2-card-portrait-fallback {
+  width: 36px;
+  height: 36px;
+  font-size: 14px;
+}
+
+.cs2-squad-card small {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.cs2-squad-card i {
+  font-style: normal;
+  font-size: 9px;
+  font-weight: 800;
+  opacity: 0.75;
+}
+
+.cs2-squad-empty {
+  align-content: center;
+  gap: 4px;
+  border: 1.5px dashed rgba(255, 255, 255, 0.45);
+  background: rgba(0, 0, 0, 0.18);
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  font: inherit;
+}
+
+.cs2-squad-empty:hover,
+.cs2-squad-empty:focus-visible {
+  border-color: var(--px-yellow);
+  color: var(--px-yellow);
+  outline: none;
+}
+
+.cs2-squad-empty small {
+  font-size: 10px;
+  font-weight: 800;
+}
+

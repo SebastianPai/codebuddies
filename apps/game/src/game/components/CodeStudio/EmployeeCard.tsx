@@ -13,14 +13,14 @@ type Employee = Pick<CompanyView["employees"][number], "name" | "roleSlug" | "ro
 // (primer cuadro de su skin), seis estadísticas y el color según la media
 // (bronce, plata, oro o especial).
 
-function tierOf(overall: number) {
+export function tierOf(overall: number) {
   if (overall >= 85) return "special";
   if (overall >= 70) return "gold";
   if (overall >= 55) return "silver";
   return "bronze";
 }
 
-const ROLE_SHORT: Record<string, string> = {
+export const ROLE_SHORT: Record<string, string> = {
   fullstack: "FS",
   frontend: "FE",
   backend: "BE",
@@ -51,7 +51,7 @@ function loadImage(url: string) {
 }
 
 /** Retrato de un empleado por piezas: sus capas una encima de otra, con su tono de piel y color de pelo. */
-function AvatarPortrait({ avatar, label }: { avatar: NonNullable<Employee["avatar"]>; label: string }) {
+export function AvatarPortrait({ avatar, label }: { avatar: NonNullable<Employee["avatar"]>; label: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -102,7 +102,7 @@ function AvatarPortrait({ avatar, label }: { avatar: NonNullable<Employee["avata
 }
 
 /** Retrato: el primer cuadro de la hoja de la skin, pixelado y centrado. */
-function SkinPortrait({ skin, label }: { skin: Employee["skin"]; label: string }) {
+export function SkinPortrait({ skin, label }: { skin: Employee["skin"]; label: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {

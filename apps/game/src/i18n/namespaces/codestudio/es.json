@@ -231,7 +231,12 @@
     "maxed": "Nivel máximo",
     "install": "Instalar ({amount})",
     "upgrade": "Mejorar ({amount})",
-    "legacy": "Algunos servidores son del sistema anterior: siguen sumando capacidad."
+    "legacy": "Algunos servidores son del sistema anterior: siguen sumando capacidad.",
+    "provider": "Proveedor",
+    "current": "actual",
+    "month": "mes",
+    "usersShort": "usuarios",
+    "migrate": "Migrar a {name} ({amount})"
   },
   "marketing": {
     "title": "Marketing",
@@ -643,5 +648,30 @@
     "perDay": "{amount}/día",
     "users": "~{users} usuarios/día",
     "losing": "Cada usuario te cuesta {cac} y te deja {ltv}: pierdes plata con cada uno."
+  },
+  "squad": {
+    "eyebrow": "Plantilla",
+    "title": "Tu equipo en la cancha",
+    "average": "Media",
+    "chemistry": "Química",
+    "hire": "Contratar {role}",
+    "line": {
+      "leadership": "Liderazgo",
+      "product": "Producto",
+      "quality": "Calidad y diseño",
+      "operations": "Operación",
+      "growth": "Crecimiento"
+    },
+    "reason": {
+      "pm": "Hay un PM que ordena a los programadores",
+      "noPm": "Varios programadores sin PM: cada uno por su lado",
+      "noQa": "Mucho código y nadie de QA revisándolo",
+      "qa": "QA revisa lo que sale",
+      "juniorsAlone": "Juniors sin un senior que los guíe",
+      "mentoring": "Seniors guiando a los juniors",
+      "mentor": "Un mentor que sube al resto",
+      "badTraits": "{count} personas con mala actitud bajan el ánimo",
+      "noBuilders": "Nadie programa: el producto no avanza"
+    }
   }
 }

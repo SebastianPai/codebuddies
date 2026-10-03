@@ -231,7 +231,12 @@
     "maxed": "Maximales Level",
     "install": "Installieren ({amount})",
     "upgrade": "Verbessern ({amount})",
-    "legacy": "Einige Server stammen aus dem alten System und bringen weiterhin Kapazität."
+    "legacy": "Einige Server stammen aus dem alten System und bringen weiterhin Kapazität.",
+    "provider": "Anbieter",
+    "current": "aktuell",
+    "month": "Monat",
+    "usersShort": "Nutzer",
+    "migrate": "Zu {name} umziehen ({amount})"
   },
   "marketing": {
     "title": "Marketing",
@@ -643,5 +648,30 @@
     "perDay": "{amount}/Tag",
     "users": "~{users} Nutzer/Tag",
     "losing": "Jeder Nutzer kostet dich {cac} und bringt {ltv}: Du verlierst bei jedem Geld."
+  },
+  "squad": {
+    "eyebrow": "Kader",
+    "title": "Dein Team auf dem Platz",
+    "average": "Schnitt",
+    "chemistry": "Chemie",
+    "hire": "{role} einstellen",
+    "line": {
+      "leadership": "Führung",
+      "product": "Produkt",
+      "quality": "Qualität & Design",
+      "operations": "Betrieb",
+      "growth": "Wachstum"
+    },
+    "reason": {
+      "pm": "Ein PM hält die Entwickler organisiert",
+      "noPm": "Mehrere Entwickler ohne PM: jeder für sich",
+      "noQa": "Viel Code und niemand von QA prüft ihn",
+      "qa": "QA prüft, was rausgeht",
+      "juniorsAlone": "Juniors ohne Senior, der sie anleitet",
+      "mentoring": "Seniors leiten die Juniors an",
+      "mentor": "Ein Mentor hebt alle an",
+      "badTraits": "{count} Leute mit schlechter Einstellung drücken die Stimmung",
+      "noBuilders": "Niemand programmiert: das Produkt kommt nicht voran"
+    }
   }
 }

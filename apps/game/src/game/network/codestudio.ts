@@ -118,8 +118,8 @@ export const getCodeStudioCandidates = (companyId: string, roleId: string) =>
 export const fireCodeStudioEmployee = (companyId: string, employeeId: string) =>
   request<CompanyView>(`/codestudio/companies/${companyId}/employees/${employeeId}`, { method: "DELETE" });
 
-export const installCodeStudioInfrastructure = (companyId: string, infrastructureTypeId: string) =>
-  post<CompanyView>(`/codestudio/companies/${companyId}/infrastructure`, { infrastructureTypeId });
+export const installCodeStudioInfrastructure = (companyId: string, infrastructureTypeId: string, provider?: string) =>
+  post<CompanyView>(`/codestudio/companies/${companyId}/infrastructure`, { infrastructureTypeId, ...(provider ? { provider } : {}) });
 
 export const launchCodeStudioCampaign = (companyId: string, campaignId: string, multiplier: number) =>
   post<CompanyView>(`/codestudio/companies/${companyId}/campaigns`, { campaignId, multiplier });

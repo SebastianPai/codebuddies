@@ -280,7 +280,8 @@ export type CompanyView = {
     style?: string | null;
     skin?: { key: string; spriteSheetUrl: string | null; frameWidth: number; frameHeight: number } | null;
   }>;
-  hosting: Array<{ typeId: string; slug: string; name: string; level: number; maxLevel: number; capacity: number; monthly: number; upgradeCost: number; legacy: boolean }>;
+  hosting: Array<{ typeId: string; slug: string; name: string; level: number; maxLevel: number; capacity: number; monthly: number; upgradeCost: number; provider?: string; legacy: boolean }>;
+  providers?: Array<{ key: string; name: string; install: number; monthly: number; capacity: number; latency: number; stability: number; pitch: string }>;
   bugs: PublicBug[];
   pendingDecision: { id: string; title: string; description: string | null; choices: Array<{ key: string; label: string; hint: string }>; daysLeft: number } | null;
   events: ActivityEvent[];

@@ -23,6 +23,7 @@ import { TRAITS, bumpStats, performanceOf, readMeta, rollTrait, statsOf, traitOf
 import { cardStats, employeeName, genderOf, resolveSkin, rollGender } from './content/employee-card';
 import { OFFICE_TAGS, OfficeCounts, countOffice, officeFactors, officeLines, officePrice, officeSummary } from './content/office';
 import { employeeLines } from './content/office-lines';
+import { PROVIDERS, PROVIDER_KEYS, providerOf } from './content/providers';
 import { officeConversations } from './content/office-talk';
 import { EMPLOYEE_WEAR_TAG, employeeAvatar, employeeStyle, isCheerful, prefersSkin, type WardrobeItem } from './content/employee-look';
 import { applyDeal, marketingDeal } from './content/marketing-deal';
@@ -501,26 +502,36 @@ export class CodeStudioService {
       throw new BadRequestException(pick(MSG.unlocksAtStage(stageText(Number(scaling.minStage), lang).name), lang));
     }
     const existing = company.infrastructure.find((item) => item.infrastructureTypeId === type.id);
-    const nextLevel = (existing?.level ?? 0) + 1;
+    const current = existing ? providerOf(existing.metadata) : null;
+    const provider = dto.provider ? PROVIDERS[dto.provider] : (current ?? PROVIDERS.standard);
+    // Cambiar de proveedor es migrar: se paga de nuevo la instalación del
+    // nivel que ya tienes (no sube de nivel).
+    const migrating = Boolean(existing && current && provider.key !== current.key);
+    const nextLevel = migrating ? existing!.level : (existing?.level ?? 0) + 1;
     if (nextLevel > Number(scaling.maxLevel ?? 5)) throw new BadRequestException(pick(MSG.maxLevel(), lang));
-    const cost = type.baseCost * nextLevel;
+    const cost = Math.round(type.baseCost * nextLevel * provider.install);
     const typeName = contentFor(lang)?.hosting[type.slug]?.name ?? type.name;
 
     await this.prisma.$transaction(async (tx) => {
       await this.spend(tx, company.id, cost, lang);
       const data = {
         level: nextLevel,
-        capacity: Number(scaling.capacity ?? 0) * nextLevel,
-        latency: Number(scaling.latency ?? 120),
-        stability: Number(scaling.stability ?? 97),
-        cost: Number(scaling.monthly ?? 0) * nextLevel,
+        capacity: Math.round(Number(scaling.capacity ?? 0) * nextLevel * provider.capacity),
+        latency: Number(scaling.latency ?? 120) + provider.latency,
+        stability: Math.min(99.99, Number(scaling.stability ?? 97) + provider.stability),
+        cost: Math.round(Number(scaling.monthly ?? 0) * nextLevel * provider.monthly),
+        metadata: { ...((existing?.metadata ?? {}) as Record<string, unknown>), provider: provider.key },
       };
       if (existing) await tx.codeStudioInfrastructure.update({ where: { id: existing.id }, data });
       else await tx.codeStudioInfrastructure.create({ data: { companyId: company.id, infrastructureTypeId: type.id, ...data } });
       await this.log(
         tx,
         company.id,
-        existing ? MSG.hostingUpgraded(typeName, nextLevel) : MSG.hostingInstalled(typeName),
+        migrating
+          ? L(`Migraste ${typeName} a ${provider.name}`, `You moved ${typeName} to ${provider.name}`, `${typeName} zu ${provider.name} umgezogen`)
+          : existing
+            ? MSG.hostingUpgraded(typeName, nextLevel)
+            : MSG.hostingInstalled(`${typeName} (${provider.name})`),
         MSG.hostingText(Number(scaling.capacity ?? 0), Number(scaling.monthly ?? 0)),
         'infra',
         'neutral',
@@ -1259,12 +1270,23 @@ export class CodeStudioService {
           name: t?.hosting[item.infrastructureType.slug]?.name ?? item.infrastructureType.name,
           level: item.level,
           maxLevel: Number(scaling.maxLevel ?? 5),
-          capacity: Number(scaling.capacity ?? 0) * item.level,
-          monthly: Number(scaling.monthly ?? 0) * item.level,
-          upgradeCost: item.infrastructureType.baseCost * (item.level + 1),
+          capacity: Math.round(Number(scaling.capacity ?? 0) * item.level * providerOf(item.metadata).capacity),
+          monthly: Math.round(Number(scaling.monthly ?? 0) * item.level * providerOf(item.metadata).monthly),
+          upgradeCost: Math.round(item.infrastructureType.baseCost * (item.level + 1) * providerOf(item.metadata).install),
+          provider: providerOf(item.metadata).key,
           legacy: !item.infrastructureType.active,
         };
       }),
+      providers: PROVIDER_KEYS.map((key) => ({
+        key,
+        name: PROVIDERS[key].name,
+        install: PROVIDERS[key].install,
+        monthly: PROVIDERS[key].monthly,
+        capacity: PROVIDERS[key].capacity,
+        latency: PROVIDERS[key].latency,
+        stability: PROVIDERS[key].stability,
+        pitch: pick(PROVIDERS[key].pitch, lang),
+      })),
       bugs: company.bugReports.map((bug) => this.publicBug(bug, now, lang)),
       pendingDecision: pending
         ? {
@@ -1901,12 +1923,13 @@ export class CodeStudioService {
   private hostingOf(company: LoadedCompany): EngineHosting[] {
     return company.infrastructure.map((item) => {
       const scaling = (item.infrastructureType.scaling ?? {}) as Record<string, number>;
+      const provider = providerOf(item.metadata);
       return {
         level: item.level,
-        capacity: Number(scaling.capacity ?? 0),
-        latency: Number(scaling.latency ?? item.latency),
-        stability: Number(scaling.stability ?? item.stability),
-        monthly: Number(scaling.monthly ?? item.cost),
+        capacity: Number(scaling.capacity ?? 0) * provider.capacity,
+        latency: Number(scaling.latency ?? item.latency) + provider.latency,
+        stability: Math.min(99.99, Number(scaling.stability ?? item.stability) + provider.stability),
+        monthly: Number(scaling.monthly ?? item.cost) * provider.monthly,
       };
     });
   }
