@@ -804,9 +804,14 @@ export class ItemsService {
     // El tope de unidades por operación es el mismo que el tope de stock
     // acumulado (Item.maxStack) -- no hay un límite "por compra" separado,
     // ver ItemEditor.tsx (admin) donde se configura este único valor.
-    if (quantity > item.maxStack) {
+    // Ropa/cuerpo/pelo (AVATAR) y efectos se tienen o no se tienen: siempre
+    // 1, aunque el admin haya puesto otro maxStack (otro solo para regalar).
+    const maxStack = effectiveMaxStack(item);
+    if (quantity > maxStack) {
       throw new BadRequestException(
-        `Solo puedes comprar hasta ${item.maxStack} unidad(es) de este item por operación`,
+        maxStack === 1
+          ? 'Este item es personal: solo puedes tener uno (puedes regalárselo a un amigo)'
+          : `Solo puedes comprar hasta ${maxStack} unidad(es) de este item por operación`,
       );
     }
 
@@ -894,12 +899,14 @@ export class ItemsService {
       });
 
       if (existing) {
-        const remaining = item.maxStack - existing.amount;
+        const remaining = maxStack - existing.amount;
         if (remaining < quantity) {
           throw new BadRequestException(
             remaining > 0
-              ? `Ya tienes ${existing.amount} de este item. Solo puedes comprar ${remaining} más (máximo ${item.maxStack}).`
-              : `Ya alcanzaste el máximo de este item (${item.maxStack})`,
+              ? `Ya tienes ${existing.amount} de este item. Solo puedes comprar ${remaining} más (máximo ${maxStack}).`
+              : maxStack === 1
+                ? 'Ya tienes este item: es personal, solo puedes tener uno'
+                : `Ya alcanzaste el máximo de este item (${maxStack})`,
           );
         }
 
@@ -910,19 +917,19 @@ export class ItemsService {
         // en vez de las dos leyendo el mismo amount viejo e incrementando
         // por encima del límite.
         const stacked = await tx.userItem.updateMany({
-          where: { userId, itemId, amount: { lte: item.maxStack - quantity } },
+          where: { userId, itemId, amount: { lte: maxStack - quantity } },
           data: { amount: { increment: quantity } },
         });
 
         if (stacked.count === 0) {
           throw new BadRequestException(
-            `Ya alcanzaste el máximo de este item (${item.maxStack})`,
+            `Ya alcanzaste el máximo de este item (${maxStack})`,
           );
         }
       } else {
-        if (quantity > item.maxStack) {
+        if (quantity > maxStack) {
           throw new BadRequestException(
-            `Solo puedes comprar hasta ${item.maxStack} unidad(es) de este item`,
+            `Solo puedes comprar hasta ${maxStack} unidad(es) de este item`,
           );
         }
         // La unique constraint [userId, itemId] es la guarda real contra
@@ -954,6 +961,20 @@ export class ItemsService {
       throw new NotFoundException('Usuario destinatario no encontrado');
     if (recipient.id === senderId) {
       throw new BadRequestException('No podés regalarte un item a vos mismo');
+    }
+    // Solo se regala a gente de la lista de amigos (amistad aceptada).
+    const friends = await this.prisma.friendship.findFirst({
+      where: {
+        status: 'ACCEPTED',
+        OR: [
+          { requesterId: senderId, addresseeId: recipient.id },
+          { requesterId: recipient.id, addresseeId: senderId },
+        ],
+      },
+      select: { id: true },
+    });
+    if (!friends) {
+      throw new BadRequestException('Solo puedes regalar a jugadores de tu lista de amigos');
     }
 
     const item = await this.prisma.item.findUnique({ where: { id: itemId } });
@@ -998,13 +1019,15 @@ export class ItemsService {
           where: {
             userId: recipient.id,
             itemId,
-            amount: { lt: item.maxStack },
+            amount: { lt: effectiveMaxStack(item) },
           },
           data: { amount: { increment: 1 } },
         });
         if (stacked.count === 0) {
           throw new BadRequestException(
-            `El destinatario ya alcanzó el máximo de este item (${item.maxStack})`,
+            effectiveMaxStack(item) === 1
+              ? 'Tu amigo ya tiene este item'
+              : `El destinatario ya alcanzó el máximo de este item (${effectiveMaxStack(item)})`,
           );
         }
       } else {
@@ -1125,4 +1148,13 @@ export class ItemsService {
 
     return this.listBuildFavorites(userId);
   }
+}
+
+/**
+ * Cuántas unidades de un item puede tener una persona. Lo que se viste
+ * (AVATAR: cuerpo, pelo, ropa) y los efectos son únicos: tener dos no sirve
+ * de nada. Los muebles (WORLD) sí se acumulan según Item.maxStack.
+ */
+export function effectiveMaxStack(item: { type: ItemType | string | null; maxStack: number }) {
+  return item.type === ItemType.AVATAR || item.type === ItemType.EFFECT ? 1 : Math.max(1, item.maxStack);
 }

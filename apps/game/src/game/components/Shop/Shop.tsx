@@ -1,5 +1,6 @@
 "use client";
 
+import { getFriends, type Friend } from "../../network/friendships";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Socket } from "socket.io-client";
 import { ConciergeBell, Globe, MessageSquare, Minus, PawPrint, Plus, Shirt, Sparkles } from "lucide-react";
@@ -112,6 +113,7 @@ export default function Shop({ socket, inventory = [], onClose, username = "" }:
   }, [items]);
   const [giftTargetId, setGiftTargetId] = useState<string | null>(null);
   const [giftUsername, setGiftUsername] = useState("");
+  const [friends, setFriends] = useState<Friend[] | null>(null);
   // Adopción de mascota: pide el nombre en el propio card antes de comprar.
   const [petAdoptKey, setPetAdoptKey] = useState<string | null>(null);
   const [petName, setPetName] = useState("");
@@ -132,13 +134,17 @@ export default function Shop({ socket, inventory = [], onClose, username = "" }:
   // maxStack ausente/1 -- o ya sin espacio -- devuelve 1/0 y el selector de
   // cantidad no se muestra (compra individual de siempre).
   const getMaxBuyable = (item: any) => {
-    const maxStack = Number(item?.maxStack) || 1;
+    const maxStack = isPersonalItem(item) ? 1 : Number(item?.maxStack) || 1;
     const owned = inventoryMap.get(item?.id) || 0;
     return Math.max(0, maxStack - owned);
   };
 
+  // Lo que se viste (cuerpo, pelo, ropa) y los efectos son personales: se
+  // tiene uno o ninguno, igual que valida el backend (effectiveMaxStack).
+  const isPersonalItem = (item: any) => item?.type === "AVATAR" || item?.type === "EFFECT";
+
   const isBulkPurchasable = (item: any) =>
-    item?.type !== "BACKGROUND" && item?.type !== "PET" && item?.type !== "BUTLER" && Number(item?.maxStack) > 1;
+    item?.type !== "BACKGROUND" && item?.type !== "PET" && item?.type !== "BUTLER" && !isPersonalItem(item) && Number(item?.maxStack) > 1;
 
   const getQuantity = (item: any) => {
     const max = getMaxBuyable(item);
@@ -343,6 +349,12 @@ export default function Shop({ socket, inventory = [], onClose, username = "" }:
     setGiftError("");
     setGiftUsername("");
     setGiftTargetId(itemId);
+    // Solo se regala a amigos: se cargan al abrir el formulario.
+    if (friends === null) {
+      getFriends()
+        .then((list) => setFriends(list))
+        .catch(() => setFriends([]));
+    }
   };
 
   const cancelGift = () => {
@@ -815,13 +827,25 @@ export default function Shop({ socket, inventory = [], onClose, username = "" }:
                     )
                   ) : giftTargetId === item.id ? (
                     <div className={styles.giftForm}>
-                      <input
-                        className={styles.giftInput}
-                        placeholder={t("commerce.giftUsernamePlaceholder")}
-                        value={giftUsername}
-                        onChange={(e) => setGiftUsername(e.target.value)}
-                        disabled={sendingGift}
-                      />
+                      {friends === null ? (
+                        <p className={styles.giftError}>{t("commerce.giftLoadingFriends")}</p>
+                      ) : friends.length === 0 ? (
+                        <p className={styles.giftError}>{t("commerce.giftNoFriends")}</p>
+                      ) : (
+                        <select
+                          className={styles.giftInput}
+                          value={giftUsername}
+                          onChange={(e) => setGiftUsername(e.target.value)}
+                          disabled={sendingGift}
+                        >
+                          <option value="">{t("commerce.giftPickFriend")}</option>
+                          {friends.map((entry) => (
+                            <option key={entry.id} value={entry.friend.username}>
+                              {entry.friend.username}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                       <div className={styles.giftActions}>
                         <Button variant="secondary" size="sm" onClick={cancelGift} disabled={sendingGift}>
                           {t("common.cancel")}
@@ -830,7 +854,7 @@ export default function Shop({ socket, inventory = [], onClose, username = "" }:
                           variant="primary"
                           size="sm"
                           onClick={() => void sendGift(item.id)}
-                          disabled={sendingGift}
+                          disabled={sendingGift || !giftUsername}
                         >
                           {sendingGift ? t("commerce.giftSending") : t("commerce.giftSend")}
                         </Button>
@@ -910,10 +934,13 @@ export default function Shop({ socket, inventory = [], onClose, username = "" }:
                               size="sm"
                               fullWidth
                               onClick={() => void buyItem(item.id)}
-                              disabled={isBuying || alreadyHasBackground || stackFull}
+                              disabled={isBuying || alreadyHasBackground || stackFull || (owned && isPersonalItem(item))}
+                              title={isPersonalItem(item) ? t("commerce.personalItem") : undefined}
                             >
                               {alreadyHasBackground
                                 ? t("commerce.shopAlreadyOwned")
+                                : owned && isPersonalItem(item)
+                                  ? t("commerce.ownedPersonal")
                                 : stackFull
                                   ? t("commerce.shopLimitReached")
                                   : isBuying
@@ -925,7 +952,7 @@ export default function Shop({ socket, inventory = [], onClose, username = "" }:
                                         : t("commerce.shopBuy")}
                             </Button>
                             )}
-                            {item.type === "EFFECT" && (
+                            {isPersonalItem(item) && item.accessType === "FREE" && Number(item.coinsPrice) > 0 && (
                               <Button variant="secondary" size="sm" onClick={() => openGiftForm(item.id)}>
                                 {t("commerce.giftButton")}
                               </Button>

@@ -20,6 +20,7 @@ describe('ItemsService', () => {
   const prisma = {
     item: { findUnique: jest.fn() },
     user: { findUnique: jest.fn() },
+    friendship: { findFirst: jest.fn() },
     $transaction: jest.fn((callback: (client: typeof tx) => unknown) => callback(tx)),
   };
 
@@ -50,6 +51,30 @@ describe('ItemsService', () => {
     it('exposes the 5-tier rarity source of truth', () => {
       const catalog = service.getRarityCatalog();
       expect(catalog.map((r) => r.key)).toEqual(['common', 'uncommon', 'rare', 'epic', 'legendary']);
+    });
+  });
+
+  describe('items personales y regalos', () => {
+    const avatarItem = { id: 'hair-1', type: 'AVATAR', shopVisible: true, coinsPrice: 100, accessType: 'FREE', maxStack: 5 };
+
+    it('el pelo/cuerpo/ropa se compra una sola vez aunque el admin ponga maxStack > 1', async () => {
+      prisma.item.findUnique.mockResolvedValue(avatarItem);
+      prisma.user.findUnique.mockResolvedValue({ id: 'u1', coins: 1000 });
+      await expect(service.buyItem('u1', 'hair-1', 2)).rejects.toThrow('solo puedes tener uno');
+    });
+
+    it('si ya lo tienes, no deja comprar otro', async () => {
+      prisma.item.findUnique.mockResolvedValue(avatarItem);
+      prisma.user.findUnique.mockResolvedValue({ id: 'u1', coins: 1000 });
+      tx.user.updateMany.mockResolvedValue({ count: 1 });
+      tx.userItem.findUnique.mockResolvedValue({ amount: 1 });
+      await expect(service.buyItem('u1', 'hair-1', 1)).rejects.toThrow('Ya tienes este item');
+    });
+
+    it('solo se regala a jugadores de la lista de amigos', async () => {
+      prisma.user.findUnique.mockResolvedValueOnce({ id: 'u2', username: 'ana' });
+      prisma.friendship.findFirst.mockResolvedValue(null);
+      await expect(service.giftItem('u1', 'hair-1', 'ana')).rejects.toThrow('lista de amigos');
     });
   });
 
