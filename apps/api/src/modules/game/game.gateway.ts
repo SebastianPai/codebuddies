@@ -233,7 +233,7 @@ export class GameGateway
 
   @SubscribeMessage('shop:butler:buy')
   handleBuyButler(
-    @MessageBody() data: { npcKey?: string; name?: string },
+    @MessageBody() data: { npcKey?: string; name?: string; roomId?: string },
     @ConnectedSocket() socket: Socket,
   ) {
     this.shopHandler.handleBuyButler(socket, data);

@@ -136,7 +136,7 @@
   },
   "butler": {
     "title": "Mein Butler",
-    "none": "Du hast noch keinen Butler. Stell einen im Shop ein (Tab Butler).",
+    "none": "Dieser Raum hat noch keinen Butler. Jeder deiner Räume kann einen eigenen haben: Stell ihn im Shop (Tab Butler) ein, während du hier bist.",
     "unnamed": "Namenlos",
     "rename": "Zum Umbenennen tippen",
     "bringOut": "In den Raum holen",

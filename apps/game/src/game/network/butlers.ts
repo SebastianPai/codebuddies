@@ -8,6 +8,8 @@ export interface Butler {
   id: string;
   npcKey: string;
   name: string;
+  /** Sala a la que pertenece (uno por sala). */
+  roomId?: string | null;
   activeRoomId: string | null;
 }
 
@@ -23,16 +25,19 @@ export interface ButlerNpc {
   idleLines: string[];
 }
 
-export const getMyButler = () => apiGet<Butler | null>("/butlers/me");
+/** Mi mayordomo de esta sala (uno por sala). */
+export const getMyButler = (roomId?: string | null) =>
+  apiGet<Butler | null>(roomId ? `/butlers/me?roomId=${encodeURIComponent(roomId)}` : "/butlers/me");
 
 /** Mayordomo de alguien sacado en una sala: lo ven todos. */
 export type RoomButler = Butler & { ownerUsername: string };
 export const getRoomButlers = (roomId: string) => apiGet<RoomButler[]>(`/butlers/room/${encodeURIComponent(roomId)}`);
 export const getButlerCatalog = () =>
   apiGet<ButlerNpc[]>("/npcs?kind=BUTLER");
-export const renameButler = (name: string) =>
-  apiPost<Butler>("/butlers/me/name", { name });
-export const setButlerRoom = (roomId: string | null) =>
-  apiPost<Butler>("/butlers/me/room", { roomId });
-export const releaseButler = () =>
-  apiDelete<{ released: boolean }>("/butlers/me");
+export const renameButler = (roomId: string, name: string) =>
+  apiPost<Butler>("/butlers/me/name", { roomId, name });
+/** Sacar (visible) o guardar el mayordomo de esta sala. */
+export const setButlerVisible = (roomId: string, visible: boolean) =>
+  apiPost<Butler>("/butlers/me/visible", { roomId, visible });
+export const releaseButler = (roomId: string) =>
+  apiDelete<{ released: boolean }>(`/butlers/me?roomId=${encodeURIComponent(roomId)}`);

@@ -706,7 +706,7 @@ model User {
   rooms  Room[]
   apps   App[]
   pets   Pet[]
-  butler UserButler?
+  butlers UserButler[]
 
   itemGiftsSent     ItemGift[] @relation("ItemGiftsSent")
   itemGiftsReceived ItemGift[] @relation("ItemGiftsReceived")
@@ -1045,7 +1045,12 @@ model NpcConfig {
 // frases) vive en el cliente; el catálogo/assets en NpcConfig (/admin/butler).
 model UserButler {
   id     String @id @default(uuid())
-  userId String @unique
+  userId String
+
+  // Sala a la que pertenece (uno por sala del dueño). null = mayordomo de
+  // antes de este cambio que estaba guardado: se asigna a la primera sala
+  // propia donde se abra el panel.
+  roomId String?
 
   // Referencia suelta a NpcConfig.key (mismo criterio que Pet.species). El
   // sprite/animaciones/frases se resuelven por esta key en el cliente.
@@ -1060,7 +1065,9 @@ model UserButler {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, roomId])
   @@index([activeRoomId])
+  @@index([userId])
 }
 
 model AvatarItemData {

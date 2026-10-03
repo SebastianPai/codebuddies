@@ -136,7 +136,7 @@
   },
   "butler": {
     "title": "Mi mayordomo",
-    "none": "Todavía no tenés un mayordomo. Contratá uno en la tienda (pestaña Mayordomo).",
+    "none": "Esta sala todavía no tiene mayordomo. Cada sala tuya puede tener el suyo: contrátalo en la tienda (pestaña Mayordomo) estando aquí.",
     "unnamed": "Sin nombre",
     "rename": "Tocá para renombrar",
     "bringOut": "Sacar a la sala",

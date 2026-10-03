@@ -141,7 +141,7 @@ export default class ButlerSystem {
     try {
       const roomId: string | null =
         (typeof window !== "undefined" && (window as any).currentRoomId) || null;
-      const mine = this.record ?? (await getMyButler().catch(() => null));
+      const mine = this.record ?? (roomId ? await getMyButler(roomId).catch(() => null) : null);
       // Destruido mientras esperaba la red (cambio de sala/reconexión): no
       // crear un mayordomo huérfano.
       if (this.destroyed) return;

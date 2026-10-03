@@ -150,8 +150,9 @@ export class ShopHandler {
       // `speciesKey` como identificador opaco para que la UI del shop no
       // tenga que duplicar ramas.
       const butlers = await this.npcService.listEnabled('BUTLER');
-      const myButler = userId
-        ? await this.butlerService.getMine(userId)
+      // Uno por sala: "ya tienes" se mira en la sala desde donde se abre la tienda.
+      const myButler = userId && data?.roomId
+        ? await this.butlerService.getMine(userId, data.roomId)
         : null;
       const formattedButlers = butlers
         .filter((n: any) => n.shopVisible && (n.coinsPrice ?? 0) > 0)
@@ -162,7 +163,7 @@ export class ShopHandler {
           type: 'BUTLER',
           name: n.name,
           description: null,
-          owned: !!myButler, // 1 mayordomo por usuario
+          owned: !!myButler, // 1 mayordomo por sala
           ownedThis: myButler?.npcKey === n.key,
           petSprite: {
             spriteSheetUrl: n.spriteSheetUrl,
@@ -275,7 +276,7 @@ export class ShopHandler {
   // ====================== CONTRATAR MAYORDOMO ======================
   async handleBuyButler(
     socket: Socket,
-    data: { npcKey?: string; name?: string },
+    data: { npcKey?: string; name?: string; roomId?: string },
   ) {
     const userId = socket.data.user?.userId;
     if (!userId) {
@@ -292,6 +293,7 @@ export class ShopHandler {
         userId,
         data.npcKey,
         data.name,
+        data.roomId ?? null,
       );
       socket.emit('butler:data', butler);
       socket.emit('shop:item:bought', {

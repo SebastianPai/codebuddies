@@ -15,7 +15,7 @@ import {
   getMyButler,
   releaseButler,
   renameButler,
-  setButlerRoom,
+  setButlerVisible,
 } from "../../network/butlers";
 import { requestGameConfirm } from "../../utils/dialog";
 
@@ -30,15 +30,19 @@ export default function ButlerPanel({ onClose }: Props) {
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
 
+  // Un mayordomo por sala: el panel muestra el de la sala donde estás.
+  const currentRoomId: string | null =
+    (typeof window !== "undefined" && (window as any).currentRoomId) || null;
+
   const load = useCallback(async () => {
     try {
-      const [b, list] = await Promise.all([getMyButler(), getButlerCatalog()]);
+      const [b, list] = await Promise.all([currentRoomId ? getMyButler(currentRoomId) : Promise.resolve(null), getButlerCatalog()]);
       setButler(b);
       setCatalog(list);
     } catch {
       setButler(null);
     }
-  }, []);
+  }, [currentRoomId]);
 
   useEffect(() => {
     void load();
@@ -49,8 +53,6 @@ export default function ButlerPanel({ onClose }: Props) {
     [catalog, butler],
   );
 
-  const currentRoomId: string | null =
-    (typeof window !== "undefined" && (window as any).currentRoomId) || null;
   const outHere =
     !!butler && butler.activeRoomId === currentRoomId && !!currentRoomId;
 
@@ -73,13 +75,14 @@ export default function ButlerPanel({ onClose }: Props) {
   };
 
   const toggleRoom = () =>
-    run(() => setButlerRoom(outHere ? null : currentRoomId));
+    run(() => setButlerVisible(currentRoomId!, !outHere));
 
   const saveName = async () => {
     const n = nameDraft.trim();
     setEditingName(false);
     if (!butler || !n || n === butler.name) return;
-    await run(() => renameButler(n));
+    if (!currentRoomId) return;
+    await run(() => renameButler(currentRoomId, n));
   };
 
   const release = async () => {
@@ -89,7 +92,7 @@ export default function ButlerPanel({ onClose }: Props) {
       confirmLabel: t("hud.butler.release"),
       cancelLabel: t("common.cancel"),
     });
-    if (ok) await run(releaseButler);
+    if (ok && currentRoomId) await run(() => releaseButler(currentRoomId));
   };
 
   return (

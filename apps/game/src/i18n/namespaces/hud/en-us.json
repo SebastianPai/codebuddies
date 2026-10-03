@@ -136,7 +136,7 @@
   },
   "butler": {
     "title": "My butler",
-    "none": "You don't have a butler yet. Hire one in the shop (Butler tab).",
+    "none": "This room has no butler yet. Each of your rooms can have its own: hire one in the shop (Butler tab) while you are here.",
     "unnamed": "Unnamed",
     "rename": "Tap to rename",
     "bringOut": "Bring to room",

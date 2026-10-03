@@ -160,7 +160,8 @@ export default function Shop({ socket, inventory = [], onClose, username = "" }:
   useEffect(() => {
     if (!socket) return;
 
-    const requestItems = () => socket.emit("shop:items:request", { sort });
+    const requestItems = () =>
+      socket.emit("shop:items:request", { sort, roomId: (typeof window !== "undefined" && (window as any).currentRoomId) || undefined });
     requestItems();
 
     const handleItems = (data: any[]) => {
@@ -305,7 +306,7 @@ export default function Shop({ socket, inventory = [], onClose, username = "" }:
 
     setBuyingItemId(itemId);
     if (item?.type === "BUTLER") {
-      socket?.emit("shop:butler:buy", { npcKey: item.speciesKey });
+      socket?.emit("shop:butler:buy", { npcKey: item.speciesKey, roomId: (window as any).currentRoomId });
     } else if (item?.type === "PET") {
       socket?.emit("shop:pet:buy", { speciesKey: item.speciesKey });
     } else if (item?.type === "BACKGROUND") {
@@ -331,6 +332,7 @@ export default function Shop({ socket, inventory = [], onClose, username = "" }:
       socket?.emit("shop:butler:buy", {
         npcKey: item.speciesKey,
         name: petName.trim(),
+        roomId: (window as any).currentRoomId,
       });
     } else {
       socket?.emit("shop:pet:buy", {

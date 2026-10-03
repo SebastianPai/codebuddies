@@ -3,6 +3,11 @@ import { IsIn, IsInt, IsNumber, IsOptional, IsString, Max, Min } from 'class-val
 const SHOP_SORTS = ['new', 'old', 'cheap', 'expensive', 'popular'] as const;
 
 export class ShopItemsRequestDto {
+  /** Sala desde donde se abre la tienda (mayordomos: uno por sala). */
+  @IsOptional()
+  @IsString()
+  roomId?: string;
+
   @IsOptional()
   @IsIn(SHOP_SORTS)
   sort?: (typeof SHOP_SORTS)[number];

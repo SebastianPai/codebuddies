@@ -1,14 +1,16 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import type { UserButler } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 
-// Un mayordomo por usuario. A diferencia de la mascota no tiene stats ni
-// decaimiento: solo look (npcKey) + sala activa. El comportamiento (deambular
-// + frases) vive en el cliente; el catálogo/assets en NpcConfig.
+// Un mayordomo por sala propia: se contrata estando en tu sala y vive ahí.
+// "Guardarlo" lo oculta (activeRoomId = null) sin quitarle su sala. No tiene
+// stats ni decaimiento: solo look (npcKey). El comportamiento (deambular +
+// frases) vive en el cliente; el catálogo/assets en NpcConfig.
 @Injectable()
 export class ButlerService {
   constructor(private prisma: PrismaService) {}
@@ -18,13 +20,35 @@ export class ButlerService {
       id: butler.id,
       npcKey: butler.npcKey,
       name: butler.name,
+      roomId: butler.roomId,
       activeRoomId: butler.activeRoomId,
     };
   }
 
-  private async loadOwned(userId: string): Promise<UserButler> {
-    const butler = await this.prisma.userButler.findUnique({ where: { userId } });
-    if (!butler) throw new NotFoundException('No tenés un mayordomo');
+  private async assertOwnsRoom(userId: string, roomId: string) {
+    const room = await this.prisma.room.findUnique({ where: { id: roomId }, select: { ownerId: true } });
+    if (!room) throw new NotFoundException('Sala no encontrada');
+    if (room.ownerId !== userId) throw new ForbiddenException('Solo puedes tener mayordomo en tus propias salas');
+  }
+
+  /**
+   * Mayordomo de esta sala. Un mayordomo de antes (sin sala y guardado) se
+   * queda en la primera sala propia donde se pida.
+   */
+  private async findForRoom(userId: string, roomId: string) {
+    const butler = await this.prisma.userButler.findUnique({ where: { userId_roomId: { userId, roomId } } });
+    if (butler) return butler;
+    const loose = await this.prisma.userButler.findFirst({ where: { userId, roomId: null } });
+    if (!loose) return null;
+    const room = await this.prisma.room.findUnique({ where: { id: roomId }, select: { ownerId: true } });
+    if (room?.ownerId !== userId) return null;
+    return this.prisma.userButler.update({ where: { id: loose.id }, data: { roomId } });
+  }
+
+  private async loadForRoom(userId: string, roomId: string | null | undefined): Promise<UserButler> {
+    if (!roomId) throw new BadRequestException('Entra a una de tus salas');
+    const butler = await this.findForRoom(userId, roomId);
+    if (!butler) throw new NotFoundException('No tienes mayordomo en esta sala');
     return butler;
   }
 
@@ -38,13 +62,26 @@ export class ButlerService {
     return butlers.map((butler) => ({ ...this.serialize(butler), ownerUsername: butler.user.username }));
   }
 
-  async getMine(userId: string) {
-    const butler = await this.prisma.userButler.findUnique({ where: { userId } });
+  /** Mayordomo del usuario en esta sala (o null). Sin sala: el primero que tenga. */
+  async getMine(userId: string, roomId?: string | null) {
+    if (roomId) {
+      const butler = await this.findForRoom(userId, roomId);
+      return butler ? this.serialize(butler) : null;
+    }
+    const butler = await this.prisma.userButler.findFirst({ where: { userId }, orderBy: { createdAt: 'asc' } });
     return butler ? this.serialize(butler) : null;
   }
 
-  // Compra desde la tienda del juego: cobra coins y crea el mayordomo.
-  async buyFromShop(userId: string, npcKey: string, name?: string) {
+  /** Todos sus mayordomos (uno por sala). */
+  async listMine(userId: string) {
+    const butlers = await this.prisma.userButler.findMany({ where: { userId }, orderBy: { createdAt: 'asc' } });
+    return butlers.map((butler) => this.serialize(butler));
+  }
+
+  // Compra desde la tienda del juego: cobra coins y crea el mayordomo de esta sala.
+  async buyFromShop(userId: string, npcKey: string, name?: string, roomId?: string | null) {
+    if (!roomId) throw new BadRequestException('Entra a una de tus salas para contratar un mayordomo');
+    await this.assertOwnsRoom(userId, roomId);
     const npc = await this.prisma.npcConfig.findUnique({
       where: { key: String(npcKey) },
     });
@@ -56,11 +93,8 @@ export class ButlerService {
       throw new BadRequestException('Este mayordomo no está a la venta');
     }
 
-    const existing = await this.prisma.userButler.findUnique({
-      where: { userId },
-    });
-    if (existing) {
-      throw new BadRequestException('Ya tenés un mayordomo');
+    if (await this.findForRoom(userId, roomId)) {
+      throw new BadRequestException('Esta sala ya tiene mayordomo');
     }
 
     const butler = await this.prisma.$transaction(async (tx) => {
@@ -71,18 +105,21 @@ export class ButlerService {
         data: { coins: { decrement: price } },
       });
       if (debited.count === 0) {
-        throw new BadRequestException('No tenés monedas suficientes');
+        throw new BadRequestException('No tienes monedas suficientes');
       }
 
       await tx.coinTransaction.create({
         data: { userId, amount: -price, reason: `butler:${npc.key}` },
       });
 
+      // Nace "sacado" en su sala.
       return tx.userButler.create({
         data: {
           userId,
           npcKey: npc.key,
           name: (name ?? '').trim().slice(0, 24),
+          roomId,
+          activeRoomId: roomId,
         },
       });
     });
@@ -90,8 +127,8 @@ export class ButlerService {
     return this.serialize(butler);
   }
 
-  async rename(userId: string, name: string) {
-    const butler = await this.loadOwned(userId);
+  async rename(userId: string, roomId: string | null | undefined, name: string) {
+    const butler = await this.loadForRoom(userId, roomId);
     const updated = await this.prisma.userButler.update({
       where: { id: butler.id },
       data: { name: (name ?? '').trim().slice(0, 24) },
@@ -99,18 +136,18 @@ export class ButlerService {
     return this.serialize(updated);
   }
 
-  /** Sacar/guardar el mayordomo de una sala. `roomId = null` = guardarlo. */
-  async setActiveRoom(userId: string, roomId: string | null) {
-    const butler = await this.loadOwned(userId);
+  /** Sacar (visible) o guardar el mayordomo de su sala. */
+  async setVisible(userId: string, roomId: string | null | undefined, visible: boolean) {
+    const butler = await this.loadForRoom(userId, roomId);
     const updated = await this.prisma.userButler.update({
       where: { id: butler.id },
-      data: { activeRoomId: roomId },
+      data: { activeRoomId: visible ? butler.roomId : null },
     });
     return this.serialize(updated);
   }
 
-  async release(userId: string) {
-    const butler = await this.loadOwned(userId);
+  async release(userId: string, roomId: string | null | undefined) {
+    const butler = await this.loadForRoom(userId, roomId);
     await this.prisma.userButler.delete({ where: { id: butler.id } });
     return { released: true };
   }
