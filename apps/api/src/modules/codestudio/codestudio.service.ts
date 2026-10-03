@@ -21,6 +21,7 @@ import { CodeStudioRewardsService } from './codestudio-rewards.service';
 import { campaignQuote, evaluateStage, fundingOffer, stageProgress } from './codestudio-rules';
 import { TRAITS, bumpStats, performanceOf, rollTrait, statsOf, traitOf } from './content/traits';
 import { cardStats, employeeName, genderOf, resolveSkin, rollGender } from './content/employee-card';
+import { OFFICE_TAGS, OfficeCounts, countOffice, officeFactors, officeLines, officePrice, officeSummary } from './content/office';
 import {
   BUG_CAPABLE_ROLES,
   ROLE_BY_SLUG,
@@ -56,7 +57,7 @@ import {
   PRICE_LEVELS,
   pickWeighted,
 } from './content/events';
-import { Lang, Localized, MSG, contentFor, localizeScenario, pick, stageText } from './content/i18n';
+import { L, Lang, Localized, MSG, contentFor, localizeScenario, pick, stageText } from './content/i18n';
 import { CreateCodeStudioCompanyDto } from './dto/create-codestudio-company.dto';
 import { StartDevelopmentDto } from './dto/start-development.dto';
 import { HireEmployeeDto } from './dto/hire-employee.dto';
@@ -669,6 +670,7 @@ export class CodeStudioService {
     const openBugs = company.bugReports.filter((entry) => !(entry.fixReadyAt && entry.fixReadyAt <= now));
     await this.autoAssignBugs(tx, company, openBugs, now, lang);
 
+    await this.officeCountsFor(company);
     const input = this.engineInput(company, openBugs, elapsed);
     const result = this.engine.simulate(input);
     const profile = resolveProfile(input.profile);
@@ -1030,6 +1032,7 @@ export class CodeStudioService {
     const pendingEffects = (pending?.effects ?? {}) as Record<string, any>;
     const busyEmployeeIds = new Set(company.bugReports.map((bug) => bug.assignedEmployeeId).filter(Boolean) as string[]);
     const skinNpcs = await this.skinNpcs();
+    await this.officeCountsFor(company);
 
     return {
       id: company.id,
@@ -1208,6 +1211,226 @@ export class CodeStudioService {
     return contentFor(lang)?.features[slug]?.name ?? FEATURES.find((feature) => feature.slug === slug)?.name ?? fallback ?? slug;
   }
 
+  // ─── Oficina ──────────────────────────────────────────────────────────
+
+  private officeCache = new Map<string, { at: number; counts: OfficeCounts | null }>();
+
+  /** Cuenta los muebles de oficina de la sala de la empresa (cache 20 s). */
+  private async officeCountsFor(company: { id: string; officeRoomId: string | null }): Promise<OfficeCounts | null> {
+    if (!company.officeRoomId) {
+      this.officeCache.set(company.id, { at: Date.now(), counts: null });
+      return null;
+    }
+    const cached = this.officeCache.get(company.id);
+    if (cached && Date.now() - cached.at < 20_000) return cached.counts;
+    const items = await this.prisma.roomItem.findMany({
+      where: { roomId: company.officeRoomId },
+      select: { item: { select: { tags: true } } },
+    });
+    const room = await this.prisma.room.findUnique({ where: { id: company.officeRoomId }, select: { id: true } });
+    const counts = room ? countOffice(items.map((entry) => entry.item.tags ?? [])) : null;
+    await this.officeFurnitureExists();
+    this.officeCache.set(company.id, { at: Date.now(), counts });
+    return counts;
+  }
+
+  // El castigo por no tener puesto solo corre si existen muebles de oficina
+  // (escritorio, silla y PC marcados en /admin/items): si no, no habría
+  // forma de evitarlo. Las comodidades suman igual.
+  private furnitureCache: { at: number; exists: boolean } | null = null;
+
+  private async officeFurnitureExists() {
+    if (this.furnitureCache && Date.now() - this.furnitureCache.at < 300_000) return this.furnitureCache.exists;
+    const [desk, chair, pc] = await Promise.all(
+      [OFFICE_TAGS.desk, OFFICE_TAGS.chair, OFFICE_TAGS.pc].map((tag) => this.prisma.item.count({ where: { tags: { has: tag } } })),
+    );
+    const exists = desk > 0 && chair > 0 && pc > 0;
+    this.furnitureCache = { at: Date.now(), exists };
+    return exists;
+  }
+
+  private officeSummaryOf(company: LoadedCompany) {
+    const summary = officeSummary(this.officeCache.get(company.id)?.counts ?? null, company.employees.length);
+    if (summary.hasOffice && !this.furnitureCache?.exists) return { ...summary, stations: company.employees.length, seated: company.employees.length, unseated: 0 };
+    return summary;
+  }
+
+  /** Factor por empleado: los de mejor rendimiento tienen puesto primero. */
+  private officeFactorsOf(company: LoadedCompany) {
+    const order = [...company.employees].sort((a, b) => performanceOf(b) - performanceOf(a)).map((employee) => employee.id);
+    return officeFactors(this.officeSummaryOf(company), order);
+  }
+
+  private async officeLayouts() {
+    const layouts = await this.prisma.roomLayout.findMany({
+      where: { isPublic: true },
+      select: { id: true, name: true, previewImageUrl: true, width: true, height: true },
+    });
+    const smallest = Math.min(...layouts.map((layout) => layout.width * layout.height));
+    return layouts
+      .map((layout) => ({ ...layout, price: officePrice(layout.width * layout.height, smallest) }))
+      .sort((a, b) => a.width * a.height - b.width * b.height);
+  }
+
+  /** Estado de la oficina: sala, mapas disponibles, puestos y comodidades. */
+  async getOffice(userId: string, companyId: string, lang: Lang = 'es') {
+    const company = await this.requireOwned(userId, companyId, lang);
+    const counts = await this.officeCountsFor(company);
+    const summary = this.officeSummaryOf(company);
+    const room = company.officeRoomId
+      ? await this.prisma.room.findUnique({ where: { id: company.officeRoomId }, select: { id: true, name: true } })
+      : null;
+    const kitItems = await this.basicKitItems();
+    const stats = (company.stats ?? {}) as Record<string, any>;
+    return {
+      room,
+      layouts: room ? [] : await this.officeLayouts(),
+      counts,
+      summary,
+      tags: OFFICE_TAGS,
+      kit: {
+        available: kitItems.length > 0,
+        claimed: Number(stats.officeKits ?? 0),
+        pending: Math.max(0, company.employees.length - Number(stats.officeKits ?? 0)),
+      },
+    };
+  }
+
+  /** Crea la oficina: el mapa más chico es gratis; los grandes cuestan monedas del juego. */
+  async createOffice(userId: string, companyId: string, layoutId: string, lang: Lang = 'es') {
+    const company = await this.requireOwned(userId, companyId, lang);
+    if (company.officeRoomId && (await this.prisma.room.findUnique({ where: { id: company.officeRoomId }, select: { id: true } }))) {
+      throw new BadRequestException(pick(L('Tu empresa ya tiene oficina.', 'Your company already has an office.', 'Deine Firma hat schon ein Büro.'), lang));
+    }
+    const layout = (await this.officeLayouts()).find((entry) => entry.id === layoutId);
+    if (!layout) throw new NotFoundException(pick(L('Ese mapa no está disponible.', 'That map is not available.', 'Diese Karte ist nicht verfügbar.'), lang));
+    const room = await this.prisma.$transaction(async (tx) => {
+      if (layout.price > 0) {
+        const paid = await tx.user.updateMany({ where: { id: userId, coins: { gte: layout.price } }, data: { coins: { decrement: layout.price } } });
+        if (paid.count === 0) throw new BadRequestException(pick(L(`Necesitas ${layout.price} monedas.`, `You need ${layout.price} coins.`, `Du brauchst ${layout.price} Münzen.`), lang));
+        await tx.coinTransaction.create({ data: { userId, amount: -layout.price, reason: `codestudio:office:${company.id}` } });
+      }
+      const created = await tx.room.create({
+        data: {
+          ownerId: userId,
+          name: `${company.name} HQ`.slice(0, 60),
+          description: pick(L('Oficina de CodeStudio', 'CodeStudio office', 'CodeStudio-Büro'), lang),
+          isPublic: true,
+          maxUsers: 20,
+          width: layout.width,
+          height: layout.height,
+          layoutId: layout.id,
+          tags: ['codestudio:office'],
+        },
+      });
+      await tx.codeStudioCompany.update({ where: { id: company.id }, data: { officeRoomId: created.id } });
+      return created;
+    });
+    this.officeCache.delete(company.id);
+    return { room: { id: room.id, name: room.name } };
+  }
+
+  private basicKitItems() {
+    return this.prisma.item.findMany({
+      where: { tags: { has: OFFICE_TAGS.basic } },
+      select: { id: true, tags: true },
+    });
+  }
+
+  /** Kit básico gratis (escritorio + silla + PC) por cada empleado sin kit. */
+  async claimOfficeKit(userId: string, companyId: string, lang: Lang = 'es') {
+    const company = await this.requireOwned(userId, companyId, lang);
+    const items = await this.basicKitItems();
+    if (items.length === 0) throw new BadRequestException(pick(L('Todavía no hay kit básico.', 'There is no basic kit yet.', 'Es gibt noch kein Basis-Set.'), lang));
+    const stats = (company.stats ?? {}) as Record<string, any>;
+    const claimed = Number(stats.officeKits ?? 0);
+    const pending = Math.max(0, company.employees.length - claimed);
+    if (pending === 0) throw new BadRequestException(pick(L('Ya reclamaste un kit por cada empleado.', 'You already claimed one kit per employee.', 'Du hast schon ein Set pro Angestellten geholt.'), lang));
+    await this.prisma.$transaction(async (tx) => {
+      for (const item of items) {
+        await tx.userItem.upsert({
+          where: { userId_itemId: { userId, itemId: item.id } },
+          update: { amount: { increment: pending } },
+          create: { userId, itemId: item.id, amount: pending, source: 'codestudio-office' },
+        });
+      }
+      await tx.codeStudioCompany.update({ where: { id: company.id }, data: { stats: { ...stats, officeKits: claimed + pending } } });
+    });
+    return { granted: pending };
+  }
+
+  /**
+   * Empleados que aparecen en una sala que es oficina (los ve cualquiera que
+   * entre): nombre, rol, skin completa y lo que dicen según cómo va la empresa.
+   */
+  async officeRoomEmployees(roomId: string, lang: Lang = 'es') {
+    const company = await this.prisma.codeStudioCompany.findFirst({
+      where: { officeRoomId: roomId, status: { not: 'FAILED' } },
+      include: {
+        employees: { include: { employeeType: true } },
+        bugReports: { where: { status: 'OPEN' }, select: { id: true } },
+        development: { where: { status: 'IN_PROGRESS' }, select: { id: true } },
+      },
+    });
+    if (!company) return { company: null, employees: [] };
+    const npcs = await this.prisma.npcConfig.findMany({
+      where: { enabled: true, kind: { in: ['EMPLOYEE', 'BUTLER'] } },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+    });
+    await this.officeCountsFor(company);
+    const summary = this.officeSummaryOf(company as unknown as LoadedCompany);
+    const stats = (company.stats ?? {}) as Record<string, any>;
+    const runs = await this.prisma.codeStudioCampaignRun.count({ where: { companyId: company.id } });
+    const lastStage = await this.prisma.codeStudioEventLog.findFirst({
+      where: { companyId: company.id, effects: { path: ['kind'], equals: 'stage' }, createdAt: { gte: new Date(Date.now() - 30 * 60_000) } },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true },
+    });
+    const lines = officeLines({
+      activeUsers: company.activeUsers,
+      openBugs: company.bugReports.length,
+      queued: Math.max(0, company.development.length - 1),
+      maxParallel: 1,
+      utilization: Number(stats.utilization ?? 0),
+      campaigns: runs,
+      cash: company.cash,
+      dailyCosts: Number(stats.dailyCosts ?? 0),
+      stageName: lastStage ? stageText(company.stage, lang).name : null,
+      fundingRaised: Boolean(stats.fundingRounds),
+      unseated: summary.unseated,
+    }).map((line) => pick(line, lang));
+    const ordered = [...company.employees].sort((a, b) => performanceOf(b) - performanceOf(a));
+    return {
+      company: { id: company.id, name: company.name },
+      employees: ordered.map((employee, index) => {
+        const skin = resolveSkin(employee, npcs);
+        const full = skin ? npcs.find((npc) => npc.key === skin.key) : null;
+        // Cada uno empieza por una frase distinta (no todos dicen lo mismo).
+        const own = lines.map((_, offset) => lines[(offset + index) % lines.length]);
+        if (summary.hasOffice && index >= summary.stations) own.unshift(pick(L('No tengo escritorio... así no se puede trabajar.', "I don't have a desk... I can't work like this.", 'Ich habe keinen Schreibtisch... so kann ich nicht arbeiten.'), lang));
+        return {
+          id: employee.id,
+          name: employee.name,
+          roleName: this.roleName(employee.employeeType.slug, employee.employeeType.name, lang),
+          seated: !summary.hasOffice || index < summary.stations,
+          npc: full
+            ? {
+                key: full.key,
+                name: employee.name,
+                spriteSheetUrl: full.spriteSheetUrl,
+                frameWidth: full.frameWidth,
+                frameHeight: full.frameHeight,
+                directions: full.directions,
+                animations: full.animations,
+                greetingLines: [own[0]],
+                idleLines: own.slice(0, 4),
+              }
+            : null,
+        };
+      }),
+    };
+  }
+
   // ─── Equipo: rasgos, estadísticas y Product Manager ──────────────────
 
   // Skins de empleados (NPC EMPLOYEE + el mayordomo como respaldo). Cambian
@@ -1325,7 +1548,7 @@ export class CodeStudioService {
       employees: company.employees.map((employee) => ({
         id: employee.id,
         roleSlug: employee.employeeType.slug,
-        productivity: employee.productivity * traitOf(employee).power * this.mentorBoost(company),
+        productivity: employee.productivity * traitOf(employee).power * this.mentorBoost(company) * (this.officeFactorsOf(company).get(employee.id) ?? 1),
         speed: employee.speed,
         salary: employee.salary,
         busy: busy.has(employee.id),

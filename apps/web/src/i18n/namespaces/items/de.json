@@ -439,5 +439,15 @@
   "upgradeSaveError": "Upgrade konnte nicht gespeichert werden",
   "upgradeDeleteConfirm": "Upgrade löschen? Wurde es schon gekauft, wird es deaktiviert und der Zustand ist für alle frei.",
   "upgradeDeleted": "Upgrade gelöscht",
-  "upgradeDeactivated": "Upgrade deaktiviert (es gab Käufe)"
+  "upgradeDeactivated": "Upgrade deaktiviert (es gab Käufe)",
+  "officeTagsLabel": "CodeStudio-Büro",
+  "officeTag": {
+    "desk": "Schreibtisch",
+    "chair": "Stuhl",
+    "pc": "PC",
+    "snacks": "Snacks",
+    "water": "Wasser",
+    "coffee": "Kaffee",
+    "basic": "Gratis Basis-Set"
+  }
 }

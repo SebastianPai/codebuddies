@@ -439,5 +439,15 @@
   "upgradeSaveError": "Couldn't save the upgrade",
   "upgradeDeleteConfirm": "Delete this upgrade? If someone already bought it, it gets deactivated and the state becomes free for everyone.",
   "upgradeDeleted": "Upgrade deleted",
-  "upgradeDeactivated": "Upgrade deactivated (it had purchases)"
+  "upgradeDeactivated": "Upgrade deactivated (it had purchases)",
+  "officeTagsLabel": "CodeStudio office",
+  "officeTag": {
+    "desk": "Desk",
+    "chair": "Chair",
+    "pc": "PC",
+    "snacks": "Snacks",
+    "water": "Water",
+    "coffee": "Coffee",
+    "basic": "Free basic kit"
+  }
 }

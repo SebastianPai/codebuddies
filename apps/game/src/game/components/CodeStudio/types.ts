@@ -1,5 +1,6 @@
 import {
   BookOpen,
+  Building2,
   Bug,
   DollarSign,
   GitBranch,
@@ -285,7 +286,7 @@ export type BugFixResult =
   | { assigned: true; seconds: number }
   | { paid: number };
 
-export type ViewKey = "panel" | "guide" | "tree" | "bugs" | "team" | "infra" | "marketing" | "finance" | "career" | "ranking" | "settings";
+export type ViewKey = "panel" | "guide" | "tree" | "bugs" | "team" | "office" | "infra" | "marketing" | "finance" | "career" | "ranking" | "settings";
 
 // labelKey y no texto: CodeStudio.tsx lo resuelve con t() al renderizar.
 export const nav: Array<{ key: ViewKey; labelKey: string; icon: LucideIcon }> = [
@@ -294,6 +295,7 @@ export const nav: Array<{ key: ViewKey; labelKey: string; icon: LucideIcon }> = 
   { key: "tree", labelKey: "codestudio.nav.tree", icon: GitBranch },
   { key: "bugs", labelKey: "codestudio.nav.bugs", icon: Bug },
   { key: "team", labelKey: "codestudio.nav.team", icon: Users },
+  { key: "office", labelKey: "codestudio.nav.office", icon: Building2 },
   { key: "infra", labelKey: "codestudio.nav.infra", icon: Server },
   { key: "marketing", labelKey: "codestudio.nav.marketing", icon: Megaphone },
   { key: "finance", labelKey: "codestudio.nav.finance", icon: DollarSign },

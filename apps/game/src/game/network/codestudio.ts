@@ -98,6 +98,39 @@ export const chooseCodeStudioDecision = (companyId: string, eventId: string, cho
 
 export const raiseCodeStudioFunding = (companyId: string) => post<CompanyView>(`/codestudio/companies/${companyId}/funding`);
 
+// ─── Oficina ─────────────────────────────────────────────────────────────
+export type OfficeLayout = { id: string; name: string; previewImageUrl: string | null; width: number; height: number; price: number };
+export type OfficeState = {
+  room: { id: string; name: string } | null;
+  layouts: OfficeLayout[];
+  counts: { desk: number; chair: number; pc: number; snacks: number; water: number; coffee: number } | null;
+  summary: { hasOffice: boolean; stations: number; seated: number; unseated: number; amenities: string[]; bonus: number };
+  kit: { available: boolean; claimed: number; pending: number };
+};
+export type OfficeRoomEmployee = {
+  id: string;
+  name: string;
+  roleName: string;
+  seated: boolean;
+  npc: {
+    key: string;
+    name: string;
+    spriteSheetUrl: string | null;
+    frameWidth: number;
+    frameHeight: number;
+    directions: number;
+    animations: unknown;
+    greetingLines: string[];
+    idleLines: string[];
+  } | null;
+};
+export const getCodeStudioOffice = (companyId: string) => request<OfficeState>(`/codestudio/companies/${companyId}/office`);
+export const createCodeStudioOffice = (companyId: string, layoutId: string) =>
+  post<{ room: { id: string; name: string } }>(`/codestudio/companies/${companyId}/office`, { layoutId });
+export const claimCodeStudioOfficeKit = (companyId: string) => post<{ granted: number }>(`/codestudio/companies/${companyId}/office/kit`);
+export const getOfficeRoomEmployees = (roomId: string) =>
+  request<{ company: { id: string; name: string } | null; employees: OfficeRoomEmployee[] }>(`/codestudio/office/room/${encodeURIComponent(roomId)}`);
+
 export const setCodeStudioPricing = (companyId: string, level: number) =>
   post<CompanyView>(`/codestudio/companies/${companyId}/pricing`, { level });
 

@@ -439,5 +439,15 @@
   "upgradeSaveError": "No se pudo guardar la mejora",
   "upgradeDeleteConfirm": "¿Borrar esta mejora? Si alguien ya la compró, se desactiva y el estado queda libre para todos.",
   "upgradeDeleted": "Mejora borrada",
-  "upgradeDeactivated": "Mejora desactivada (ya tenía compras)"
+  "upgradeDeactivated": "Mejora desactivada (ya tenía compras)",
+  "officeTagsLabel": "Oficina de CodeStudio",
+  "officeTag": {
+    "desk": "Escritorio",
+    "chair": "Silla",
+    "pc": "PC",
+    "snacks": "Snacks",
+    "water": "Agua",
+    "coffee": "Café",
+    "basic": "Kit básico gratis"
+  }
 }

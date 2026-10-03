@@ -10,7 +10,8 @@
     "career": "Carrera",
     "ranking": "Ranking",
     "settings": "Ajustes",
-    "guide": "Guía"
+    "guide": "Guía",
+    "office": "Oficina"
   },
   "common": {
     "loading": "Cargando CodeStudio…",
@@ -532,5 +533,34 @@
     "proHint": "Productividad: cuánto rinde por día",
     "motHint": "Motivación: ganas de trabajar",
     "expHint": "Experiencia: nivel y tiempo en el equipo"
+  },
+  "office": {
+    "title": "Oficina",
+    "createTitle": "Elige la sala de tu empresa",
+    "createText": "Tu equipo trabajará ahí y cualquiera que entre lo verá. La más chica es gratis; las grandes cuestan monedas del juego (no el dinero de la empresa). Sin oficina, el equipo trabaja desde casa.",
+    "free": "Gratis",
+    "noMaps": "No hay mapas disponibles todavía.",
+    "visitText": "Tus empleados están ahí trabajando. Decórala con escritorios, sillas, PCs y comodidades.",
+    "go": "Ir a la oficina",
+    "stations": "Con puesto",
+    "unseated": "{count} sin puesto: rinden 15% menos",
+    "allSeated": "Todo el equipo tiene puesto",
+    "bonus": "Comodidades",
+    "bonusHint": "Snacks, agua y café: +5% cada uno (máx. 15%)",
+    "furnitureTitle": "Muebles de la oficina",
+    "furnitureText": "Un puesto es escritorio + silla + PC. Colócalos en la sala desde tu inventario; los de la tienda marcados como de oficina cuentan solos.",
+    "item": {
+      "desk": "Escritorios",
+      "chair": "Sillas",
+      "pc": "PCs",
+      "snacks": "Snacks",
+      "water": "Agua",
+      "coffee": "Café"
+    },
+    "kitTitle": "Kit básico gratis",
+    "kitText": "Un escritorio, una silla y un PC por cada empleado, para que nadie se quede sin puesto.",
+    "kitClaim": "Reclamar {count}",
+    "kitDone": "Ya reclamado",
+    "kitClaimed": "Recibiste {count} kit(s): están en tu inventario."
   }
 }

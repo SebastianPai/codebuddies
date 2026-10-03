@@ -10,7 +10,8 @@
     "career": "Karriere",
     "ranking": "Rangliste",
     "settings": "Einstellungen",
-    "guide": "Anleitung"
+    "guide": "Anleitung",
+    "office": "Büro"
   },
   "common": {
     "loading": "CodeStudio wird geladen…",
@@ -532,5 +533,34 @@
     "proHint": "Produktivität: Leistung pro Tag",
     "motHint": "Motivation: Lust zu arbeiten",
     "expHint": "Erfahrung: Level und Zeit im Team"
+  },
+  "office": {
+    "title": "Büro",
+    "createTitle": "Wähle den Raum deiner Firma",
+    "createText": "Dein Team arbeitet dort und alle, die reinkommen, sehen es. Der kleinste ist gratis; größere kosten Spielmünzen (nicht das Firmengeld). Ohne Büro arbeitet das Team von zu Hause.",
+    "free": "Gratis",
+    "noMaps": "Noch keine Karten verfügbar.",
+    "visitText": "Deine Angestellten arbeiten dort. Richte es mit Schreibtischen, Stühlen, PCs und Extras ein.",
+    "go": "Zum Büro",
+    "stations": "Mit Arbeitsplatz",
+    "unseated": "{count} ohne Arbeitsplatz: 15% weniger Leistung",
+    "allSeated": "Das ganze Team hat einen Arbeitsplatz",
+    "bonus": "Extras",
+    "bonusHint": "Snacks, Wasser und Kaffee: je +5% (max. 15%)",
+    "furnitureTitle": "Büromöbel",
+    "furnitureText": "Ein Arbeitsplatz ist Schreibtisch + Stuhl + PC. Stell sie aus deinem Inventar in den Raum; als Büro markierte Shop-Artikel zählen automatisch.",
+    "item": {
+      "desk": "Schreibtische",
+      "chair": "Stühle",
+      "pc": "PCs",
+      "snacks": "Snacks",
+      "water": "Wasser",
+      "coffee": "Kaffee"
+    },
+    "kitTitle": "Gratis Basis-Set",
+    "kitText": "Ein Schreibtisch, ein Stuhl und ein PC pro Angestellten, damit niemand ohne Arbeitsplatz bleibt.",
+    "kitClaim": "{count} holen",
+    "kitDone": "Schon geholt",
+    "kitClaimed": "Du hast {count} Set(s) bekommen: Sie sind in deinem Inventar."
   }
 }

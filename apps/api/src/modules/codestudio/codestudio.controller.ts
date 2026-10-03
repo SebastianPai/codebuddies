@@ -11,6 +11,7 @@ import { FixBugDto } from './dto/fix-bug.dto';
 import { LaunchCampaignDto } from './dto/launch-campaign.dto';
 import { ChooseDecisionDto } from './dto/choose-decision.dto';
 import { SetPricingDto } from './dto/set-pricing.dto';
+import { CreateOfficeDto } from './dto/create-office.dto';
 import { langFromHeader } from './content/i18n';
 
 @UseGuards(JwtAuthGuard)
@@ -54,6 +55,28 @@ export class CodeStudioController {
 
   // El cliente lo consulta cada ~10s mientras la empresa está abierta: cada
   // llamada avanza la simulación el tiempo transcurrido (máx. 30s).
+  // ─── Oficina (sala del juego donde trabajan los empleados) ───────────
+  @Get('companies/:id/office')
+  office(@CurrentUser() user: AuthUser, @Param('id') id: string, @Query('lang') lang?: string) {
+    return this.codeStudio.getOffice(user.userId, id, langFromHeader(lang));
+  }
+
+  @Post('companies/:id/office')
+  createOffice(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() dto: CreateOfficeDto, @Query('lang') lang?: string) {
+    return this.codeStudio.createOffice(user.userId, id, dto.layoutId, langFromHeader(lang));
+  }
+
+  @Post('companies/:id/office/kit')
+  claimOfficeKit(@CurrentUser() user: AuthUser, @Param('id') id: string, @Query('lang') lang?: string) {
+    return this.codeStudio.claimOfficeKit(user.userId, id, langFromHeader(lang));
+  }
+
+  // Lo usa el juego al entrar a una sala: si es una oficina, muestra a sus empleados.
+  @Get('office/room/:roomId')
+  officeRoom(@Param('roomId') roomId: string, @Query('lang') lang?: string) {
+    return this.codeStudio.officeRoomEmployees(roomId, langFromHeader(lang));
+  }
+
   @Get('companies/:id')
   company(@CurrentUser() user: AuthUser, @Param('id') id: string, @Query('lang') lang?: string) {
     return this.codeStudio.getCompany(user.userId, id, langFromHeader(lang));

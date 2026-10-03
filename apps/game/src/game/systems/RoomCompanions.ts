@@ -2,7 +2,8 @@ import Phaser from "phaser";
 import PetSystem from "./PetSystem";
 import ButlerSystem from "./ButlerSystem";
 import { getRoomPets } from "../network/pets";
-import { getRoomButlers } from "../network/butlers";
+import { getRoomButlers, type ButlerNpc } from "../network/butlers";
+import { getOfficeRoomEmployees } from "../network/codestudio";
 
 // Mascotas y mayordomos de OTRAS personas que están "sacados" en esta sala:
 // los ve cualquiera que entre, no solo su dueño. Los propios los siguen
@@ -15,6 +16,8 @@ const REFRESH_MS = 30_000;
 export default class RoomCompanions {
   private pets = new Map<string, PetSystem>();
   private butlers = new Map<string, ButlerSystem>();
+  // Empleados de CodeStudio si esta sala es la oficina de una empresa.
+  private employees = new Map<string, ButlerSystem>();
   private sinceRefresh = 0;
   private loading = false;
   private destroyed = false;
@@ -30,7 +33,11 @@ export default class RoomCompanions {
     if (!roomId) return;
     this.loading = true;
     try {
-      const [pets, butlers] = await Promise.all([getRoomPets(roomId).catch(() => []), getRoomButlers(roomId).catch(() => [])]);
+      const [pets, butlers, office] = await Promise.all([
+        getRoomPets(roomId).catch(() => []),
+        getRoomButlers(roomId).catch(() => []),
+        getOfficeRoomEmployees(roomId).catch(() => ({ company: null, employees: [] })),
+      ]);
       if (this.destroyed) return;
       const others = <T extends { ownerUsername: string }>(list: T[]) => list.filter((entry) => entry.ownerUsername !== this.myUsername);
 
@@ -61,6 +68,26 @@ export default class RoomCompanions {
         system.destroy();
         this.butlers.delete(id);
       }
+
+      const employeeIds = new Set<string>();
+      for (const employee of office.employees) {
+        if (!employee.npc?.spriteSheetUrl) continue;
+        employeeIds.add(employee.id);
+        if (this.employees.has(employee.id)) continue;
+        const npc = { ...employee.npc, name: employee.name, animations: (employee.npc.animations ?? []) as ButlerNpc["animations"] } as ButlerNpc;
+        const system = new ButlerSystem(
+          this.scene,
+          { id: employee.id, npcKey: npc.key, name: employee.name, activeRoomId: roomId, ownerUsername: "" },
+          npc,
+        );
+        this.employees.set(employee.id, system);
+        void system.sync();
+      }
+      for (const [id, system] of this.employees) {
+        if (employeeIds.has(id)) continue;
+        system.destroy();
+        this.employees.delete(id);
+      }
     } finally {
       this.loading = false;
     }
@@ -74,13 +101,16 @@ export default class RoomCompanions {
     }
     for (const system of this.pets.values()) system.update(delta);
     for (const system of this.butlers.values()) system.update(delta);
+    for (const system of this.employees.values()) system.update(delta);
   }
 
   destroy(): void {
     this.destroyed = true;
     for (const system of this.pets.values()) system.destroy();
     for (const system of this.butlers.values()) system.destroy();
+    for (const system of this.employees.values()) system.destroy();
     this.pets.clear();
     this.butlers.clear();
+    this.employees.clear();
   }
 }

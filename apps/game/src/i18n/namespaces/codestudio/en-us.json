@@ -10,7 +10,8 @@
     "career": "Career",
     "ranking": "Ranking",
     "settings": "Settings",
-    "guide": "Guide"
+    "guide": "Guide",
+    "office": "Office"
   },
   "common": {
     "loading": "Loading CodeStudio…",
@@ -532,5 +533,34 @@
     "proHint": "Productivity: daily output",
     "motHint": "Motivation: drive to work",
     "expHint": "Experience: level and time on the team"
+  },
+  "office": {
+    "title": "Office",
+    "createTitle": "Choose your company's room",
+    "createText": "Your team will work there and anyone who comes in will see them. The smallest is free; bigger ones cost game coins (not company cash). Without an office the team works from home.",
+    "free": "Free",
+    "noMaps": "No maps available yet.",
+    "visitText": "Your employees are working there. Furnish it with desks, chairs, PCs and amenities.",
+    "go": "Go to the office",
+    "stations": "With a desk",
+    "unseated": "{count} without a desk: 15% less output",
+    "allSeated": "The whole team has a desk",
+    "bonus": "Amenities",
+    "bonusHint": "Snacks, water and coffee: +5% each (max 15%)",
+    "furnitureTitle": "Office furniture",
+    "furnitureText": "A workstation is desk + chair + PC. Place them in the room from your inventory; shop items marked as office count automatically.",
+    "item": {
+      "desk": "Desks",
+      "chair": "Chairs",
+      "pc": "PCs",
+      "snacks": "Snacks",
+      "water": "Water",
+      "coffee": "Coffee"
+    },
+    "kitTitle": "Free basic kit",
+    "kitText": "A desk, a chair and a PC for each employee, so nobody is left without a workstation.",
+    "kitClaim": "Claim {count}",
+    "kitDone": "Already claimed",
+    "kitClaimed": "You got {count} kit(s): they are in your inventory."
   }
 }

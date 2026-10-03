@@ -4116,6 +4116,10 @@ model CodeStudioCompany {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Sala del juego que es la oficina de la empresa (ver content/office.ts).
+  // Sin relación estricta: si la sala se borra, simplemente no hay oficina.
+  officeRoomId String? @unique
+
   user    User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   appType CodeStudioAppType @relation(fields: [appTypeId], references: [id])
 

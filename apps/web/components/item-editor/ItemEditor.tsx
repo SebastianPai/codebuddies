@@ -56,6 +56,7 @@ function LabeledField({ text, hint, children }: { text: string; hint?: string; c
 // Mismas keys que ITEM_ROOMS / FURNITURE_TYPES de apps/game/src/game/utils/itemTaxonomy.ts.
 const ROOM_TAG_PREFIX = "room:";
 const ITEM_ROOM_KEYS = ["living", "kitchen", "bedroom", "bathroom", "office", "outdoor"] as const;
+const OFFICE_TAG_KEYS = ["desk", "chair", "pc", "snacks", "water", "coffee", "basic"] as const;
 const FURNITURE_CATEGORY_KEYS = [
   "CHAIR",
   "TABLE",
@@ -1031,6 +1032,29 @@ export default function ItemEditor({
           <LabeledField text={t("items.tags")}>
             <input value={tags} onChange={(event) => setTags(event.target.value)} className={fieldClass} />
           </LabeledField>
+          {/* Muebles de la oficina de CodeStudio (ver api codestudio/content/office.ts):
+              un clic agrega/quita el tag en vez de escribirlo a mano. */}
+          <div>
+            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-zinc-400">{t("items.officeTagsLabel")}</p>
+            <div className="flex flex-wrap gap-2">
+              {OFFICE_TAG_KEYS.map((key) => {
+                const tag = `office:${key}`;
+                const list = compactTags(tags);
+                const active = list.includes(tag);
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => setTags((active ? list.filter((entry) => entry !== tag) : [...list, tag]).join(", "))}
+                    className={`rounded-full border px-3 py-1 text-xs font-bold ${active ? "border-yellow-400 bg-yellow-400 text-black" : "border-zinc-700 text-zinc-300"}`}
+                  >
+                    {t(`items.officeTag.${key}`)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         <div

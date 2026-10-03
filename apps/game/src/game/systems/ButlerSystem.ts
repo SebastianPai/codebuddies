@@ -78,7 +78,13 @@ export default class ButlerSystem {
    * Sin `record`: el mayordomo propio (lee /butlers/me). Con `record`: el
    * de otra persona sacado en esta sala (lo ven todos los que entran).
    */
-  constructor(scene: Phaser.Scene, private readonly record?: RoomButler) {
+  constructor(
+    scene: Phaser.Scene,
+    private readonly record?: RoomButler,
+    // Empleados de CodeStudio en su oficina: traen su propio look (NPC
+    // EMPLOYEE o el mayordomo) y frases, sin pasar por el catálogo.
+    private readonly npcOverride?: ButlerNpc,
+  ) {
     this.scene = scene;
   }
 
@@ -102,7 +108,7 @@ export default class ButlerSystem {
       this.butlerName = mine!.name?.trim() || "";
       if (this.sprite && this.npcKey === mine!.npcKey) return; // ya está
 
-      const catalog = await getButlerCatalog().catch(() => [] as ButlerNpc[]);
+      const catalog = this.npcOverride ? [this.npcOverride] : await getButlerCatalog().catch(() => [] as ButlerNpc[]);
       if (this.destroyed) return;
       const npc = catalog.find((n) => n.key === mine!.npcKey) ?? null;
       if (!npc?.spriteSheetUrl) {

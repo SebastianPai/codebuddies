@@ -36,6 +36,7 @@ import FoundingModal from "./FoundingModal";
 import DecisionModal from "./DecisionModal";
 import Tour, { TOUR_STEPS, tourSeen } from "./Tour";
 import GuideView from "./GuideView";
+import OfficeView from "./OfficeView";
 import { useTranslation } from "../../../i18n/useTranslation";
 import { useLanguage } from "../../../i18n/LanguageContext";
 import { celebrate } from "../Rewards/celebrate";
@@ -352,6 +353,7 @@ export default function CodeStudio({ initialView }: { initialView?: string }) {
                 onFire={(employeeId) => void act(() => fireCodeStudioEmployee(company.id, employeeId))}
               />
             )}
+            {view === "office" && <OfficeView company={company} />}
             {view === "infra" && (
               <InfraView company={company} catalog={studio.catalog} busy={busy} onInstall={(typeId) => void act(() => installCodeStudioInfrastructure(company.id, typeId))} />
             )}

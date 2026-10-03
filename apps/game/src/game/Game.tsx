@@ -234,6 +234,9 @@ export default function Game() {
             // OPEN PC FROM PHASER
             // =========================
 
+            // CodeStudio > Oficina > "Ir a la oficina": cierra el PC.
+            window.addEventListener("codestudio:close-pc", () => setShowPC(false));
+
             (window as any).openPC = () => {
               audioManager.play("panelOpen");
               setShowPC(true);
