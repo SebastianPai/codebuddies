@@ -19,6 +19,7 @@ import {
   draftKind,
   draftToBehavior,
   draftToPayload,
+  duplicateAnimationReversed,
   hasTransitionFor,
   removeAnimation,
   removeState,
@@ -622,5 +623,31 @@ describe("draftKind reutiliza describeBehaviorKind", () => {
     expect(validateDraft(draft).ok).toBe(true);
     expect(draftKind(draft)).toBe("ANIMATED");
     expect(draftToBehavior(draft).transitions).toEqual([]);
+  });
+});
+
+describe("duplicateAnimationReversed", () => {
+  it("crea 'cerrar' a partir de 'abrir' con el mismo atlas y el sentido invertido", () => {
+    let draft = addAnimation(createStarterDraft());
+    const open = draft.animations[0];
+    draft = updateAnimation(draft, open.id, {
+      key: "opening",
+      spriteSheetUrl: "https://cdn/laptop-open.png",
+      framesCount: 6,
+    });
+
+    draft = duplicateAnimationReversed(draft, open.id);
+    const [source, copy] = draft.animations;
+
+    expect(copy.key).toBe("opening_reverse");
+    expect(copy.spriteSheetUrl).toBe(source.spriteSheetUrl);
+    expect(copy.framesCount).toBe(6);
+    expect(copy.reverse).toBe(true);
+    expect(copy.id).not.toBe(source.id);
+
+    const behavior = draftToBehavior(draft);
+    expect(behavior.animations[0]).not.toHaveProperty("reverse");
+    expect(behavior.animations[1].reverse).toBe(true);
+    expect(draftFromBehavior(behavior).animations[1].reverse).toBe(true);
   });
 });

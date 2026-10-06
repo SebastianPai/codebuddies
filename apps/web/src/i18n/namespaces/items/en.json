@@ -464,5 +464,9 @@
     "sport": "Sporty",
     "urban": "Urban",
     "employee": "CodeStudio employees can wear it"
-  }
+  },
+  "behaviorTemplateLoop": "Always looping (plant)",
+  "behaviorReverse": "Reversed",
+  "behaviorReverseHint": "Plays frames from last to first",
+  "behaviorDuplicateReversed": "Duplicate reversed (same frames)"
 }

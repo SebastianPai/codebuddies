@@ -141,6 +141,11 @@ describe('animationCell: ubicación en el atlas', () => {
     expect(cell.row).toBeGreaterThanOrEqual(0);
     expect(cell.col).toBeGreaterThanOrEqual(0);
   });
+
+  it('reverse recorre las columnas del último frame al primero', () => {
+    const anim = animation({ startCol: 2, framesCount: 4, reverse: true });
+    expect([0, 1, 2, 3].map((frame) => animationCell(anim, frame).col)).toEqual([5, 4, 3, 2]);
+  });
 });
 
 describe('animationRowSpan', () => {

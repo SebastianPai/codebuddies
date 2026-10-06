@@ -91,9 +91,11 @@ export function animationCell(
   directionIndex = 0,
 ): { row: number; col: number } {
   const dir = animation.directional ? Math.max(0, Math.trunc(directionIndex)) : 0;
+  const framesCount = Math.max(1, Math.trunc(animation.framesCount));
+  const step = Math.min(framesCount - 1, Math.max(0, Math.trunc(frame)));
   return {
     row: animation.row + dir,
-    col: animation.startCol + Math.max(0, Math.trunc(frame)),
+    col: animation.startCol + (animation.reverse ? framesCount - 1 - step : step),
   };
 }
 

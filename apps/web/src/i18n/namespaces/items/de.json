@@ -464,5 +464,9 @@
     "sport": "Sportlich",
     "urban": "Urban",
     "employee": "CodeStudio-Angestellte dürfen es tragen"
-  }
+  },
+  "behaviorTemplateLoop": "Immer in Schleife (Pflanze)",
+  "behaviorReverse": "Rückwärts",
+  "behaviorReverseHint": "Spielt die Frames vom letzten zum ersten ab",
+  "behaviorDuplicateReversed": "Rückwärts duplizieren (gleiche Frames)"
 }

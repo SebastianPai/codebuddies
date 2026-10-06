@@ -61,6 +61,8 @@ export type DraftAnimation = {
   loop: boolean;
   directional: boolean;
   spriteSheetUrl: string | null;
+  /** Recorre los frames del último al primero (p. ej. "cerrar" = "abrir" al revés). */
+  reverse: boolean;
   /** Los tres salen del generador de atlas, no se escriben a mano. */
   row: number;
   startCol: number;
@@ -168,6 +170,7 @@ export function draftFromBehavior(raw: unknown): BehaviorDraft {
       loop: animation.loop,
       directional: animation.directional,
       spriteSheetUrl: animation.spriteSheetUrl,
+      reverse: animation.reverse === true,
       row: animation.row,
       startCol: animation.startCol,
       framesCount: animation.framesCount,
@@ -230,6 +233,7 @@ export function draftToBehavior(draft: BehaviorDraft): WorldBehavior {
         loop: animation.loop,
         directional: animation.directional,
         spriteSheetUrl: animation.spriteSheetUrl,
+        ...(animation.reverse ? { reverse: true } : {}),
       }),
     ),
     transitions: draft.transitions.map((transition) => toContractTransition(transition)),
@@ -406,12 +410,35 @@ export function addAnimation(draft: BehaviorDraft): BehaviorDraft {
     loop: false,
     directional: false,
     spriteSheetUrl: null,
+    reverse: false,
     row: 0,
     startCol: 0,
     framesCount: 1,
   };
 
   return { ...draft, animations: [...draft.animations, animation] };
+}
+
+/**
+ * Copia de una animación con el sentido invertido y el MISMO atlas: con los
+ * frames de "abrir" subidos una vez se obtiene "cerrar" sin volver a subirlos.
+ */
+export function duplicateAnimationReversed(draft: BehaviorDraft, id: string): BehaviorDraft {
+  if (draft.animations.length >= LIMITS.maxAnimations) return draft;
+  const source = draft.animations.find((animation) => animation.id === id);
+  if (!source) return draft;
+
+  const copy: DraftAnimation = {
+    ...source,
+    id: nextRowId("anim"),
+    key: uniqueKey(
+      draft.animations.map((item) => item.key),
+      `${source.key || "animacion"}_reverse`,
+    ),
+    reverse: !source.reverse,
+  };
+
+  return { ...draft, animations: [...draft.animations, copy] };
 }
 
 /**

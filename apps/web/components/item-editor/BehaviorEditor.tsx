@@ -6,6 +6,7 @@ import {
   ArrowDown,
   Check,
   CircleDot,
+  Copy,
   MousePointerClick,
   Plus,
   Trash2,
@@ -13,6 +14,7 @@ import {
 import {
   BATHTUB_BEHAVIOR,
   DOOR_BEHAVIOR,
+  PALM_BEHAVIOR,
   TV_BEHAVIOR,
   type WorldBehavior,
 } from "@codebuddies/world-objects";
@@ -28,6 +30,7 @@ import {
   draftFromTemplate,
   draftKind,
   draftToBehavior,
+  duplicateAnimationReversed,
   hasTransitionFor,
   removeAnimation,
   removeState,
@@ -109,6 +112,7 @@ const KIND_STYLES: Record<string, string> = {
 };
 
 const TEMPLATES: Array<{ labelKey: string; behavior: WorldBehavior }> = [
+  { labelKey: "items.behaviorTemplateLoop", behavior: PALM_BEHAVIOR },
   { labelKey: "items.behaviorTemplateTv", behavior: TV_BEHAVIOR },
   { labelKey: "items.behaviorTemplateDoor", behavior: DOOR_BEHAVIOR },
   { labelKey: "items.behaviorTemplateBathtub", behavior: BATHTUB_BEHAVIOR },
@@ -567,7 +571,7 @@ export default function BehaviorEditor({
                           )}
                         </div>
 
-                        <div className="grid gap-3 sm:grid-cols-3">
+                        <div className="grid gap-3 sm:grid-cols-4">
                           <label className="block">
                             <span className="mb-1 block text-xs text-zinc-500">
                               {t("items.behaviorFps")}
@@ -617,7 +621,31 @@ export default function BehaviorEditor({
                               )
                             }
                           />
+
+                          <Toggle
+                            label={t("items.behaviorReverse")}
+                            hint={t("items.behaviorReverseHint")}
+                            checked={animation.reverse}
+                            disabled={readOnly}
+                            onChange={(reverse) =>
+                              onChange(updateAnimation(draft, animation.id, { reverse }))
+                            }
+                          />
                         </div>
+
+                        {!readOnly &&
+                          animation.spriteSheetUrl &&
+                          draft.animations.length < LIMITS.maxAnimations && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                onChange(duplicateAnimationReversed(draft, animation.id))
+                              }
+                              className="flex items-center gap-2 rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-bold text-zinc-300 transition hover:border-yellow-400 hover:text-yellow-300"
+                            >
+                              <Copy size={12} /> {t("items.behaviorDuplicateReversed")}
+                            </button>
+                          )}
 
                         <p className="text-xs text-zinc-600">
                           {animation.spriteSheetUrl

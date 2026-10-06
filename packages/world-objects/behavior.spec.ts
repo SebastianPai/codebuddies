@@ -90,6 +90,24 @@ describe('los cuatro casos pedidos son expresables', () => {
   });
 });
 
+describe('animación al revés', () => {
+  it('acepta reverse: true y lo conserva', () => {
+    const input = minimal();
+    input.animations[0].reverse = true;
+    expect(expectOk(input).animations[0].reverse).toBe(true);
+  });
+
+  it('sin reverse la animación sale igual que antes', () => {
+    expect(expectOk(minimal()).animations[0]).not.toHaveProperty('reverse');
+  });
+
+  it('rechaza un reverse que no sea booleano', () => {
+    const input = minimal();
+    input.animations[0].reverse = 'yes';
+    expect(errorsOf(input)).toContain('animations[0].reverse: debe ser booleano');
+  });
+});
+
 describe('estructura inválida', () => {
   it('rechaza un behavior que no es objeto', () => {
     expect(errorsOf('turn_on')).toEqual(['behavior: debe ser un objeto o null']);

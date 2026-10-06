@@ -464,5 +464,9 @@
     "sport": "Deportivo",
     "urban": "Urbano",
     "employee": "La pueden usar los empleados de CodeStudio"
-  }
+  },
+  "behaviorTemplateLoop": "Bucle siempre (planta)",
+  "behaviorReverse": "Al revés",
+  "behaviorReverseHint": "Reproduce los frames del último al primero",
+  "behaviorDuplicateReversed": "Duplicar al revés (mismos frames)"
 }

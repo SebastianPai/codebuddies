@@ -110,6 +110,11 @@ export type WorldAnimation = {
    * cabe en una sola hoja.
    */
   spriteSheetUrl: string | null;
+  /**
+   * Recorre los frames del último al primero. Permite que "cerrar" reuse el
+   * mismo atlas que "abrir" sin subir el arte dos veces. Ausente = false.
+   */
+  reverse?: boolean;
 };
 
 /**
@@ -203,6 +208,7 @@ const ANIMATION_KEYS = [
   'loop',
   'directional',
   'spriteSheetUrl',
+  'reverse',
 ] as const;
 
 const STATE_KEYS = ['key', 'animation'] as const;
@@ -264,6 +270,9 @@ function parseAnimation(raw: unknown, index: number, errors: string[]): WorldAni
   ) {
     errors.push(`${at}.spriteSheetUrl: debe ser texto o null`);
   }
+  if (raw.reverse !== undefined && typeof raw.reverse !== 'boolean') {
+    errors.push(`${at}.reverse: debe ser booleano`);
+  }
 
   if (
     framesCount === null ||
@@ -289,6 +298,8 @@ function parseAnimation(raw: unknown, index: number, errors: string[]): WorldAni
     loop: raw.loop === true,
     directional: raw.directional !== false,
     spriteSheetUrl: typeof raw.spriteSheetUrl === 'string' ? raw.spriteSheetUrl : null,
+    // Sólo se escribe cuando es true: los behaviors guardados antes no cambian de forma.
+    ...(raw.reverse === true ? { reverse: true } : {}),
   };
 }
 
