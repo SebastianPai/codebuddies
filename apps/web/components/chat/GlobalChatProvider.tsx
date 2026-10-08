@@ -6,17 +6,23 @@ import {
   useEffect,
   useState,
   useCallback,
+  useMemo,
 } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { MessageCircle } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import GlobalChatWindows from "./GlobalChatWindows";
 import { useTranslation } from "../../src/i18n/useTranslation";
-import { getRealtimeUrl } from "../../src/config/env";
 
 type ChatContextType = {
   unread: number;
   openChats: string[];
   openChat: (conversationId: string) => void;
   closeChat: (conversationId: string) => void;
+  // true en /messages: ahí la bandeja completa ya está en pantalla, así que
+  // no se muestran burbujas, toasts ni el contador flotante.
+  onMessagesPage: boolean;
 };
 
 const ChatContext = createContext<ChatContextType | null>(null);
@@ -36,71 +42,44 @@ export default function GlobalChatProvider({
   const { user } = useAuth();
   const myId = user?.userId || user?.id || "";
   const t = useTranslation();
+  const pathname = usePathname() ?? "";
+  const onMessagesPage = pathname.startsWith("/messages");
 
   const [unread, setUnread] = useState(0);
   const [openChats, setOpenChats] = useState<string[]>([]);
 
   // ==================== REALTIME ====================
+  // Escucha solo los eventos que ya reenvía Navbar (codebuddies:*) desde su
+  // única conexión SSE. Antes este provider abría una SEGUNDA EventSource
+  // por pestaña (el doble de conexiones abiertas en el servidor) y además
+  // contaba cada mensaje dos veces — incluidos los que uno mismo envía, que
+  // hacían aparecer el aviso flotante de "mensajes sin leer" al escribir.
   useEffect(() => {
     if (!myId) return;
 
-    const token = localStorage.getItem("token");
-    let es: EventSource | null = null;
-
-    if (token) {
-      // Antes usaba una ruta relativa ("/api/realtime/events"), que
-      // apuntaba al origen del FRONTEND (codebuddies.tech) en vez del
-      // backend real -- esa ruta no existe ahí, así que el navegador
-      // reintentaba la conexión SSE cada pocos segundos para siempre,
-      // cada vez con un 404. Mismo host que ya usa Navbar.tsx para su
-      // propia conexión a /realtime/events.
-      es = new EventSource(
-        `${getRealtimeUrl()}/realtime/events?token=${encodeURIComponent(token)}`,
-      );
-
-      const handleNewMessage = (event: MessageEvent) => {
-        try {
-          const payload = JSON.parse(event.data);
-          const conversationId = payload.conversationId as string;
-
-          if (!conversationId) return;
-
-          setUnread((prev) => prev + 1);
-          // ← Eliminado: ya NO abrimos automáticamente la burbuja
-        } catch (err) {
-          console.error(err);
-        }
-      };
-
-      es.addEventListener("message:new", handleNewMessage);
-    }
-
-    // Custom Events
-    const handleCustomNewMessage = (event: Event) => {
+    const handleNewMessage = (event: Event) => {
       const payload = (event as CustomEvent).detail;
-      const conversationId = payload.conversationId as string;
-
-      if (!conversationId) return;
-
+      if (!payload?.conversationId) return;
+      if (payload.message?.senderId === myId) return;
+      if (window.location.pathname.startsWith("/messages")) return;
       setUnread((prev) => prev + 1);
-      // ← También eliminado aquí
     };
 
-    window.addEventListener("codebuddies:message:new", handleCustomNewMessage);
-
-    return () => {
-      es?.close();
-      window.removeEventListener(
-        "codebuddies:message:new",
-        handleCustomNewMessage,
-      );
-    };
+    window.addEventListener("codebuddies:message:new", handleNewMessage);
+    return () =>
+      window.removeEventListener("codebuddies:message:new", handleNewMessage);
   }, [myId]);
+
+  // Entrar a /messages cuenta como "visto".
+  useEffect(() => {
+    if (onMessagesPage) setUnread(0);
+  }, [onMessagesPage]);
 
   const openChat = useCallback((conversationId: string) => {
     setOpenChats((prev) => {
       if (prev.includes(conversationId)) return prev;
-      return [...prev, conversationId].slice(-10);
+      // Máximo 3 ventanas: más que eso tapa la pantalla.
+      return [...prev, conversationId].slice(-3);
     });
     setUnread(0);
   }, []);
@@ -109,17 +88,24 @@ export default function GlobalChatProvider({
     setOpenChats((prev) => prev.filter((id) => id !== conversationId));
   }, []);
 
+  const value = useMemo(
+    () => ({ unread, openChats, openChat, closeChat, onMessagesPage }),
+    [unread, openChats, openChat, closeChat, onMessagesPage],
+  );
+
   return (
-    <ChatContext.Provider value={{ unread, openChats, openChat, closeChat }}>
+    <ChatContext.Provider value={value}>
       {children}
-      <GlobalChatWindows />
-      {unread > 0 && (
-        <button
+      {myId && <GlobalChatWindows />}
+      {myId && unread > 0 && !onMessagesPage && openChats.length === 0 && (
+        <Link
+          href="/messages"
           onClick={() => setUnread(0)}
-          className="fixed bottom-6 right-6 z-[9999] rounded-full bg-blue-600 px-4 py-2 font-bold text-white shadow-xl hover:bg-blue-700"
+          className="fixed bottom-4 right-4 z-[9990] inline-flex items-center gap-2 rounded-full bg-[rgb(var(--button))] px-4 py-2.5 text-sm font-bold text-[rgb(var(--button-text))] shadow-xl transition hover:brightness-110 sm:bottom-6 sm:right-6"
         >
+          <MessageCircle size={16} />
           {t("chat.unreadMessages", { count: unread })}
-        </button>
+        </Link>
       )}
     </ChatContext.Provider>
   );

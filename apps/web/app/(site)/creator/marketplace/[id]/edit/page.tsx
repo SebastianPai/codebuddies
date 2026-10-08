@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import ItemUpgradesEditor from "../../../../../../components/item-editor/ItemUpgradesEditor";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import ItemEditor from "../../../../../../components/item-editor/ItemEditor";
@@ -8,6 +9,7 @@ import { api } from "../../../../../../utils/api";
 import { useTranslation } from "../../../../../../src/i18n/useTranslation";
 
 type CreatorContent = {
+  publishedItemId?: string | null;
   id: string;
   type: "WORLD_ITEM" | "AVATAR_ITEM";
   title: string;
@@ -117,6 +119,14 @@ export default function CreatorMarketplaceEditPage() {
             submitLabel={t("common.saveChanges")}
             onSubmit={updateDraft}
           />
+        )}
+
+        {/* Mejoras del objeto ya publicado: el creador cobra su parte de
+            cada venta, igual que con el objeto. */}
+        {content.publishedItemId && (
+          <div className="mt-6">
+            <ItemUpgradesEditor itemId={content.publishedItemId} />
+          </div>
         )}
       </section>
     </main>

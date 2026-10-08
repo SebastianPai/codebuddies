@@ -71,46 +71,67 @@ export class PremiumAccessService {
   }
 
   // ---- Candado de progresión secuencial -----------------------------------
-  // Una lección se bloquea si: no es la primera del curso, su lección
-  // anterior (por `order`) no está completa (teoría + TODOS sus ejercicios
-  // publicados), y el usuario todavía no tiene ningún avance en ella (no se
-  // bloquea retroactivamente lo ya tocado). Admin y Premium respetan el
-  // candado; el único escape es `bypass`, que el front solo activa para
-  // admins (toggle en Ajustes -> header X-Admin-Bypass-Locks).
+  // El recorrido de un curso es estrictamente lineal:
+  //   Lección 1 (teoría) -> ejercicio 1.1 -> 1.2 -> ... -> Lección 2 (teoría)
+  //
+  // - Una lección se bloquea si no es la primera, la anterior no está
+  //   completa (teoría + todos sus ejercicios calificables) y el usuario no
+  //   tiene avance propio en ella (no se re-bloquea lo ya tocado).
+  // - Dentro de una lección abierta, un ejercicio se bloquea si todavía no
+  //   se leyó la teoría o si falta algún ejercicio calificable anterior. Un
+  //   ejercicio ya completado nunca se bloquea.
+  //
+  // Los ejercicios LIVE no tienen flujo de completado (son un placeholder):
+  // no cuentan como requisito, si no bloquearían el curso para siempre.
+  //
+  // Ojo: las completions de teoría/ejercicio se guardan con courseId = null
+  // (courseId != null significa "curso completado" para gamificación y
+  // referidos), así que el progreso se busca por ids de lección/ejercicio,
+  // nunca por courseId — antes se filtraba por courseId, no encontraba nada
+  // y toda lección después de la primera quedaba bloqueada.
+  //
+  // Admin y Premium respetan el candado; el único escape es `bypass`, que
+  // el front solo activa para admins (toggle en Ajustes -> header
+  // X-Admin-Bypass-Locks).
 
-  private isLessonComplete(
-    lessonId: string,
-    exerciseIds: string[],
-    theoryDone: Set<string>,
-    exerciseDone: Set<string>,
-  ): boolean {
-    return (
-      theoryDone.has(lessonId) &&
-      exerciseIds.every((id) => exerciseDone.has(id))
-    );
+  static isGradable(type: string | null | undefined): boolean {
+    return type !== 'LIVE';
   }
 
-  // Batch (vista de curso / lista de lecciones). `lessons` ordenado por
-  // `order` asc, con los ids de sus ejercicios publicados.
-  async getProgressionLockedLessonIds(params: {
-    courseId: string;
+  // Batch (vista de curso). `lessons` ordenado por `order` asc, con sus
+  // ejercicios publicados ordenados por `order` asc.
+  async getCourseProgressionState(params: {
     userId?: string;
     role?: Role;
     bypass?: boolean;
-    lessons: { id: string; exerciseIds: string[] }[];
-  }): Promise<Set<string>> {
-    const { courseId, userId, role, bypass, lessons } = params;
-    const locked = new Set<string>();
-    if (!userId || lessons.length === 0) return locked;
-    if (role === Role.ADMIN && bypass) return locked;
+    lessons: { id: string; exercises: { id: string; type: string }[] }[];
+  }): Promise<{
+    lockedLessons: Set<string>;
+    lockedExercises: Set<string>;
+    theoryDone: Set<string>;
+    exerciseDone: Set<string>;
+  }> {
+    const { userId, role, bypass, lessons } = params;
+    const lockedLessons = new Set<string>();
+    const lockedExercises = new Set<string>();
+    const theoryDone = new Set<string>();
+    const exerciseDone = new Set<string>();
+    if (!userId || lessons.length === 0) {
+      return { lockedLessons, lockedExercises, theoryDone, exerciseDone };
+    }
 
+    const exerciseIds = lessons.flatMap((l) => l.exercises.map((e) => e.id));
     const completions = await this.prisma.completion.findMany({
-      where: { userId, courseId },
+      where: {
+        userId,
+        OR: [
+          { lessonId: { in: lessons.map((l) => l.id) } },
+          ...(exerciseIds.length ? [{ exerciseId: { in: exerciseIds } }] : []),
+        ],
+      },
       select: { lessonId: true, exerciseId: true },
     });
 
-    const theoryDone = new Set<string>();
-    const exerciseDone = new Set<string>();
     const lessonTouched = new Set<string>();
     for (const c of completions) {
       if (c.lessonId) lessonTouched.add(c.lessonId);
@@ -118,22 +139,46 @@ export class PremiumAccessService {
       else if (c.lessonId) theoryDone.add(c.lessonId);
     }
 
-    for (let i = 1; i < lessons.length; i++) {
-      const lesson = lessons[i];
-      if (lessonTouched.has(lesson.id)) continue; // ya tiene avance -> abierta
-      const prev = lessons[i - 1];
-      if (
-        !this.isLessonComplete(
-          prev.id,
-          prev.exerciseIds,
-          theoryDone,
-          exerciseDone,
-        )
-      ) {
-        locked.add(lesson.id);
-      }
+    if (role === Role.ADMIN && bypass) {
+      return { lockedLessons, lockedExercises, theoryDone, exerciseDone };
     }
-    return locked;
+
+    lessons.forEach((lesson, i) => {
+      if (i > 0 && !lessonTouched.has(lesson.id)) {
+        const prev = lessons[i - 1];
+        const prevComplete =
+          theoryDone.has(prev.id) &&
+          prev.exercises.every(
+            (e) =>
+              !PremiumAccessService.isGradable(e.type) ||
+              exerciseDone.has(e.id),
+          );
+        if (!prevComplete) lockedLessons.add(lesson.id);
+      }
+
+      let blocked = lockedLessons.has(lesson.id) || !theoryDone.has(lesson.id);
+      for (const ex of lesson.exercises) {
+        if (exerciseDone.has(ex.id)) continue;
+        if (blocked) lockedExercises.add(ex.id);
+        // El primer ejercicio calificable pendiente queda abierto; todo lo
+        // que viene después espera a que se complete.
+        if (PremiumAccessService.isGradable(ex.type)) blocked = true;
+      }
+    });
+
+    return { lockedLessons, lockedExercises, theoryDone, exerciseDone };
+  }
+
+  // Solo el set de lecciones bloqueadas (lista de lecciones de un curso).
+  async getProgressionLockedLessonIds(params: {
+    courseId: string;
+    userId?: string;
+    role?: Role;
+    bypass?: boolean;
+    lessons: { id: string; exercises: { id: string; type: string }[] }[];
+  }): Promise<Set<string>> {
+    const state = await this.getCourseProgressionState(params);
+    return state.lockedLessons;
   }
 
   // Una sola lección (getLessonById / ejercicio).
@@ -149,11 +194,6 @@ export class PremiumAccessService {
     if (!userId) return false;
     if (role === Role.ADMIN && bypass) return false;
 
-    const priorCount = await this.prisma.lesson.count({
-      where: { courseId, status: 'PUBLISHED', order: { lt: lessonOrder } },
-    });
-    if (priorCount === 0) return false; // primera lección
-
     const own = await this.prisma.completion.count({
       where: { userId, lessonId },
     });
@@ -164,25 +204,89 @@ export class PremiumAccessService {
       orderBy: { order: 'desc' },
       select: {
         id: true,
-        exercises: { where: { status: 'PUBLISHED' }, select: { id: true } },
+        exercises: {
+          where: { status: 'PUBLISHED' },
+          select: { id: true, type: true },
+        },
       },
     });
-    if (!prev) return false;
+    if (!prev) return false; // primera lección
 
     const theory = await this.prisma.completion.count({
       where: { userId, lessonId: prev.id, exerciseId: null },
     });
     if (theory === 0) return true;
 
-    if (prev.exercises.length > 0) {
-      const done = await this.prisma.completion.count({
-        where: {
-          userId,
-          exerciseId: { in: prev.exercises.map((e) => e.id) },
-        },
+    const required = prev.exercises
+      .filter((e) => PremiumAccessService.isGradable(e.type))
+      .map((e) => e.id);
+    if (required.length > 0) {
+      const done = await this.prisma.completion.findMany({
+        where: { userId, exerciseId: { in: required } },
+        select: { exerciseId: true },
+        distinct: ['exerciseId'],
       });
-      if (done < prev.exercises.length) return true;
+      if (done.length < required.length) return true;
     }
     return false;
   }
+
+  // Paso bloqueante dentro de la lección para un ejercicio concreto:
+  // `null` si está abierto; si no, qué hay que hacer antes (leer la teoría
+  // o completar un ejercicio anterior) para que el front mande ahí.
+  async getExerciseStepLock(params: {
+    lessonId: string;
+    exerciseId: string;
+    userId?: string;
+    role?: Role;
+    bypass?: boolean;
+  }): Promise<ExerciseStepLock | null> {
+    const { lessonId, exerciseId, userId, role, bypass } = params;
+    if (!userId) return null;
+    if (role === Role.ADMIN && bypass) return null;
+
+    const [exercises, completions] = await Promise.all([
+      this.prisma.exercise.findMany({
+        where: { lessonId, status: 'PUBLISHED' },
+        orderBy: { order: 'asc' },
+        select: { id: true, type: true },
+      }),
+      this.prisma.completion.findMany({
+        where: { userId, lessonId },
+        select: { exerciseId: true },
+      }),
+    ]);
+
+    const done = new Set<string>();
+    let theoryDone = false;
+    for (const c of completions) {
+      if (c.exerciseId) done.add(c.exerciseId);
+      else theoryDone = true;
+    }
+
+    if (done.has(exerciseId)) return null;
+    if (!theoryDone) return { kind: 'theory', lessonId };
+
+    for (const ex of exercises) {
+      if (ex.id === exerciseId) break;
+      if (PremiumAccessService.isGradable(ex.type) && !done.has(ex.id)) {
+        return {
+          kind: 'exercise',
+          lessonId,
+          exerciseId: ex.id,
+          exerciseType: ex.type,
+        };
+      }
+    }
+    return null;
+  }
 }
+
+export type ExerciseStepLock =
+  | { kind: 'theory'; lessonId: string }
+  | {
+      kind: 'exercise';
+      lessonId: string;
+      exerciseId: string;
+      exerciseType: string;
+    };

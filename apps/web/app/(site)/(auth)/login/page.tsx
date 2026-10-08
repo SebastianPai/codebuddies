@@ -4,29 +4,44 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { login } from "../../../../utils/auth";
 import { motion } from "framer-motion";
-import {
-  Mail,
-  Lock,
-  Eye,
-  EyeOff,
-  ArrowRight,
-  Github,
-  Chrome,
-  Terminal,
-} from "lucide-react";
+import { Mail, ArrowRight, Terminal, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
 import { getGameUrl } from "../../../../src/config/env";
 import { useThemeAsset } from "../../../../hooks/useThemeAsset";
 import { ThemeFramedPhoto } from "../../../../components/ThemeFramedPhoto";
+import { trackEvent } from "../../../../components/analytics/events";
+import {
+  AuthField,
+  PasswordField,
+  SocialButtons,
+} from "../../../../components/auth/AuthFields";
+import {
+  checkEmail,
+  normalizeEmail,
+} from "../../../../src/shared/utils/auth-validation";
 
 export default function LoginPage() {
   const t = useTranslation();
   const authPhoto = useThemeAsset("AUTH_HERO_PHOTO");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [touched, setTouched] = useState({ email: false, password: false });
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const emailCheck = checkEmail(email);
+  const emailError =
+    (submitAttempted || touched.email) && !emailCheck.valid
+      ? emailCheck.reason === "empty"
+        ? t("auth.validation.emailRequired")
+        : t("auth.validation.emailFormat")
+      : null;
+  const passwordError =
+    (submitAttempted || touched.password) && !password
+      ? t("auth.validation.passwordRequired")
+      : null;
   const router = useRouter();
 
   const buildGameRedirect = (redirect: string, token: string) => {
@@ -62,10 +77,18 @@ export default function LoginPage() {
     }
   }, []);
 
-  const handleLogin = async () => {
+  const handleLogin = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (submitting) return;
+    setSubmitAttempted(true);
     setError(null);
+    // En login solo se valida el formato: los correos temporales de cuentas
+    // ya existentes tienen que poder entrar igual.
+    if ((!emailCheck.valid && emailCheck.reason !== "disposable") || !password) return;
+    setSubmitting(true);
     try {
-      const authResponse = await login(email, password);
+      const authResponse = await login(normalizeEmail(email), password);
+      trackEvent("login", { method: "email" });
       const redirect = new URLSearchParams(window.location.search).get("redirect");
       if (isGameRedirect(redirect)) {
         window.location.href = buildGameRedirect(
@@ -78,6 +101,7 @@ export default function LoginPage() {
     } catch (err) {
       const message = err instanceof Error ? err.message : "";
       setError(message || t("auth.loginError"));
+      setSubmitting(false);
     }
   };
 
@@ -90,9 +114,9 @@ export default function LoginPage() {
         className="bg-[rgb(var(--card))] border-4 border-[rgb(var(--border))] rounded-none shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] w-full max-w-5xl flex flex-col md:flex-row overflow-hidden min-h-[700px]"
       >
         {/* COLUMNA IZQUIERDA: FORMULARIO */}
-        <div className="flex-1 p-8 md:p-16 flex flex-col justify-center">
+        <div className="flex-1 p-6 sm:p-8 md:p-16 flex flex-col justify-center">
           <div className="mb-10">
-            <h1 className="text-5xl font-black text-[rgb(var(--text))] tracking-tighter uppercase italic">
+            <h1 className="text-4xl sm:text-5xl font-black text-[rgb(var(--text))] tracking-tighter uppercase italic">
               {t("auth.loginTitle")} <br />
               <span className="text-[rgb(var(--primary))]">{t("auth.system")}</span>
             </h1>
@@ -115,66 +139,69 @@ export default function LoginPage() {
 
           {/* TOGGLE TIPO PESTAÑA INDUSTRIAL */}
           <div className="flex mb-10 border-b-2 border-[rgb(var(--border))]">
-            <button className="bg-[rgb(var(--primary))] text-black px-8 py-3 font-black uppercase text-sm border-t-2 border-l-2 border-r-2 border-[rgb(var(--border))] translate-y-[2px]">
+            <span
+              aria-current="page"
+              className="bg-[rgb(var(--primary))] text-black px-6 sm:px-8 py-3 font-black uppercase text-sm border-t-2 border-l-2 border-r-2 border-[rgb(var(--border))] translate-y-[2px]"
+            >
               {t("auth.login")}
-            </button>
+            </span>
             <Link
               href="/register"
-              className="px-8 py-3 font-bold text-[rgb(var(--secondary-text))] uppercase text-sm hover:text-[rgb(var(--primary))] transition-colors"
+              className="px-6 sm:px-8 py-3 font-bold text-[rgb(var(--secondary-text))] uppercase text-sm hover:text-[rgb(var(--primary))] transition-colors"
             >
               {t("auth.signup")}
             </Link>
           </div>
 
-          <div className="space-y-6">
-            {/* INPUT EMAIL */}
-            <div className="relative group">
-              <label className="block text-[rgb(var(--primary))] text-xs font-black uppercase mb-2 ml-1">
-                {t("auth.email")}
-              </label>
-              <div className="absolute left-4 top-[42px] text-[rgb(var(--secondary-text))] group-focus-within:text-[rgb(var(--primary))] transition-colors">
-                <Mail size={18} />
-              </div>
-              <input
-                type="email"
-                placeholder={t("auth.emailPlaceholder")}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-[rgb(var(--code-background))] border-2 border-[rgb(var(--border))] focus:border-[rgb(var(--primary))] p-4 pl-12 text-[rgb(var(--text))] outline-none transition-all font-mono"
-              />
-            </div>
+          <form noValidate onSubmit={handleLogin} className="space-y-6">
+            <AuthField
+              label={t("auth.email")}
+              icon={Mail}
+              name="email"
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              autoCapitalize="none"
+              spellCheck={false}
+              maxLength={254}
+              placeholder={t("auth.emailPlaceholder")}
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (error) setError(null);
+              }}
+              onBlur={() => setTouched((c) => ({ ...c, email: true }))}
+              error={emailError}
+              hint={
+                emailCheck.suggestion ? (
+                  <button
+                    type="button"
+                    onClick={() => setEmail(emailCheck.suggestion!)}
+                    className="font-semibold text-[rgb(var(--warning-text))] underline underline-offset-2"
+                  >
+                    {t("auth.validation.emailSuggestion", { email: emailCheck.suggestion })}
+                  </button>
+                ) : null
+              }
+            />
 
-            {/* INPUT PASSWORD */}
-            <div className="relative group">
-              <label className="block text-[rgb(var(--primary))] text-xs font-black uppercase mb-2 ml-1">
-                {t("auth.secret")}
-              </label>
-              <div className="absolute left-4 top-[42px] text-[rgb(var(--secondary-text))] group-focus-within:text-[rgb(var(--primary))] transition-colors">
-                <Lock size={18} />
-              </div>
-              <input
-                type={showPassword ? "text" : "password"}
-                placeholder={t("auth.passwordPlaceholder")}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-[rgb(var(--code-background))] border-2 border-[rgb(var(--border))] focus:border-[rgb(var(--primary))] p-4 pl-12 text-[rgb(var(--text))] outline-none transition-all font-mono"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                aria-label={
-                  showPassword
-                    ? t("auth.hidePasswordLabel")
-                    : t("auth.showPasswordLabel")
-                }
-                className="absolute right-4 top-[42px] text-[rgb(var(--secondary-text))] hover:text-[rgb(var(--primary))]"
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
+            <PasswordField
+              label={t("auth.secret")}
+              name="password"
+              autoComplete="current-password"
+              maxLength={128}
+              placeholder={t("auth.passwordPlaceholder")}
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (error) setError(null);
+              }}
+              onBlur={() => setTouched((c) => ({ ...c, password: true }))}
+              error={passwordError}
+            />
 
             {error && (
-              <div className="bg-[rgb(var(--error))]/10 border-l-4 border-[rgb(var(--error))] p-3">
+              <div role="alert" className="bg-[rgb(var(--error))]/10 border-l-4 border-[rgb(var(--error))] p-3">
                 <p className="text-[rgb(var(--error))] text-xs font-black uppercase italic">
                   {error}
                 </p>
@@ -182,12 +209,21 @@ export default function LoginPage() {
             )}
 
             <button
-              onClick={handleLogin}
-              className="w-full bg-[rgb(var(--button))] text-[rgb(var(--button-text))] p-5 font-black text-xl uppercase tracking-tighter hover:bg-white transition-all shadow-[6px_6px_0px_0px_rgba(255,255,255,0.2)] active:translate-x-1 active:translate-y-1 active:shadow-none mt-4 flex items-center justify-center gap-3"
+              type="submit"
+              disabled={submitting}
+              className="w-full bg-[rgb(var(--button))] text-[rgb(var(--button-text))] p-5 font-black text-lg sm:text-xl uppercase tracking-tighter hover:brightness-110 transition-all shadow-[6px_6px_0px_0px_rgba(255,255,255,0.2)] active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-60 disabled:cursor-wait mt-4 flex items-center justify-center gap-3"
             >
-              {t("auth.executeLogin")} <ArrowRight size={24} />
+              {submitting ? (
+                <>
+                  <Loader2 size={22} className="animate-spin" /> {t("auth.submitting")}
+                </>
+              ) : (
+                <>
+                  {t("auth.executeLogin")} <ArrowRight size={24} />
+                </>
+              )}
             </button>
-          </div>
+          </form>
 
           {/* SOCIAL LOGIN */}
           <div className="mt-12">
@@ -198,14 +234,7 @@ export default function LoginPage() {
               </span>
               <div className="flex-grow border-t border-[rgb(var(--border))]"></div>
             </div>
-            <div className="flex gap-4">
-              <button className="flex-1 border-2 border-[rgb(var(--border))] py-3 text-[rgb(var(--text))] flex items-center justify-center gap-2 hover:bg-[rgb(var(--secondary-button))] transition-colors font-black text-xs uppercase italic">
-                <Chrome size={16} /> Google
-              </button>
-              <button className="flex-1 border-2 border-[rgb(var(--border))] py-3 text-[rgb(var(--text))] flex items-center justify-center gap-2 hover:bg-[rgb(var(--secondary-button))] transition-colors font-black text-xs uppercase italic">
-                <Github size={16} /> GitHub
-              </button>
-            </div>
+            <SocialButtons />
           </div>
         </div>
 

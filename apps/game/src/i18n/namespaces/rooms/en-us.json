@@ -5,7 +5,6 @@
   "backgroundLocked": "Locked",
   "backgroundPremium": "Premium",
   "backgroundCoinsPrice": "{price} coins",
-
   "createModalTitle": "Create New Room",
   "createNameIncompleteTitle": "Incomplete name",
   "createNameIncompleteMessage": "The name must be at least 3 characters long.",
@@ -19,7 +18,6 @@
   "createSelectMapLabel": "Select a map:",
   "createNoLayouts": "No maps available",
   "createSubmit": "Create Room",
-
   "detailsBackgroundAlt": "Background",
   "detailsDescriptionLabel": "Description:",
   "detailsNoDescription": "No description",
@@ -30,7 +28,6 @@
   "detailsOwnerBadge": "You are the owner of this room",
   "detailsJoinRequestsTitle": "Want to join",
   "detailsReject": "Reject",
-
   "cardPublicBadge": "PUBLIC",
   "cardPrivateBadge": "PRIVATE",
   "cardVipBadge": "VIP",
@@ -41,7 +38,6 @@
   "cardUnknownOwner": "Unknown",
   "cardFullBadge": "ROOM FULL",
   "cardJoinButton": "JOIN",
-
   "listDoorAlt": "Door",
   "listTitle": "ROOMS",
   "listSubtitle": "Explore spaces created by the community",
@@ -56,8 +52,8 @@
   "listEmptyFiltered": "No rooms found matching that filter.",
   "listJoinErrorTitle": "Couldn't join",
   "listJoinErrorMessage": "The room is not available right now.",
-
   "clearRoomTitle": "Clear room",
   "clearRoomMessage": "All furniture in the room will be removed and returned to your inventory. This action cannot be undone.",
-  "clearRoomKeepLabel": "Keep room"
+  "clearRoomKeepLabel": "Keep room",
+  "cardJoiningButton": "Joining..."
 }

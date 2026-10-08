@@ -5,6 +5,7 @@ import { useTranslation } from "@/i18n/useTranslation";
 import { CachedImage, EmptyState, Skeleton } from "@/shared/ui";
 import { classNames } from "@/shared/utils/class-names";
 import { FOCUS_RING } from "@/shared/ui/styles";
+import { exercisePath } from "@/shared/utils/exercise-path";
 import type { ContinueLearningCourse } from "../types/dashboard";
 
 type LoadStatus = "loading" | "error" | "ready";
@@ -19,8 +20,13 @@ interface LearningSectionProps {
 }
 
 function courseHref(course: ContinueLearningCourse) {
-  if (!course.nextExercise) return `/courses/${course.courseId}`;
-  return `/learn/exercise/${course.nextExercise.type.toLowerCase()}/${course.nextExercise.id}`;
+  if (course.nextExercise) {
+    return exercisePath(course.nextExercise.id, course.nextExercise.type);
+  }
+  if (course.nextLessonId) {
+    return `/courses/${course.courseId}/lessons/${course.nextLessonId}`;
+  }
+  return `/courses/${course.courseId}`;
 }
 
 export function LearningSection({

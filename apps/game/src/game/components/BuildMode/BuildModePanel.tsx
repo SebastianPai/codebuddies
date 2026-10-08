@@ -2,27 +2,25 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  Armchair,
   Backpack,
   Boxes,
   Clock,
-  DoorOpen,
-  Gamepad2,
   Image as ImageIcon,
-  Package,
   Paintbrush,
   Redo2,
   ShoppingBag,
-  Sofa,
-  Sparkles,
   Star,
   Store,
-  Table2,
   Undo2,
   UserRound,
   type LucideIcon,
 } from "lucide-react";
 import { BUILD_COMMAND_STACK_CHANGED_EVENT } from "../../systems/BuildCommandStack";
+import {
+  BUILD_PLACEMENT_PROGRESS_EVENT,
+  type BuildPlacementProgress,
+} from "../../systems/buildPlacementEvents";
+import { FURNITURE_TYPES, ITEM_ROOMS, getFurnitureType, getItemRooms } from "../../utils/itemTaxonomy";
 import ItemPreview from "../UI/ItemPreview";
 import SharedItemGrid from "../shared/ItemGrid";
 import ItemCard from "../shared/ItemCard";
@@ -73,19 +71,11 @@ function pushRecentId(itemId: string) {
   return next;
 }
 
-// Orden y etiqueta/ícono de cada categoría de mueble (kind del item WORLD).
-// El label se resuelve con t() dentro del componente (labelKey), para no
-// mezclar sillas, mesas, decoración, etc. en una sola lista larga.
-const OBJECT_CATEGORIES: Array<{ kind: string; labelKey: string; icon: LucideIcon }> = [
-  { kind: "CHAIR", labelKey: "buildmode.categoryChairs", icon: Armchair },
-  { kind: "TABLE", labelKey: "buildmode.categoryTables", icon: Table2 },
-  { kind: "FURNITURE", labelKey: "buildmode.categoryFurniture", icon: Sofa },
-  { kind: "DECORATION", labelKey: "buildmode.categoryDecoration", icon: Sparkles },
-  { kind: "DOOR", labelKey: "buildmode.categoryDoors", icon: DoorOpen },
-  { kind: "NPC", labelKey: "buildmode.categoryNpcs", icon: UserRound },
-  { kind: "INTERACTIVE", labelKey: "buildmode.categoryInteractive", icon: Gamepad2 },
-];
-const OTHER_CATEGORY = { kind: "OTHER", labelKey: "buildmode.categoryOther", icon: Package };
+// Secciones del listado de objetos: por tipo de mueble (WorldItemData.category,
+// ver itemTaxonomy). Antes se agrupaba por worldData.kind buscando "CHAIR",
+// "TABLE" o "DOOR", valores que ese enum no tiene -- todo caía en "Muebles".
+// Los NPC sí son un kind propio y van en su sección.
+const NPC_GROUP = { key: "NPC", labelKey: "buildmode.categoryNpcs", icon: UserRound };
 
 interface Props {
   inventory: any[];
@@ -203,12 +193,41 @@ export default function BuildModePanel({
   const [textureSize, setTextureSize] = useState("1x1");
   const [activePaintItem, setActivePaintItem] = useState<any | null>(null);
   const [activePlacementItem, setActivePlacementItem] = useState<any | null>(null);
+  const [placementRemaining, setPlacementRemaining] = useState(0);
+  const [roomFilter, setRoomFilter] = useState("all");
+
+  // El ghost vive en Phaser (BuildSystem); acá solo se refleja cuántas
+  // unidades quedan y se cierra el estado cuando la colocación termina.
+  useEffect(() => {
+    const handleProgress = (event: Event) => {
+      const detail = (event as CustomEvent<BuildPlacementProgress>).detail;
+      if (!detail) return;
+      if (!detail.itemId || detail.remaining <= 0) {
+        setActivePlacementItem(null);
+        setPlacementRemaining(0);
+        return;
+      }
+      setPlacementRemaining(detail.remaining);
+    };
+
+    window.addEventListener(BUILD_PLACEMENT_PROGRESS_EVENT, handleProgress);
+    return () => window.removeEventListener(BUILD_PLACEMENT_PROGRESS_EVENT, handleProgress);
+  }, []);
+
+  const startPlacement = (item: any) => {
+    setActivePaintItem(null);
+    onCancelPainting();
+    setActivePlacementItem(item);
+    setPlacementRemaining(item?.availableAmount ?? 1);
+    registerRecent(item?.id);
+    onPlaceWorldItem(item);
+  };
 
   const [textureWidth, textureHeight] = textureSize
     .split("x")
     .map((value) => Number(value) || 1);
 
-  const { objects, textures, objectGroups, favoriteItems, recentItems } = useMemo(() => {
+  const { objects, allObjectsCount, textures, objectGroups, favoriteItems, recentItems, roomCounts } = useMemo(() => {
     const term = search.trim().toLowerCase();
     const matches = (inv: any) =>
       !term ||
@@ -218,41 +237,54 @@ export default function BuildModePanel({
 
     const worldItems = inventory.filter((inv) => inv.item?.type === "WORLD");
 
-    const objectItems = worldItems.filter((inv) => {
+    const searchedObjects = worldItems.filter((inv) => {
       const kind = inv.item?.worldData?.kind;
       return kind !== "FLOOR" && kind !== "WALL" && matches(inv);
     });
 
-    const groups = [...OBJECT_CATEGORIES, OTHER_CATEGORY]
-      .map((category) => ({
-        ...category,
-        items:
-          category.kind === "OTHER"
-            ? objectItems.filter(
-                (inv) => !OBJECT_CATEGORIES.some((c) => c.kind === inv.item?.worldData?.kind),
-              )
-            : objectItems.filter((inv) => inv.item?.worldData?.kind === category.kind),
-      }))
-      .filter((group) => group.items.length > 0);
+    const counts: Record<string, number> = {};
+    searchedObjects.forEach((inv) => {
+      getItemRooms(inv.item).forEach((room) => {
+        counts[room] = (counts[room] ?? 0) + 1;
+      });
+    });
+
+    const objectItems =
+      roomFilter === "all"
+        ? searchedObjects
+        : searchedObjects.filter((inv) => getItemRooms(inv.item).includes(roomFilter));
+
+    const isNpc = (inv: any) => inv.item?.worldData?.kind === "NPC";
+    const groups = [
+      ...FURNITURE_TYPES.map((type) => ({
+        key: type.key,
+        labelKey: type.labelKey,
+        icon: type.icon as LucideIcon,
+        items: objectItems.filter((inv) => !isNpc(inv) && getFurnitureType(inv.item) === type.key),
+      })),
+      { ...NPC_GROUP, items: objectItems.filter(isNpc) },
+    ].filter((group) => group.items.length > 0);
 
     // "Recientes" respeta el orden de colocación (más nuevo primero), no el
     // orden del inventario — por eso se arma buscando cada id en orden en
     // vez de filtrar objectItems directamente.
     const recent = recentIds
-      .map((itemId) => objectItems.find((inv) => inv.item?.id === itemId))
-      .filter((inv): inv is (typeof objectItems)[number] => Boolean(inv));
+      .map((itemId) => searchedObjects.find((inv) => inv.item?.id === itemId))
+      .filter((inv): inv is (typeof searchedObjects)[number] => Boolean(inv));
 
     return {
       objects: objectItems,
+      allObjectsCount: searchedObjects.length,
       objectGroups: groups,
-      favoriteItems: objectItems.filter((inv) => favoriteIds.includes(inv.item?.id)),
+      roomCounts: counts,
+      favoriteItems: searchedObjects.filter((inv) => favoriteIds.includes(inv.item?.id)),
       recentItems: recent,
       textures: worldItems.filter((inv) => {
         const kind = inv.item?.worldData?.kind;
         return (kind === "FLOOR" || kind === "WALL") && matches(inv);
       }),
     };
-  }, [inventory, search, favoriteIds, recentIds]);
+  }, [inventory, search, favoriteIds, recentIds, roomFilter]);
 
   // El fondo y la iluminación son herramientas de EDICIÓN de la sala (se
   // usan mientras decorás, con vista previa inmediata en el mundo) — antes
@@ -264,7 +296,7 @@ export default function BuildModePanel({
   const showEnvironmentTab = permissions.canChangeBackground || permissions.canModifyLighting;
 
   const tabs: Array<{ id: BuildTab; label: string; icon: LucideIcon; count?: number }> = [
-    { id: "objects", label: t("buildmode.tabObjects"), icon: Boxes, count: objects.length },
+    { id: "objects", label: t("buildmode.tabObjects"), icon: Boxes, count: allObjectsCount },
     { id: "favorites", label: t("buildmode.tabFavorites"), icon: Star, count: favoriteItems.length },
     { id: "recent", label: t("buildmode.tabRecent"), icon: Clock, count: recentItems.length },
     { id: "inventory", label: t("buildmode.tabInventory"), icon: Backpack, count: inventory.length },
@@ -414,13 +446,7 @@ export default function BuildModePanel({
             actionLabel={t("buildmode.placeAction")}
             favoriteIds={favoriteIds}
             onToggleFavorite={toggleFavorite}
-            onAction={(item) => {
-              setActivePaintItem(null);
-              onCancelPainting();
-              setActivePlacementItem(item);
-              registerRecent(item?.id);
-              onPlaceWorldItem(item);
-            }}
+            onAction={startPlacement}
           />
         ) : activeTab === "recent" ? (
           <BuildItemGrid
@@ -429,44 +455,69 @@ export default function BuildModePanel({
             actionLabel={t("buildmode.placeAction")}
             favoriteIds={favoriteIds}
             onToggleFavorite={toggleFavorite}
-            onAction={(item) => {
-              setActivePaintItem(null);
-              onCancelPainting();
-              setActivePlacementItem(item);
-              registerRecent(item?.id);
-              onPlaceWorldItem(item);
-            }}
+            onAction={startPlacement}
           />
-        ) : objects.length === 0 ? (
-          <div className={styles.empty}>
-            <strong>{t("buildmode.objectsEmptyTitle")}</strong>
-            <span>{t("buildmode.tryAnotherNameHint")}</span>
-          </div>
         ) : (
-          <div className={styles.categoryList}>
-            {objectGroups.map((group) => (
-              <section key={group.kind} className={styles.categorySection}>
-                <h3 className={styles.categoryTitle}>
-                  <group.icon size={14} /> {t(group.labelKey)}
-                  <b>{group.items.length}</b>
-                </h3>
-                <BuildItemGrid
-                  items={group.items}
-                  empty=""
-                  actionLabel={t("buildmode.placeAction")}
-                  favoriteIds={favoriteIds}
-                  onToggleFavorite={toggleFavorite}
-                  onAction={(item) => {
-                    setActivePaintItem(null);
-                    onCancelPainting();
-                    setActivePlacementItem(item);
-                    registerRecent(item?.id);
-                    onPlaceWorldItem(item);
-                  }}
-                />
-              </section>
-            ))}
-          </div>
+          <>
+            {allObjectsCount > 0 && (
+              <div
+                className={`${styles.roomChips} ${tabsOverflow.scrollRow}`}
+                role="group"
+                aria-label={t("commerce.taxRoomFilterLabel")}
+              >
+                <button
+                  type="button"
+                  className={`${styles.roomChip} ${roomFilter === "all" ? styles.roomChipActive : ""}`}
+                  aria-pressed={roomFilter === "all"}
+                  onClick={() => setRoomFilter("all")}
+                >
+                  {t("commerce.taxAll")}
+                </button>
+                {ITEM_ROOMS.map((room) => {
+                  const count = roomCounts[room.key] ?? 0;
+                  return (
+                    <button
+                      key={room.key}
+                      type="button"
+                      className={`${styles.roomChip} ${roomFilter === room.key ? styles.roomChipActive : ""}`}
+                      aria-pressed={roomFilter === room.key}
+                      disabled={count === 0 && roomFilter !== room.key}
+                      onClick={() => setRoomFilter(room.key)}
+                    >
+                      <room.icon size={13} aria-hidden="true" />
+                      {t(room.labelKey)}
+                      <b>{count}</b>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {objects.length === 0 ? (
+              <div className={styles.empty}>
+                <strong>{t("buildmode.objectsEmptyTitle")}</strong>
+                <span>{t("buildmode.tryAnotherNameHint")}</span>
+              </div>
+            ) : (
+              <div className={styles.categoryList}>
+                {objectGroups.map((group) => (
+                  <section key={group.key} className={styles.categorySection}>
+                    <h3 className={styles.categoryTitle}>
+                      <group.icon size={14} /> {t(group.labelKey)}
+                      <b>{group.items.length}</b>
+                    </h3>
+                    <BuildItemGrid
+                      items={group.items}
+                      empty=""
+                      actionLabel={t("buildmode.placeAction")}
+                      favoriteIds={favoriteIds}
+                      onToggleFavorite={toggleFavorite}
+                      onAction={startPlacement}
+                    />
+                  </section>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -477,7 +528,15 @@ export default function BuildModePanel({
               <ItemPreview item={activePlacementItem} alt={activePlacementItem.name} />
               <div>
                 <strong>{t("buildmode.placingLabel")}</strong>
-                <span>{activePlacementItem.name || activePlacementItem.id || t("buildmode.itemFallbackName")}</span>
+                <span>
+                  {activePlacementItem.name || activePlacementItem.id || t("buildmode.itemFallbackName")}
+                  {" · "}
+                  {t("buildmode.placingRemaining", { count: placementRemaining })}
+                </span>
+                <span className={styles.escHint}>
+                  {t("buildmode.placingHintClick")} · <kbd>R</kbd> {t("buildmode.placingHintRotate")} ·{" "}
+                  <kbd>ESC</kbd> {t("buildmode.placingHintFinish")}
+                </span>
               </div>
             </div>
             <button
@@ -655,7 +714,7 @@ function BuildItemGrid({
           rarity={inv.item?.rarity}
           title={inv.item?.name || inv.item?.worldData?.kind || t("buildmode.itemFallbackName")}
           stackCount={inv.amount ?? inv.quantity ?? 1}
-          onClick={() => onAction(inv.item)}
+          onClick={() => onAction({ ...inv.item, availableAmount: inv.amount ?? inv.quantity ?? 1 })}
           actionHint={actionLabel}
           isFavorite={favoriteIds?.includes(inv.item?.id)}
           onToggleFavorite={onToggleFavorite ? () => onToggleFavorite(inv.item?.id) : undefined}

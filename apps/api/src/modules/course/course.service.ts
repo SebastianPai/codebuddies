@@ -292,17 +292,17 @@ export class CourseService {
       course.module?.translations?.find((t) => t.language.code === lang) ||
       course.module?.translations?.[0];
 
-    const progressionLocked =
-      await this.premiumAccessService.getProgressionLockedLessonIds({
-        courseId: course.id,
+    const progression =
+      await this.premiumAccessService.getCourseProgressionState({
         userId: requester.userId,
         role: requester.role,
         bypass: requester.bypassLocks,
         lessons: course.lessons.map((l) => ({
           id: l.id,
-          exerciseIds: l.exercises.map((e) => e.id),
+          exercises: l.exercises.map((e) => ({ id: e.id, type: e.type })),
         })),
       });
+    const isLoggedIn = Boolean(requester.userId);
 
     const allExercises = course.lessons.flatMap((l) => l.exercises);
 
@@ -352,7 +352,7 @@ export class CourseService {
 
         // Candado de progresión secuencial (el de Premium sigue sin
         // aplicarse — ver PremiumAccessService#isLessonLocked).
-        const locked = progressionLocked.has(lesson.id);
+        const locked = progression.lockedLessons.has(lesson.id);
         const lockedReason = locked ? ('progression' as const) : undefined;
 
         return {
@@ -363,8 +363,14 @@ export class CourseService {
           description: lessonTranslation?.description ?? null,
           locked,
           lockedReason,
+          // Solo con sesión: permite pintar el camino (teoría -> ejercicios)
+          // sin que el front tenga que bajar todo el historial de progreso.
+          theoryCompleted: isLoggedIn
+            ? progression.theoryDone.has(lesson.id)
+            : undefined,
 
           exercises: lesson.exercises.map((ex) => {
+            const exLocked = progression.lockedExercises.has(ex.id);
             const exTranslation =
               ex.translations.find((t) => t.language.code === lang) ||
               ex.translations.find((t) => t.language.code === 'es') ||
@@ -378,8 +384,11 @@ export class CourseService {
               experience: ex.experience,
               coins: ex.coins,
               type: ex.type,
-              locked,
-              lockedReason,
+              locked: exLocked,
+              lockedReason: exLocked ? ('progression' as const) : undefined,
+              completed: isLoggedIn
+                ? progression.exerciseDone.has(ex.id)
+                : undefined,
             };
           }),
         };

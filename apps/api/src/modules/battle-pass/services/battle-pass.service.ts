@@ -4,11 +4,28 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { BattlePassSeasonStatus, Prisma, RewardSourceType } from '@prisma/client';
+import {
+  BadgeAnimationDirection,
+  BadgeIconMode,
+  BadgeType,
+  BattlePassProgressMode,
+  BattlePassSeasonStatus,
+  Prisma,
+  RewardSourceType,
+} from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { PREMIUM_LOGO_BADGE_ID } from '../../badges/badges.constants';
 import { GamificationService, RewardConfig } from '../../gamification/gamification.service';
 import { PremiumAccessService } from '../../premium-access/premium-access.service';
-import { UpsertBattlePassSeasonDto } from '../dto/upsert-battle-pass-season.dto';
+import {
+  CreateMonthlySeasonDto,
+  UpsertBattlePassSeasonDto,
+} from '../dto/upsert-battle-pass-season.dto';
+import {
+  currentColombiaMonth,
+  monthBounds,
+  monthlySeasonName,
+} from './battle-pass-seasons';
 import { UpsertBattlePassTierDto } from '../dto/upsert-battle-pass-tier.dto';
 
 // Mismo criterio que PrismaExecutor en PremiumAccessService: permite que
@@ -16,6 +33,19 @@ import { UpsertBattlePassTierDto } from '../dto/upsert-battle-pass-tier.dto';
 // transacción ya abierta por el caller (ver ProgressService), sin duplicar
 // el write del progreso de Battle Pass en dos transacciones separadas.
 type PrismaExecutor = PrismaService | Prisma.TransactionClient;
+
+// El "día" del pase diario se corta a medianoche de Colombia (UTC-5, sin
+// horario de verano), no a medianoche UTC (las 7 p. m. allá).
+const DAY_OFFSET_MS = -5 * 60 * 60 * 1000;
+
+function todayKey(now = Date.now()): string {
+  return new Date(now + DAY_OFFSET_MS).toISOString().slice(0, 10);
+}
+
+// Tipos de premio que apuntan a un Item del catálogo (ropa, muebles,
+// efectos de nombre, burbujas de chat...).
+const ITEM_REWARD_TYPES = new Set<string>(['ITEM', 'AVATAR_ITEM', 'FURNITURE']);
+const BUBBLE_PREFIX = 'bubble:';
 
 const TIER_ORDER: Prisma.BattlePassTierOrderByWithRelationInput[] = [
   { level: 'asc' },
@@ -60,7 +90,7 @@ export class BattlePassService {
     if (amount <= 0) return;
 
     const season = await this.getActiveSeason(client);
-    if (!season) return;
+    if (!season || season.progressMode === BattlePassProgressMode.DAILY) return;
 
     const maxXp = season.xpPerLevel * season.totalLevels;
 
@@ -81,7 +111,91 @@ export class BattlePassService {
     });
   }
 
-  async getMyState(userId: string) {
+  // Modo DAILY: el primer check-in de cada día (hora de Colombia) sube un
+  // nivel. Se llama al abrir el juego y al ver el pase; repetirlo el mismo
+  // día no hace nada. Los updateMany condicionales son la guarda contra dos
+  // llamadas simultáneas (solo una encuentra lastCheckInDay < hoy).
+  //
+  // Devuelve true si esta llamada desbloqueó un día nuevo (para que la web
+  // muestre el aviso de "recompensa nueva" solo cuando corresponde).
+  async checkIn(userId: string): Promise<boolean> {
+    const season = await this.getActiveSeason();
+    if (!season || season.progressMode !== BattlePassProgressMode.DAILY) return false;
+
+    const today = todayKey();
+    const existing = await this.prisma.userBattlePassProgress.upsert({
+      where: { userId_seasonId: { userId, seasonId: season.id } },
+      update: {},
+      // Primer día de la temporada para este usuario = día 1 ya desbloqueado
+      // (queda como recompensa reclamable, así que el hub igual lo avisa).
+      create: { userId, seasonId: season.id, lastCheckInDay: today },
+    });
+    if (existing.lastCheckInDay === today) return false;
+
+    const advanced = await this.prisma.userBattlePassProgress.updateMany({
+      where: { id: existing.id, lastCheckInDay: { lt: today }, level: { lt: season.totalLevels } },
+      data: { lastCheckInDay: today, level: { increment: 1 } },
+    });
+    if (advanced.count > 0) return true;
+
+    // Sin fila previa de check-in (progreso de la época XP) o ya en el
+    // último día: solo marca hoy.
+    await this.prisma.userBattlePassProgress.updateMany({
+      where: { id: existing.id, OR: [{ lastCheckInDay: null }, { lastCheckInDay: { lt: today } }] },
+      data: { lastCheckInDay: today },
+    });
+    return false;
+  }
+
+  // Resumen liviano para el hub de recompensas de la web (burbuja al iniciar
+  // sesión): cuenta el día, y junta lo reclamable del pase + la racha. La
+  // web lo pide una vez por sesión, así que evita el payload completo.
+  async getHub(userId: string) {
+    await this.rotateSeasonsIfDue();
+    const unlockedToday = await this.checkIn(userId);
+    const [state, streak] = await Promise.all([
+      this.getMyState(userId, { skipCheckIn: true }),
+      this.gamificationService.getStreakRewards(userId),
+    ]);
+
+    const battlePass =
+      state.season && state.progress
+        ? {
+            seasonName: state.season.name,
+            endsAt: state.season.endsAt,
+            mode: state.progress.mode,
+            level: state.progress.level,
+            totalLevels: state.progress.totalLevels,
+            isMaxLevel: state.progress.isMaxLevel,
+            hasPremium: state.hasPremium,
+            claimable: state.tiers.filter((tier) => tier.claimable),
+            // Lo que se desbloquea al siguiente nivel/día (para el "mañana").
+            next: state.tiers.filter(
+              (tier) => tier.level === state.progress!.level + 1,
+            ),
+            // Premium visible aunque no se tenga: es el gancho para suscribirse.
+            lockedPremium: state.hasPremium
+              ? 0
+              : state.tiers.filter(
+                  (tier) => tier.track === 'PREMIUM' && tier.levelReached && !tier.claimed,
+                ).length,
+          }
+        : null;
+
+    return {
+      unlockedToday,
+      battlePass,
+      streak,
+      claimableCount:
+        (battlePass?.claimable.length ?? 0) +
+        streak.milestones.filter((m) => m.status === 'CLAIMABLE').length,
+    };
+  }
+
+  async getMyState(userId: string, options: { skipCheckIn?: boolean } = {}) {
+    await this.rotateSeasonsIfDue();
+    if (!options.skipCheckIn) await this.checkIn(userId);
+
     const season = await this.getActiveSeason();
     if (!season) {
       return { season: null, hasPremium: false, progress: null, tiers: [] };
@@ -106,6 +220,36 @@ export class BattlePassService {
     const currentXp = progress?.xp ?? 0;
     const claimedTierIds = new Set(claims.map((c) => c.tierId));
 
+    // El logo Premium se muestra en su ticket tal como sale junto al nombre
+    // (mismo ícono/sprite que sube el admin en /admin/badges).
+    const premiumLogo = tiers.some((tier) => tier.itemId === PREMIUM_LOGO_BADGE_ID)
+      ? await this.prisma.badgeConfig.findUnique({
+          where: { type: BadgeType.PREMIUM },
+          select: { iconUrl: true, mode: true, size: true, frameCount: true, direction: true, frameRate: true },
+        })
+      : null;
+    // Sin fila de config todavía = ícono por defecto (el cliente dibuja la
+    // corona), pero igual marca el ticket como "logo Premium".
+    const premiumLogoIcon = premiumLogo ?? {
+      iconUrl: null,
+      mode: BadgeIconMode.STATIC,
+      size: 16,
+      frameCount: 6,
+      direction: BadgeAnimationDirection.PINGPONG,
+      frameRate: 10,
+    };
+
+    const itemIds = tiers
+      .filter((tier) => ITEM_REWARD_TYPES.has(tier.rewardType) && tier.itemId)
+      .map((tier) => tier.itemId!);
+    const items = itemIds.length
+      ? await this.prisma.item.findMany({
+          where: { id: { in: itemIds } },
+          select: { id: true, imageUrl: true, type: true, effectKey: true, rarity: true },
+        })
+      : [];
+    const itemById = new Map(items.map((item) => [item.id, item]));
+
     const tierPayload = tiers.map((tier) => {
       const trackUnlocked = tier.track === 'FREE' || hasPremium;
       const levelReached = tier.level <= currentLevel;
@@ -119,6 +263,8 @@ export class BattlePassService {
         itemId: tier.itemId,
         label: tier.label,
         sortOrder: tier.sortOrder,
+        badgeIcon: tier.itemId === PREMIUM_LOGO_BADGE_ID ? premiumLogoIcon : null,
+        item: tier.itemId ? (itemById.get(tier.itemId) ?? null) : null,
         levelReached,
         trackUnlocked,
         claimed,
@@ -134,6 +280,7 @@ export class BattlePassService {
       season,
       hasPremium,
       progress: {
+        mode: season.progressMode,
         xp: currentXp,
         level: currentLevel,
         xpPerLevel: season.xpPerLevel,
@@ -226,6 +373,182 @@ export class BattlePassService {
     });
   }
 
+
+  // ---- Temporadas mensuales -------------------------------------------------
+
+  private lastRotationCheck = 0;
+
+  // Barato y frecuente (se llama al leer el pase): como mucho una vez cada
+  // 5 minutos por proceso. El cron diario (BattlePassJobsService) es la
+  // garantía; esto solo evita esperar al cron justo al cambiar de mes.
+  async rotateSeasonsIfDue() {
+    const now = Date.now();
+    if (now - this.lastRotationCheck < 5 * 60 * 1000) return;
+    this.lastRotationCheck = now;
+    await this.rotateSeasons().catch(() => undefined);
+  }
+
+  // 1) Cierra la temporada activa si ya terminó. 2) Activa la programada
+  // cuyo rango incluye hoy. 3) Si no hay ninguna y la última era mensual,
+  // crea la del mes actual copiando sus premios — así el pase arranca solo
+  // cada día 1 aunque nadie entre al admin.
+  async rotateSeasons() {
+    const now = new Date();
+    await this.prisma.battlePassSeason.updateMany({
+      where: { status: BattlePassSeasonStatus.ACTIVE, endsAt: { lte: now } },
+      data: { status: BattlePassSeasonStatus.ENDED },
+    });
+
+    const active = await this.getActiveSeason();
+    if (active) return active;
+
+    const due = await this.prisma.battlePassSeason.findFirst({
+      where: {
+        status: BattlePassSeasonStatus.UPCOMING,
+        startsAt: { lte: now },
+        endsAt: { gt: now },
+      },
+      orderBy: { startsAt: 'asc' },
+    });
+    if (due) {
+      return this.prisma.battlePassSeason.update({
+        where: { id: due.id },
+        data: { status: BattlePassSeasonStatus.ACTIVE },
+      });
+    }
+
+    const previous = await this.prisma.battlePassSeason.findFirst({
+      orderBy: { endsAt: 'desc' },
+    });
+    if (!previous || previous.progressMode !== BattlePassProgressMode.DAILY) return null;
+
+    const { year, month } = currentColombiaMonth();
+    return this.createMonthlySeason({
+      year,
+      month,
+      copyTiersFromSeasonId: previous.id,
+      activateNow: true,
+    });
+  }
+
+  async createMonthlySeason(dto: CreateMonthlySeasonDto) {
+    const { startsAt, endsAt, days } = monthBounds(dto.year, dto.month);
+
+    const overlapping = await this.prisma.battlePassSeason.findFirst({
+      where: {
+        status: { not: BattlePassSeasonStatus.ENDED },
+        startsAt: { lt: endsAt },
+        endsAt: { gt: startsAt },
+      },
+    });
+    if (overlapping) {
+      throw new BadRequestException(
+        `Ya existe una temporada en ese mes: "${overlapping.name}". Edita sus fechas o termínala primero.`,
+      );
+    }
+
+    const last = await this.prisma.battlePassSeason.findFirst({
+      orderBy: { seasonNumber: 'desc' },
+      select: { seasonNumber: true },
+    });
+    const seasonNumber = (last?.seasonNumber ?? 0) + 1;
+    const now = new Date();
+    const isCurrent = startsAt <= now && now < endsAt;
+    const activate = Boolean(dto.activateNow) && isCurrent;
+    if (activate) await this.deactivateOtherActiveSeasons();
+
+    const template = dto.copyTiersFromSeasonId
+      ? await this.prisma.battlePassTier.findMany({
+          where: { seasonId: dto.copyTiersFromSeasonId, level: { lte: days } },
+          orderBy: TIER_ORDER,
+        })
+      : [];
+
+    return this.prisma.battlePassSeason.create({
+      data: {
+        name: dto.name?.trim() || `Temporada ${seasonNumber}: ${monthlySeasonName(dto.year, dto.month)}`,
+        description: dto.description ?? null,
+        seasonNumber,
+        status: activate ? BattlePassSeasonStatus.ACTIVE : BattlePassSeasonStatus.UPCOMING,
+        startsAt,
+        endsAt,
+        totalLevels: days,
+        xpPerLevel: 1000,
+        progressMode: BattlePassProgressMode.DAILY,
+        tiers: {
+          create: template.map((tier) => ({
+            level: tier.level,
+            track: tier.track,
+            rewardType: tier.rewardType,
+            amount: tier.amount,
+            itemId: tier.itemId,
+            label: tier.label,
+            sortOrder: tier.sortOrder,
+          })),
+        },
+      },
+      include: { _count: { select: { tiers: true } } },
+    });
+  }
+
+  // Catálogo para el selector de premios del admin: objetos agrupados por lo
+  // que son para el jugador (nombre personalizado, burbuja de chat, ropa,
+  // muebles), más insignias y títulos.
+  async getRewardCatalog() {
+    const [items, badges, titles] = await Promise.all([
+      this.prisma.item.findMany({
+        select: {
+          id: true,
+          imageUrl: true,
+          type: true,
+          effectKey: true,
+          category: true,
+          rarity: true,
+          translations: { select: { name: true, language: { select: { code: true } } } },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 2000,
+      }),
+      this.prisma.gamificationBadge.findMany({
+        where: { active: true },
+        select: { id: true, name: true, icon: true, rarity: true },
+        orderBy: { name: 'asc' },
+      }),
+      this.prisma.gamificationTitle.findMany({
+        where: { active: true },
+        select: { id: true, name: true, rarity: true },
+        orderBy: { name: 'asc' },
+      }),
+    ]);
+
+    const itemName = (item: (typeof items)[number]) =>
+      item.translations.find((t) => t.language.code === 'es')?.name ??
+      item.translations[0]?.name ??
+      item.effectKey ??
+      item.id.slice(0, 8);
+
+    const group = (item: (typeof items)[number]) => {
+      if (item.type === 'EFFECT') {
+        return item.effectKey?.startsWith(BUBBLE_PREFIX) ? 'CHAT_BUBBLE' : 'NAME_EFFECT';
+      }
+      if (item.type === 'AVATAR') return 'AVATAR';
+      return 'WORLD';
+    };
+
+    return {
+      items: items.map((item) => ({
+        id: item.id,
+        name: itemName(item),
+        imageUrl: item.imageUrl,
+        group: group(item),
+        category: item.category,
+        rarity: item.rarity,
+      })),
+      badges,
+      titles,
+    };
+  }
+
   // Solo una temporada ACTIVE a la vez -- evita que dos temporadas activas
   // simultáneas hagan ambiguo a qué season.id le suma XP awardXp() (que
   // siempre toma la más reciente por startsAt, pero es una garantía mejor
@@ -254,6 +577,7 @@ export class BattlePassService {
         endsAt: new Date(dto.endsAt),
         totalLevels: dto.totalLevels ?? 30,
         xpPerLevel: dto.xpPerLevel ?? 1000,
+        progressMode: dto.progressMode ?? BattlePassProgressMode.DAILY,
       },
     });
   }
@@ -273,6 +597,7 @@ export class BattlePassService {
         endsAt: dto.endsAt ? new Date(dto.endsAt) : undefined,
         totalLevels: dto.totalLevels,
         xpPerLevel: dto.xpPerLevel,
+        progressMode: dto.progressMode,
       },
     });
   }

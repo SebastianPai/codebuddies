@@ -142,11 +142,26 @@
   flex: none;
 }
 
-.closeBtn {
+/* Doble clase para ganarle al padding de Button .sm: sin esto el SVG (hijo
+   flex) se encogía a ~8px y la X se veía como un punto. */
+.headerActions .closeBtn {
   width: 32px;
   height: 32px;
   padding: 0;
-  font-size: 14px;
+  border: 1px solid var(--cb-border);
+  border-radius: var(--cb-radius-sm);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--cb-muted);
+}
+
+.headerActions .closeBtn svg {
+  flex-shrink: 0;
+}
+
+.headerActions .closeBtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: var(--cb-text);
 }
 
 .content {

@@ -12,6 +12,7 @@ import { MailerService } from '../mailer/mailer.service';
 import { CreateEmailCampaignDto } from './dto/create-email-campaign.dto';
 import { wrapBrandedEmailHtml } from './email-brand';
 import { UpdateMarketingPreferencesDto } from './dto/update-marketing-preferences.dto';
+import { unsubscribeUrl } from './unsubscribe-token';
 import { UpsertEmailTemplateDto } from './dto/upsert-email-template.dto';
 
 type TransactionalRecipient = {
@@ -28,6 +29,15 @@ type AudienceFilters = {
 
 const SEND_DELAY_MS = 550;
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// RFC 8058: baja con un clic desde el propio cliente de correo (Gmail,
+// Yahoo y Apple Mail muestran el botón "Cancelar suscripción").
+function marketingHeaders(url: string): Record<string, string> {
+  return {
+    'List-Unsubscribe': `<${url}>`,
+    'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+  };
+}
 
 @Injectable()
 export class EmailService {
@@ -107,10 +117,16 @@ export class EmailService {
   ) {
     for (const recipient of recipients) {
       const subject = this.renderTemplate(template.subject, recipient);
+      const unsubscribe = unsubscribeUrl(recipient.id);
       const result = await this.mailer.send({
         to: recipient.email,
         subject,
-        html: wrapBrandedEmailHtml(subject, this.renderTemplate(template.body, recipient)),
+        html: wrapBrandedEmailHtml(
+          subject,
+          this.renderTemplate(template.body, recipient),
+          { unsubscribeUrl: unsubscribe },
+        ),
+        headers: marketingHeaders(unsubscribe),
       });
 
       await this.prisma.emailLog.create({
@@ -176,7 +192,10 @@ export class EmailService {
     user: TransactionalRecipient,
     extraVariables: Record<string, string> = {},
   ) {
-    await this.sendTransactionalEmail(EmailTemplateType.BIRTHDAY, user, 'es', extraVariables);
+    // El saludo de cumpleaños solo va a quien aceptó marketing: lleva baja.
+    await this.sendTransactionalEmail(EmailTemplateType.BIRTHDAY, user, 'es', extraVariables, {
+      marketing: true,
+    });
   }
 
   async sendPremiumActivatedEmail(user: TransactionalRecipient) {
@@ -247,6 +266,7 @@ export class EmailService {
     user: TransactionalRecipient,
     language = 'es',
     extraVariables: Record<string, string> = {},
+    options: { marketing?: boolean } = {},
   ) {
     try {
       const template = await this.prisma.emailTemplate.findFirst({
@@ -261,10 +281,16 @@ export class EmailService {
       }
 
       const subject = this.renderTemplate(template.subject, user, extraVariables);
+      const unsubscribe = options.marketing ? unsubscribeUrl(user.id) : undefined;
       const result = await this.mailer.send({
         to: user.email,
         subject,
-        html: wrapBrandedEmailHtml(subject, this.renderTemplate(template.body, user, extraVariables)),
+        html: wrapBrandedEmailHtml(
+          subject,
+          this.renderTemplate(template.body, user, extraVariables),
+          { unsubscribeUrl: unsubscribe },
+        ),
+        headers: unsubscribe ? marketingHeaders(unsubscribe) : undefined,
       });
 
       await this.prisma.emailLog.create({
@@ -294,6 +320,13 @@ export class EmailService {
       },
       orderBy: { createdAt: 'desc' },
       take: 100,
+    });
+  }
+
+  async unsubscribeMarketing(userId: string) {
+    await this.prisma.user.updateMany({
+      where: { id: userId },
+      data: { marketingEmailsEnabled: false, marketingEmailOptedAt: new Date() },
     });
   }
 

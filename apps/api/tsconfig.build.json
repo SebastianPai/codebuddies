@@ -1,7 +1,16 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "rootDir": "./src"
+    "rootDir": "./src",
+    // El .tsbuildinfo vive DENTRO de dist a propósito.
+    //
+    // nest-cli.json usa `deleteOutDir: true`: cada `nest build` / `nest start`
+    // borra dist. Con el .tsbuildinfo fuera, sobrevivía a ese borrado, el
+    // compilador incremental creía que las salidas seguían al día y no emitía
+    // nada — "Found 0 errors" y ningún dist/main.js, así que el arranque moría
+    // con "Cannot find module dist/main". Guardándolo dentro de dist se borra
+    // junto con las salidas que describe y la compilación vuelve a emitir.
+    "tsBuildInfoFile": "./dist/tsconfig.build.tsbuildinfo"
   },
   "exclude": ["node_modules", "test", "dist", "**/*spec.ts", "prisma", "prisma.config.ts"]
 }

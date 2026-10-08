@@ -7,6 +7,7 @@ import { gameConfig } from "./config";
 import { getCurrentUser, redirectToWebLogin } from "./network/auth";
 import { createSocket } from "./network/socket";
 import { connectRealtime, disconnectRealtime } from "./network/realtime";
+import { checkInBattlePass } from "./network/battlePass";
 import { audioManager } from "./audio/AudioManager";
 import { useAvatar } from "./hooks/useAvatar";
 
@@ -30,6 +31,7 @@ import Shop from "./components/Shop/Shop";
 import MarketplaceWindow from "./components/Marketplace/MarketplaceWindow";
 import Inventory from "./components/Inventory/Inventory";
 import FurnitureContextMenu from "./components/Furniture/FurnitureContextMenu";
+import ItemUpgradesModal, { type UpgradesTarget } from "./components/Furniture/ItemUpgradesModal";
 import PlayerQuickMenu from "./components/PlayerQuickMenu/PlayerQuickMenu";
 import BuildModePanel from "./components/BuildMode/BuildModePanel";
 import GameDialog from "./components/GameDialog/GameDialog";
@@ -92,8 +94,12 @@ export default function Game() {
   const [currentUser, setCurrentUser] = useState<any>(null);
 
   const [inGame, setInGame] = useState(false);
+  // Sala a la que se está entrando (joinRoom enviado, sin respuesta aún).
+  const [joiningRoomId, setJoiningRoomId] = useState<string | null>(null);
+  const joinTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [selectedFurniture, setSelectedFurniture] = useState<any>(null);
+  const [upgradesTarget, setUpgradesTarget] = useState<UpgradesTarget | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<{ username: string; x: number; y: number } | null>(null);
   const [buildMode, setBuildMode] = useState(false);
   const [dialog, setDialog] = useState<GameDialogRequest | null>(null);
@@ -154,6 +160,9 @@ export default function Game() {
 
       connectRealtime();
 
+      // Pase diario: cuenta el día de hoy (no bloquea el arranque).
+      void checkInBattlePass();
+
       // =========================
       // SOCKET GLOBAL
       // =========================
@@ -188,6 +197,13 @@ export default function Game() {
 
         backgroundColor: "#111",
 
+        // Capa HTML encima del canvas para nombres y burbujas (PlayerHUD,
+        // ButlerSystem). pointerEvents "none": nunca tapa clics al mundo.
+        dom: {
+          createContainer: true,
+          pointerEvents: "none",
+        },
+
         render: {
           pixelArt: true,
           antialias: false,
@@ -195,6 +211,16 @@ export default function Game() {
 
         callbacks: {
           postBoot: (game) => {
+            // Phaser crea la capa HTML con position:absolute pero sin
+            // top/left: sin esto quedaría debajo del canvas en vez de encima.
+            if (game.domContainer) {
+              game.domContainer.style.top = "0px";
+              game.domContainer.style.left = "0px";
+              // Contexto de apilamiento propio: el z-index de cada nombre
+              // (por profundidad) no debe competir con los paneles de React.
+              game.domContainer.style.zIndex = "0";
+            }
+
             (game as any).socket = socketInstance;
             (game as any).user = user;
 
@@ -282,6 +308,26 @@ export default function Game() {
     };
   }, []);
 
+  // Libera la traba de "entrando a sala" con cualquier respuesta del servidor.
+  useEffect(() => {
+    if (!socket) return;
+    const release = () => {
+      if (joinTimeoutRef.current) {
+        clearTimeout(joinTimeoutRef.current);
+        joinTimeoutRef.current = null;
+      }
+      setJoiningRoomId(null);
+    };
+    socket.on("room:joined", release);
+    socket.on("room:join:error", release);
+    socket.on("room:error", release);
+    return () => {
+      socket.off("room:joined", release);
+      socket.off("room:join:error", release);
+      socket.off("room:error", release);
+    };
+  }, [socket]);
+
   useEffect(() => {
     const handleDialog = (event: Event) => {
       setDialog((event as CustomEvent<GameDialogRequest>).detail);
@@ -366,6 +412,14 @@ export default function Game() {
 
   const handleEnterRoom = (roomId: string) => {
     if (!socket || !roomId) return;
+    // Con red lenta el clic parece no hacer nada y se repite: sin esta traba
+    // cada clic encolaba otro joinRoom y al volver la conexión se entraba
+    // N veces seguidas. Se libera con room:joined / room:join:error /
+    // room:error, o a los 15s por si la respuesta nunca llega.
+    if (joiningRoomId) return;
+    setJoiningRoomId(roomId);
+    if (joinTimeoutRef.current) clearTimeout(joinTimeoutRef.current);
+    joinTimeoutRef.current = setTimeout(() => setJoiningRoomId(null), 15000);
 
     console.log("🔥 ROOM GUARDADO", roomId);
 
@@ -524,7 +578,9 @@ export default function Game() {
 
       {/* ================= GAME ================= */}
 
-      <div ref={containerRef} className="phaser-game-container" />
+      {/* position:relative = referencia de la capa HTML de Phaser (nombres y
+          burbujas, ver dom en el config), que va absoluta encima del canvas. */}
+      <div ref={containerRef} className="phaser-game-container" style={{ position: "relative" }} />
 
       {/* ================= UI ================= */}
 
@@ -657,7 +713,7 @@ export default function Game() {
       {/* ================= ROOM LIST ================= */}
 
       {!inGame && socket && currentUser && (
-        <RoomList socket={socket} onJoinRoom={handleEnterRoom} />
+        <RoomList socket={socket} onJoinRoom={handleEnterRoom} joiningRoomId={joiningRoomId} />
       )}
 
       {/* ================= PC ================= */}
@@ -670,6 +726,7 @@ export default function Game() {
         <Shop
           socket={socket}
           inventory={inventory}
+          username={currentUser?.username}
           onClose={() => setShowShop(false)}
         />
       )}
@@ -749,10 +806,21 @@ export default function Game() {
           x={selectedFurniture.x}
           y={selectedFurniture.y}
           permissions={myPermissions}
+          onOpenUpgrades={setUpgradesTarget}
           onClose={() => {
             setSelectedFurniture(null);
             window.dispatchEvent(new CustomEvent("room:item:deselected"));
           }}
+        />
+      )}
+
+      {upgradesTarget && (
+        <ItemUpgradesModal
+          target={upgradesTarget}
+          currentUserId={currentUser?.userId ?? currentUser?.id ?? null}
+          onClose={() => setUpgradesTarget(null)}
+          // Refresca monedas en el HUD tras comprar.
+          onPurchased={() => (window as any).phaserSocket?.emit("player:stats:get")}
         />
       )}
 

@@ -59,6 +59,12 @@ export class IdentityController {
     return this.identityService.getProfile(req.user.userId);
   }
 
+  @Post('legal/accept')
+  @UseGuards(JwtAuthGuard)
+  acceptLegal(@Req() req: { user: { userId: string } }) {
+    return this.identityService.acceptLegal(req.user.userId);
+  }
+
   @Patch('profile')
   @UseGuards(JwtAuthGuard)
   updateProfile(

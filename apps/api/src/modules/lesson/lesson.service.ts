@@ -187,7 +187,7 @@ export class LessonService {
         bypass: requester.bypassLocks,
         lessons: lessons.map((l) => ({
           id: l.id,
-          exerciseIds: l.exercises.map((e) => e.id),
+          exercises: l.exercises.map((e) => ({ id: e.id, type: e.type })),
         })),
       });
 

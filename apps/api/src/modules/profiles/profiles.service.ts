@@ -166,6 +166,7 @@ export class ProfilesService {
 
       verified: badges.verified,
       isCreator: badges.isCreator,
+      premium: badges.premium,
 
       currentStreak: user.streak,
       bestStreak: user.bestStreak,

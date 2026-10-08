@@ -12,6 +12,17 @@ export type BattlePassRewardType =
   | "ROLE"
   | "CUSTOM";
 
+// Logo de insignia junto al nombre (mismo formato que /badges/config).
+// Solo viene en el ticket del logo Premium.
+export type BattlePassBadgeIcon = {
+  iconUrl: string | null;
+  mode: "STATIC" | "SPRITE";
+  size: number;
+  frameCount: number;
+  direction: "PINGPONG" | "LOOP";
+  frameRate: number;
+};
+
 export type BattlePassTier = {
   id: string;
   level: number;
@@ -21,6 +32,9 @@ export type BattlePassTier = {
   itemId?: string | null;
   label: string;
   sortOrder: number;
+  badgeIcon?: BattlePassBadgeIcon | null;
+  // Solo premios que son un Item (ropa, mueble, nombre o burbuja de chat).
+  item?: { id: string; imageUrl: string | null; type: string | null; effectKey: string | null; rarity: number } | null;
   levelReached: boolean;
   trackUnlocked: boolean;
   claimed: boolean;
@@ -40,6 +54,8 @@ export type BattlePassSeason = {
 };
 
 export type BattlePassProgress = {
+  /** DAILY: un nivel por cada día que el usuario entra. XP: por XP. */
+  mode?: "XP" | "DAILY";
   xp: number;
   level: number;
   xpPerLevel: number;

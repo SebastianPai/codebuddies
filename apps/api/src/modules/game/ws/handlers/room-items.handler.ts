@@ -13,11 +13,42 @@ import {
   RotateItemDto,
 } from '../dto/room-items.dto';
 
+/**
+ * Ventana mínima entre dos interacciones del MISMO socket sobre el MISMO
+ * objeto. No es la protección real contra el click spam — esa la da
+ * `isTransitionInFlight()` sobre el dato persistido, que no se puede evadir
+ * desde el cliente — sino un freno para no convertir 20 clicks seguidos en 20
+ * consultas a la base.
+ *
+ * Deliberadamente corto: tiene que dejar pasar un doble click legítimo sobre
+ * una bañera (abrir el agua y cerrarla), y quien decide si la interacción
+ * procede es siempre el servicio.
+ */
+const INTERACT_THROTTLE_MS = 120;
+
 @Injectable()
 export class RoomItemsHandler {
   private readonly logger = new Logger(RoomItemsHandler.name);
 
   constructor(private readonly roomItemsService: RoomItemsService) {}
+
+  /**
+   * Último instante de interacción por socket y objeto.
+   *
+   * Vive en el propio `socket.data`, no en un Map del handler: así se va solo
+   * cuando el socket se desconecta y no hay que acordarse de limpiar nada (un
+   * Map a nivel de servicio sería una fuga de memoria proporcional a cuánta
+   * gente pasó por el mundo).
+   */
+  private isThrottled(socket: Socket, roomItemId: string): boolean {
+    const now = Date.now();
+    const seen: Record<string, number> = (socket.data.lastInteractAt ??= {});
+
+    if (now - (seen[roomItemId] ?? 0) < INTERACT_THROTTLE_MS) return true;
+
+    seen[roomItemId] = now;
+    return false;
+  }
 
   // ====================== COLOCAR ITEM ======================
   async placeItem(
@@ -141,6 +172,13 @@ export class RoomItemsHandler {
     userId: string,
     data: InteractItemDto,
   ) {
+    // Freno barato ANTES de tocar la base. La corrección del anti-spam la da
+    // `isTransitionInFlight()` en el servicio (que es lo que impide dos
+    // transiciones solapadas); esto sólo evita que 20 clicks en 200 ms se
+    // conviertan en 20 lecturas de RoomItem. Es por socket y por objeto, así
+    // que no interfiere con otro jugador interactuando con el mismo mueble.
+    if (this.isThrottled(socket, data.roomItemId)) return;
+
     try {
       const result = await this.roomItemsService.interactItem(
         userId,
@@ -148,10 +186,27 @@ export class RoomItemsHandler {
         data.interaction,
       );
 
+      // Un CLICK que no cambió nada (no había transición para ese estado, o
+      // había una en curso) no se difunde: nada que contarle a la sala.
+      if ('changed' in result && result.changed === false) return;
+
       server.to(result.roomItem.roomId).emit('room:item:state', {
+        // ── payload de siempre, sin tocar ──
         roomItemId: data.roomItemId,
         interaction: result.interaction,
+        // `state` sigue siendo el Json COMPLETO de RoomItem.state porque el
+        // cliente lo mezcla por encima del que ya tenía
+        // (FurnitureSocketSystem.handleItemState); mandar otra cosa rompería
+        // TOGGLE y OPEN.
         state: result.state,
+
+        // ── añadido, sólo para objetos con behavior ──
+        // Estado final + animación de paso + instante de arranque. Es la forma
+        // que consume `applyRemoteState()`, y llega IDÉNTICA a todos los
+        // jugadores de la sala: ninguno recalcula la transición por su cuenta.
+        ...('behavior' in result && result.behavior
+          ? { behavior: result.behavior }
+          : {}),
       });
     } catch (err: any) {
       this.logger.warn(

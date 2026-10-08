@@ -23,6 +23,8 @@ import chromeStyles from "../../shared/windowChrome.module.css";
 interface Props {
   onJoinRoom?: (roomId: string) => void;
   socket?: any;
+  /** Sala con un joinRoom en vuelo: su tarjeta muestra "Entrando..." y el resto se bloquea. */
+  joiningRoomId?: string | null;
 }
 
 type TabType = "public" | "my";
@@ -31,6 +33,7 @@ type SortType = "recent" | "popular" | "users";
 export default function RoomList({
   onJoinRoom,
   socket: socketProp,
+  joiningRoomId = null,
 }: Props) {
   const t = useTranslation();
   const [publicRooms, setPublicRooms] = useState<Room[]>([]);
@@ -240,6 +243,8 @@ export default function RoomList({
                       room={room}
                       onJoin={handleJoin}
                       onView={setSelectedRoom}
+                      joining={joiningRoomId === room.id}
+                      joinLocked={!!joiningRoomId}
                     />
                   ))
                 ) : (

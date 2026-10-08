@@ -1,5 +1,7 @@
 import Navbar from "../../components/Navbar";
 import Footer from "../../components/Footer";
+import RewardsHub from "../../components/rewards-hub/RewardsHub";
+import LegalUpdateNotice from "../../components/consent/LegalUpdateNotice";
 
 export default function SiteLayout({
   children,
@@ -15,6 +17,8 @@ export default function SiteLayout({
       </main>
 
       <Footer />
+      <RewardsHub />
+      <LegalUpdateNotice />
     </>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Socket } from "socket.io-client";
-import { Globe, Shirt, Sparkles } from "lucide-react";
+import { ConciergeBell, Globe, MessageSquare, Minus, PawPrint, Plus, Shirt, Sparkles } from "lucide-react";
 
 import styles from "./Shop.module.css";
 import { requestGameConfirm, showGameAlert } from "../../utils/dialog";
@@ -16,11 +16,25 @@ import CurrencyBadge from "../shared/CurrencyBadge";
 import RarityText from "../shared/RarityText";
 import { useTranslation } from "../../../i18n/useTranslation";
 import tabsOverflow from "../shared/tabsOverflow.module.css";
+import {
+  AVATAR_GROUPS,
+  FURNITURE_TYPES,
+  ITEM_ROOMS,
+  getAvatarGroup,
+  getFurnitureType,
+  getItemRooms,
+} from "../../utils/itemTaxonomy";
+import CosmeticPreview from "./CosmeticPreview";
+import { bubbleThemeIdFromEffectKey } from "../../hud/hudStyleUtils";
+import { useNameEffect } from "../../hooks/useNameEffect";
+import { useChatBubbleTheme } from "../../hooks/useChatBubbleTheme";
 
 interface Props {
   socket: Socket | null;
   inventory?: any[];
   onClose?: () => void;
+  /** Para la vista previa de efectos y burbujas ("así se vería tu nombre"). */
+  username?: string;
 }
 
 type SortType = "new" | "old" | "cheap" | "expensive" | "popular";
@@ -30,10 +44,11 @@ type TabType =
   | "textures"
   | "backgrounds"
   | "effects"
+  | "bubbles"
   | "pets"
   | "butler";
 
-const ITEMS_PER_PAGE = 12;
+const ITEMS_PER_PAGE = 30;
 
 // item.rarity es un tier numérico, pero la key canónica (common/uncommon/
 // rare/epic/legendary) ya viene calculada desde el backend como
@@ -51,15 +66,50 @@ function getRarityLabel(rarityKey: unknown, t: (key: string) => string): string 
   return t(RARITY_TRANSLATION_KEYS[key] ?? RARITY_TRANSLATION_KEYS.common);
 }
 
-export default function Shop({ socket, inventory = [], onClose }: Props) {
+export default function Shop({ socket, inventory = [], onClose, username = "" }: Props) {
   const t = useTranslation();
+  // Lo que el jugador usa hoy: la vista previa de un efecto se muestra con su
+  // burbuja actual, y la de una burbuja con su efecto de nombre actual.
+  const {
+    effectId: myEffectId,
+    unlockedEffectIds,
+    selectEffect,
+    refresh: refreshEffects,
+  } = useNameEffect();
+  const {
+    themeId: myBubbleThemeId,
+    isUnlocked: isBubbleUnlocked,
+    selectTheme: selectBubbleTheme,
+    refresh: refreshBubbles,
+  } = useChatBubbleTheme();
+  const previewName = username || t("commerce.shopPreviewNameFallback");
   const [items, setItems] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortType>("new");
   const [activeTab, setActiveTab] = useState<TabType>("avatar");
+  // Subfiltro de la pestaña actual: grupo de ropa (avatar) o ambiente
+  // (objetos del mundo). "all" = sin filtrar.
+  const [subFilter, setSubFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [buyingItemId, setBuyingItemId] = useState<string | null>(null);
   const buyingSafetyTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Cantidad elegida por item (solo aplica a items con Item.maxStack > 1,
+  // ver getMaxBuyable) -- clave = item.id, valor por defecto 1 si no hay
+  // entrada todavía.
+  const [quantities, setQuantities] = useState<Record<string, number>>({});
+  // "Última versión" de buyingItemId/items para los handlers del socket:
+  // ese useEffect no puede depender de ninguno de los dos (buyingItemId
+  // cambia en cada click de compra, items en cada respuesta del shop) sin
+  // volver a suscribirse y re-emitir shop:items:request en bucle.
+  const buyingItemIdRef = useRef<string | null>(null);
+  const itemsRef = useRef<any[]>([]);
+  useEffect(() => {
+    buyingItemIdRef.current = buyingItemId;
+  }, [buyingItemId]);
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
   const [giftTargetId, setGiftTargetId] = useState<string | null>(null);
   const [giftUsername, setGiftUsername] = useState("");
   // Adopción de mascota: pide el nombre en el propio card antes de comprar.
@@ -76,6 +126,31 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
     return map;
   }, [inventory]);
 
+  // Cuántas unidades más puede comprar de este item en UNA operación, según
+  // Item.maxStack (el mismo límite que ya usa el backend para el tope de
+  // inventario, ver ItemsService.buyItem) y lo que ya tiene en su cuenta.
+  // maxStack ausente/1 -- o ya sin espacio -- devuelve 1/0 y el selector de
+  // cantidad no se muestra (compra individual de siempre).
+  const getMaxBuyable = (item: any) => {
+    const maxStack = Number(item?.maxStack) || 1;
+    const owned = inventoryMap.get(item?.id) || 0;
+    return Math.max(0, maxStack - owned);
+  };
+
+  const isBulkPurchasable = (item: any) =>
+    item?.type !== "BACKGROUND" && item?.type !== "PET" && item?.type !== "BUTLER" && Number(item?.maxStack) > 1;
+
+  const getQuantity = (item: any) => {
+    const max = getMaxBuyable(item);
+    const stored = quantities[item.id] ?? 1;
+    return Math.min(Math.max(1, stored), Math.max(1, max));
+  };
+
+  const setQuantity = (item: any, next: number) => {
+    const max = Math.max(1, getMaxBuyable(item));
+    setQuantities((prev) => ({ ...prev, [item.id]: Math.min(Math.max(1, next), max) }));
+  };
+
   useEffect(() => {
     if (!socket) return;
 
@@ -86,7 +161,7 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
       setItems(data);
       setCurrentPage(1);
     };
-    const handleBought = (data?: { itemId?: string }) => {
+    const handleBought = (data?: { itemId?: string; quantity?: number; totalPrice?: number }) => {
       if (buyingSafetyTimeout.current) {
         clearTimeout(buyingSafetyTimeout.current);
         buyingSafetyTimeout.current = null;
@@ -95,6 +170,31 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
       // resincroniza (mismo patrón que "pet:changed").
       if (typeof data?.itemId === "string" && data.itemId.startsWith("butler:")) {
         window.dispatchEvent(new CustomEvent("butler:changed"));
+      }
+      // Efecto de nombre o burbuja recién comprados: pedir de nuevo qué está
+      // desbloqueado, así el botón pasa a "Usar" sin reabrir la tienda.
+      if (itemsRef.current.find((current) => current.id === data?.itemId)?.type === "EFFECT") {
+        void refreshEffects();
+        void refreshBubbles();
+      }
+      const quantity = data?.quantity ?? 1;
+      if (typeof data?.itemId === "string" && quantity > 1) {
+        setQuantities((prev) => {
+          const next = { ...prev };
+          delete next[data.itemId!];
+          return next;
+        });
+        const boughtItem = itemsRef.current.find((current) => current.id === data.itemId);
+        void showGameAlert({
+          title: t("commerce.shopPurchaseSuccessTitle"),
+          message: t("commerce.shopPurchaseSuccessMessage", {
+            quantity,
+            name: boughtItem?.name || t("commerce.shopDefaultItemName"),
+            total: data?.totalPrice ?? 0,
+          }),
+          confirmLabel: t("common.understood"),
+          tone: "success",
+        });
       }
       requestItems();
       setBuyingItemId(null);
@@ -113,12 +213,26 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
       window.dispatchEvent(new CustomEvent("fx:sparkle"));
     };
     const handleShopError = (data: { message?: string }) => {
-      // Comparte el evento con errores de compra (que hoy no muestran nada
-      // en UI) -- acá solo reacciona si había un regalo en curso, para no
-      // interferir con el flujo de compra.
-      if (!giftTargetId) return;
-      setSendingGift(false);
-      setGiftError(data?.message || t("commerce.giftGenericError"));
+      // Comparte el evento "shop:item:error" entre compra, regalo, mascota
+      // y mayordomo -- se distingue por cuál flujo estaba en curso.
+      if (giftTargetId) {
+        setSendingGift(false);
+        setGiftError(data?.message || t("commerce.giftGenericError"));
+        return;
+      }
+      if (buyingItemIdRef.current) {
+        if (buyingSafetyTimeout.current) {
+          clearTimeout(buyingSafetyTimeout.current);
+          buyingSafetyTimeout.current = null;
+        }
+        setBuyingItemId(null);
+        void showGameAlert({
+          title: t("commerce.shopErrorTitle"),
+          message: data?.message || t("commerce.shopGenericError"),
+          confirmLabel: t("common.understood"),
+          tone: "danger",
+        });
+      }
     };
 
     socket.on("shop:items", handleItems);
@@ -132,7 +246,7 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
       socket.off("shop:item:gifted", handleGifted);
       socket.off("shop:item:error", handleShopError);
     };
-  }, [socket, sort, giftTargetId, t]);
+  }, [socket, sort, giftTargetId, t, refreshEffects, refreshBubbles]);
 
   useEffect(() => {
     return () => {
@@ -144,6 +258,8 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
     if (buyingItemId) return;
     const item = items.find((current) => current.id === itemId);
     const ownsItem = inventoryMap.has(itemId) || item?.owned || item?.canUse;
+    const bulk = isBulkPurchasable(item);
+    const quantity = bulk ? getQuantity(item) : 1;
 
     if (item?.type === "BACKGROUND" && ownsItem) {
       await showGameAlert({
@@ -155,12 +271,27 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
       return;
     }
 
+    const itemName = item?.name || t("commerce.shopDefaultItemName");
     const confirmed = await requestGameConfirm({
-      title: ownsItem ? t("commerce.shopConfirmBuyAnotherTitle") : t("commerce.shopConfirmPurchaseTitle"),
-      message: ownsItem
-        ? t("commerce.shopConfirmBuyAnotherMessage")
-        : t("commerce.shopConfirmBuyMessage", { name: item?.name || t("commerce.shopDefaultItemName") }),
-      confirmLabel: ownsItem ? t("commerce.shopConfirmBuyAnotherTitle") : t("commerce.shopBuy"),
+      title: quantity > 1
+        ? t("commerce.shopConfirmPurchaseTitle")
+        : ownsItem
+          ? t("commerce.shopConfirmBuyAnotherTitle")
+          : t("commerce.shopConfirmPurchaseTitle"),
+      message: quantity > 1
+        ? t("commerce.shopConfirmBuyQuantityMessage", {
+            quantity,
+            name: itemName,
+            total: (item?.coinsPrice || 0) * quantity,
+          })
+        : ownsItem
+          ? t("commerce.shopConfirmBuyAnotherMessage")
+          : t("commerce.shopConfirmBuyMessage", { name: itemName }),
+      confirmLabel: quantity > 1
+        ? t("commerce.shopConfirmBuyQuantityButton")
+        : ownsItem
+          ? t("commerce.shopConfirmBuyAnotherTitle")
+          : t("commerce.shopBuy"),
       cancelLabel: t("common.cancel"),
     });
 
@@ -171,11 +302,10 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
       socket?.emit("shop:butler:buy", { npcKey: item.speciesKey });
     } else if (item?.type === "PET") {
       socket?.emit("shop:pet:buy", { speciesKey: item.speciesKey });
+    } else if (item?.type === "BACKGROUND") {
+      socket?.emit("shop:background:buy", { backgroundId: itemId });
     } else {
-      socket?.emit(
-        item?.type === "BACKGROUND" ? "shop:background:buy" : "shop:item:buy",
-        item?.type === "BACKGROUND" ? { backgroundId: itemId } : { itemId },
-      );
+      socket?.emit("shop:item:buy", bulk ? { itemId, quantity } : { itemId });
     }
     // Red de seguridad por si el servidor nunca responde "shop:item:bought"
     // (p. ej. error silencioso); en el camino normal, handleBought cancela
@@ -284,27 +414,30 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
     return item.name || t("commerce.itemFallbackName");
   };
 
-  const { currentItems, totalPages } = useMemo(() => {
-    const filtered = items.filter((item) => {
-      const term = search.toLowerCase();
+  const { currentItems, totalPages, filteredCount, subFilterCounts, typeCounts } = useMemo(() => {
+    const term = search.toLowerCase();
 
+    const inTab = items.filter((item) => {
       const isAvatar =
         item.type === "AVATAR" || !!item.slot || !!item.avatarData;
 
       const isWorld = item.type === "WORLD" || !!item.kind || !!item.worldData;
       const kind = item.kind || item.worldData?.kind;
       const isTexture = isWorld && (kind === "FLOOR" || kind === "WALL");
-      const isEffect = item.type === "EFFECT";
+      const isBubbleTheme = item.type === "EFFECT" && !!bubbleThemeIdFromEffectKey(item.effectKey);
+      const isEffect = item.type === "EFFECT" && !isBubbleTheme;
 
       if (activeTab === "avatar" && !isAvatar) return false;
       if (activeTab === "world" && (!isWorld || isTexture)) return false;
       if (activeTab === "textures" && !isTexture) return false;
       if (activeTab === "backgrounds" && item.type !== "BACKGROUND") return false;
       if (activeTab === "effects" && !isEffect) return false;
+      if (activeTab === "bubbles" && !isBubbleTheme) return false;
       if (activeTab === "pets" && item.type !== "PET") return false;
       if (activeTab === "butler" && item.type !== "BUTLER") return false;
 
       return (
+        !term ||
         item.id?.toLowerCase().includes(term) ||
         item.name?.toLowerCase().includes(term) ||
         (item.slot || item.avatarData?.slot)?.toLowerCase().includes(term) ||
@@ -312,70 +445,134 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
       );
     });
 
-    const totalPagesCount = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+    const matchesSub = (item: any) => {
+      if (subFilter === "all") return true;
+      if (activeTab === "avatar") return getAvatarGroup(item) === subFilter;
+      if (activeTab === "world") return getItemRooms(item).includes(subFilter);
+      return true;
+    };
+    const matchesType = (item: any) =>
+      activeTab !== "world" || typeFilter === "all" || getFurnitureType(item) === typeFilter;
 
+    // Conteos por chip calculados sobre lo que dejan pasar los OTROS filtros,
+    // para que el número de cada chip sea lo que se verá al elegirlo.
+    const subCounts: Record<string, number> = {};
+    inTab.filter(matchesType).forEach((item) => {
+      if (activeTab === "avatar") {
+        const group = getAvatarGroup(item);
+        if (group) subCounts[group] = (subCounts[group] ?? 0) + 1;
+      } else if (activeTab === "world") {
+        getItemRooms(item).forEach((room) => {
+          subCounts[room] = (subCounts[room] ?? 0) + 1;
+        });
+      }
+    });
+
+    const types: Record<string, number> = {};
+    if (activeTab === "world") {
+      inTab.filter(matchesSub).forEach((item) => {
+        const type = getFurnitureType(item);
+        types[type] = (types[type] ?? 0) + 1;
+      });
+    }
+
+    const filtered = inTab.filter((item) => matchesSub(item) && matchesType(item));
+    const totalPagesCount = Math.ceil(filtered.length / ITEMS_PER_PAGE);
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
 
     return {
       currentItems: filtered.slice(start, start + ITEMS_PER_PAGE),
       totalPages: Math.max(1, totalPagesCount),
+      filteredCount: filtered.length,
+      subFilterCounts: subCounts,
+      typeCounts: types,
     };
-  }, [items, search, activeTab, currentPage]);
+  }, [items, search, activeTab, currentPage, subFilter, typeFilter]);
 
-  useEffect(() => {
+  // Cualquier cambio de filtro vuelve a la página 1 desde el propio handler
+  // (antes era un useEffect que re-renderizaba en cascada).
+  const changeTab = (tab: TabType) => {
+    setActiveTab(tab);
+    setSubFilter("all");
+    setTypeFilter("all");
     setCurrentPage(1);
-  }, [activeTab, search]);
+  };
+  const changeSubFilter = (value: string) => {
+    setSubFilter(value);
+    setCurrentPage(1);
+  };
+  const changeTypeFilter = (value: string) => {
+    setTypeFilter(value);
+    setCurrentPage(1);
+  };
+  const changeSearch = (value: string) => {
+    setSearch(value);
+    setCurrentPage(1);
+  };
+
+  const subFilterOptions: Array<{ key: string; label: string; icon?: typeof Shirt }> =
+    activeTab === "avatar"
+      ? AVATAR_GROUPS.map((group) => ({ key: group.key, label: t(group.labelKey) }))
+      : activeTab === "world"
+        ? ITEM_ROOMS.map((room) => ({ key: room.key, label: t(room.labelKey), icon: room.icon }))
+        : [];
 
   return (
     <Modal
       variant="floating"
       title={t("commerce.shopTitle")}
       onClose={onClose ?? (() => {})}
-      style={{ width: "min(960px, calc(100vw - 24px))", height: "min(760px, calc(100dvh - 24px))" }}
+      style={{ width: "min(1320px, calc(100vw - 24px))", height: "min(880px, calc(100dvh - 24px))" }}
     >
       <div className={`${styles.tabs} ${tabsOverflow.scrollRow}`}>
         <button
           className={`${styles.tab} ${activeTab === "avatar" ? styles.active : ""}`}
-          onClick={() => setActiveTab("avatar")}
+          onClick={() => changeTab("avatar")}
         >
           <Shirt size={14} /> {t("commerce.shopTabAvatar")}
         </button>
 
         <button
           className={`${styles.tab} ${activeTab === "world" ? styles.active : ""}`}
-          onClick={() => setActiveTab("world")}
+          onClick={() => changeTab("world")}
         >
           <Globe size={14} /> {t("commerce.shopTabWorld")}
         </button>
         <button
           className={`${styles.tab} ${activeTab === "textures" ? styles.active : ""}`}
-          onClick={() => setActiveTab("textures")}
+          onClick={() => changeTab("textures")}
         >
           {t("commerce.shopTabTextures")}
         </button>
         <button
           className={`${styles.tab} ${activeTab === "backgrounds" ? styles.active : ""}`}
-          onClick={() => setActiveTab("backgrounds")}
+          onClick={() => changeTab("backgrounds")}
         >
           {t("commerce.shopTabBackgrounds")}
         </button>
         <button
           className={`${styles.tab} ${activeTab === "effects" ? styles.active : ""}`}
-          onClick={() => setActiveTab("effects")}
+          onClick={() => changeTab("effects")}
         >
           <Sparkles size={14} /> {t("commerce.shopTabEffects")}
         </button>
         <button
-          className={`${styles.tab} ${activeTab === "pets" ? styles.active : ""}`}
-          onClick={() => setActiveTab("pets")}
+          className={`${styles.tab} ${activeTab === "bubbles" ? styles.active : ""}`}
+          onClick={() => changeTab("bubbles")}
         >
-          🐾 {t("commerce.shopTabPets")}
+          <MessageSquare size={14} /> {t("commerce.shopTabBubbles")}
+        </button>
+        <button
+          className={`${styles.tab} ${activeTab === "pets" ? styles.active : ""}`}
+          onClick={() => changeTab("pets")}
+        >
+          <PawPrint size={14} /> {t("commerce.shopTabPets")}
         </button>
         <button
           className={`${styles.tab} ${activeTab === "butler" ? styles.active : ""}`}
-          onClick={() => setActiveTab("butler")}
+          onClick={() => changeTab("butler")}
         >
-          🎩 {t("commerce.shopTabButler")}
+          <ConciergeBell size={14} /> {t("commerce.shopTabButler")}
         </button>
       </div>
 
@@ -389,6 +586,8 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
                 ? t("commerce.shopBannerBackgrounds")
                 : activeTab === "effects"
                   ? t("commerce.shopBannerEffects")
+                  : activeTab === "bubbles"
+                    ? t("commerce.shopBannerBubbles")
                   : activeTab === "pets"
                     ? t("commerce.shopBannerPets")
                     : activeTab === "butler"
@@ -396,19 +595,70 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
                       : t("commerce.shopBannerWorld")}
         </h2>
 
-        <p>{t("commerce.shopItemsAvailable", { count: items.length })}</p>
+        <p>{t("commerce.shopItemsAvailable", { count: filteredCount })}</p>
       </div>
+
+      {subFilterOptions.length > 0 && (
+        <div
+          className={`${styles.chips} ${tabsOverflow.scrollRow}`}
+          role="group"
+          aria-label={t(activeTab === "world" ? "commerce.taxRoomFilterLabel" : "commerce.taxAvatarFilterLabel")}
+        >
+          <button
+            type="button"
+            className={`${styles.chip} ${subFilter === "all" ? styles.chipActive : ""}`}
+            aria-pressed={subFilter === "all"}
+            onClick={() => changeSubFilter("all")}
+          >
+            {t("commerce.taxAll")}
+          </button>
+          {subFilterOptions.map((option) => {
+            const count = subFilterCounts[option.key] ?? 0;
+            const Icon = option.icon;
+            return (
+              <button
+                key={option.key}
+                type="button"
+                className={`${styles.chip} ${subFilter === option.key ? styles.chipActive : ""}`}
+                aria-pressed={subFilter === option.key}
+                disabled={count === 0 && subFilter !== option.key}
+                onClick={() => changeSubFilter(option.key)}
+              >
+                {Icon && <Icon size={13} aria-hidden="true" />}
+                {option.label}
+                <span className={styles.chipCount}>{count}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <div className={styles.filters}>
         <input
           placeholder={t("commerce.shopSearchPlaceholder")}
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => changeSearch(e.target.value)}
         />
+
+        {activeTab === "world" && (
+          <select
+            value={typeFilter}
+            onChange={(e) => changeTypeFilter(e.target.value)}
+            aria-label={t("commerce.taxTypeFilterLabel")}
+          >
+            <option value="all">{t("commerce.taxAllTypes")}</option>
+            {FURNITURE_TYPES.map((type) => (
+              <option key={type.key} value={type.key} disabled={!typeCounts[type.key]}>
+                {t(type.labelKey)} ({typeCounts[type.key] ?? 0})
+              </option>
+            ))}
+          </select>
+        )}
 
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value as SortType)}
+          aria-label={t("commerce.shopSortLabel")}
         >
           <option value="new">{t("commerce.shopSortNewest")}</option>
           <option value="old">{t("commerce.shopSortOldest")}</option>
@@ -430,16 +680,39 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
           // Nombre real del item; si no tiene traducción, cae a la etiqueta
           // de categoría (slot/kind) como antes.
           const displayName = item.name || getLabel(item);
+          // Cosméticos (efecto de nombre o tema de burbuja): se ven con el
+          // nombre del jugador tal como quedaría en la sala.
+          const bubbleThemeId =
+            item.type === "EFFECT" ? bubbleThemeIdFromEffectKey(item.effectKey) : null;
+          const isNameEffect = item.type === "EFFECT" && !bubbleThemeId;
+          const isCosmetic = isNameEffect || !!bubbleThemeId;
+          const cosmeticUnlocked = isNameEffect
+            ? unlockedEffectIds.includes(item.effectKey)
+            : bubbleThemeId
+              ? isBubbleUnlocked(bubbleThemeId, "premium")
+              : false;
+          const cosmeticInUse = isNameEffect
+            ? myEffectId === item.effectKey
+            : bubbleThemeId
+              ? myBubbleThemeId === bubbleThemeId
+              : false;
 
           return (
             <ItemCard
               key={item.id}
               item={item}
               rarity={item.rarity}
-              effectPreview={item.type === "EFFECT" ? item.effectKey : undefined}
+              effectPreview={isNameEffect ? item.effectKey : undefined}
               preview={
                 item.type === "PET" || item.type === "BUTLER" ? (
                   <PetSpriteCell petSprite={item.petSprite} />
+                ) : isCosmetic ? (
+                  <CosmeticPreview
+                    username={previewName}
+                    effectId={isNameEffect ? item.effectKey : myEffectId}
+                    bubbleThemeId={bubbleThemeId ?? myBubbleThemeId}
+                    message={t("commerce.shopPreviewMessage")}
+                  />
                 ) : undefined
               }
               title={
@@ -565,28 +838,102 @@ export default function Shop({ socket, inventory = [], onClose }: Props) {
                       {giftError && <p className={styles.giftError}>{giftError}</p>}
                     </div>
                   ) : (
-                    <div className={styles.footerActions}>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        fullWidth
-                        onClick={() => void buyItem(item.id)}
-                        disabled={isBuying || alreadyHasBackground}
-                      >
-                        {alreadyHasBackground
-                          ? t("commerce.shopAlreadyOwned")
-                          : isBuying
-                            ? t("commerce.shopBuying")
-                            : owned
-                              ? t("commerce.shopBuyAnother")
-                              : t("commerce.shopBuy")}
-                      </Button>
-                      {item.type === "EFFECT" && (
-                        <Button variant="secondary" size="sm" onClick={() => openGiftForm(item.id)}>
-                          {t("commerce.giftButton")}
-                        </Button>
-                      )}
-                    </div>
+                    (() => {
+                      const bulk = isBulkPurchasable(item);
+                      const maxBuyable = bulk ? getMaxBuyable(item) : 1;
+                      const quantity = bulk ? getQuantity(item) : 1;
+                      const stackFull = bulk && maxBuyable === 0;
+                      return (
+                        <>
+                          {bulk && maxBuyable > 1 && (
+                            <div className={styles.quantityRow}>
+                              <div className={styles.stepper} role="group" aria-label={t("commerce.shopQuantityLabel")}>
+                                <button
+                                  type="button"
+                                  className={styles.stepperBtn}
+                                  onClick={() => setQuantity(item, quantity - 1)}
+                                  disabled={isBuying || quantity <= 1}
+                                  aria-label={t("commerce.shopQuantityDecrease")}
+                                >
+                                  <Minus size={14} />
+                                </button>
+                                <input
+                                  type="number"
+                                  inputMode="numeric"
+                                  className={styles.stepperInput}
+                                  min={1}
+                                  max={maxBuyable}
+                                  value={quantity}
+                                  disabled={isBuying}
+                                  aria-label={t("commerce.shopQuantityLabel")}
+                                  onChange={(e) => setQuantity(item, Number(e.target.value) || 1)}
+                                />
+                                <button
+                                  type="button"
+                                  className={styles.stepperBtn}
+                                  onClick={() => setQuantity(item, quantity + 1)}
+                                  disabled={isBuying || quantity >= maxBuyable}
+                                  aria-label={t("commerce.shopQuantityIncrease")}
+                                >
+                                  <Plus size={14} />
+                                </button>
+                              </div>
+                              <div className={styles.quantityMeta}>
+                                <span>{t("commerce.shopQuantityMax", { max: maxBuyable })}</span>
+                                <span className={styles.quantityTotal}>
+                                  {t("commerce.shopTotalLabel")}
+                                  <CurrencyBadge currency="coins" amount={(item.coinsPrice || 0) * quantity} size="sm" />
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                          <div className={styles.footerActions}>
+                            {isCosmetic && cosmeticUnlocked ? (
+                              // Ya lo tiene (comprado, Premium o gratis): no
+                              // tiene sentido volver a comprarlo, sí ponérselo.
+                              <Button
+                                variant={cosmeticInUse ? "secondary" : "primary"}
+                                size="sm"
+                                fullWidth
+                                disabled={cosmeticInUse}
+                                onClick={() =>
+                                  void (bubbleThemeId
+                                    ? selectBubbleTheme(bubbleThemeId, "premium")
+                                    : selectEffect(item.effectKey))
+                                }
+                              >
+                                {cosmeticInUse ? t("commerce.shopCosmeticInUse") : t("commerce.shopCosmeticUse")}
+                              </Button>
+                            ) : (
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              fullWidth
+                              onClick={() => void buyItem(item.id)}
+                              disabled={isBuying || alreadyHasBackground || stackFull}
+                            >
+                              {alreadyHasBackground
+                                ? t("commerce.shopAlreadyOwned")
+                                : stackFull
+                                  ? t("commerce.shopLimitReached")
+                                  : isBuying
+                                    ? t("commerce.shopBuying")
+                                    : quantity > 1
+                                      ? t("commerce.shopBuyQuantity", { count: quantity })
+                                      : owned
+                                        ? t("commerce.shopBuyAnother")
+                                        : t("commerce.shopBuy")}
+                            </Button>
+                            )}
+                            {item.type === "EFFECT" && (
+                              <Button variant="secondary" size="sm" onClick={() => openGiftForm(item.id)}>
+                                {t("commerce.giftButton")}
+                              </Button>
+                            )}
+                          </div>
+                        </>
+                      );
+                    })()
                   )}
                 </div>
               }

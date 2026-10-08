@@ -1,5 +1,10 @@
 import { Injectable, MessageEvent } from '@nestjs/common';
-import { Observable, Subject } from 'rxjs';
+import { interval, map, merge, Observable, Subject } from 'rxjs';
+
+// Heroku (y la mayoría de proxies) corta una conexión HTTP sin tráfico a los
+// ~55 s. Sin latido el EventSource se reconectaba cada minuto, y cada
+// reconexión emitía presencia offline/online a TODOS los usuarios.
+const HEARTBEAT_MS = 25_000;
 
 export type RealtimeEvent = {
   type:
@@ -26,7 +31,10 @@ export class RealtimeService {
     this.setOnline(userId, sessionId);
 
     return new Observable<MessageEvent>((subscriber) => {
-      const subscription = stream.subscribe(subscriber);
+      const heartbeat = interval(HEARTBEAT_MS).pipe(
+        map((): MessageEvent => ({ type: 'ping', data: '' })),
+      );
+      const subscription = merge(stream, heartbeat).subscribe(subscriber);
       subscriber.next({
         type: 'presence:update',
         data: { userId, online: true },
@@ -35,6 +43,13 @@ export class RealtimeService {
       return () => {
         subscription.unsubscribe();
         this.setOffline(userId, sessionId);
+        // Sin pestañas abiertas: soltar el stream (antes quedaba en el mapa
+        // para siempre y emitToAll recorría a todos los usuarios que alguna
+        // vez se conectaron).
+        const current = this.streams.get(userId);
+        if (current && !current.observed && !this.sessionsByUser.has(userId)) {
+          this.streams.delete(userId);
+        }
       };
     });
   }
@@ -53,8 +68,10 @@ export class RealtimeService {
     return this.sessionsByUser.size;
   }
 
+  // Solo a quien tiene el stream abierto: antes se creaba un Subject nuevo
+  // (que nadie escuchaba y nunca se borraba) por cada destinatario offline.
   emitToUser(userId: string, event: RealtimeEvent) {
-    this.getStream(userId).next({ type: event.type, data: event.payload });
+    this.streams.get(userId)?.next({ type: event.type, data: event.payload });
   }
 
   emitToUsers(userIds: string[], event: RealtimeEvent) {

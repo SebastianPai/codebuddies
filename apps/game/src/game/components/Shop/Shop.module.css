@@ -132,6 +132,143 @@
   margin: 0;
 }
 
+/* Selector de cantidad: una sola pieza [- 10 +] a todo el ancho, y debajo
+   el máximo y el total. Va en columna dentro de .cardFooter, nunca dentro
+   de .footerActions (fila): ahí se encimaba con el botón Comprar. */
+.quantityRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.stepper {
+  display: flex;
+  align-items: stretch;
+  height: 30px;
+  border: 1px solid var(--cb-border);
+  border-radius: var(--cb-radius-sm);
+  background: rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+}
+
+.stepper:focus-within {
+  border-color: var(--cb-accent);
+}
+
+.stepperBtn {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  flex: none;
+  border: 0;
+  background: transparent;
+  color: var(--cb-text);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.stepperBtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.stepperBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.stepperInput {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  border-inline: 1px solid var(--cb-border);
+  background: transparent;
+  color: var(--cb-text);
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  outline: none;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.stepperInput::-webkit-outer-spin-button,
+.stepperInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.quantityMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--cb-space-2);
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 11px;
+  color: var(--cb-muted);
+}
+
+.quantityTotal {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Subfiltros (ambiente / parte del cuerpo) */
+.chips {
+  display: flex;
+  gap: 6px;
+  margin-bottom: var(--cb-space-3);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--cb-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--cb-muted);
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.15s;
+}
+
+.chip:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.24);
+  color: var(--cb-text);
+}
+
+.chip:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.chipActive,
+.chipActive:hover:not(:disabled) {
+  border-color: var(--cb-accent);
+  background: rgba(250, 204, 21, 0.12);
+  color: var(--cb-text);
+}
+
+.chipCount {
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  line-height: 16px;
+  text-align: center;
+}
+
 .pagination {
   display: flex;
   justify-content: center;

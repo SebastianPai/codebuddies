@@ -16,6 +16,14 @@ import FootprintEditor, {
   type SpriteOffsetSync,
 } from "./FootprintEditor";
 import AvatarItemPreview from "./AvatarItemPreview";
+import BehaviorEditor from "./BehaviorEditor";
+import {
+  draftFromBehavior,
+  draftToPayload,
+  validateDraft,
+  type BehaviorDraft,
+} from "./behavior-draft";
+import { draftFingerprint } from "./behavior-guidance";
 import CachedImage from "../shared/CachedImage";
 import { Tooltip } from "../../src/shared/ui";
 import { useTranslation } from "../../src/i18n/useTranslation";
@@ -43,6 +51,46 @@ function LabeledField({ text, hint, children }: { text: string; hint?: string; c
       {children}
     </label>
   );
+}
+
+// Mismas keys que ITEM_ROOMS / FURNITURE_TYPES de apps/game/src/game/utils/itemTaxonomy.ts.
+const ROOM_TAG_PREFIX = "room:";
+const ITEM_ROOM_KEYS = ["living", "kitchen", "bedroom", "bathroom", "office", "outdoor"] as const;
+const FURNITURE_CATEGORY_KEYS = [
+  "CHAIR",
+  "TABLE",
+  "BED",
+  "STORAGE",
+  "ELECTRONICS",
+  "PLANT",
+  "WALL_ITEM",
+  "DECORATION",
+] as const;
+
+/**
+ * "Autoespejo": a partir de UNA cara arma la hoja de 2 caras que ya entiende
+ * el juego (frame 0 = N/S, frame 1 = E/O, ver spriteFrames.ts en apps/game):
+ * la imagen original a la izquierda y la misma volteada horizontalmente a la
+ * derecha. Sin suavizado para no emborronar el pixel art.
+ */
+async function buildMirroredSheet(source: Blob, baseName: string): Promise<File> {
+  const bitmap = await createImageBitmap(source);
+  const canvas = document.createElement("canvas");
+  canvas.width = bitmap.width * 2;
+  canvas.height = bitmap.height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("canvas 2d no disponible");
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(bitmap, 0, 0);
+  ctx.translate(canvas.width, 0);
+  ctx.scale(-1, 1);
+  ctx.drawImage(bitmap, 0, 0);
+  bitmap.close();
+
+  const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+  if (!blob) throw new Error("no se pudo generar la imagen espejada");
+  const name = `${baseName.replace(/\.[^.]+$/, "") || "sprite"}-mirror.png`;
+  return new File([blob], name, { type: "image/png" });
 }
 
 const SPRITE_OFFSET_LIMIT = 1000;
@@ -324,7 +372,28 @@ const SLOT_LAYERS: Record<(typeof AVATAR_SLOTS)[number], number> = {
 };
 
 type EditorMode = "admin" | "creator";
-type ItemKind = "avatar" | "world" | "texture" | "effect";
+type ItemKind = "avatar" | "world" | "texture" | "effect" | "chatBubble";
+
+// Temas de burbuja que se pueden vender sueltos (espejo de los "premium" de
+// CHAT_BUBBLE_THEMES en apps/game/src/game/hud/nameplateStyles.ts). Se
+// guardan como Item EFFECT con effectKey "bubble:<id>"; Premium los sigue
+// incluyendo todos.
+const CHAT_BUBBLE_PREFIX = "bubble:";
+const SELLABLE_CHAT_BUBBLES: Array<{ id: string; label: string; bg: string; border: string; text: string }> = [
+  { id: "gold", label: "Oro", bg: "#fff7e0", border: "#d4af37", text: "#7a5b00" },
+  { id: "violet", label: "Violeta", bg: "#f3e8ff", border: "#9333ea", text: "#581c87" },
+  { id: "electricBlue", label: "Azul eléctrico", bg: "#e0f7ff", border: "#0ea5e9", text: "#075985" },
+  { id: "emerald", label: "Esmeralda", bg: "#e8fff3", border: "#10b981", text: "#065f46" },
+  { id: "rose", label: "Rosa", bg: "#ffe9f1", border: "#ec4899", text: "#9d174d" },
+  { id: "sunset", label: "Atardecer", bg: "#fff0e0", border: "#f97316", text: "#9a3412" },
+  // Diseños especiales (en el juego llevan bordes degradados, brillo, etc.).
+  { id: "aurora", label: "Aurora", bg: "#0f172a", border: "#818cf8", text: "#e0e7ff" },
+  { id: "neon", label: "Neón", bg: "#0a0a12", border: "#22d3ee", text: "#cffafe" },
+  { id: "galaxy", label: "Galaxia", bg: "#1e1b4b", border: "#a78bfa", text: "#ede9fe" },
+  { id: "fire", label: "Fuego", bg: "#1c0a05", border: "#f97316", text: "#ffedd5" },
+  { id: "holo", label: "Holográfico", bg: "#f8fafc", border: "#c084fc", text: "#312e81" },
+  { id: "pixel", label: "Pixel", bg: "#fefce8", border: "#111827", text: "#111827" },
+];
 
 type ItemEditorProps = {
   initial?: any;
@@ -347,6 +416,9 @@ const fieldClass =
 
 function getInitialKind(initial?: any): ItemKind {
   if (initial?.formCategory) return initial.formCategory;
+  if (typeof initial?.effectKey === "string" && initial.effectKey.startsWith(CHAT_BUBBLE_PREFIX)) {
+    return "chatBubble";
+  }
   if (initial?.type === "EFFECT" || initial?.effectKey) return "effect";
   if (initial?.type === "AVATAR_ITEM" || initial?.avatarData || initial?.slot) {
     return "avatar";
@@ -378,14 +450,40 @@ export default function ItemEditor({
   const [itemCategory, setItemCategory] = useState(
     initial?.category ?? (getInitialKind(initial) === "texture" ? "texturas" : "furniture"),
   );
+  // Los ambientes viven en Item.tags como "room:<key>" (ver ITEM_ROOM_KEYS);
+  // el campo de texto de tags solo muestra el resto para no mezclarlos.
   const [tags, setTags] = useState(
-    Array.isArray(initial?.tags) ? initial.tags.join(", ") : initial?.category ?? "",
+    Array.isArray(initial?.tags)
+      ? initial.tags.filter((tag: string) => !tag.startsWith(ROOM_TAG_PREFIX)).join(", ")
+      : initial?.category ?? "",
+  );
+  const [rooms, setRooms] = useState<string[]>(() =>
+    Array.isArray(initial?.tags)
+      ? initial.tags
+          .filter((tag: string) => tag.startsWith(ROOM_TAG_PREFIX))
+          .map((tag: string) => tag.slice(ROOM_TAG_PREFIX.length))
+      : [],
+  );
+  const [furnitureCategory, setFurnitureCategory] = useState<string>(
+    initial?.furnitureCategory ?? "DECORATION",
   );
   const [rarity, setRarity] = useState(initial?.rarity ?? 0);
-  const [effectKey, setEffectKey] = useState(initial?.effectKey ?? getOwnableEffectIds()[0]);
+  const initialIsBubble =
+    typeof initial?.effectKey === "string" && initial.effectKey.startsWith(CHAT_BUBBLE_PREFIX);
+  const [effectKey, setEffectKey] = useState(
+    initialIsBubble ? getOwnableEffectIds()[0] : initial?.effectKey ?? getOwnableEffectIds()[0],
+  );
+  const [bubbleThemeId, setBubbleThemeId] = useState(
+    initialIsBubble ? initial.effectKey.slice(CHAT_BUBBLE_PREFIX.length) : SELLABLE_CHAT_BUBBLES[0].id,
+  );
   const [coinsPrice, setCoinsPrice] = useState(initial?.coinsPrice ?? initial?.priceCoins ?? 100);
   const [gemsPrice, setGemsPrice] = useState(initial?.gemsPrice ?? 0);
   const [shopVisible, setShopVisible] = useState(initial?.shopVisible ?? mode === "admin");
+  // Tope de unidades acumulables por usuario -- también el máximo comprable
+  // en una sola operación de la tienda (ver ItemsService.buyItem). 1 =
+  // compra individual (comportamiento de siempre); >1 habilita el selector
+  // de cantidad en el shop del juego.
+  const [maxStack, setMaxStack] = useState(initial?.maxStack ?? 1);
   const [colorable, setColorable] = useState(initial?.colorable ?? false);
 
   const [slot, setSlot] = useState(initial?.slot || "SHIRT");
@@ -452,13 +550,60 @@ export default function ItemEditor({
     () => initialSpriteOffsetSync(initial),
   );
 
+  // Comportamiento declarativo del world object (estados / animaciones /
+  // transiciones). El draft es el estado del formulario; toda la lógica y la
+  // validación viven en behavior-draft.ts, que delega en el paquete
+  // compartido — acá no hay ni una regla propia.
+  const initialBehavior = initial?.behavior ?? initial?.worldData?.behavior ?? null;
+  const hadBehavior = initialBehavior !== null && initialBehavior !== undefined;
+  const [behaviorDraft, setBehaviorDraft] = useState<BehaviorDraft>(() =>
+    draftFromBehavior(initialBehavior),
+  );
+
+  /**
+   * Huella del comportamiento tal como se cargó (o tal como se guardó por
+   * última vez).
+   *
+   * Configurar estados, subir frames y encadenar interacciones es lo más caro
+   * de rehacer de todo este formulario, así que un cierre de pestaña por
+   * descuido tiene que avisar. La comparación la hace `draftFingerprint`, que
+   * ignora los ids de fila (son de React y cambian solos).
+   */
+  const [savedBehaviorPrint, setSavedBehaviorPrint] = useState(() =>
+    draftFingerprint(draftFromBehavior(initialBehavior)),
+  );
+  const behaviorDirty = draftFingerprint(behaviorDraft) !== savedBehaviorPrint;
+  // `draftToPayload` respeta la semántica de PATCH del backend:
+  // undefined = no tocar la columna · null = borrarla · objeto = guardarlo.
+  const behavior = draftToPayload(behaviorDraft, hadBehavior);
+
+  /**
+   * Prefijo de almacenamiento de los atlas de animación.
+   *
+   * Un item ya creado usa su propio id; un borrador del creador todavía no
+   * tiene uno, así que se genera uno estable para esta sesión de edición. La
+   * ruta es sólo un prefijo en R2, no identifica nada más.
+   */
+  const assetFolderIdRef = useRef<string | null>(null);
+  if (!assetFolderIdRef.current) {
+    assetFolderIdRef.current =
+      initial?.id ?? initial?.itemId ?? `draft-${Math.random().toString(36).slice(2, 10)}`;
+  }
+
   const [file, setFile] = useState<File | null>(null);
+  // Autoespejo: mirrorSource es la imagen de UNA cara que subió el usuario;
+  // `file` pasa a ser la hoja de 2 caras generada a partir de ella.
+  const [autoMirror, setAutoMirror] = useState(false);
+  const [mirrorSource, setMirrorSource] = useState<File | null>(null);
+  const [mirrorBusy, setMirrorBusy] = useState(false);
   const [preview, setPreview] = useState<string | null>(
     initial?.imageUrl || initial?.spriteUrl || initial?.previewUrl || null,
   );
   const [isDragging, setIsDragging] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  /** El último guardado salió bien. Antes terminaba sin decir nada. */
+  const [justSaved, setJustSaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const itemSpriteInputRef = useRef<HTMLInputElement>(null);
 
@@ -498,7 +643,18 @@ export default function ItemEditor({
     if (Number(coinsPrice) < 0 || Number(gemsPrice) < 0) {
       nextErrors.push(t("items.negativePriceError"));
     }
-    if (!preview && !initial?.imageUrl && !initial?.spriteUrl && !initial?.previewUrl) {
+    if (!Number.isInteger(Number(maxStack)) || Number(maxStack) < 1) {
+      nextErrors.push(t("items.invalidMaxStackError"));
+    }
+    // Las burbujas se muestran con una vista previa en vivo en la tienda: la
+    // imagen es opcional.
+    if (
+      category !== "chatBubble" &&
+      !preview &&
+      !initial?.imageUrl &&
+      !initial?.spriteUrl &&
+      !initial?.previewUrl
+    ) {
       nextErrors.push(t("items.uploadSpriteRequiredError"));
     }
     if (category === "world") {
@@ -506,6 +662,17 @@ export default function ItemEditor({
       if (!footprints.NORTH?.occupied?.length) nextErrors.push(t("items.footprintTileRequiredError"));
       if (!footprints.NORTH?.origin) nextErrors.push(t("items.originRequiredError"));
       if (isInteractable && !kind) nextErrors.push(t("items.interactionTypeRequiredError"));
+
+      // La validación definitiva es la del paquete compartido, exactamente la
+      // misma que corre la API al guardar: lo que no pasa acá tampoco pasaría
+      // allá, y con el mismo mensaje.
+      // Una línea por error: concatenados con " · " salía un párrafo ilegible
+      // justo cuando el creador necesita leer qué arreglar.
+      const behaviorCheck = validateDraft(behaviorDraft);
+      if (!behaviorCheck.ok) {
+        nextErrors.push(t("items.behaviorInvalid"));
+        behaviorCheck.errors.forEach((error) => nextErrors.push(`· ${error}`));
+      }
     }
     if (category === "avatar" && !slot) nextErrors.push(t("items.avatarSlotRequiredError"));
     setErrors(nextErrors);
@@ -545,11 +712,24 @@ export default function ItemEditor({
       coinsPrice: Number(coinsPrice),
       gemsPrice: Number(gemsPrice),
       shopVisible,
+      maxStack: Number(maxStack),
       category: itemCategory.trim(),
       imageUrl,
-      tags: compactTags(tags),
+      tags:
+        category === "world"
+          ? [...compactTags(tags), ...rooms.map((room) => `${ROOM_TAG_PREFIX}${room}`)]
+          : compactTags(tags),
       colorable,
     };
+
+    if (category === "chatBubble") {
+      // Mismo camino que un efecto (Item EFFECT, sin validación de precio
+      // por rareza); el prefijo lo distingue en IdentityService y la tienda.
+      return {
+        ...baseData,
+        effectKey: `${CHAT_BUBBLE_PREFIX}${bubbleThemeId}`,
+      };
+    }
 
     if (category === "effect") {
       // Sin rareza real (ver Item.effectKey en schema.prisma) -- baseData
@@ -599,6 +779,7 @@ export default function ItemEditor({
       rotatable: directions > 1,
       directions,
       placementType,
+      furnitureCategory,
       allowsStacking,
       canBeStacked,
       stackHeight: Number(stackHeight),
@@ -610,6 +791,11 @@ export default function ItemEditor({
       surfaces,
       spriteOffsets,
       spriteOffsetSync,
+      // Sólo se manda si el item YA tenía uno: sin la clave, el backend deja
+      // la columna intacta (ver buildBehaviorData).
+      // `undefined` = no tocar la columna; `null` = borrarla. Se compara
+      // contra undefined y no por veracidad, porque `null` SI debe viajar.
+      ...(behavior !== undefined ? { behavior } : {}),
     };
   };
 
@@ -678,17 +864,38 @@ export default function ItemEditor({
           canBeStacked,
           stackHeight: Number(stackHeight),
           maxStackHeight: Number(maxStackHeight),
+          ...(behavior !== undefined ? { behavior } : {}),
         },
         item: { rarity, colorable, category: itemCategory, tags: compactTags(tags) },
       },
     };
   };
 
+  /**
+   * Aviso del navegador al cerrar con comportamiento sin guardar.
+   *
+   * Sólo mira el comportamiento: es la parte del formulario que no se puede
+   * reconstruir en dos minutos (estados, atlas subidos, interacciones). El
+   * navegador muestra su propio texto, no se puede personalizar.
+   */
+  useEffect(() => {
+    if (!behaviorDirty || readOnly) return undefined;
+
+    const handler = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [behaviorDirty, readOnly]);
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     if (readOnly || !onSubmit) return;
     if (!validate()) return;
     setIsSaving(true);
+    setJustSaved(false);
     setErrors([]);
     try {
       const imageUrl = await uploadImage();
@@ -701,6 +908,10 @@ export default function ItemEditor({
           ? buildCreatorPayload(imageUrl, uploadedItemSpriteUrl)
           : buildAdminPayload(imageUrl),
       );
+      // Lo guardado pasa a ser la referencia: a partir de acá ya no hay
+      // cambios pendientes que avisar.
+      setSavedBehaviorPrint(draftFingerprint(behaviorDraft));
+      setJustSaved(true);
     } catch (error) {
       setErrors([error instanceof Error ? error.message : t("items.saveItemErrorFallback")]);
     } finally {
@@ -708,11 +919,69 @@ export default function ItemEditor({
     }
   }
 
+  async function applyMirror(source: Blob, name: string) {
+    setMirrorBusy(true);
+    try {
+      const mirrored = await buildMirroredSheet(source, name);
+      setFile(mirrored);
+      setPreview(URL.createObjectURL(mirrored));
+      setDirections(2);
+    } catch {
+      setAutoMirror(false);
+      setErrors([t("items.autoMirrorError")]);
+    } finally {
+      setMirrorBusy(false);
+    }
+  }
+
+  async function toggleAutoMirror(next: boolean) {
+    if (!next) {
+      setAutoMirror(false);
+      // Vuelve a la imagen de una sola cara que subió el usuario.
+      if (mirrorSource) {
+        setFile(mirrorSource);
+        setPreview(URL.createObjectURL(mirrorSource));
+      }
+      setDirections(1);
+      return;
+    }
+
+    setAutoMirror(true);
+    let source: Blob | null = mirrorSource;
+    // Item ya guardado sin imagen nueva: se parte de la imagen actual. Puede
+    // fallar si el almacenamiento no permite leerla desde el navegador
+    // (CORS); en ese caso se pide volver a subirla.
+    if (!source && preview) {
+      try {
+        const response = await fetch(preview);
+        if (!response.ok) throw new Error(String(response.status));
+        source = await response.blob();
+        const restored = new File([source], "sprite.png", { type: source.type || "image/png" });
+        setMirrorSource(restored);
+      } catch {
+        source = null;
+      }
+    }
+
+    if (!source) {
+      setAutoMirror(false);
+      setErrors([t("items.autoMirrorNeedsUpload")]);
+      return;
+    }
+
+    await applyMirror(source, mirrorSource?.name ?? "sprite.png");
+  }
+
   function handleFile(selectedFile?: File) {
     if (readOnly) return;
     if (!selectedFile) return;
     if (!selectedFile.type.startsWith("image/")) {
       setErrors([t("admin.onlyImagesAllowed")]);
+      return;
+    }
+    setMirrorSource(selectedFile);
+    if (autoMirror && category === "world") {
+      void applyMirror(selectedFile, selectedFile.name);
       return;
     }
     setFile(selectedFile);
@@ -745,6 +1014,7 @@ export default function ItemEditor({
               <option value="avatar">{t("items.avatar")}</option>
               <option value="texture">{t("items.texture")}</option>
               {mode === "admin" && <option value="effect">{t("items.effect")}</option>}
+              {mode === "admin" && <option value="chatBubble">{t("items.chatBubble")}</option>}
             </select>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
@@ -805,7 +1075,17 @@ export default function ItemEditor({
         <LabeledField text={t("items.gems")} hint={t("items.gemsHint")}>
           <input type="number" min="0" value={gemsPrice} onChange={(event) => setGemsPrice(Number(event.target.value))} className={fieldClass} />
         </LabeledField>
-        {category === "effect" ? (
+        {category === "chatBubble" ? (
+          <LabeledField text={t("items.chatBubbleThemeLabel")} hint={t("items.chatBubbleThemeHint")}>
+            <select value={bubbleThemeId} onChange={(event) => setBubbleThemeId(event.target.value)} className={fieldClass}>
+              {SELLABLE_CHAT_BUBBLES.map((theme) => (
+                <option key={theme.id} value={theme.id}>
+                  {theme.label}
+                </option>
+              ))}
+            </select>
+          </LabeledField>
+        ) : category === "effect" ? (
           <LabeledField text={t("items.effectKeyLabel")} hint={t("items.effectKeyHint")}>
             <div className="flex items-center gap-2">
               <span
@@ -846,6 +1126,16 @@ export default function ItemEditor({
             <option value="en">{t("items.english")}</option>
           </select>
         </LabeledField>
+        <LabeledField text={t("items.maxStackLabel")} hint={t("items.maxStackHint")}>
+          <input
+            type="number"
+            min="1"
+            max="999"
+            value={maxStack}
+            onChange={(event) => setMaxStack(Number(event.target.value))}
+            className={fieldClass}
+          />
+        </LabeledField>
       </section>
 
       <section className="grid gap-3 md:grid-cols-3">
@@ -859,7 +1149,27 @@ export default function ItemEditor({
         </label>
       </section>
 
-      {category === "effect" ? (
+      {category === "chatBubble" ? (
+        <section className="rounded-3xl border border-zinc-800 bg-black/40 p-5">
+          <h3 className="text-xl font-black text-white">{t("items.chatBubbleItemTitle")}</h3>
+          <p className="mt-1 text-sm text-zinc-500">{t("items.chatBubbleItemDescription")}</p>
+          {(() => {
+            const theme =
+              SELLABLE_CHAT_BUBBLES.find((option) => option.id === bubbleThemeId) ?? SELLABLE_CHAT_BUBBLES[0];
+            return (
+              <div className="mt-4 flex justify-center rounded-2xl border border-zinc-800 bg-gradient-to-b from-[#2a2f3d] to-[#171a23] p-6">
+                <div
+                  className="rounded-2xl border-2 px-3 py-2 text-sm shadow-lg"
+                  style={{ background: theme.bg, borderColor: theme.border, color: theme.text }}
+                >
+                  <span className="block text-[11px] font-black">{name.trim() || "Usuario"}</span>
+                  <span>¡Hola!</span>
+                </div>
+              </div>
+            );
+          })()}
+        </section>
+      ) : category === "effect" ? (
         <section className="rounded-3xl border border-zinc-800 bg-black/40 p-5">
           <h3 className="text-xl font-black text-white">{t("items.effectItemTitle")}</h3>
           <p className="mt-1 text-sm text-zinc-500">{t("items.effectItemDescription")}</p>
@@ -1048,6 +1358,15 @@ export default function ItemEditor({
                   <option value="BOTH">{t("items.both")}</option>
                 </select>
               </LabeledField>
+              <LabeledField text={t("items.furnitureTypeLabel")} hint={t("items.furnitureTypeHint")}>
+                <select value={furnitureCategory} onChange={(event) => setFurnitureCategory(event.target.value)} className={fieldClass}>
+                  {FURNITURE_CATEGORY_KEYS.map((key) => (
+                    <option key={key} value={key}>
+                      {t(`items.furnitureType_${key}`)}
+                    </option>
+                  ))}
+                </select>
+              </LabeledField>
               <LabeledField text={t("items.width")} hint={t("items.widthHint")}>
                 <input type="number" min="1" value={width} onChange={(event) => setWidth(Number(event.target.value))} className={fieldClass} />
               </LabeledField>
@@ -1083,6 +1402,38 @@ export default function ItemEditor({
             </div>
             <div className="mt-3 rounded-2xl border border-dashed border-zinc-700 bg-black/50 p-3">
               <span className="mb-2 flex items-center gap-1.5 text-sm text-zinc-300">
+                {t("items.roomsLabel")}
+                <Tooltip content={t("items.roomsHint")}>
+                  <HelpCircle size={14} className="text-zinc-500" />
+                </Tooltip>
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {ITEM_ROOM_KEYS.map((room) => {
+                  const active = rooms.includes(room);
+                  return (
+                    <button
+                      key={room}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() =>
+                        setRooms((current) =>
+                          active ? current.filter((value) => value !== room) : [...current, room],
+                        )
+                      }
+                      className={`rounded-lg px-3 py-1.5 text-xs font-black transition ${
+                        active
+                          ? "bg-yellow-400 text-black"
+                          : "border border-zinc-800 bg-black/60 text-zinc-300 hover:border-yellow-400"
+                      }`}
+                    >
+                      {t(`items.room_${room}`)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="mt-3 rounded-2xl border border-dashed border-zinc-700 bg-black/50 p-3">
+              <span className="mb-2 flex items-center gap-1.5 text-sm text-zinc-300">
                 {t("items.facesLabel")}
                 <Tooltip content={t("items.facesHint")}>
                   <HelpCircle size={14} className="text-zinc-500" />
@@ -1093,7 +1444,12 @@ export default function ItemEditor({
                   <button
                     key={n}
                     type="button"
-                    onClick={() => setDirections(n)}
+                    disabled={mirrorBusy}
+                    onClick={() => {
+                      // Elegir 1 o 4 caras a mano deja de lado el espejo.
+                      if (autoMirror && n !== 2) void toggleAutoMirror(false);
+                      setDirections(n);
+                    }}
                     className={`rounded-lg px-3 py-1.5 text-xs font-black transition ${
                       directions === n
                         ? "bg-yellow-400 text-black"
@@ -1104,6 +1460,21 @@ export default function ItemEditor({
                   </button>
                 ))}
               </div>
+              <label className="mt-3 flex items-start gap-2 text-sm text-zinc-300">
+                <input
+                  type="checkbox"
+                  className="mt-0.5"
+                  checked={autoMirror}
+                  disabled={mirrorBusy}
+                  onChange={(event) => void toggleAutoMirror(event.target.checked)}
+                />
+                <span>
+                  <span className="font-black text-white">{t("items.autoMirrorLabel")}</span>
+                  <span className="block text-xs text-zinc-500">
+                    {mirrorBusy ? t("items.autoMirrorWorking") : t("items.autoMirrorHint")}
+                  </span>
+                </span>
+              </label>
             </div>
           </div>
 
@@ -1128,9 +1499,37 @@ export default function ItemEditor({
             faceCount={directions}
             spriteOffsets={spriteOffsets}
           />
+
+          {/* Comportamiento: sólo para world items. Las texturas de suelo y
+              pared, los items de avatar y los efectos no tienen estados. El
+              `readOnly` lo aplica igualmente el <fieldset disabled> de arriba;
+              se pasa además para ocultar los botones de acción. */}
+          <BehaviorEditor
+            draft={behaviorDraft}
+            onChange={setBehaviorDraft}
+            assetFolderId={assetFolderIdRef.current!}
+            directions={directions}
+            readOnly={readOnly}
+            t={t}
+          />
         </section>
       )}
       </fieldset>
+
+      {!readOnly && justSaved && !behaviorDirty && (
+        <p
+          role="status"
+          className="rounded-2xl border border-emerald-900/50 bg-emerald-950/20 p-4 text-sm text-emerald-200"
+        >
+          {t("admin.changesSaved")}
+        </p>
+      )}
+
+      {!readOnly && behaviorDirty && (
+        <p className="rounded-2xl border border-amber-900/60 bg-amber-950/20 p-4 text-sm text-amber-200">
+          {t("items.behaviorUnsavedBadge")}
+        </p>
+      )}
 
       {!readOnly && (
         <button

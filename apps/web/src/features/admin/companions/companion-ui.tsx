@@ -150,6 +150,7 @@ export function SpriteSheetPreview({
   framesCount,
   directions,
   emptyLabel,
+  fps,
 }: {
   url: string | null;
   frameWidth: number;
@@ -157,6 +158,13 @@ export function SpriteSheetPreview({
   framesCount: number;
   directions: number;
   emptyLabel: string;
+  /**
+   * Velocidad real de la animación. Si no se pasa, se mantiene el ritmo fijo
+   * de 180 ms que usaban pets y butler (que no tienen fps configurable por
+   * clip en esta preview). El editor de comportamiento sí lo pasa, para que lo
+   * que se ve acá vaya a la misma velocidad que en el juego.
+   */
+  fps?: number;
 }) {
   const cols = Math.max(1, Math.floor(framesCount) || 1);
   const rows = Math.max(1, Math.floor(directions) || 1);
@@ -171,11 +179,12 @@ export function SpriteSheetPreview({
   );
 
   const [frame, setFrame] = useState(0);
+  const frameMs = fps && fps > 0 ? 1000 / fps : 180;
   useEffect(() => {
     if (!url || cols <= 1) return;
-    const id = setInterval(() => setFrame((f) => (f + 1) % cols), 180);
+    const id = setInterval(() => setFrame((f) => (f + 1) % cols), frameMs);
     return () => clearInterval(id);
-  }, [url, cols]);
+  }, [url, cols, frameMs]);
 
   if (!url) {
     return (

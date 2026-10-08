@@ -79,6 +79,14 @@ export class ShopHandler {
           coinsPrice: i.coinsPrice ?? 0,
           gemsPrice: i.gemsPrice ?? 0,
 
+          // Tope de unidades acumulables por usuario -- también el máximo
+          // comprable en una sola operación (ver ItemsService.buyItem). El
+          // shop lo usa para mostrar/ocultar el selector de cantidad.
+          maxStack: i.maxStack ?? 1,
+
+          // Ambientes (room:*) para los filtros de la tienda.
+          tags: i.tags ?? [],
+
           shopVisible: i.shopVisible,
           category: i.category,
           views: i.views ?? 0,
@@ -198,20 +206,29 @@ export class ShopHandler {
       return socket.emit('shop:item:error', { message: 'ItemId es requerido' });
     }
 
+    const quantity = data.quantity && data.quantity > 0 ? Math.trunc(data.quantity) : 1;
+
     try {
-      await this.itemsService.buyItem(userId, data.itemId);
+      const result = await this.itemsService.buyItem(
+        userId,
+        data.itemId,
+        quantity,
+      );
 
-      // Recargar inventario actualizado
-      const inventory = await this.itemsService.getInventory(userId);
-
-      // Enviar respuestas al cliente
-      socket.emit('inventory:data', inventory);
+      // El cliente vuelve a pedir inventory:get, que devuelve el formato
+      // normalizado (con item.name). Mandar acá el UserItem crudo dejaba el
+      // panel de construcción sin nombres hasta recargar.
+      socket.emit('inventory:refresh');
       socket.emit('shop:item:bought', {
         itemId: data.itemId,
+        quantity: result.quantity,
+        totalPrice: result.totalPrice,
         message: 'Item comprado exitosamente',
       });
 
-      this.logger.log(`Usuario ${userId} compró item ${data.itemId}`);
+      this.logger.log(
+        `Usuario ${userId} compró ${result.quantity}x item ${data.itemId} por ${result.totalPrice} coins`,
+      );
     } catch (err: any) {
       this.logger.error(`Error al comprar item ${data.itemId}`, err);
       socket.emit('shop:item:error', {

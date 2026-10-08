@@ -75,6 +75,9 @@ import {
   RotateItemDto,
 } from './ws/dto/room-items.dto';
 
+import { UseInterceptors } from '@nestjs/common';
+import { SocketEventLogInterceptor } from '../event-log/event-log.interceptors';
+
 @WebSocketGateway({
   cors: {
     origin: (
@@ -85,6 +88,8 @@ import {
   pingInterval: 25000,
   pingTimeout: 60000,
 })
+// Registra en el historial del admin las acciones que cambian algo.
+@UseInterceptors(SocketEventLogInterceptor)
 export class GameGateway
   implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit
 {

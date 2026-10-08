@@ -5,7 +5,6 @@
   "backgroundLocked": "Bloqueado",
   "backgroundPremium": "Premium",
   "backgroundCoinsPrice": "{price} coins",
-
   "createModalTitle": "Crear Nueva Sala",
   "createNameIncompleteTitle": "Nombre incompleto",
   "createNameIncompleteMessage": "El nombre debe tener al menos 3 caracteres.",
@@ -19,7 +18,6 @@
   "createSelectMapLabel": "Selecciona un mapa:",
   "createNoLayouts": "No hay mapas disponibles",
   "createSubmit": "Crear Sala",
-
   "detailsBackgroundAlt": "Fondo",
   "detailsDescriptionLabel": "Descripción:",
   "detailsNoDescription": "Sin descripción",
@@ -30,7 +28,6 @@
   "detailsOwnerBadge": "Eres el dueño de esta sala",
   "detailsJoinRequestsTitle": "Quieren entrar",
   "detailsReject": "Rechazar",
-
   "cardPublicBadge": "PUBLICA",
   "cardPrivateBadge": "PRIVADA",
   "cardVipBadge": "VIP",
@@ -41,7 +38,6 @@
   "cardUnknownOwner": "Desconocido",
   "cardFullBadge": "SALA LLENA",
   "cardJoinButton": "ENTRAR",
-
   "listDoorAlt": "Puerta",
   "listTitle": "SALAS",
   "listSubtitle": "Explora espacios creados por la comunidad",
@@ -56,8 +52,8 @@
   "listEmptyFiltered": "No se encontraron salas con ese filtro.",
   "listJoinErrorTitle": "No se pudo entrar",
   "listJoinErrorMessage": "La sala no esta disponible en este momento.",
-
   "clearRoomTitle": "Limpiar casa",
   "clearRoomMessage": "Se retiraran todos los muebles de la habitacion y volveran al inventario. Esta accion no se puede deshacer.",
-  "clearRoomKeepLabel": "Conservar sala"
+  "clearRoomKeepLabel": "Conservar sala",
+  "cardJoiningButton": "Entrando..."
 }

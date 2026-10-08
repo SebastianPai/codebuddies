@@ -6,6 +6,7 @@ export type SendMailInput = {
   to: string;
   subject: string;
   html: string;
+  headers?: Record<string, string>;
 };
 
 export type SendMailResult = {
@@ -35,7 +36,7 @@ export class MailerService {
     }
   }
 
-  async send({ to, subject, html }: SendMailInput): Promise<SendMailResult> {
+  async send({ to, subject, html, headers }: SendMailInput): Promise<SendMailResult> {
     if (!this.resend) {
       this.logger.log(`[email deshabilitado] Para: ${to} | Asunto: ${subject}`);
       return { success: false, error: 'RESEND_API_KEY no configurada' };
@@ -47,6 +48,7 @@ export class MailerService {
         to,
         subject,
         html,
+        ...(headers ? { headers } : {}),
       });
 
       if (error) {

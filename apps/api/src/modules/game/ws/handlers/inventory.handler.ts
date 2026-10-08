@@ -49,6 +49,9 @@ export class InventoryHandler {
             type: item.type,
             rarity: item.rarity,
             colorable: item.colorable,
+            // Los filtros por ambiente (room:*) del panel de construcción
+            // salen de acá -- ver ITEM_ROOMS en apps/game.
+            tags: item.tags ?? [],
             avatarData: item.avatarData,
             worldData: item.worldData,
           },

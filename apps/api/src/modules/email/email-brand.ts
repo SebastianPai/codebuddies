@@ -9,7 +9,15 @@ const LOGO_URL = 'https://codebuddies.tech/icon.png';
 const BRAND_YELLOW = '#facc15';
 const BRAND_BLACK = '#0a0a0a';
 
-export function wrapBrandedEmailHtml(subject: string, innerHtml: string): string {
+export function wrapBrandedEmailHtml(
+  subject: string,
+  innerHtml: string,
+  options: { unsubscribeUrl?: string } = {},
+): string {
+  // Solo los correos de marketing llevan el enlace de baja.
+  const unsubscribe = options.unsubscribeUrl
+    ? `<br><a href="${options.unsubscribeUrl}" style="color:#9ca3af;font-size:12px;text-decoration:underline;">Darme de baja de estos correos · Unsubscribe</a>`
+    : '';
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -43,7 +51,7 @@ export function wrapBrandedEmailHtml(subject: string, innerHtml: string): string
         </tr>
         <tr>
           <td style="background-color:${BRAND_BLACK};padding:16px 28px;text-align:center;">
-            <span style="color:#9ca3af;font-size:12px;">© ${new Date().getFullYear()} CodeBuddies · codebuddies.tech</span>
+            <span style="color:#9ca3af;font-size:12px;">© ${new Date().getFullYear()} CodeBuddies · codebuddies.tech</span>${unsubscribe}
           </td>
         </tr>
       </table>

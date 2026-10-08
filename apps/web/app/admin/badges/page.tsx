@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState, type CSSProperties } from "react";
-import { Award, BadgeCheck, Search, Upload, X } from "lucide-react";
+import { Award, BadgeCheck, Crown, Search, Upload, X } from "lucide-react";
 import { toast } from "react-toastify";
 import { api } from "../../../utils/api";
 
-type BadgeType = "VERIFIED" | "CREATOR";
+type BadgeType = "VERIFIED" | "CREATOR" | "PREMIUM";
 type IconMode = "STATIC" | "SPRITE";
 type AnimationDirection = "PINGPONG" | "LOOP";
 
@@ -21,6 +21,7 @@ type BadgeIconConfig = {
 type BadgeConfig = {
   VERIFIED: BadgeIconConfig;
   CREATOR: BadgeIconConfig;
+  PREMIUM: BadgeIconConfig;
 };
 
 type Creator = {
@@ -45,6 +46,12 @@ const BADGE_META: Record<BadgeType, { title: string; hint: string; defaultColor:
     defaultColor: "#facc15",
     DefaultIcon: Award,
   },
+  PREMIUM: {
+    title: "Premium",
+    hint: "Automático: Premium activo, o haber reclamado el primer regalo del track premium del Battle Pass (ese dura 30 días desde que se reclama).",
+    defaultColor: "#a855f7",
+    DefaultIcon: Crown,
+  },
 };
 
 // El mismo keyframe que usa <UserBadges> en apps/game (recorre la tira de
@@ -62,6 +69,32 @@ const SPRITE_KEYFRAMES = `
 // aplastada verticalmente. Se mide una vez por (url, frameCount) y se
 // cachea, igual que hace apps/game con useSpriteFrameAspect.
 const frameAspectCache = new Map<string, number>();
+
+// Cuántos cuadros tiene la tira si son cuadrados (ancho = N × alto). Con un
+// número equivocado cada paso de la animación muestra medio cuadro y medio
+// del siguiente, y el logo parece "deslizarse" en vez de cambiar de cuadro
+// (pasó con el logo Premium: una tira de 9 cuadros configurada como 8).
+function useDetectedFrameCount(url: string | null): number | null {
+  const [detected, setDetected] = useState<number | null>(null);
+  useEffect(() => {
+    setDetected(null);
+    if (!url) return;
+    let cancelled = false;
+    const img = new window.Image();
+    img.onload = () => {
+      const { naturalWidth: w, naturalHeight: h } = img;
+      if (cancelled || h <= 0) return;
+      const ratio = w / h;
+      const rounded = Math.round(ratio);
+      setDetected(rounded >= 2 && Math.abs(ratio - rounded) < 0.02 ? rounded : null);
+    };
+    img.src = url;
+    return () => {
+      cancelled = true;
+    };
+  }, [url]);
+  return detected;
+}
 
 function useFrameAspect(url: string | null, frameCount: number): number {
   const cacheKey = url ? `${url}::${frameCount}` : "";
@@ -178,20 +211,20 @@ export default function AdminBadgesPage() {
       <div>
         <h1 className="text-3xl font-black text-yellow-400">Insignias</h1>
         <p className="mt-1 text-sm text-zinc-400">
-          El ícono de verificado y de creador que aparece junto al nombre de un usuario en todo el juego. Podés dejar el
+          El ícono de verificado, creador y premium que aparece junto al nombre de un usuario en todo el juego. Podés dejar el
           ícono por defecto, subir una imagen fija, o subir una tira de varios cuadros para que se anime (para
           insignias pro/premium) — el preview de acá se anima igual que se ve en el juego.
         </p>
       </div>
 
       {loading || !config ? (
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
-          {[0, 1].map((index) => (
+        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {[0, 1, 2].map((index) => (
             <div key={index} className="h-64 animate-pulse rounded-xl border border-zinc-800 bg-zinc-900" />
           ))}
         </div>
       ) : (
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {(Object.keys(BADGE_META) as BadgeType[]).map((type) => (
             <BadgeCard
               key={type}
@@ -319,6 +352,9 @@ function BadgeCard({
     frameCount !== config.frameCount || direction !== config.direction || frameRate !== config.frameRate;
 
   const bigAspect = useFrameAspect(config.mode === "SPRITE" ? iconUrl : null, config.frameCount);
+  const detectedFrames = useDetectedFrameCount(iconUrl);
+  const framesMismatch =
+    config.mode === "SPRITE" && detectedFrames !== null && detectedFrames !== config.frameCount;
 
   return (
     <div className="rounded-xl border border-zinc-800 bg-[#0c0c0c] p-5">
@@ -426,12 +462,30 @@ function BadgeCard({
               <input
                 type="radio"
                 checked={config.mode === "SPRITE"}
-                onChange={() => onPatch({ mode: "SPRITE", frameCount, direction, frameRate })}
+                onChange={() =>
+                  onPatch({ mode: "SPRITE", frameCount: detectedFrames ?? frameCount, direction, frameRate })
+                }
                 className="accent-yellow-400"
               />
               Sprite animado (varios cuadros)
             </label>
           </div>
+
+          {framesMismatch && (
+            <div className="mt-4 flex flex-col gap-2 rounded-lg border border-yellow-500/50 bg-yellow-500/10 p-3 text-sm text-yellow-200 sm:flex-row sm:items-center sm:justify-between">
+              <span>
+                La imagen parece tener <b>{detectedFrames} cuadros</b> cuadrados, pero está configurada con{" "}
+                {config.frameCount}. Por eso la animación se ve desplazada.
+              </span>
+              <button
+                type="button"
+                onClick={() => onPatch({ frameCount: detectedFrames! })}
+                className="shrink-0 rounded-md bg-yellow-400 px-3 py-1.5 text-xs font-black text-black"
+              >
+                Usar {detectedFrames} cuadros
+              </button>
+            </div>
+          )}
 
           {config.mode === "SPRITE" && (
             <div className="mt-4 grid gap-3 md:grid-cols-3">

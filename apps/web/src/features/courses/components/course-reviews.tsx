@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Star } from "lucide-react";
+import { AlertTriangle, RotateCcw, Star } from "lucide-react";
 import { useTranslation } from "@/i18n/useTranslation";
 import { api } from "@/shared/api";
 import { Skeleton } from "@/shared/ui";
@@ -46,14 +46,18 @@ export function CourseReviews({ courseId }: { courseId: string }) {
   const [myComment, setMyComment] = useState("");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+  // Antes un fallo al cargar se pintaba como "sin reseñas".
+  const [loadError, setLoadError] = useState(false);
   const isAuthenticated = typeof window !== "undefined" && Boolean(localStorage.getItem("token"));
 
   const load = async () => {
     try {
       const response = await api.get<ReviewsResponse>(`/courses/${courseId}/reviews`);
       setData(response);
+      setLoadError(false);
     } catch {
-      setData({ items: [], summary: { average: 0, count: 0 } });
+      setLoadError(true);
     }
   };
 
@@ -76,8 +80,10 @@ export function CourseReviews({ courseId }: { courseId: string }) {
     if (myRating === 0) return;
     setSaving(true);
     setFormError(null);
+    setSaved(false);
     try {
       await api.put(`/courses/${courseId}/reviews/me`, { rating: myRating, comment: myComment || undefined });
+      setSaved(true);
       await load();
     } catch (error: any) {
       setFormError(error?.status === 403 ? t("site.reviewRequiresEnrollment") : t("common.unexpectedError"));
@@ -85,6 +91,25 @@ export function CourseReviews({ courseId }: { courseId: string }) {
       setSaving(false);
     }
   };
+
+  if (!data && loadError) {
+    return (
+      <section className="mt-10 flex flex-col items-start gap-3 rounded-2xl border border-[rgb(var(--error)/0.4)] bg-[rgb(var(--error)/0.08)] p-5 sm:flex-row sm:items-center sm:justify-between">
+        <p className="flex items-center gap-2 text-sm font-semibold text-[rgb(var(--error-text))]">
+          <AlertTriangle size={16} />
+          {t("site.discussion.reviewsLoadError")}
+        </p>
+        <button
+          type="button"
+          onClick={() => void load()}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-1.5 text-xs font-bold"
+        >
+          <RotateCcw size={13} />
+          {t("site.discussion.retry")}
+        </button>
+      </section>
+    );
+  }
 
   if (!data) {
     return <Skeleton className="h-40 rounded-lg" />;
@@ -111,11 +136,21 @@ export function CourseReviews({ courseId }: { courseId: string }) {
           <textarea
             value={myComment}
             onChange={(e) => setMyComment(e.target.value)}
+            maxLength={2000}
             rows={2}
             placeholder={t("common.descriptionPlaceholder")}
             className="mt-3 w-full rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--background))] p-2 text-sm"
           />
-          {formError && <p className="mt-2 text-sm text-red-400">{formError}</p>}
+          {formError && (
+            <p role="alert" className="mt-2 text-sm text-[rgb(var(--error-text))]">
+              {formError}
+            </p>
+          )}
+          {saved && !formError && (
+            <p role="status" className="mt-2 text-sm text-[rgb(var(--success-text))]">
+              {t("site.discussion.reviewSaved")}
+            </p>
+          )}
           <button
             type="button"
             onClick={() => void submit()}

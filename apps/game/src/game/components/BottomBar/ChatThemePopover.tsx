@@ -5,14 +5,11 @@ import { Check, Lock } from "lucide-react";
 
 import styles from "./ChatThemePopover.module.css";
 import { CHAT_BUBBLE_THEMES } from "../../hud/nameplateStyles";
+import { themeSwatchStyle } from "../../hud/hudStyleUtils";
 import { useChatBubbleTheme } from "../../hooks/useChatBubbleTheme";
 import { useTranslation } from "../../../i18n/useTranslation";
 
 const CHAT_THEME_LIST = Object.values(CHAT_BUBBLE_THEMES);
-
-function hexOf(color: number) {
-  return `#${color.toString(16).padStart(6, "0")}`;
-}
 
 type Props = {
   x: number;
@@ -26,7 +23,7 @@ type Props = {
 export default function ChatThemePopover({ x, y, onClose }: Props) {
   const t = useTranslation();
   const rootRef = useRef<HTMLDivElement>(null);
-  const { themeId, isPremium, saving, error, selectTheme } = useChatBubbleTheme();
+  const { themeId, isUnlocked, saving, error, selectTheme } = useChatBubbleTheme();
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
@@ -50,7 +47,7 @@ export default function ChatThemePopover({ x, y, onClose }: Props) {
 
       <div className={styles.grid}>
         {CHAT_THEME_LIST.map((theme) => {
-          const locked = theme.tier === "premium" && !isPremium;
+          const locked = !isUnlocked(theme.id, theme.tier);
           const selected = themeId === theme.id;
           return (
             <button
@@ -61,10 +58,7 @@ export default function ChatThemePopover({ x, y, onClose }: Props) {
               }`}
               disabled={saving}
               onClick={() => void selectTheme(theme.id, theme.tier)}
-              style={{
-                background: hexOf(theme.backgroundColor),
-                borderColor: hexOf(theme.borderColor),
-              }}
+              style={themeSwatchStyle(theme)}
               title={theme.label}
             >
               {locked ? (

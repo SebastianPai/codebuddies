@@ -4,7 +4,7 @@ import {
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
-import { NotificationType } from '@prisma/client';
+import { NotificationType, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { BackgroundsService } from '../backgrounds/backgrounds.service';
 import { NotificationsService } from '../../notifications/notifications.service';
@@ -212,18 +212,36 @@ export class RoomsService {
   }
 
   async joinRoom(userId: string, roomId: string) {
-    return this.prisma.roomUser.upsert({
-      where: { roomId_userId: { roomId, userId } },
-      update: {},
-      create: {
-        roomId,
-        userId,
-        x: 100,
-        y: 100,
-        direction: 'SOUTH',
-        role: 'VISITOR',
-      },
-    });
+    try {
+      return await this.prisma.roomUser.upsert({
+        where: { roomId_userId: { roomId, userId } },
+        update: {},
+        create: {
+          roomId,
+          userId,
+          x: 100,
+          y: 100,
+          direction: 'SOUTH',
+          role: 'VISITOR',
+        },
+      });
+    } catch (error) {
+      // El cliente real emite `joinRoom` desde DOS sitios para la misma
+      // entrada a una sala (Game.tsx al hacer click en "ENTRAR" y, aparte,
+      // LobbyScene al arrancar la escena leyendo `game.roomId`) — reproducido
+      // en QA con el navegador real (Fase 11.5-B): las dos llamadas casi
+      // simultáneas pueden ganarle la carrera al propio upsert() y la
+      // segunda choca con la unique constraint que la primera acaba de
+      // crear. Como las dos quieren exactamente lo mismo (que la fila
+      // exista), una vez que existe el resultado es idéntico a haber ganado
+      // el upsert — no es un estado de error para quien llama.
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        return this.prisma.roomUser.findUniqueOrThrow({
+          where: { roomId_userId: { roomId, userId } },
+        });
+      }
+      throw error;
+    }
   }
 
   // ====================== SOLICITUDES E INVITACIONES ======================

@@ -7,6 +7,7 @@ import {
   type PublicCertificate,
 } from "@/features/certificates/components/certificate-download-button";
 import { CertificateVerifiedTracker } from "@/features/certificates/components/certificate-verified-tracker";
+import { CertificateSheet } from "@/features/certificates/components/certificate-sheet";
 
 interface CertificatePageProps {
   params: Promise<{ certificateId: string }>;
@@ -49,7 +50,7 @@ function formatDate(value: string) {
 function CertificateField({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="font-mono text-xs uppercase tracking-widest text-gray-500">{label}</dt>
+      <dt className="text-xs font-bold uppercase tracking-widest text-[rgb(var(--secondary-text))]">{label}</dt>
       <dd className="mt-1 wrap-break-word font-bold">{value}</dd>
     </div>
   );
@@ -88,88 +89,57 @@ export default async function PublicCertificatePage({ params }: CertificatePageP
   }).catch(() => null);
 
   return (
-    <div className="min-h-screen bg-[#f5f1e8] px-4 py-8 text-black print:bg-white print:p-0">
+    <div className="mx-auto max-w-6xl py-6 sm:py-10 print:max-w-none print:p-0">
       <CertificateVerifiedTracker />
-      <main className="mx-auto max-w-5xl border-8 border-black bg-white p-8 shadow-2xl print:border-4 print:shadow-none">
-        <div className="border-2 border-black p-8 md:p-12">
-          <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+
+      <div className="mb-5 flex flex-col gap-3 print:hidden sm:flex-row sm:items-center sm:justify-between">
+        {certificate.revoked ? (
+          <div className="flex items-start gap-3 rounded-2xl border border-red-500/40 bg-red-500/10 p-4 text-sm text-red-200">
+            <ShieldAlert size={20} className="mt-0.5 shrink-0" />
             <div>
-              <p className="font-mono text-sm uppercase tracking-[0.35em]">CodeBuddies</p>
-              <h1 className="mt-4 text-4xl md:text-6xl font-black uppercase">Certificado</h1>
+              <p className="font-black">Este certificado fue revocado</p>
+              {certificate.revokedReason && <p className="mt-1 opacity-90">{certificate.revokedReason}</p>}
             </div>
-            {certificate.revoked ? (
-              <div className="inline-flex items-center gap-2 self-start border-2 border-red-700 bg-red-50 px-4 py-2 font-black uppercase text-red-700">
-                <ShieldAlert size={18} /> Revocado
-              </div>
-            ) : (
-              <div className="inline-flex items-center gap-2 self-start border-2 border-green-700 bg-green-50 px-4 py-2 font-black uppercase text-green-700">
-                <ShieldCheck size={18} /> {certificate.valid ? "Válido" : "Inválido"}
-              </div>
-            )}
           </div>
-
-          {certificate.revoked && (
-            <div className="mt-6 border-2 border-red-700 bg-red-50 p-4 text-red-800 print:hidden">
-              <p className="font-black uppercase">Este certificado fue revocado</p>
-              {certificate.revokedReason && (
-                <p className="mt-1 text-sm">{certificate.revokedReason}</p>
-              )}
-            </div>
-          )}
-
-          <section className="my-12 text-center">
-            <Award className="mx-auto mb-6" size={72} />
-            <p className="font-mono uppercase tracking-widest text-gray-600">Otorgado a</p>
-            <h2 className="mt-4 text-4xl md:text-7xl font-black">{certificate.name}</h2>
-            <p className="mt-8 font-mono uppercase tracking-widest text-gray-600">
-              Por completar exitosamente
+        ) : (
+          <div className="flex items-center gap-3 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+            <ShieldCheck size={20} className="shrink-0" />
+            <p>
+              <b>{certificate.valid ? "Certificado auténtico" : "Certificado inválido"}</b>
+              <span className="opacity-80"> · emitido por CodeBuddies · N.º {certificate.certificateNumber}</span>
             </p>
-            <h3 className="mt-4 text-3xl md:text-5xl font-black">{certificate.course}</h3>
-          </section>
-
-          <div className="grid gap-4 border-t-2 border-b-2 border-black py-6 md:grid-cols-[1fr_auto] md:items-center">
-            <dl className="grid gap-4 md:grid-cols-2">
-              <CertificateField label="Academia" value={certificate.academy} />
-              <CertificateField
-                label="Fecha de emisión"
-                value={formatDate(certificate.issuedAt)}
-              />
-              <CertificateField
-                label="Número de certificado"
-                value={certificate.certificateNumber}
-              />
-              <CertificateField label="Código de verificación" value={certificate.verificationCode} />
-            </dl>
-            {qrDataUrl && (
-              <div className="mx-auto flex flex-col items-center gap-1 md:mx-0">
-                {/* eslint-disable-next-line @next/next/no-img-element -- data URL, no aplica next/image */}
-                <img src={qrDataUrl} alt="Código QR de verificación" className="h-24 w-24" />
-                <p className="text-[10px] font-mono uppercase text-gray-500">Escaneá para verificar</p>
-              </div>
-            )}
           </div>
+        )}
+      </div>
 
-          <div className="mt-8 flex flex-col gap-3 print:hidden sm:flex-row sm:justify-center">
-            <CertificateDownloadButton certificate={certificate} qrDataUrl={qrDataUrl} />
-            {!certificate.revoked && (
-              <a
-                href={buildLinkedInAddToProfileUrl(certificate)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 border-2 border-[#0a66c2] bg-[#0a66c2] px-6 py-3 font-black uppercase text-white"
-              >
-                Agregar a LinkedIn <Linkedin size={16} />
-              </a>
-            )}
-            <Link
-              href="/certificates"
-              className="inline-flex items-center justify-center gap-2 border-2 border-black px-6 py-3 font-black uppercase"
-            >
-              Mis certificados
-            </Link>
-          </div>
-        </div>
-      </main>
+      <CertificateSheet certificate={certificate} qrDataUrl={qrDataUrl} />
+
+      <div className="mt-6 grid gap-3 print:hidden sm:flex sm:flex-wrap sm:justify-center">
+        <CertificateDownloadButton certificate={certificate} qrDataUrl={qrDataUrl} />
+        {!certificate.revoked && (
+          <a
+            href={buildLinkedInAddToProfileUrl(certificate)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0a66c2] px-6 py-3 text-sm font-bold text-white transition hover:brightness-110"
+          >
+            <Linkedin size={16} /> Agregar a LinkedIn
+          </a>
+        )}
+        <Link
+          href="/certificates"
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-[rgb(var(--border))] px-6 py-3 text-sm font-bold text-[rgb(var(--text))] transition hover:border-[rgb(var(--primary)/0.6)]"
+        >
+          <Award size={16} /> Mis certificados
+        </Link>
+      </div>
+
+      <dl className="mx-auto mt-8 grid max-w-3xl gap-4 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-5 text-sm text-[rgb(var(--text))] print:hidden sm:grid-cols-2">
+        <CertificateField label="Otorgado a" value={certificate.name} />
+        <CertificateField label="Curso" value={certificate.course} />
+        <CertificateField label="Fecha de emisión" value={formatDate(certificate.issuedAt)} />
+        <CertificateField label="Código de verificación" value={certificate.verificationCode} />
+      </dl>
     </div>
   );
 }

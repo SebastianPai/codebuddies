@@ -119,6 +119,16 @@ export class RoomHandler {
       return socket.emit('room:join:error', { reason: 'ROOM_ID_REQUIRED' });
     }
 
+    // Con red lenta el cliente puede mandar varios joinRoom seguidos (clics
+    // repetidos que se entregan juntos al reconectar): solo se procesa uno
+    // por socket a la vez, el resto se descarta en silencio.
+    if (socket.data.joiningRoom) return;
+    socket.data.joiningRoom = true;
+
+    const alreadyInRoom =
+      socket.data.currentRoom === roomId &&
+      this.playerHandler.players[socket.id]?.room === roomId;
+
     try {
       // Verificar permisos
       const canJoin = await this.roomsService.canJoinRoom(userId, roomId);
@@ -131,6 +141,12 @@ export class RoomHandler {
       const room = await this.roomsService.getRoomById(roomId);
       if (!room) {
         return socket.emit('room:error', { message: 'Sala no encontrada' });
+      }
+
+      // Fantasmas de una conexión anterior del mismo usuario (reconnect):
+      // se quitan y se avisa a su sala, o el jugador aparecía duplicado.
+      for (const stale of this.playerHandler.purgeStalePlayers(userId, socket.id)) {
+        server.to(stale.room).emit('playerDisconnected', stale.id);
       }
 
       // Unirse a la sala Socket.IO
@@ -190,8 +206,11 @@ export class RoomHandler {
         myPermissions,
       });
 
-      // Notificar a los demás jugadores
-      socket.broadcast.to(roomId).emit('newPlayer', player);
+      // Notificar a los demás jugadores (no si ya estaba dentro: evita que
+      // un reingreso repetido duplique su avatar en las pantallas ajenas).
+      if (!alreadyInRoom) {
+        socket.broadcast.to(roomId).emit('newPlayer', player);
+      }
 
       this.logger.log(`Usuario ${userId} se unió a la sala ${roomId}`);
     } catch (err: any) {
@@ -199,6 +218,8 @@ export class RoomHandler {
       socket.emit('room:error', {
         message: err.message || 'Error al unirse a la sala',
       });
+    } finally {
+      socket.data.joiningRoom = false;
     }
   }
 

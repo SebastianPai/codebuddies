@@ -5,6 +5,8 @@ import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "../../hooks/useAuth";
 import Link from "next/link";
 import {
+  History,
+  Ticket,
   LayoutDashboard,
   BookOpen,
   Layers,
@@ -85,6 +87,12 @@ export default function AdminLayout({
   }, [loading, isAuthenticated, user, router]);
 
   useEffect(() => {
+    // En teléfonos el panel expandido (288px) tapaba casi todo el contenido:
+    // ahí arranca siempre en modo íconos; se puede expandir con el botón.
+    if (window.matchMedia("(max-width: 767px)").matches) {
+      setCompact(true);
+      return;
+    }
     const stored = window.localStorage.getItem(COMPACT_STORAGE_KEY);
     if (stored !== null) setCompact(stored === "1");
   }, []);
@@ -199,6 +207,7 @@ export default function AdminLayout({
             icon: <ShoppingBag size={18} />,
           },
           { href: "/admin/badges", label: t("gamification.achievements"), icon: <Award size={18} /> },
+          { href: "/admin/battle-pass", label: t("navbar.battlePass"), icon: <Ticket size={18} /> },
           {
             href: "/admin/theme-assets",
             label: t("admin.themeAssetsNav"),
@@ -311,6 +320,11 @@ export default function AdminLayout({
             icon: <BarChart3 size={18} />,
           },
           {
+            href: "/admin/history",
+            label: "Historial",
+            icon: <History size={18} />,
+          },
+          {
             href: "/admin/audit-log",
             label: t("admin.auditLogNav"),
             icon: <Shield size={18} />,
@@ -360,7 +374,7 @@ export default function AdminLayout({
   if (!user || user.role !== "ADMIN") return null;
 
   return (
-    <div className="flex h-screen bg-black text-white">
+    <div className="flex h-[100dvh] bg-black text-white">
       <CommandPalette
         open={paletteOpen}
         onClose={() => setPaletteOpen(false)}
@@ -370,7 +384,7 @@ export default function AdminLayout({
       {/* SIDEBAR */}
 
       <aside
-        className={`${compact ? "w-16" : "w-72"} border-r border-zinc-800 bg-black flex flex-col transition-[width] duration-150`}
+        className={`${compact ? "w-16" : "w-72"} shrink-0 border-r border-zinc-800 bg-black flex flex-col transition-[width] duration-150`}
       >
         {/* Logo */}
 
@@ -464,7 +478,7 @@ export default function AdminLayout({
 
       {/* CONTENT */}
 
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {activeItem && (
           <div className="flex items-center gap-1.5 border-b border-zinc-900 bg-black/60 px-6 py-2.5 text-xs text-zinc-500">
             <span>{t("admin.breadcrumbHome")}</span>

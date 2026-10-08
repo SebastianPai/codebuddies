@@ -22,7 +22,7 @@ describe('BattlePassService', () => {
 
   const prisma = {
     battlePassTier: { findUnique: jest.fn() },
-    userBattlePassProgress: { findUnique: jest.fn() },
+    userBattlePassProgress: { findUnique: jest.fn(), upsert: jest.fn(), updateMany: jest.fn() },
     battlePassSeason: { findFirst: jest.fn() },
     $transaction: jest.fn((callback: (client: typeof tx) => unknown) => callback(tx)),
   };
@@ -50,6 +50,43 @@ describe('BattlePassService', () => {
     }).compile();
 
     service = module.get<BattlePassService>(BattlePassService);
+  });
+
+  describe('checkIn (pase diario)', () => {
+    const dailySeason = { id: 'season-1', status: 'ACTIVE', progressMode: 'DAILY', totalLevels: 30 };
+
+    it('no hace nada si la temporada es por XP', async () => {
+      prisma.battlePassSeason.findFirst.mockResolvedValue({ ...dailySeason, progressMode: 'XP' });
+
+      await service.checkIn('user-1');
+
+      expect(prisma.userBattlePassProgress.upsert).not.toHaveBeenCalled();
+    });
+
+    it('el primer día queda en el día 1 sin subir nivel', async () => {
+      prisma.battlePassSeason.findFirst.mockResolvedValue(dailySeason);
+      prisma.userBattlePassProgress.upsert.mockImplementation(({ create }) =>
+        Promise.resolve({ id: 'p-1', level: 1, lastCheckInDay: create.lastCheckInDay }),
+      );
+
+      await service.checkIn('user-1');
+
+      expect(prisma.userBattlePassProgress.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('un día nuevo sube un nivel, solo si el último check-in fue antes de hoy', async () => {
+      prisma.battlePassSeason.findFirst.mockResolvedValue(dailySeason);
+      prisma.userBattlePassProgress.upsert.mockResolvedValue({ id: 'p-1', level: 3, lastCheckInDay: '2000-01-01' });
+      prisma.userBattlePassProgress.updateMany.mockResolvedValue({ count: 1 });
+
+      await service.checkIn('user-1');
+
+      expect(prisma.userBattlePassProgress.updateMany).toHaveBeenCalledTimes(1);
+      const call = prisma.userBattlePassProgress.updateMany.mock.calls[0][0];
+      expect(call.where.lastCheckInDay.lt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(call.where.level).toEqual({ lt: 30 });
+      expect(call.data.level).toEqual({ increment: 1 });
+    });
   });
 
   describe('claimTier', () => {

@@ -1,0 +1,44 @@
+// Build de CommonJS del paquete, SÓLO para quien lo consume en tiempo de
+// ejecución con Node.
+//
+// ─────────────────────────────────────────────────────────────────────────
+// POR QUÉ HACE FALTA COMPILARLO SI EL PAQUETE ES TypeScript "crudo"
+//
+// apps/web y apps/game lo consumen a través de un bundler (Turbopack), que lee
+// el .ts directamente — ahí no hace falta nada y el código fuente sigue siendo
+// la fuente de verdad, con recarga en caliente incluida.
+//
+// apps/api es distinto: `nest build` compila SÓLO `src/`, deja el
+// `require("@codebuddies/world-objects")` como especificador literal y, en
+// tiempo de ejecución, Node resuelve ese nombre por node_modules. Si el paquete
+// apunta a un `.ts`, Node 20 (la versión declarada en engines) no puede
+// cargarlo: no ejecuta TypeScript. El resultado era que `node dist/main` —el
+// comando de arranque en producción— no levantaba.
+//
+// Así que el paquete publica DOS caras a través de `exports`:
+//   require  → dist/index.js  (Node: apps/api compilado)
+//   default  → index.ts       (bundlers: apps/web, apps/game)
+// y los tipos siguen saliendo del código fuente para todos.
+//
+// El build lo dispara `prepare`, así que un `pnpm install` deja `dist/` listo y
+// nadie tiene que acordarse de nada.
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020"],
+    // CommonJS porque apps/api compila a CommonJS: su `require()` tiene que
+    // encontrar un módulo CJS del otro lado.
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "strict": true,
+    "declaration": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "outDir": "./dist",
+    "rootDir": ".",
+    "types": []
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["**/*.spec.ts", "dist"]
+}

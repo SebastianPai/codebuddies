@@ -1,4 +1,5 @@
 import { api } from "@/shared/api";
+import { getCurrentUser } from "@/../utils/auth";
 import type { ContinueLearningCourse, DailyMission, DashboardUser, ReferralOverview } from "../types/dashboard";
 
 interface RankingsResponse {
@@ -10,7 +11,12 @@ interface MissionsResponse {
 }
 
 export const dashboardApi = {
-  getUser: () => api.get<DashboardUser>("/identity/me"),
+  // Misma petición/cache que useAuth (utils/auth) en vez de un /me propio.
+  getUser: async () => {
+    const user = await getCurrentUser();
+    if (!user) throw new Error("Unauthorized");
+    return user as unknown as DashboardUser;
+  },
   getReferrals: () => api.get<ReferralOverview>("/referrals/me"),
   getContinueLearning: () =>
     api.get<ContinueLearningCourse[]>("/progress/continue-learning?take=3"),

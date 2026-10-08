@@ -109,7 +109,8 @@
   },
   "badges": {
     "verified": "Verifiziert",
-    "creator": "Creator"
+    "creator": "Creator",
+    "premium": "Premium"
   },
   "pet": {
     "title": "Mein Haustier",

@@ -31,5 +31,9 @@
   },
   "dependencies": {
     "framer-motion": "^12.34.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "pngjs": "^5.0.0"
   }
 }

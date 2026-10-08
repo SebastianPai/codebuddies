@@ -4,40 +4,27 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { register } from "../../../../utils/auth";
 import { motion } from "framer-motion";
-import {
-  User,
-  Mail,
-  Lock,
-  ArrowRight,
-  ShieldCheck,
-  Github,
-  Chrome,
-} from "lucide-react";
+import { User, Mail, ArrowRight, ShieldCheck, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
 import { useThemeAsset } from "../../../../hooks/useThemeAsset";
 import { ThemeFramedPhoto } from "../../../../components/ThemeFramedPhoto";
-
-// Sub-componente para inputs limpios y consistentes
-type BrutalInputProps = React.InputHTMLAttributes<HTMLInputElement> & {
-  icon: React.ComponentType<{ size?: number }>;
-  label: string;
-};
-
-const BrutalInput = ({ icon: Icon, label, ...props }: BrutalInputProps) => (
-  <div className="relative group">
-    <label className="block text-[rgb(var(--primary))] text-xs font-black uppercase mb-2 ml-1">
-      {label}_
-    </label>
-    <div className="absolute left-4 top-[42px] text-[rgb(var(--secondary-text))] group-focus-within:text-[rgb(var(--primary))] transition-colors">
-      <Icon size={18} />
-    </div>
-    <input
-      {...props}
-      className="w-full bg-[rgb(var(--code-background))] border-2 border-[rgb(var(--border))] focus:border-[rgb(var(--primary))] p-4 pl-12 text-[rgb(var(--text))] outline-none transition-all font-mono text-sm"
-    />
-  </div>
-);
+import { trackEvent } from "../../../../components/analytics/events";
+import {
+  AuthField,
+  PasswordField,
+  PasswordStrength,
+  SocialButtons,
+} from "../../../../components/auth/AuthFields";
+import {
+  checkEmail,
+  isCommonOrPersonalPassword,
+  isPasswordValid,
+  normalizeEmail,
+  PASSWORD_MAX,
+  PASSWORD_MIN,
+  USERNAME_REGEX,
+} from "../../../../src/shared/utils/auth-validation";
 
 export default function RegisterPage() {
   const t = useTranslation();
@@ -46,10 +33,46 @@ export default function RegisterPage() {
     email: "",
     username: "",
     password: "",
+    confirmPassword: "",
     referralCode: "",
   });
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  // Casilla obligatoria (nunca pre-marcada) y marketing aparte, opcional.
+  const [acceptLegal, setAcceptLegal] = useState(false);
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+
+  // Validación en vivo: cada campo muestra su error recién cuando el
+  // usuario sale de él (o al intentar enviar), no mientras escribe.
+  const show = (field: string) => submitAttempted || touched[field];
+  const usernameValid = USERNAME_REGEX.test(formData.username.trim());
+  const emailCheck = checkEmail(formData.email);
+  const passwordContext = { username: formData.username, email: formData.email };
+  const passwordOk = isPasswordValid(formData.password, passwordContext);
+  const passwordIsCommon =
+    formData.password.length >= PASSWORD_MIN &&
+    isCommonOrPersonalPassword(formData.password, passwordContext);
+  const confirmOk =
+    formData.confirmPassword.length > 0 &&
+    formData.confirmPassword === formData.password;
+
+  const usernameError =
+    show("username") && !usernameValid ? t("auth.validation.usernameRule") : null;
+  const emailError =
+    show("email") && !emailCheck.valid
+      ? emailCheck.reason === "empty"
+        ? t("auth.validation.emailRequired")
+        : emailCheck.reason === "disposable"
+          ? t("auth.validation.emailDisposable")
+          : t("auth.validation.emailFormat")
+      : null;
+  const passwordError =
+    submitAttempted && !passwordOk ? t("auth.validation.passwordWeakSubmit") : null;
+  const confirmError =
+    show("confirmPassword") && !confirmOk ? t("auth.validation.passwordMismatch") : null;
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -61,22 +84,45 @@ export default function RegisterPage() {
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setFormData((current) => ({ ...current, [e.target.name]: e.target.value }));
+    if (error) setError(null);
   };
 
-  const handleRegister = async () => {
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    setTouched((current) => ({ ...current, [e.target.name]: true }));
+  };
+
+  const handleRegister = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (submitting) return;
+    setSubmitAttempted(true);
     setError(null);
+    if (!usernameValid || !emailCheck.valid || !passwordOk || !confirmOk) {
+      setError(t("auth.validation.fixErrors"));
+      return;
+    }
+    if (!acceptLegal) {
+      setError(t("auth.consent.required"));
+      return;
+    }
+    setSubmitting(true);
     try {
       await register(
-        formData.username,
-        formData.email,
+        formData.username.trim(),
+        normalizeEmail(formData.email),
         formData.password,
-        formData.referralCode || undefined,
+        formData.referralCode.trim() || undefined,
+        { acceptLegal, marketingOptIn },
       );
+      trackEvent("sign_up", {
+        method: "email",
+        referred: Boolean(formData.referralCode.trim()),
+      });
       router.push("/dashboard");
     } catch (err) {
       const message = err instanceof Error ? err.message : "";
       setError(message || t("auth.registerError"));
+      setSubmitting(false);
     }
   };
 
@@ -88,9 +134,9 @@ export default function RegisterPage() {
         className="bg-[rgb(var(--card))] border-4 border-[rgb(var(--border))] rounded-none shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] w-full max-w-5xl flex flex-col md:flex-row overflow-hidden min-h-[700px]"
       >
         {/* COLUMNA IZQUIERDA: FORMULARIO */}
-        <div className="flex-1 p-8 md:p-16 flex flex-col justify-center">
+        <div className="flex-1 p-6 sm:p-8 md:p-16 flex flex-col justify-center">
           <div className="mb-10">
-            <h1 className="text-5xl font-black text-[rgb(var(--text))] tracking-tighter uppercase italic">
+            <h1 className="text-4xl sm:text-5xl font-black text-[rgb(var(--text))] tracking-tighter uppercase italic">
               {t("auth.registerTitle")} <br />
               <span className="text-[rgb(var(--primary))]">{t("auth.signup")}</span>
             </h1>
@@ -99,71 +145,150 @@ export default function RegisterPage() {
             </p>
           </div>
 
-          <p className="text-xs text-[rgb(var(--secondary-text))] mt-6 leading-relaxed">
-            {t("auth.registerIntro")}{" "}
-            <Link href="/terms" className="text-[rgb(var(--primary))]">
-              {t("auth.terms")}
-            </Link>
-            , la{" "}
-            <Link href="/privacy" className="text-[rgb(var(--primary))]">
-              {t("auth.privacy")}
-            </Link>{" "}
-            y la{" "}
-            <Link href="/refund-policy" className="text-[rgb(var(--primary))]">
-              {t("auth.refunds")}
-            </Link>
-            .
-          </p>
 
           {/* TOGGLE PESTAÑA */}
           <div className="flex mb-10 border-b-2 border-[rgb(var(--border))]">
             <Link
               href="/login"
-              className="px-8 py-3 font-bold text-[rgb(var(--secondary-text))] uppercase text-sm hover:text-[rgb(var(--primary))] transition-colors"
+              className="px-6 sm:px-8 py-3 font-bold text-[rgb(var(--secondary-text))] uppercase text-sm hover:text-[rgb(var(--primary))] transition-colors"
             >
               {t("auth.login")}
             </Link>
-            <button className="bg-[rgb(var(--primary))] text-black px-8 py-3 font-black uppercase text-sm border-t-2 border-l-2 border-r-2 border-[rgb(var(--border))] translate-y-[2px]">
+            <span
+              aria-current="page"
+              className="bg-[rgb(var(--primary))] text-black px-6 sm:px-8 py-3 font-black uppercase text-sm border-t-2 border-l-2 border-r-2 border-[rgb(var(--border))] translate-y-[2px]"
+            >
               {t("auth.signup")}
-            </button>
+            </span>
           </div>
 
-          <div className="space-y-5">
-            <BrutalInput
+          <form noValidate onSubmit={handleRegister} className="space-y-5">
+            <AuthField
               label={t("auth.username")}
               icon={User}
               name="username"
+              autoComplete="username"
+              maxLength={20}
               placeholder={t("auth.usernamePlaceholder")}
+              value={formData.username}
               onChange={handleChange}
+              onBlur={handleBlur}
+              error={usernameError}
             />
-            <BrutalInput
+            <AuthField
               label={t("auth.email")}
               icon={Mail}
               name="email"
               type="email"
+              inputMode="email"
+              autoComplete="email"
+              autoCapitalize="none"
+              spellCheck={false}
+              maxLength={254}
               placeholder={t("auth.networkEmailPlaceholder")}
+              value={formData.email}
               onChange={handleChange}
+              onBlur={handleBlur}
+              error={emailError}
+              hint={
+                emailCheck.suggestion ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setFormData((current) => ({
+                        ...current,
+                        email: emailCheck.suggestion!,
+                      }))
+                    }
+                    className="font-semibold text-[rgb(var(--warning-text))] underline underline-offset-2"
+                  >
+                    {t("auth.validation.emailSuggestion", {
+                      email: emailCheck.suggestion,
+                    })}
+                  </button>
+                ) : null
+              }
             />
-            <BrutalInput
-              label={t("auth.access")}
-              icon={Lock}
-              name="password"
-              type="password"
+            <div>
+              <PasswordField
+                label={t("auth.access")}
+                name="password"
+                autoComplete="new-password"
+                maxLength={PASSWORD_MAX}
+                placeholder={t("auth.passwordPlaceholder")}
+                value={formData.password}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                error={passwordError}
+              />
+              {(formData.password || submitAttempted) && (
+                <PasswordStrength
+                  password={formData.password}
+                  context={passwordContext}
+                  showCommonWarning={passwordIsCommon}
+                />
+              )}
+            </div>
+            <PasswordField
+              label={t("auth.confirmPassword")}
+              name="confirmPassword"
+              autoComplete="new-password"
+              maxLength={PASSWORD_MAX}
               placeholder={t("auth.passwordPlaceholder")}
+              value={formData.confirmPassword}
               onChange={handleChange}
+              onBlur={handleBlur}
+              error={confirmError}
             />
 
-            <BrutalInput
+            <AuthField
               label={t("auth.referral")}
               icon={ShieldCheck}
               name="referralCode"
+              maxLength={64}
+              autoCapitalize="none"
               placeholder={t("auth.optional")}
               value={formData.referralCode}
               onChange={handleChange}
             />
 
+            <div className="space-y-3">
+              <label className="flex cursor-pointer items-start gap-3 text-xs leading-relaxed text-[rgb(var(--secondary-text))]">
+                <input
+                  type="checkbox"
+                  checked={acceptLegal}
+                  onChange={(e) => {
+                    setAcceptLegal(e.target.checked);
+                    if (error) setError(null);
+                  }}
+                  aria-invalid={submitAttempted && !acceptLegal}
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-[rgb(var(--primary))]"
+                />
+                <span>
+                  {t("auth.consent.legalPrefix")}{" "}
+                  <Link href="/terms" target="_blank" className="font-bold text-[rgb(var(--primary))] underline underline-offset-2">
+                    {t("auth.consent.terms")}
+                  </Link>{" "}
+                  {t("auth.consent.and")}{" "}
+                  <Link href="/privacy" target="_blank" className="font-bold text-[rgb(var(--primary))] underline underline-offset-2">
+                    {t("auth.consent.privacy")}
+                  </Link>
+                  {t("auth.consent.legalSuffix")}
+                </span>
+              </label>
+              <label className="flex cursor-pointer items-start gap-3 text-xs leading-relaxed text-[rgb(var(--secondary-text))]">
+                <input
+                  type="checkbox"
+                  checked={marketingOptIn}
+                  onChange={(e) => setMarketingOptIn(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 accent-[rgb(var(--primary))]"
+                />
+                <span>{t("auth.consent.marketing")}</span>
+              </label>
+            </div>
+
             {error && (
-              <div className="bg-[rgb(var(--error))]/10 border-l-4 border-[rgb(var(--error))] p-3">
+              <div role="alert" className="bg-[rgb(var(--error))]/10 border-l-4 border-[rgb(var(--error))] p-3">
                 <p className="text-[rgb(var(--error))] text-xs font-black uppercase italic">
                   {error}
                 </p>
@@ -171,23 +296,25 @@ export default function RegisterPage() {
             )}
 
             <button
-              onClick={handleRegister}
-              className="w-full bg-[rgb(var(--button))] text-[rgb(var(--button-text))] p-5 font-black text-xl uppercase tracking-tighter hover:bg-white transition-all shadow-[6px_6px_0px_0px_rgba(255,255,255,0.2)] active:translate-x-1 active:translate-y-1 active:shadow-none mt-4 flex items-center justify-center gap-3"
+              type="submit"
+              disabled={submitting}
+              className="w-full bg-[rgb(var(--button))] text-[rgb(var(--button-text))] p-5 font-black text-lg sm:text-xl uppercase tracking-tighter hover:brightness-110 transition-all shadow-[6px_6px_0px_0px_rgba(255,255,255,0.2)] active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-60 disabled:cursor-wait mt-4 flex items-center justify-center gap-3"
             >
-              {t("auth.createAccount")} <ArrowRight size={24} />
+              {submitting ? (
+                <>
+                  <Loader2 size={22} className="animate-spin" /> {t("auth.submitting")}
+                </>
+              ) : (
+                <>
+                  {t("auth.createAccount")} <ArrowRight size={24} />
+                </>
+              )}
             </button>
-          </div>
+          </form>
 
           {/* SOCIAL REGISTER */}
           <div className="mt-10">
-            <div className="flex gap-4">
-              <button className="flex-1 border-2 border-[rgb(var(--border))] py-3 text-[rgb(var(--text))] flex items-center justify-center gap-2 hover:bg-[rgb(var(--secondary-button))] transition-colors font-black text-xs uppercase italic">
-                <Chrome size={16} /> Google
-              </button>
-              <button className="flex-1 border-2 border-[rgb(var(--border))] py-3 text-[rgb(var(--text))] flex items-center justify-center gap-2 hover:bg-[rgb(var(--secondary-button))] transition-colors font-black text-xs uppercase italic">
-                <Github size={16} /> GitHub
-              </button>
-            </div>
+            <SocialButtons />
           </div>
         </div>
 

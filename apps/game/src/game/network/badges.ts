@@ -2,11 +2,11 @@
 
 import { apiGet, apiPatch, apiPost } from "./http";
 
-export type BadgeStatus = { verified: boolean; isCreator: boolean };
-export type BadgeTypeKey = "VERIFIED" | "CREATOR";
+export type BadgeStatus = { verified: boolean; isCreator: boolean; premium: boolean };
+export type BadgeTypeKey = "VERIFIED" | "CREATOR" | "PREMIUM";
 
 export type MyBadgeSettings = {
-  /** Insignias que el jugador realmente tiene (verificado y/o creador). */
+  /** Insignias que el jugador realmente tiene (verificado, creador, premium). */
   qualifying: BadgeTypeKey[];
   /** Cuáles eligió mostrar, de las que califica. */
   selected: BadgeTypeKey[];
@@ -29,6 +29,7 @@ export type BadgeIconConfig = {
 export type BadgeConfig = {
   VERIFIED: BadgeIconConfig;
   CREATOR: BadgeIconConfig;
+  PREMIUM: BadgeIconConfig;
 };
 
 const DEFAULT_ICON_CONFIG: BadgeIconConfig = {
@@ -43,6 +44,7 @@ const DEFAULT_ICON_CONFIG: BadgeIconConfig = {
 export const DEFAULT_BADGE_CONFIG: BadgeConfig = {
   VERIFIED: DEFAULT_ICON_CONFIG,
   CREATOR: DEFAULT_ICON_CONFIG,
+  PREMIUM: DEFAULT_ICON_CONFIG,
 };
 
 export function getBadgeConfig() {

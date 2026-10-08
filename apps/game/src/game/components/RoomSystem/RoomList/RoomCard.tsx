@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Crown, Gem, Globe, Lock, ZoomIn } from "lucide-react";
+import { Crown, Gem, Globe, Lock, Users, ZoomIn } from "lucide-react";
 import { Room } from "../../../types/room";
 import styles from "./RoomCard.module.css";
 import CachedGameImage from "../../shared/CachedGameImage";
@@ -12,9 +12,13 @@ interface RoomCardProps {
   room: Room;
   onJoin: (roomId: string) => void;
   onView: (room: Room) => void;
+  /** Esta sala tiene un joinRoom en vuelo. */
+  joining?: boolean;
+  /** Hay una entrada en vuelo (a esta u otra sala): no aceptar más clics. */
+  joinLocked?: boolean;
 }
 
-export default function RoomCard({ room, onJoin, onView }: RoomCardProps) {
+export default function RoomCard({ room, onJoin, onView, joining = false, joinLocked = false }: RoomCardProps) {
   const t = useTranslation();
   const [zoomOpen, setZoomOpen] = useState(false);
   const currentUsers = room._count?.users || 0;
@@ -50,6 +54,14 @@ export default function RoomCard({ room, onJoin, onView }: RoomCardProps) {
               <Gem size={11} /> {t("rooms.cardVipBadge")}
             </span>
           )}
+
+          <span
+            className={`${styles.usersBadge} ${isFull ? styles.red : styles.green}`}
+            aria-label={t("rooms.cardUsersLabel")}
+            title={t("rooms.cardUsersLabel")}
+          >
+            <Users size={11} /> {currentUsers}/{room.maxUsers}
+          </span>
         </div>
 
         <button
@@ -70,51 +82,37 @@ export default function RoomCard({ room, onJoin, onView }: RoomCardProps) {
       )}
 
       <div className={styles.cardBody}>
-        <h3 className={styles.roomTitle}>{room.name}</h3>
+        <h3 className={styles.roomTitle} title={room.name}>{room.name}</h3>
 
-        <p className={styles.description}>
+        <p className={styles.description} title={room.description || undefined}>
           {room.description || t("rooms.cardDefaultDescription")}
         </p>
 
-        <div className={styles.separator} />
+        <div className={styles.footer}>
+          <span className={styles.ownerName} title={t("rooms.cardOwnerLabel")}>
+            <Crown size={12} aria-hidden="true" />
+            {room.owner?.username ? (
+              <RarityText effect={room.owner.nameEffectId}>{room.owner.username}</RarityText>
+            ) : (
+              t("rooms.cardUnknownOwner")
+            )}
+            {room.owner?.username && <UserBadges username={room.owner.username} size={11} />}
+          </span>
 
-        <div className={styles.stats}>
-          <div className={styles.statBox}>
-            <span className={styles.statLabel}>{t("rooms.cardUsersLabel")}</span>
-
-            <span
-              className={`${styles.statValue} ${
-                isFull ? styles.red : styles.green
-              }`}
-            >
-              {currentUsers}/{room.maxUsers}
-            </span>
-          </div>
-
-          <div className={styles.statBox}>
-            <span className={styles.statLabel}>{t("rooms.cardOwnerLabel")}</span>
-
-            <span className={styles.ownerName}>
-              <Crown size={12} />{" "}
-              {room.owner?.username ? (
-                <RarityText effect={room.owner.nameEffectId}>{room.owner.username}</RarityText>
-              ) : (
-                t("rooms.cardUnknownOwner")
-              )}
-              {room.owner?.username && <UserBadges username={room.owner.username} size={11} />}
-            </span>
-          </div>
+          <button
+            type="button"
+            disabled={isFull || joinLocked}
+            aria-busy={joining}
+            className={styles.joinBtn}
+            onClick={() => onJoin(room.id)}
+          >
+            {isFull
+              ? t("rooms.cardFullBadge")
+              : joining
+                ? t("rooms.cardJoiningButton")
+                : t("rooms.cardJoinButton")}
+          </button>
         </div>
-      </div>
-
-      <div className={styles.footer}>
-        <button
-          disabled={isFull}
-          className={styles.joinBtn}
-          onClick={() => onJoin(room.id)}
-        >
-          {isFull ? t("rooms.cardFullBadge") : t("rooms.cardJoinButton")}
-        </button>
       </div>
     </div>
   );

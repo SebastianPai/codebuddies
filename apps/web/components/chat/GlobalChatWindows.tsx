@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Minus, Send, Smile, X } from "lucide-react";
+import { Minus, Send, X } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { api } from "../../utils/api";
 import { useGlobalChat } from "./GlobalChatProvider";
@@ -57,17 +57,22 @@ function Avatar({ user }: { user?: UserLite | null }) {
 function MessageToast({
   notification,
   onOpen,
+  onDismiss,
   index,
 }: {
   notification: Notification;
   onOpen: () => void;
+  onDismiss: () => void;
   index: number;
 }) {
   const t = useTranslation();
   return (
     <div
+      role="button"
+      tabIndex={0}
       onClick={onOpen}
-      className="w-80 cursor-pointer rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 shadow-2xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+      onKeyDown={(e) => e.key === "Enter" && onOpen()}
+      className="relative w-[min(20rem,calc(100vw-2rem))] cursor-pointer rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-4 pr-9 shadow-2xl transition-all hover:scale-[1.02] active:scale-[0.98]"
       style={{
         transform: `translateY(-${index * 12}px) scale(${1 - index * 0.04})`,
         zIndex: 100 - index,
@@ -84,6 +89,17 @@ function MessageToast({
           <p className="text-xs text-zinc-500 mt-2">{t("chat.justNow")}</p>
         </div>
       </div>
+      <button
+        type="button"
+        aria-label={t("common.close")}
+        onClick={(e) => {
+          e.stopPropagation();
+          onDismiss();
+        }}
+        className="absolute right-2 top-2 rounded-lg p-1 text-[rgb(var(--secondary-text))] hover:bg-[rgb(var(--border)/0.5)]"
+      >
+        <X size={14} />
+      </button>
     </div>
   );
 }
@@ -135,7 +151,9 @@ function MiniBubble({ conversation, myId, onClose, onOpen }: any) {
       if (payload.conversationId !== conversation.id) return;
 
       const newMsg = payload.message as Message;
-      setMessages((prev) => [...prev, newMsg]);
+      setMessages((prev) =>
+        prev.some((item) => item.id === newMsg.id) ? prev : [...prev, newMsg],
+      );
 
       if (!isAtBottomRef.current && newMsg.senderId !== myId) {
         setNewMessageCount((c) => c + 1);
@@ -153,10 +171,29 @@ function MiniBubble({ conversation, myId, onClose, onOpen }: any) {
     const text = body.trim();
     if (!text) return;
     setBody("");
-    await api.post(`/messages/conversations/${conversation.id}/messages`, {
-      body: text,
-    });
+    try {
+      // Se pinta con la respuesta del POST: no depende de que el evento SSE
+      // llegue (la conexión se corta tras un rato de inactividad).
+      const sent = await api.post<Message>(
+        `/messages/conversations/${conversation.id}/messages`,
+        { body: text },
+      );
+      if (sent?.id) {
+        setMessages((prev) =>
+          prev.some((item) => item.id === sent.id) ? prev : [...prev, sent],
+        );
+        requestAnimationFrame(() => scrollToBottom("smooth"));
+      }
+    } catch {
+      setBody(text);
+    }
   };
+
+  // Al abrir o recibir el historial, bajar al último mensaje.
+  useEffect(() => {
+    if (!collapsed) scrollToBottom("auto");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [collapsed, messages.length === 0]);
 
   if (collapsed) {
     return (
@@ -170,7 +207,7 @@ function MiniBubble({ conversation, myId, onClose, onOpen }: any) {
   }
 
   return (
-    <div className="flex h-[440px] w-80 shrink-0 flex-col overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-2xl">
+    <div className="flex h-[min(440px,70vh)] w-[min(20rem,calc(100vw-2rem))] shrink-0 flex-col overflow-hidden rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-2xl">
       <div className="flex items-center gap-2 border-b border-[rgb(var(--border))] p-3">
         <button
           onClick={onOpen}
@@ -179,7 +216,9 @@ function MiniBubble({ conversation, myId, onClose, onOpen }: any) {
           <Avatar user={conversation.partner} />
           <div>
             <p className="font-bold">@{conversation.partner?.username}</p>
-            <p className="text-xs text-emerald-400">{t("chat.online")}</p>
+            {conversation.partner?.online && (
+              <p className="text-xs text-emerald-400">{t("chat.online")}</p>
+            )}
           </div>
         </button>
         <button
@@ -223,15 +262,18 @@ function MiniBubble({ conversation, myId, onClose, onOpen }: any) {
 
       <div className="border-t border-[rgb(var(--border))] p-3">
         <div className="flex gap-2">
-          <button className="rounded-xl border border-[rgb(var(--border))] p-2.5">
-            <Smile size={20} />
-          </button>
           <input
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.nativeEvent.isComposing) {
+                e.preventDefault();
+                void sendMessage();
+              }
+            }}
+            maxLength={2000}
             placeholder={t("chat.messagePlaceholder")}
-            className="flex-1 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 outline-none focus:border-[rgb(var(--primary))]"
+            className="min-w-0 flex-1 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-4 py-2 outline-none focus:border-[rgb(var(--primary))]"
           />
           <button
             onClick={sendMessage}
@@ -246,13 +288,19 @@ function MiniBubble({ conversation, myId, onClose, onOpen }: any) {
   );
 }
 
+const TOAST_TTL_MS = 6000;
+
 export default function GlobalChatWindows() {
-  const { openChats, closeChat, openChat } = useGlobalChat();
+  const { openChats, closeChat, openChat, onMessagesPage } = useGlobalChat();
   const { user } = useAuth();
   const myId = user?.userId || user?.id || "";
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const openChatsRef = useRef(openChats);
+  useEffect(() => {
+    openChatsRef.current = openChats;
+  }, [openChats]);
 
   const loadConversations = useCallback(async () => {
     if (!myId) return;
@@ -268,11 +316,23 @@ export default function GlobalChatWindows() {
     loadConversations();
   }, [loadConversations]);
 
+  // Si se abre una conversación que todavía no está en la lista (chat nuevo),
+  // refrescar la lista para poder pintarla.
+  useEffect(() => {
+    if (openChats.some((id) => !conversations.some((c) => c.id === id))) {
+      void loadConversations();
+    }
+  }, [openChats, conversations, loadConversations]);
+
   // Escuchar nuevos mensajes
   useEffect(() => {
     const handleNewMessage = (event: Event) => {
       const payload = (event as CustomEvent).detail;
       if (!payload.message || payload.message.senderId === myId) return;
+      // En /messages la bandeja ya está visible, y si la ventanita de esa
+      // conversación está abierta el mensaje ya se ve ahí.
+      if (window.location.pathname.startsWith("/messages")) return;
+      if (openChatsRef.current.includes(payload.conversationId)) return;
 
       const newNotif: Notification = {
         id: Date.now().toString(),
@@ -282,6 +342,9 @@ export default function GlobalChatWindows() {
       };
 
       setNotifications((prev) => [newNotif, ...prev].slice(0, 3));
+      window.setTimeout(() => {
+        setNotifications((prev) => prev.filter((n) => n.id !== newNotif.id));
+      }, TOAST_TTL_MS);
     };
 
     window.addEventListener("codebuddies:message:new", handleNewMessage);
@@ -293,10 +356,12 @@ export default function GlobalChatWindows() {
     .map((id) => conversations.find((c) => c.id === id))
     .filter(Boolean) as Conversation[];
 
+  if (onMessagesPage) return null;
+
   return (
     <>
       {/* Notificaciones apiladas estilo iPhone */}
-      <div className="fixed bottom-28 right-6 z-[10000] flex flex-col gap-3">
+      <div className="fixed bottom-24 right-4 z-[10000] flex flex-col gap-3 sm:right-6">
         {notifications.map((notif, index) => (
           <MessageToast
             key={notif.id}
@@ -306,6 +371,9 @@ export default function GlobalChatWindows() {
               openChat(notif.conversationId);
               setNotifications([]); // ← Borra TODAS las notificaciones al abrir
             }}
+            onDismiss={() =>
+              setNotifications((prev) => prev.filter((n) => n.id !== notif.id))
+            }
           />
         ))}
       </div>

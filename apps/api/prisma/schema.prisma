@@ -89,6 +89,11 @@ enum InteractionType {
   OPEN
   TOGGLE
   TELEPORT
+  // Click izquierdo directo sobre el objeto, resuelto contra
+  // WorldItemData.behavior. TOGGLE y OPEN siguen intactos: son el camino de
+  // los objetos que ya existen (state.on / state.open desde el menú
+  // contextual) y no se tocan.
+  CLICK
 }
 
 enum ItemType {
@@ -609,8 +614,13 @@ model User {
   bestStreak             Int       @default(0)
   lastLoginAt            DateTime?
   lastLearningActivityAt DateTime?
-  marketingEmailsEnabled Boolean   @default(true)
+  // Marketing solo con consentimiento expreso (opt-in): Ley 1581 y RGPD.
+  marketingEmailsEnabled Boolean   @default(false)
   marketingEmailOptedAt  DateTime  @default(now())
+  // Prueba de la aceptación de Términos + autorización de tratamiento de
+  // datos (Decreto 1377/2013 art. 7: debe poder consultarse después).
+  legalAcceptedAt        DateTime?
+  legalVersion           String?
 
   energyUpdatedAt DateTime @default(now())
   adsWatchedToday Int      @default(0)
@@ -744,6 +754,8 @@ model User {
 
   battlePassProgress UserBattlePassProgress[]
   battlePassClaims   BattlePassClaim[]
+
+  itemUpgrades UserItemUpgrade[]
 }
 
 model App {
@@ -903,6 +915,7 @@ model Item {
   roomItems      RoomItem[]
   buildFavorites RoomBuildFavorite[]
   gifts          ItemGift[]
+  upgrades       ItemUpgrade[]
   pets           Pet[]
 }
 
@@ -922,11 +935,11 @@ model Pet {
   species String @default("cat")
   name    String @default("")
 
-  hunger    Int @default(80)
-  thirst    Int @default(80)
-  happiness Int @default(80)
-  energy    Int @default(80)
-  health    Int @default(100)
+  hunger    Int     @default(80)
+  thirst    Int     @default(80)
+  happiness Int     @default(80)
+  energy    Int     @default(80)
+  health    Int     @default(100)
   sick      Boolean @default(false)
 
   lastTickAt    DateTime @default(now())
@@ -954,9 +967,9 @@ model PetSpeciesConfig {
   id  String @id @default(uuid())
   key String @unique // "cat", "dog", ... (coincide con Pet.species)
 
-  name       String
+  name           String
   spriteSheetUrl String?
-  previewUrl String?
+  previewUrl     String?
 
   // Tamaño de celda por defecto (cada clip puede pisarlo).
   frameWidth  Int @default(32)
@@ -1076,12 +1089,12 @@ model WorldItemData {
   // spriteOffsetX/Y: valor legacy/fallback (= dirección SOUTH). Lo usan los
   // items guardados antes de spriteOffsets y cualquier lector que no mire el
   // mapa por dirección.
-  spriteOffsetX Int @default(0)
-  spriteOffsetY Int @default(0)
+  spriteOffsetX    Int    @default(0)
+  spriteOffsetY    Int    @default(0)
   // Offset por dirección: { NORTH:{x,y}, EAST:{x,y}, SOUTH:{x,y}, WEST:{x,y} }
   // Cada frame del spritesheet puede traer padding distinto, así que un
   // mismo par no alinea las 4 rotaciones.
-  spriteOffsets Json?
+  spriteOffsets    Json?
   // "all" (1 valor) | "mirror" (NORTH=SOUTH, EAST=WEST) | "none" (4 libres)
   spriteOffsetSync String @default("mirror")
 
@@ -1092,6 +1105,21 @@ model WorldItemData {
   footprints     Json?
   surfaces       Json?
   engineData     Json?
+
+  // Comportamiento declarativo del objeto: estados, animaciones y
+  // transiciones (ver @codebuddies/world-objects, que define el contrato,
+  // lo valida y lo ejecuta). Es DATO, nunca código: enums cerrados y
+  // enteros acotados, así que un creador del Marketplace no puede ejecutar
+  // nada dentro del juego.
+  //
+  // null = objeto de SIEMPRE. Es la regla de compatibilidad del sistema:
+  // sin behavior, el mueble se renderiza y se interactúa exactamente como
+  // antes de que esto existiera (frame estático por dirección, TOGGLE/OPEN
+  // desde el menú). Ningún lector inventa un behavior por defecto.
+  //
+  // Se escribe SOLO vía normalizeBehaviorForWrite() (items/world-behavior.util.ts),
+  // que valida en estricto y rechaza cualquier propiedad desconocida.
+  behavior Json?
 
   directions Int @default(4)
 
@@ -2103,6 +2131,9 @@ model ExerciseAttempt {
   correct          Boolean
   score            Int?
   timeSpentSeconds Int?
+  // Solo QUIZ: qué pregunta se respondió. El quiz se completa cuando TODAS
+  // sus preguntas tienen al menos un intento correcto.
+  questionIndex    Int?
   createdAt        DateTime @default(now())
 
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -2340,6 +2371,14 @@ enum BattlePassTrack {
   PREMIUM
 }
 
+// XP: el nivel sube con XP de Battle Pass (lecciones/ejercicios).
+// DAILY: cada día distinto que el usuario entra se desbloquea el siguiente
+// (día 1, 2... totalLevels); faltar un día no hace perder nada.
+enum BattlePassProgressMode {
+  XP
+  DAILY
+}
+
 // Temporada del Battle Pass. Mismo shape que RankingSeason/ReferralSeason
 // (header con status + startAt/endAt) pero con su propio ciclo de vida
 // porque un Battle Pass necesita niveles/curva de XP propios, que esos dos
@@ -2357,6 +2396,7 @@ model BattlePassSeason {
   // un nivel. Curva constante en v1 -- suficiente para 30 niveles / 30 días
   // y fácil de auditar contra los topes de economía del diseño.
   xpPerLevel   Int                    @default(1000)
+  progressMode BattlePassProgressMode @default(DAILY)
   createdAt    DateTime               @default(now())
   updatedAt    DateTime               @updatedAt
 
@@ -2403,13 +2443,16 @@ model BattlePassTier {
 // en BattlePassSeason.xpPerLevel) -- este modelo es al Battle Pass lo que
 // RankingSeasonEntry es a RankingSeason.
 model UserBattlePassProgress {
-  id        String   @id @default(uuid())
-  userId    String
-  seasonId  String
-  xp        Int      @default(0)
-  level     Int      @default(1)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String   @id @default(uuid())
+  userId         String
+  seasonId       String
+  xp             Int      @default(0)
+  level          Int      @default(1)
+  // Modo DAILY: último día (YYYY-MM-DD, hora de Colombia) que contó. Si es
+  // anterior a hoy, el próximo check-in sube un nivel.
+  lastCheckInDay String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   user   User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   season BattlePassSeason @relation(fields: [seasonId], references: [id], onDelete: Cascade)
@@ -3349,9 +3392,14 @@ model CreatorProfile {
 // ícono opcional que el admin puede subir para reemplazar el ícono por
 // defecto de cada tipo — si iconUrl es null, el cliente usa su ícono lucide
 // por defecto.
+//
+// premium = automático: Premium activo, o tener la GamificationBadge
+// "badge-premium-logo" (regalo del nivel 1 del Battle Pass) durante 30 días
+// desde que se reclamó. Ver BadgesService.
 enum BadgeType {
   VERIFIED
   CREATOR
+  PREMIUM
 }
 
 // STATIC = una sola imagen fija (insignias básicas).
@@ -4161,4 +4209,76 @@ model CodeStudioBug {
   company CodeStudioCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@index([companyId, status])
+}
+
+// Mejoras desbloqueables de un objeto del mundo con `behavior` (ver
+// packages/world-objects/upgrades.ts): la TV se vende apagada y la mejora
+// "Encendido" desbloquea el estado ON. Las define un admin o el creador del
+// objeto en el marketplace; el jugador las compra una vez y valen para todas
+// sus copias de ese objeto.
+model ItemUpgrade {
+  id           String   @id @default(uuid())
+  itemId       String
+  key          String
+  name         String
+  description  String?
+  priceCoins   Int
+  // Estados del behavior que desbloquea.
+  unlockStates String[] @default([])
+  // Mejora previa necesaria (ej. "Canales" requiere "Encendido").
+  requiresId   String?
+  sortOrder    Int      @default(0)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  item       Item              @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  requires   ItemUpgrade?      @relation("ItemUpgradeRequires", fields: [requiresId], references: [id], onDelete: SetNull)
+  requiredBy ItemUpgrade[]     @relation("ItemUpgradeRequires")
+  purchases  UserItemUpgrade[]
+
+  @@unique([itemId, key])
+  @@index([itemId, active])
+}
+
+model UserItemUpgrade {
+  id        String   @id @default(uuid())
+  userId    String
+  upgradeId String
+  itemId    String
+  pricePaid Int
+  createdAt DateTime @default(now())
+
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  upgrade ItemUpgrade @relation(fields: [upgradeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, upgradeId])
+  @@index([userId, itemId])
+}
+
+// Historial completo para el admin: cada acción que cambia algo (HTTP
+// POST/PUT/PATCH/DELETE y las acciones clave del juego por socket), de
+// cualquier usuario. Sin FK a User a propósito, igual que AdminActionLog:
+// el registro tiene que sobrevivir aunque se borre la cuenta. Se conserva
+// 90 días (lo que dice la Política de privacidad para registros técnicos).
+model EventLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  username   String?
+  role       String?
+  source     String // HTTP | SOCKET
+  action     String // "POST /marketplace/:id/buy", "room:item:place"...
+  method     String?
+  path       String?
+  statusCode Int?
+  success    Boolean  @default(true)
+  durationMs Int?
+  ip         String?
+  targetId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
 }

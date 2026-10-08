@@ -22,9 +22,16 @@ export default class FurnitureSocketSystem {
   }
 
   private handleItemError = (err: any) => {
-    console.error("❌ ROOM ITEM ERROR");
-    console.error("Mensaje:", err?.message);
-    console.error("Error completo:", JSON.stringify(err, null, 2));
+    console.error("ROOM ITEM ERROR:", err?.message, err);
+
+    // En colocación continua el cliente descuenta unidades antes de que el
+    // servidor confirme; si una se rechaza, cortar el ghost evita seguir
+    // mandando colocaciones con un contador que ya no es real.
+    const scene = this.scene as any;
+    scene.furniturePlacement?.releasePending();
+    if (scene.buildSystem?.getCurrentItem() && !scene.movingRoomItem) {
+      scene.buildSystem.stop();
+    }
   };
 
   // El payload del servidor ya tiene la forma que espera
@@ -40,6 +47,7 @@ export default class FurnitureSocketSystem {
   }
 
   private handleItemPlaced = (item: any) => {
+    (this.scene as any).furniturePlacement?.releasePending(item);
     this.spawn(item, item.item.imageUrl, true);
   };
 
@@ -72,6 +80,16 @@ export default class FurnitureSocketSystem {
     }
 
     this.roomItems.applyItemState(data.roomItemId);
+
+    // Objetos con `behavior`: el servidor manda el estado FINAL más la
+    // animación de paso y el instante en que la resolvió. Acá NO se resuelve
+    // ninguna transición — eso ya lo hizo la API — sólo se le pasa el dato al
+    // animator, que calcula el frame desde `at` y por eso un evento que llega
+    // tarde reanuda la animación en vez de reiniciarla.
+    if (data.behavior) {
+      this.roomItems.applyRemoteBehaviorState(data.roomItemId, data.behavior);
+    }
+
     audioManager.play("click");
   };
 

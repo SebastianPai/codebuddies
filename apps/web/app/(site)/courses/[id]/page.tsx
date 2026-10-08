@@ -25,11 +25,21 @@ import {
 } from "lucide-react";
 
 import { fetcher } from "../../../../utils/fetcher";
-import { Exercise } from "../../../../src/types/exercise";
+import { getCurrentUser } from "../../../../utils/auth";
+import { exercisePath, lessonPath } from "@/shared/utils/exercise-path";
 import { EmptyState, ErrorState } from "@/shared/ui";
 import { CourseReviews } from "@/features/courses/components/course-reviews";
 import { CourseProjectSection } from "@/features/courses/components/course-project-section";
 import { ReferralCourseBanner } from "@/features/courses/components/referral-course-banner";
+
+interface CourseExercise {
+  id: string;
+  title: string | null;
+  type: string;
+  experience: number;
+  locked?: boolean;
+  completed?: boolean;
+}
 
 interface CertificateStatus {
   completed: boolean;
@@ -47,7 +57,6 @@ export default function CourseDetailPage() {
   const [loadError, setLoadError] = useState(false);
   const [openLesson, setOpenLesson] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [completedExercises, setCompletedExercises] = useState<string[]>([]);
   const [userXP, setUserXP] = useState(0);
   const [userLevel, setUserLevel] = useState(1);
   const [streak, setStreak] = useState(0); // ← nuevo (puedes calcularlo real)
@@ -71,24 +80,22 @@ export default function CourseDetailPage() {
 
       if (token && userId) {
         try {
-          const progress = await fetcher(`/progress/user/${userId}`);
-          const completedExIds = progress
-            .map((p: any) => p.exercise?.id)
-            .filter(Boolean);
-
-          setCompletedExercises(completedExIds);
-
+          // El estado de progreso (teoría leída, ejercicios completados y
+          // bloqueados) ya viene en /courses/:id para este usuario. Antes se
+          // bajaba TODO el historial (/progress/user) y el % mezclaba
+          // ejercicios de otros cursos.
           // QW14: antes se recalculaba el nivel acá con una fórmula propia
           // (Math.floor(xp/500)+1) que no coincidía con la real del backend
           // (reward.service.ts::calculateLevel, floor(sqrt(xp/100))+1) — el
           // mismo usuario veía dos niveles distintos según la página. Ahora
           // usa el nivel/XP que ya devuelve /identity/me, autoritativo.
-          const me = await fetcher(`/identity/me`);
+          const [me, status] = await Promise.all([
+            getCurrentUser(),
+            fetcher(`/certificates/course/${id}/status`),
+          ]);
           setStreak(me?.streak ?? 0);
           setUserXP(me?.experience ?? 0);
           setUserLevel(me?.level ?? 1);
-
-          const status = await fetcher(`/certificates/course/${id}/status`);
           setCertificateStatus(status);
         } catch (err) {
           // Progress/certificate are secondary to the course itself — don't block
@@ -106,22 +113,59 @@ export default function CourseDetailPage() {
     loadData();
   }, [loadData]);
 
-  const totalExercises = useMemo(() => {
-    return (
-      course?.lessons?.reduce(
-        (acc: number, l: any) => acc + (l.exercises?.length || 0),
-        0,
-      ) ?? 0
-    );
+  // Camino lineal del curso: teoría de cada lección + sus ejercicios
+  // calificables (LIVE es placeholder, no cuenta). El progreso y el botón
+  // "continuar" salen de acá, igual que el candado del backend.
+  const path = useMemo(() => {
+    const steps: {
+      kind: "theory" | "exercise";
+      lessonId: string;
+      id: string;
+      type?: string;
+      done: boolean;
+    }[] = [];
+    for (const lesson of course?.lessons ?? []) {
+      steps.push({
+        kind: "theory",
+        lessonId: lesson.id,
+        id: lesson.id,
+        done: Boolean(lesson.theoryCompleted),
+      });
+      for (const ex of lesson.exercises ?? []) {
+        if (ex.type === "LIVE") continue;
+        steps.push({
+          kind: "exercise",
+          lessonId: lesson.id,
+          id: ex.id,
+          type: ex.type,
+          done: Boolean(ex.completed),
+        });
+      }
+    }
+    const done = steps.filter((step) => step.done).length;
+    const next = steps.find((step) => !step.done) ?? null;
+    const exercisesDone = steps.filter(
+      (step) => step.kind === "exercise" && step.done,
+    ).length;
+    return { total: steps.length, done, next, exercisesDone };
   }, [course]);
 
-  const progressPercent = useMemo(() => {
-    if (!totalExercises) return 0;
-    return Math.min(
-      100,
-      Math.floor((completedExercises.length / totalExercises) * 100),
-    );
-  }, [completedExercises, totalExercises]);
+  const progressPercent = path.total
+    ? Math.min(100, Math.floor((path.done / path.total) * 100))
+    : 0;
+
+  const continueHref = path.next
+    ? path.next.kind === "theory"
+      ? lessonPath(id, path.next.lessonId)
+      : exercisePath(path.next.id, path.next.type ?? "QUIZ")
+    : null;
+
+  // Abre por defecto la lección donde está el siguiente paso.
+  useEffect(() => {
+    if (path.next && openLesson === null) setOpenLesson(path.next.lessonId);
+    // Solo al cargar el curso, no cada vez que el usuario colapsa.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [path.next?.lessonId]);
 
   const handleIssueCertificate = async () => {
     if (!id) return;
@@ -178,7 +222,7 @@ export default function CourseDetailPage() {
         {/* columna principal */}
         <div className="lg:col-span-8 space-y-8 md:space-y-10">
           {/* Hero mejorado */}
-          <header className="relative overflow-hidden rounded-2xl border-4 border-[rgb(var(--primary)/0.3)] bg-gradient-to-br from-[rgb(var(--card))] to-[rgb(var(--card)/0.7)] p-8 md:p-10 shadow-xl">
+          <header className="relative overflow-hidden rounded-2xl border-4 border-[rgb(var(--primary)/0.3)] bg-gradient-to-br from-[rgb(var(--card))] to-[rgb(var(--card)/0.7)] p-5 sm:p-8 md:p-10 shadow-xl">
             <div className="absolute -right-12 -top-12 opacity-10 text-[20rem] font-black leading-none text-[rgb(var(--primary))]">
               {course.title.slice(0, 3)}
             </div>
@@ -197,7 +241,7 @@ export default function CourseDetailPage() {
                 )}
               </div>
 
-              <h1 className="text-4xl sm:text-5xl md:text-6xl font-black italic uppercase tracking-tighter text-[rgb(var(--primary-text))] leading-tight">
+              <h1 className="text-3xl sm:text-5xl md:text-6xl font-black italic uppercase tracking-tighter text-[rgb(var(--primary-text))] leading-tight break-words">
                 {course.title}_
               </h1>
 
@@ -223,6 +267,34 @@ export default function CourseDetailPage() {
                 </div>
               )}
 
+              {isLoggedIn && path.total > 0 && (
+                <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
+                  {continueHref ? (
+                    <Link
+                      href={continueHref}
+                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-[rgb(var(--button))] px-6 py-3 text-sm font-black uppercase tracking-wide text-[rgb(var(--button-text))] transition hover:brightness-110"
+                    >
+                      <PlayCircle size={18} />
+                      {path.done > 0
+                        ? t("site.academyLesson.continueWhereLeft")
+                        : t("site.academyLesson.startCourse")}
+                      <ArrowRight size={16} />
+                    </Link>
+                  ) : (
+                    <span className="inline-flex items-center gap-2 rounded-lg border-2 border-[rgb(var(--success)/0.5)] bg-[rgb(var(--success)/0.1)] px-5 py-2.5 text-sm font-black uppercase text-[rgb(var(--success-text))]">
+                      <CheckCircle2 size={18} />
+                      {t("site.courseCompletedTitle")}
+                    </span>
+                  )}
+                  <span className="text-sm font-mono text-[rgb(var(--secondary-text))]">
+                    {t("site.academyLesson.courseSteps", {
+                      done: path.done,
+                      total: path.total,
+                    })}
+                  </span>
+                </div>
+              )}
+
               <ReferralCourseBanner courseId={id} />
             </div>
           </header>
@@ -242,11 +314,15 @@ export default function CourseDetailPage() {
               const isLocked = Boolean(lesson.locked);
               const isProgressionLocked =
                 isLocked && lesson.lockedReason === "progression";
+              const gradable: CourseExercise[] = (lesson.exercises ?? []).filter(
+                (ex: CourseExercise) => ex.type !== "LIVE",
+              );
+              const theoryDone = Boolean(lesson.theoryCompleted);
               const completedCount =
-                lesson.exercises?.filter((ex: Exercise) =>
-                  completedExercises.includes(ex.id),
-                ).length || 0;
-              const totalInLesson = lesson.exercises?.length || 0;
+                gradable.filter((ex) => ex.completed).length +
+                (theoryDone ? 1 : 0);
+              const totalInLesson = gradable.length + 1;
+              const lessonDone = isLoggedIn && completedCount === totalInLesson;
 
               return (
                 <div
@@ -260,38 +336,46 @@ export default function CourseDetailPage() {
                   <button
                     disabled={isLocked}
                     onClick={() => setOpenLesson(isOpen ? null : lesson.id)}
-                    className="w-full flex items-center justify-between p-6 text-left transition disabled:cursor-not-allowed"
+                    className="w-full flex items-center justify-between gap-3 p-4 sm:p-6 text-left transition disabled:cursor-not-allowed"
                     aria-expanded={isOpen}
                     aria-controls={`lesson-content-${lesson.id}`}
                   >
-                    <div className="flex items-center gap-5 flex-1">
+                    <div className="flex items-center gap-3 sm:gap-5 flex-1 min-w-0">
                       <div className="flex-shrink-0">
-                        <span className="inline-block bg-[rgb(var(--code-background))] text-[rgb(var(--primary-text))] font-mono px-4 py-2 text-base border-2 border-[rgb(var(--primary))] rounded-lg font-bold">
-                          L-{String(lesson.order).padStart(2, "0")}
-                        </span>
+                        {lessonDone ? (
+                          <span className="inline-flex h-11 w-[4.25rem] items-center justify-center rounded-lg border-2 border-[rgb(var(--success))] bg-[rgb(var(--success)/0.12)] text-[rgb(var(--success))]">
+                            <CheckCircle2 size={22} />
+                          </span>
+                        ) : (
+                          <span className="inline-block bg-[rgb(var(--code-background))] text-[rgb(var(--primary-text))] font-mono px-4 py-2 text-base border-2 border-[rgb(var(--primary))] rounded-lg font-bold">
+                            L-{String(lesson.order).padStart(2, "0")}
+                          </span>
+                        )}
                       </div>
 
                       <div className="flex-1 min-w-0">
                         <h3
                           id={`lesson-${lesson.id}`}
-                          className="text-2xl font-black uppercase italic group-hover:text-[rgb(var(--primary-text))] transition-colors"
+                          className="text-lg sm:text-2xl font-black uppercase italic break-words group-hover:text-[rgb(var(--primary-text))] transition-colors"
                         >
                           {lesson.title || t.courseDetail.lessonFallback}
                         </h3>
 
-                        <div className="mt-1.5 flex items-center gap-4 text-sm font-mono text-[rgb(var(--secondary-text))]">
-                          <span>
-                            {completedCount}/{totalInLesson} {t("site.completedMasculineSuffix")}
-                          </span>
-                          {totalInLesson > 0 && (
-                            <span className="text-[rgb(var(--primary-text))] font-bold">
-                              {Math.round(
-                                (completedCount / totalInLesson) * 100,
-                              )}
-                              %
+                        {isLoggedIn && (
+                          <div className="mt-1.5 flex items-center gap-3 text-sm font-mono text-[rgb(var(--secondary-text))]">
+                            <span>
+                              {completedCount}/{totalInLesson} {t("site.completedMasculineSuffix")}
                             </span>
-                          )}
-                        </div>
+                            <span className="h-1.5 w-20 overflow-hidden rounded-full bg-[rgb(var(--border))]">
+                              <span
+                                className="block h-full rounded-full bg-[rgb(var(--primary))]"
+                                style={{
+                                  width: `${Math.round((completedCount / totalInLesson) * 100)}%`,
+                                }}
+                              />
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -332,68 +416,90 @@ export default function CourseDetailPage() {
                         transition={{ duration: 0.3, ease: "easeOut" }}
                         className="border-t-2 border-[rgb(var(--border))] bg-[rgb(var(--code-background)/0.6)]"
                       >
-                        <div className="p-6 md:p-8 space-y-6">
+                        <div className="p-4 sm:p-6 md:p-8 space-y-5">
                           {lesson.description && (
                             <p className="text-base font-mono italic text-[rgb(var(--secondary-text))] border-l-4 border-[rgb(var(--primary)/0.4)] pl-5 py-1">
                               {lesson.description}
                             </p>
                           )}
 
-                          <Link
-                            href={`/courses/${id}/lessons/${lesson.id}`}
-                            className="inline-flex items-center gap-2 rounded-lg bg-[rgb(var(--button))] px-5 py-2.5 text-sm font-black uppercase tracking-wide text-[rgb(var(--button-text))] transition hover:brightness-110"
-                          >
-                            <BookOpen size={16} />
-                            {t("courseDetail.startLesson")}
-                            <ArrowRight size={16} />
-                          </Link>
+                          <ol className="space-y-3">
+                            <li>
+                              <Link
+                                href={lessonPath(id, lesson.id)}
+                                className={`flex items-center gap-3 sm:gap-4 rounded-lg border-2 p-3 sm:p-4 transition-all duration-200 ${
+                                  theoryDone
+                                    ? "border-[rgb(var(--success)/0.5)] bg-[rgb(var(--success)/0.08)]"
+                                    : "border-[rgb(var(--primary))] bg-[rgb(var(--primary)/0.08)] hover:bg-[rgb(var(--primary)/0.14)]"
+                                }`}
+                              >
+                                {theoryDone ? (
+                                  <CheckCircle2 size={22} className="shrink-0 text-[rgb(var(--success))]" />
+                                ) : (
+                                  <BookOpen size={22} className="shrink-0 text-[rgb(var(--primary))]" />
+                                )}
+                                <span className="min-w-0 flex-1">
+                                  <span className="block text-[0.65rem] font-black uppercase tracking-wide text-[rgb(var(--secondary-text))]">
+                                    {t("site.academyLesson.stepTheory")}
+                                  </span>
+                                  <span className="block truncate font-mono font-semibold text-base">
+                                    {theoryDone
+                                      ? t("site.academyLesson.reviewTheory")
+                                      : t("courseDetail.startLesson")}
+                                  </span>
+                                </span>
+                                <ArrowRight size={16} className="shrink-0" />
+                              </Link>
+                            </li>
 
-                          <div className="space-y-3">
-                            {lesson.exercises?.map((ex: Exercise) => {
-                              const completed = completedExercises.includes(
-                                ex.id,
-                              );
-
-                              return (
-                                <Link
-                                  key={ex.id}
-                                  href={`/learn/exercise/${ex.type.toLowerCase()}/${ex.id}`}
-                                  className={`group/ex flex items-center justify-between p-4 rounded-lg border-2 transition-all duration-200 ${
-                                    completed
-                                      ? "border-[rgb(var(--success)/0.5)] bg-[rgb(var(--success)/0.08)]"
-                                      : "border-[rgb(var(--border))] hover:border-[rgb(var(--primary))] hover:bg-[rgb(var(--card)/0.5)]"
-                                  }`}
-                                >
-                                  <div className="flex items-center gap-4 flex-1">
-                                    <div className="flex items-center gap-3">
-                                      {completed ? (
-                                        <CheckCircle2
-                                          size={22}
-                                          className="text-[rgb(var(--success))]"
-                                        />
-                                      ) : (
-                                        <PlayCircle size={22} />
-                                      )}
-
-                                      <span className="font-mono font-semibold text-base">
-                                        {ex.title}
-                                      </span>
-                                    </div>
-
-                                    <span className="text-sm font-mono text-[rgb(var(--secondary-text))] ml-auto">
-                                      +{ex.experience} XP
-                                    </span>
-                                  </div>
-
-                                  {completed && (
-                                    <span className="text-xs font-mono uppercase bg-[rgb(var(--success)/0.2)] px-3 py-1 rounded-full ml-4">
-                                      {t.courseDetail.xpClaimed}
-                                    </span>
+                            {lesson.exercises?.map((ex: CourseExercise) => {
+                              const completed = Boolean(ex.completed);
+                              const exLocked = !completed && Boolean(ex.locked);
+                              const row = (
+                                <>
+                                  {completed ? (
+                                    <CheckCircle2 size={22} className="shrink-0 text-[rgb(var(--success))]" />
+                                  ) : exLocked ? (
+                                    <Lock size={20} className="shrink-0 text-[rgb(var(--disabled))]" />
+                                  ) : (
+                                    <PlayCircle size={22} className="shrink-0 text-[rgb(var(--primary))]" />
                                   )}
-                                </Link>
+                                  <span className="min-w-0 flex-1 truncate font-mono font-semibold text-base">
+                                    {ex.title}
+                                  </span>
+                                  <span className="shrink-0 text-xs sm:text-sm font-mono text-[rgb(var(--secondary-text))]">
+                                    {completed ? t.courseDetail.xpClaimed : `+${ex.experience} XP`}
+                                  </span>
+                                </>
+                              );
+                              return (
+                                <li key={ex.id}>
+                                  {exLocked ? (
+                                    <div
+                                      aria-disabled
+                                      title={t("site.academyLesson.stepLockedHint")}
+                                      className="flex items-center gap-3 sm:gap-4 rounded-lg border-2 border-dashed border-[rgb(var(--border))] p-3 sm:p-4 text-[rgb(var(--disabled))] cursor-not-allowed"
+                                    >
+                                      {row}
+                                    </div>
+                                  ) : (
+                                    <Link
+                                      href={exercisePath(ex.id, ex.type)}
+                                      className={`flex items-center gap-3 sm:gap-4 rounded-lg border-2 p-3 sm:p-4 transition-all duration-200 ${
+                                        completed
+                                          ? "border-[rgb(var(--success)/0.5)] bg-[rgb(var(--success)/0.08)]"
+                                          : "border-[rgb(var(--border))] hover:border-[rgb(var(--primary))] hover:bg-[rgb(var(--card)/0.5)]"
+                                      }`}
+                                    >
+                                      {row}
+                                    </Link>
+                                  )}
+                                </li>
                               );
                             })}
+                          </ol>
 
+                          <div className="space-y-3">
                             {(!lesson.exercises ||
                               lesson.exercises.length === 0) && (
                               <p className="text-center py-8 text-[rgb(var(--disabled))] font-mono italic text-sm uppercase tracking-wide">
@@ -483,7 +589,7 @@ export default function CourseDetailPage() {
                       className="mx-auto mb-2 text-[rgb(var(--primary))]"
                     />
                     <div className="text-2xl font-black">
-                      {completedExercises.length}
+                      {path.exercisesDone}
                     </div>
                     <div className="text-xs uppercase font-mono text-[rgb(var(--secondary-text))] mt-1">
                       {t.courseDetail.sidebar.exercises}

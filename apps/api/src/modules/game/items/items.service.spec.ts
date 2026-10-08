@@ -5,12 +5,14 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { PremiumAccessService } from '../../premium-access/premium-access.service';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { RealtimeService } from '../../realtime/realtime.service';
+import { Prisma } from '@prisma/client';
+import { TV_BEHAVIOR } from '@codebuddies/world-objects';
 
 describe('ItemsService', () => {
   let service: ItemsService;
 
   const tx = {
-    user: { updateMany: jest.fn() },
+    user: { updateMany: jest.fn(), findUnique: jest.fn() },
     coinTransaction: { create: jest.fn() },
     userItem: { findUnique: jest.fn(), updateMany: jest.fn(), create: jest.fn() },
   };
@@ -141,9 +143,86 @@ describe('ItemsService', () => {
         prisma.item.findUnique.mockResolvedValue(freeItem);
         prisma.user.findUnique.mockResolvedValue({ id: 'user-1', coins: 5 });
         tx.user.updateMany.mockResolvedValue({ count: 0 });
+        tx.user.findUnique.mockResolvedValue({ coins: 5 });
 
         await expect(service.buyItem('user-1', 'item-1')).rejects.toThrow(BadRequestException);
         expect(tx.coinTransaction.create).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('quantity (compra múltiple)', () => {
+      it('rejects a non-integer or non-positive quantity before touching the DB', async () => {
+        await expect(service.buyItem('user-1', 'item-1', 0)).rejects.toThrow(BadRequestException);
+        await expect(service.buyItem('user-1', 'item-1', -1)).rejects.toThrow(BadRequestException);
+        await expect(service.buyItem('user-1', 'item-1', 1.5)).rejects.toThrow(BadRequestException);
+        expect(prisma.item.findUnique).not.toHaveBeenCalled();
+      });
+
+      it('rejects a quantity above maxStack before opening a transaction', async () => {
+        prisma.item.findUnique.mockResolvedValue({ ...freeItem, maxStack: 5 });
+        prisma.user.findUnique.mockResolvedValue({ id: 'user-1', coins: 5000 });
+
+        await expect(service.buyItem('user-1', 'item-1', 6)).rejects.toThrow(BadRequestException);
+        expect(prisma.$transaction).not.toHaveBeenCalled();
+      });
+
+      it('debits price * quantity and stacks the full amount in one shot', async () => {
+        prisma.item.findUnique.mockResolvedValue({ ...freeItem, maxStack: 20, coinsPrice: 100 });
+        prisma.user.findUnique.mockResolvedValue({ id: 'user-1', coins: 5000 });
+        tx.user.updateMany.mockResolvedValue({ count: 1 });
+        tx.userItem.findUnique.mockResolvedValue({ userId: 'user-1', itemId: 'item-1', amount: 2 });
+        tx.userItem.updateMany.mockResolvedValue({ count: 1 });
+
+        const result = await service.buyItem('user-1', 'item-1', 10);
+
+        expect(tx.user.updateMany).toHaveBeenCalledWith({
+          where: { id: 'user-1', coins: { gte: 1000 } },
+          data: { coins: { decrement: 1000 } },
+        });
+        expect(tx.coinTransaction.create).toHaveBeenCalledWith({
+          data: { userId: 'user-1', amount: -1000, reason: 'item:item-1:x10' },
+        });
+        expect(tx.userItem.updateMany).toHaveBeenCalledWith({
+          where: { userId: 'user-1', itemId: 'item-1', amount: { lte: 10 } },
+          data: { amount: { increment: 10 } },
+        });
+        expect(result).toEqual({ success: true, quantity: 10, totalPrice: 1000 });
+      });
+
+      it('creates the UserItem row with the full quantity on a first-time bulk purchase', async () => {
+        prisma.item.findUnique.mockResolvedValue({ ...freeItem, maxStack: 20, coinsPrice: 100 });
+        prisma.user.findUnique.mockResolvedValue({ id: 'user-1', coins: 5000 });
+        tx.user.updateMany.mockResolvedValue({ count: 1 });
+        tx.userItem.findUnique.mockResolvedValue(null);
+
+        await service.buyItem('user-1', 'item-1', 10);
+
+        expect(tx.userItem.create).toHaveBeenCalledWith({
+          data: { userId: 'user-1', itemId: 'item-1', amount: 10, source: 'shop' },
+        });
+      });
+
+      it('rejects a bulk purchase that would exceed maxStack given the amount already owned, with a clear "how many can I buy" message', async () => {
+        prisma.item.findUnique.mockResolvedValue({ ...freeItem, maxStack: 10, coinsPrice: 100 });
+        prisma.user.findUnique.mockResolvedValue({ id: 'user-1', coins: 5000 });
+        tx.user.updateMany.mockResolvedValue({ count: 1 });
+        tx.userItem.findUnique.mockResolvedValue({ userId: 'user-1', itemId: 'item-1', amount: 8 });
+
+        await expect(service.buyItem('user-1', 'item-1', 10)).rejects.toThrow(
+          /Solo puedes comprar 2 más/,
+        );
+        expect(tx.userItem.updateMany).not.toHaveBeenCalled();
+      });
+
+      it('reports how many units the user could actually afford when funds are short', async () => {
+        prisma.item.findUnique.mockResolvedValue({ ...freeItem, maxStack: 20, coinsPrice: 100 });
+        prisma.user.findUnique.mockResolvedValue({ id: 'user-1', coins: 5000 });
+        tx.user.updateMany.mockResolvedValue({ count: 0 });
+        tx.user.findUnique.mockResolvedValue({ coins: 350 });
+
+        await expect(service.buyItem('user-1', 'item-1', 10)).rejects.toThrow(
+          /puedes comprar hasta 3/,
+        );
       });
     });
 
@@ -158,7 +237,7 @@ describe('ItemsService', () => {
         await service.buyItem('user-1', 'item-1');
 
         expect(tx.userItem.updateMany).toHaveBeenCalledWith({
-          where: { userId: 'user-1', itemId: 'item-1', amount: { lt: 3 } },
+          where: { userId: 'user-1', itemId: 'item-1', amount: { lte: 2 } },
           data: { amount: { increment: 1 } },
         });
       });
@@ -233,6 +312,116 @@ describe('ItemsService', () => {
       expect(findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: expect.objectContaining({ shopVisible: true }) }),
       );
+    });
+  });
+  // ───────────────────────── behavior (world objects) ─────────────────────
+  //
+  // El `behavior` es la máquina de estados declarativa del objeto. Lo que se
+  // fija acá es la semántica de las tres entradas posibles, porque de eso
+  // depende la compatibilidad: ausente = no tocar, null = limpiar, objeto =
+  // validar en estricto.
+  describe('behavior de world items', () => {
+    const worldItemDto = {
+      name: 'TV',
+      kind: 'FURNITURE',
+      width: 512,
+      height: 128,
+      coinsPrice: 100,
+      rarity: 0,
+      directions: 4,
+    } as never;
+
+    function prismaWithWorldItem() {
+      const store = prisma as unknown as Record<string, any>;
+      store.item.create = jest.fn().mockResolvedValue({ id: 'item-tv' });
+      store.item.findUnique = jest.fn().mockResolvedValue({ id: 'item-tv' });
+      store.item.update = jest.fn().mockResolvedValue({ id: 'item-tv' });
+      store.language = { findUnique: jest.fn().mockResolvedValue({ id: 'lang-es' }) };
+      store.itemTranslation = { create: jest.fn(), upsert: jest.fn() };
+      store.worldItemData = {
+        create: jest.fn(),
+        update: jest.fn(),
+        findUnique: jest.fn().mockResolvedValue({
+          itemId: 'item-tv',
+          width: 512,
+          height: 128,
+          footprintWidth: 1,
+          footprintHeight: 1,
+          directions: 4,
+          footprints: null,
+          surfaces: null,
+        }),
+      };
+      return store;
+    }
+
+    it('createItem sin behavior no escribe la columna', async () => {
+      const store = prismaWithWorldItem();
+
+      await service.createItem(worldItemDto);
+
+      const data = store.worldItemData.create.mock.calls[0][0].data;
+      expect(data.kind).toBe('FURNITURE');
+      // Item estático: exactamente como se creaban antes de que el behavior
+      // existiera.
+      expect('behavior' in data).toBe(false);
+    });
+
+    it('createItem con behavior válido lo persiste normalizado', async () => {
+      const store = prismaWithWorldItem();
+
+      await service.createItem({ ...(worldItemDto as object), behavior: TV_BEHAVIOR } as never);
+
+      const data = store.worldItemData.create.mock.calls[0][0].data;
+      expect(data.behavior).toEqual(TV_BEHAVIOR);
+    });
+
+    it('createItem con behavior inválido falla con 400', async () => {
+      prismaWithWorldItem();
+
+      await expect(
+        service.createItem({
+          ...(worldItemDto as object),
+          behavior: { version: 1, initialState: 'NOPE', states: [], animations: [], transitions: [] },
+        } as never),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('updateItem sin behavior no toca la columna', async () => {
+      const store = prismaWithWorldItem();
+
+      await service.updateItem('item-tv', { isCollidable: true } as never);
+
+      const data = store.worldItemData.update.mock.calls[0][0].data;
+      expect(data.isCollidable).toBe(true);
+      expect('behavior' in data).toBe(false);
+    });
+
+    it('updateItem con behavior lo actualiza', async () => {
+      const store = prismaWithWorldItem();
+
+      await service.updateItem('item-tv', { behavior: TV_BEHAVIOR } as never);
+
+      expect(store.worldItemData.update.mock.calls[0][0].data.behavior).toEqual(TV_BEHAVIOR);
+    });
+
+    it('updateItem con behavior: null lo limpia', async () => {
+      const store = prismaWithWorldItem();
+
+      await service.updateItem('item-tv', { behavior: null } as never);
+
+      expect(store.worldItemData.update.mock.calls[0][0].data.behavior).toBe(Prisma.JsonNull);
+    });
+
+    it('el behavior nunca se filtra al update del Item', async () => {
+      // `updateItem` pasa el resto del DTO (`...itemData`) directo a
+      // prisma.item.update. Si `behavior` viajara ahí, Prisma fallaría con un
+      // campo desconocido sobre la tabla Item.
+      const store = prismaWithWorldItem();
+
+      await service.updateItem('item-tv', { behavior: TV_BEHAVIOR } as never);
+
+      expect(store.item.update.mock.calls[0][0].data.behavior).toBeUndefined();
     });
   });
 });

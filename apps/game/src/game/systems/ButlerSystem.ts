@@ -3,7 +3,13 @@ import { loadTextureOnce } from "../utils/phaserAssetCache";
 import { getMyButler, getButlerCatalog, type ButlerNpc } from "../network/butlers";
 import type { PetAnimClip } from "../network/pets";
 import { resolveActorGroundPoint, syncActorDepth } from "../iso/IsoActorDepth";
-import { WORLD_OVERLAY_DEPTH } from "../utils/depth";
+import {
+  BubbleStack,
+  createBubbleElement,
+  createHudAnchor,
+  frameToCanvas,
+} from "../hud/domHud";
+import { resolveChatBubbleTheme } from "../hud/nameplateStyles";
 
 // El mayordomo comparte el renderizado direccional con PetSystem (mismo
 // layout de spritesheet: `directions` filas por clip, orden estándar de
@@ -25,7 +31,7 @@ const WALK_TIMEOUT_MS = 4500; // si no llegó en este tiempo, se rinde y para
 const REST_MIN_MS = 7000;
 const REST_MAX_MS = 12000;
 const GREETING_DELAY_MS = 700; // saluda poco después de aparecer
-const BUBBLE_MS = 5000; // cuánto dura una frase en pantalla
+const BUBBLE_MS = 9000; // cuánto dura una frase en pantalla (sube en cascada)
 const IDLE_LINE_MIN_MS = 16000;
 const IDLE_LINE_MAX_MS = 34000;
 
@@ -46,6 +52,7 @@ export default class ButlerSystem {
   private restThreshold = REST_MIN_MS;
   private resting = false;
   private syncing = false;
+  private destroyed = false;
 
   // Deambular
   private timer = 0; // reloj interno acumulado (ms)
@@ -61,8 +68,10 @@ export default class ButlerSystem {
   // Frases
   private greetingAt = 0; // -1 = ya saludó
   private nextIdleLineAt = 0;
-  private bubble?: Phaser.GameObjects.Container;
-  private bubbleUntil = 0;
+  // Globo en HTML sobre el canvas (mismo sistema que las burbujas de los
+  // jugadores, ver hud/domHud.ts): ancla que sigue al sprite + burbuja.
+  private hud?: { element: Phaser.GameObjects.DOMElement; root: HTMLDivElement; stack: BubbleStack };
+  private butlerName = "";
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -70,21 +79,26 @@ export default class ButlerSystem {
 
   /** Lee /butlers/me y decide si el mayordomo debe estar en esta sala. */
   async sync(): Promise<void> {
-    if (this.syncing) return;
+    if (this.syncing || this.destroyed) return;
     this.syncing = true;
     try {
       const roomId: string | null =
         (typeof window !== "undefined" && (window as any).currentRoomId) || null;
       const mine = await getMyButler().catch(() => null);
+      // Destruido mientras esperaba la red (cambio de sala/reconexión): no
+      // crear un mayordomo huérfano.
+      if (this.destroyed) return;
 
       const shouldShow = !!mine && !!roomId && mine.activeRoomId === roomId;
       if (!shouldShow) {
         this.despawn();
         return;
       }
+      this.butlerName = mine!.name?.trim() || "";
       if (this.sprite && this.npcKey === mine!.npcKey) return; // ya está
 
       const catalog = await getButlerCatalog().catch(() => [] as ButlerNpc[]);
+      if (this.destroyed) return;
       const npc = catalog.find((n) => n.key === mine!.npcKey) ?? null;
       if (!npc?.spriteSheetUrl) {
         this.despawn();
@@ -123,6 +137,7 @@ export default class ButlerSystem {
         }
       }),
     );
+    if (this.destroyed) return;
     this.textureKey = this.sheetKeys.get(npc.spriteSheetUrl!);
     if (!this.textureKey) return;
 
@@ -152,16 +167,19 @@ export default class ButlerSystem {
   }
 
   despawn(): void {
+    this.clearBubble();
+    this.hud?.element.destroy();
+    this.hud = undefined;
     this.sprite?.destroy();
     this.sprite = undefined;
     this.npc = null;
     this.npcKey = null;
     this.textureKey = undefined;
     this.sheetKeys.clear();
-    this.clearBubble();
   }
 
   destroy(): void {
+    this.destroyed = true;
     this.despawn();
   }
 
@@ -261,50 +279,34 @@ export default class ButlerSystem {
     if (!this.sprite || !lines || lines.length === 0) return;
     const text = lines[Math.floor(Math.random() * lines.length)]?.trim();
     if (!text) return;
-    this.clearBubble();
 
-    const label = this.scene.add
-      .text(0, 0, text, {
-        fontFamily: "system-ui, sans-serif",
-        fontSize: "12px",
-        color: "#f4f4f5",
-        align: "center",
-        wordWrap: { width: 150 },
-      })
-      .setOrigin(0.5, 1);
-
-    const padX = 8;
-    const padY = 5;
-    const w = label.width + padX * 2;
-    const h = label.height + padY * 2;
-    const bg = this.scene.add.graphics();
-    bg.fillStyle(0x18181b, 0.92);
-    bg.lineStyle(1, 0x3f3f46, 1);
-    bg.fillRoundedRect(-w / 2, -h, w, h, 6);
-    bg.strokeRoundedRect(-w / 2, -h, w, h, 6);
-    bg.fillTriangle(-4, -1, 4, -1, 0, 5);
-
-    // Por encima de cualquier objeto del mundo pero por debajo del
-    // resaltado de tile, la luz ambiental y el HUD — mismo orden relativo
-    // que tenía el 100000 literal de antes, ahora sin número mágico (el
-    // techo del mundo cambió al pasar a la profundidad isométrica).
-    this.bubble = this.scene.add
-      .container(this.sprite.x, this.sprite.y, [bg, label])
-      .setDepth(WORLD_OVERLAY_DEPTH - 1);
-    this.bubbleUntil = this.timer + BUBBLE_MS;
+    if (!this.hud) {
+      const anchor = createHudAnchor(this.scene);
+      const stack = new BubbleStack();
+      anchor.root.appendChild(stack.element);
+      this.hud = { ...anchor, stack };
+    }
+    const bubble = createBubbleElement({
+      message: text,
+      // Tema oscuro fijo: se distingue de un jugador (que usa el suyo).
+      theme: resolveChatBubbleTheme("midnight"),
+      name: this.butlerName || this.npc?.name || undefined,
+      face: frameToCanvas(this.sprite.frame),
+    });
+    // Mismo historial en cascada que los jugadores (BubbleStack).
+    this.hud.stack.push(bubble, this.scene.time.now, BUBBLE_MS);
     this.positionBubble();
   }
 
   private positionBubble(): void {
-    if (!this.bubble || !this.sprite) return;
+    if (!this.hud || !this.sprite) return;
     const fh = Math.max(1, Number(this.npc?.frameHeight) || 48);
-    this.bubble.setPosition(this.sprite.x, this.sprite.y - fh - 6);
+    this.hud.element.setPosition(this.sprite.x, this.sprite.y - fh - 6);
+    this.hud.element.setDepth(Math.round(this.sprite.y));
   }
 
   private clearBubble(): void {
-    this.bubble?.destroy();
-    this.bubble = undefined;
-    this.bubbleUntil = 0;
+    this.hud?.stack.clear();
   }
 
   // ---- Loop ------------------------------------------------------------
@@ -379,10 +381,10 @@ export default class ButlerSystem {
     this.lastY = this.sprite.y;
     syncActorDepth(this.scene, this.sprite);
 
-    // Globo de diálogo: sigue al sprite y se cierra al vencer.
-    if (this.bubble) {
-      if (this.timer >= this.bubbleUntil) this.clearBubble();
-      else this.positionBubble();
+    // Globos: siguen al sprite; la pila los hace subir y desvanecerse sola.
+    if (this.hud && this.hud.stack.size > 0) {
+      this.positionBubble();
+      this.hud.stack.update(this.scene.time.now);
     }
 
     const clip = this.pickClip(moving);

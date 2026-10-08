@@ -96,7 +96,7 @@ export default function Modal({
             onClick={onClose}
             className={`${styles.closeBtn} ${chromeStyles.closeHitArea}`}
           >
-            <X size={16} />
+            <X size={18} strokeWidth={2.25} />
           </Button>
         </div>
       </div>

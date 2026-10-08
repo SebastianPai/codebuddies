@@ -13,13 +13,12 @@ import {
   MarketplaceReportReason,
   MarketplaceWalletMovementType,
   ItemType,
-  WorldItemKind,
   AvatarSlotType,
-  PlacementType,
-  FurnitureCategory,
   Prisma,
 } from '@prisma/client';
+import { validateBehavior } from '@codebuddies/world-objects';
 import { PrismaService } from '../../prisma/prisma.service';
+import { buildMarketplaceWorldData } from './marketplace-world-data.util';
 
 type AuthUser = { userId: string; role?: string };
 
@@ -711,11 +710,45 @@ export class MarketplaceService {
           }
         : {}),
     };
-    return this.prisma.marketplaceContent.findMany({
+    const contents = await this.prisma.marketplaceContent.findMany({
       where,
       orderBy: this.getMarketplaceOrder(query.sort),
       include: contentInclude,
       take: Math.min(Number(query.take) || 48, 100),
+    });
+    return this.withUpgradeSummary(contents);
+  }
+
+  // Para las tarjetas: si el objeto es interactivo (tiene comportamiento) y
+  // cuántas mejoras desbloqueables tiene, con el precio más bajo. Dos
+  // consultas para toda la página, no una por tarjeta.
+  private async withUpgradeSummary<T extends { publishedItemId: string | null }>(contents: T[]) {
+    const itemIds = contents.map((c) => c.publishedItemId).filter((id): id is string => Boolean(id));
+    if (itemIds.length === 0) {
+      return contents.map((c) => ({ ...c, interactive: false, upgradeCount: 0, upgradeMinPrice: null }));
+    }
+    const [worldData, upgrades] = await Promise.all([
+      this.prisma.worldItemData.findMany({
+        where: { itemId: { in: itemIds }, behavior: { not: Prisma.AnyNull } },
+        select: { itemId: true },
+      }),
+      this.prisma.itemUpgrade.groupBy({
+        by: ['itemId'],
+        where: { itemId: { in: itemIds }, active: true },
+        _count: { _all: true },
+        _min: { priceCoins: true },
+      }),
+    ]);
+    const interactive = new Set(worldData.map((w) => w.itemId));
+    const byItem = new Map(upgrades.map((u) => [u.itemId, u]));
+    return contents.map((c) => {
+      const summary = c.publishedItemId ? byItem.get(c.publishedItemId) : undefined;
+      return {
+        ...c,
+        interactive: c.publishedItemId ? interactive.has(c.publishedItemId) : false,
+        upgradeCount: summary?._count._all ?? 0,
+        upgradeMinPrice: summary?._min.priceCoins ?? null,
+      };
     });
   }
 
@@ -996,6 +1029,36 @@ export class MarketplaceService {
         throw new BadRequestException('Payload tecnico requerido');
       }
     }
+
+    // El behavior se valida SIEMPRE, aunque sea un borrador: es mejor que el
+    // creador vea el error al guardar que descubrir en la revisión que su TV
+    // apunta a una animación que no existe. Se valida en estricto (propiedad
+    // desconocida = error), así que nada arbitrario puede quedar en la base
+    // esperando a que el motor lo lea.
+    this.assertValidBehavior(dto.payload);
+  }
+
+  /**
+   * Rechaza un `payload.worldData.behavior` inválido.
+   *
+   * Ausente o null es perfectamente válido: significa objeto estático, que es
+   * lo que son todos los items que ya existen.
+   */
+  private assertValidBehavior(payload: unknown) {
+    if (!payload || typeof payload !== 'object') return;
+
+    const worldData =
+      (payload as Record<string, any>).worldData ?? (payload as Record<string, any>);
+    const behavior = worldData?.behavior;
+    if (behavior === undefined || behavior === null) return;
+
+    const result = validateBehavior(behavior);
+    if (!result.ok) {
+      throw new BadRequestException({
+        message: 'Comportamiento del objeto inválido',
+        errors: result.errors,
+      });
+    }
   }
 
   private buildValidationSnapshot(content: Record<string, any>) {
@@ -1184,58 +1247,18 @@ export class MarketplaceService {
       return item.id;
     }
 
-    const width = Math.max(1, Number(worldData.width) || 1);
-    const height = Math.max(1, Number(worldData.height) || 1);
-    const footprintWidth = Math.max(1, Number(worldData.footprintWidth) || width);
-    const footprintHeight = Math.max(1, Number(worldData.footprintHeight) || height);
-
+    // Mapeo compartido con updatePublishedItemFromContent: las dos rutas
+    // escriben EXACTAMENTE las mismas columnas. Antes cada una tenía su copia
+    // a mano y se habían desincronizado (ver marketplace-world-data.util.ts).
     await tx.worldItemData.create({
       data: {
         itemId: item.id,
-        width,
-        height,
-        spriteSheetUrl: worldData.spriteSheetUrl || imageUrl,
-        previewImageUrl: content.previewUrl || imageUrl,
-        frameWidth: Number(worldData.frameWidth) || null,
-        frameHeight: Number(worldData.frameHeight) || null,
-        footprintWidth,
-        footprintHeight,
-        syncDirections: worldData.syncDirections ?? true,
-        footprints:
-          worldData.footprints !== undefined
-            ? (worldData.footprints as Prisma.InputJsonValue)
-            : Prisma.JsonNull,
-        surfaces:
-          worldData.surfaces !== undefined
-            ? (worldData.surfaces as Prisma.InputJsonValue)
-            : Prisma.JsonNull,
-        engineData:
-          worldData.engineData !== undefined
-            ? (worldData.engineData as Prisma.InputJsonValue)
-            : Prisma.JsonNull,
-        directions: Number(worldData.directions) || 4,
-        kind: (worldData.kind || WorldItemKind.FURNITURE) as WorldItemKind,
-        category: (worldData.furnitureCategory ||
-          worldData.category ||
-          FurnitureCategory.DECORATION) as FurnitureCategory,
-        isCollidable: Boolean(worldData.isCollidable),
-        walkable: Boolean(worldData.walkable),
-        isInteractable: Boolean(worldData.isInteractable),
-        rotatable: worldData.rotatable ?? true,
-        placementType: (worldData.placementType || PlacementType.FLOOR) as PlacementType,
-        allowsStacking: Boolean(worldData.allowsStacking),
-        canBeStacked: Boolean(worldData.canBeStacked),
-        stackHeight: Number(worldData.stackHeight) || 1,
-        maxStackHeight: Number(worldData.maxStackHeight) || 0,
-        interactionTypes: Array.isArray(worldData.interactionTypes)
-          ? worldData.interactionTypes
-          : [],
-        sitX: worldData.sitX ?? null,
-        sitY: worldData.sitY ?? null,
-        sitElevation: worldData.sitElevation ?? null,
-        teleportTargetRoomId: worldData.teleportTargetRoomId ?? null,
-        teleportTargetX: worldData.teleportTargetX ?? null,
-        teleportTargetY: worldData.teleportTargetY ?? null,
+        ...buildMarketplaceWorldData({
+          worldData,
+          imageUrl,
+          previewUrl: content.previewUrl,
+          existing: null,
+        }),
       },
     });
 
@@ -1290,37 +1313,24 @@ export class MarketplaceService {
       return itemId;
     }
 
+    // Fila actual: lo que el payload NO trae se CONSERVA en vez de volver al
+    // default. Sin esto, republicar un item borraba interactionTypes,
+    // isInteractable, engineData, spriteOffsets, rotatable, placementType y
+    // el resto de la configuración avanzada — que es justo la que el editor
+    // del creador no manda porque sólo la edita un admin.
+    const existing = await tx.worldItemData.findUnique({ where: { itemId } });
+
+    const data = buildMarketplaceWorldData({
+      worldData,
+      imageUrl,
+      previewUrl: content.previewUrl,
+      existing,
+    });
+
     await tx.worldItemData.upsert({
       where: { itemId },
-      update: {
-        width: Math.max(1, Number(worldData.width) || 1),
-        height: Math.max(1, Number(worldData.height) || 1),
-        spriteSheetUrl: worldData.spriteSheetUrl || imageUrl,
-        previewImageUrl: content.previewUrl || imageUrl,
-        frameWidth: Number(worldData.frameWidth) || null,
-        frameHeight: Number(worldData.frameHeight) || null,
-        footprintWidth: Math.max(1, Number(worldData.footprintWidth) || 1),
-        footprintHeight: Math.max(1, Number(worldData.footprintHeight) || 1),
-        syncDirections: worldData.syncDirections ?? true,
-        footprints:
-          worldData.footprints !== undefined
-            ? (worldData.footprints as Prisma.InputJsonValue)
-            : Prisma.JsonNull,
-        surfaces:
-          worldData.surfaces !== undefined
-            ? (worldData.surfaces as Prisma.InputJsonValue)
-            : Prisma.JsonNull,
-      },
-      create: {
-        itemId,
-        width: Math.max(1, Number(worldData.width) || 1),
-        height: Math.max(1, Number(worldData.height) || 1),
-        kind: (worldData.kind || WorldItemKind.FURNITURE) as WorldItemKind,
-        spriteSheetUrl: worldData.spriteSheetUrl || imageUrl,
-        previewImageUrl: content.previewUrl || imageUrl,
-        footprintWidth: Math.max(1, Number(worldData.footprintWidth) || 1),
-        footprintHeight: Math.max(1, Number(worldData.footprintHeight) || 1),
-      },
+      update: data,
+      create: { itemId, ...data },
     });
 
     return itemId;

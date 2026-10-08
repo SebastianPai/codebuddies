@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@codebuddies/visual-effects": "workspace:*",
+    "@codebuddies/world-objects": "workspace:*",
     "easystarjs": "^0.4.4",
     "lucide-react": "^0.575.0",
     "next": "16.1.6",

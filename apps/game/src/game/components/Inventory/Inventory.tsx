@@ -166,7 +166,10 @@ export default function Inventory({
               title={inv.item?.name || t("commerce.inventoryItemFallbackName")}
               stackCount={inv.amount ?? inv.quantity ?? 1}
               footer={
-                <Button variant="primary" size="sm" fullWidth onClick={() => onPlaceWorldItem?.(inv.item)}>
+                <Button variant="primary" size="sm" fullWidth onClick={() =>
+                    onPlaceWorldItem?.({ ...inv.item, availableAmount: inv.amount ?? inv.quantity ?? 1 })
+                  }
+                >
                   {t("commerce.inventoryPlaceButton")}
                 </Button>
               }

@@ -22,7 +22,6 @@ import {
   Circle,
   Check,
   BookOpen,
-  Lock,
   Sparkles,
   Loader2,
 } from "lucide-react";
@@ -31,9 +30,10 @@ import { useReward } from "../../../../../../contexts/RewardContext";
 import { QuizExercise } from "../../../../../../src/types/exercise";
 import { useTranslation } from "../../../../../../src/i18n/useTranslation";
 import { ContentDiscussion } from "@/features/courses/components/content-discussion";
-import { CalloutBlock } from "@/features/academy";
+import { CalloutBlock, ExerciseLockedState } from "@/features/academy";
 import { classNames } from "@/shared/utils/class-names";
-import { exercisePath } from "@/shared/utils/exercise-path";
+import { exercisePath, nextStepPath } from "@/shared/utils/exercise-path";
+import { trackEvent } from "../../../../../../components/analytics/events";
 import { useApiLang } from "@/shared/hooks/use-api-lang";
 import {
   useTrackToolUsed,
@@ -159,34 +159,13 @@ export default function QuizExercisePage() {
   const currentQuestion = questions[currentQuestionIndex];
   const total = questions.length;
 
-  if ((exercise as any).locked) {
-    const progression = (exercise as any).lockedReason === "progression";
+  if (exercise.locked) {
     return (
-      <div className="relative flex min-h-[60vh] items-center justify-center">
-        <div className="max-w-md rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-8 text-center">
-          <span className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[rgb(var(--border)/0.4)] text-[rgb(var(--secondary-text))]">
-            <Lock size={22} />
-          </span>
-          <p className="text-sm text-[rgb(var(--secondary-text))]">
-            {progression
-              ? t("site.academyLesson.lockedProgressionBody")
-              : t("site.exerciseLockedMessage")}
-          </p>
-          <Link
-            href={
-              progression && exercise.courseId
-                ? `/courses/${exercise.courseId}`
-                : "/premium"
-            }
-            className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[rgb(var(--button))] px-6 py-3 text-sm font-black uppercase tracking-wide text-[rgb(var(--button-text))] transition hover:brightness-110"
-          >
-            {progression
-              ? t("site.academyLesson.backToCourse")
-              : t("site.premiumTitle")}
-            <ArrowRight size={15} />
-          </Link>
-        </div>
-      </div>
+      <ExerciseLockedState
+        courseId={exercise.courseId}
+        lockedReason={exercise.lockedReason}
+        lockedStep={exercise.lockedStep}
+      />
     );
   }
 
@@ -233,16 +212,6 @@ export default function QuizExercisePage() {
     setRevealedExplanation("");
   };
 
-  const resetQuiz = () => {
-    setCurrentQuestionIndex(0);
-    resetQuestionState();
-    setCompleted(false);
-    setXpGained(0);
-    setCoinsGained(0);
-    setSolved(new Set());
-    setErrorMessage(null);
-  };
-
   const goToQuestion = (nextIndex: number) => {
     setCurrentQuestionIndex(nextIndex);
     resetQuestionState();
@@ -279,9 +248,16 @@ export default function QuizExercisePage() {
         setSolved((prev) => new Set(prev).add(currentQuestionIndex));
       }
 
-      if (!res.correct || completed) return;
+      // El servidor solo marca el ejercicio completo cuando TODAS las
+      // preguntas tienen una respuesta correcta.
+      if (!res.correct || !res.completed || completed) return;
 
       setCompleted(true);
+      trackEvent("exercise_complete", {
+        exercise_id: exercise.id,
+        exercise_type: "QUIZ",
+        course_id: exercise.courseId,
+      });
       const gainedXP = res.xpAdded || exercise.experience || 0;
       const gainedCoins = res.coinsAdded || exercise.coins || 0;
       setXpGained(gainedXP);
@@ -293,7 +269,10 @@ export default function QuizExercisePage() {
   };
 
   const isLastQuestion = currentQuestionIndex === total - 1;
-  const showCompletionCta = (completed || isCorrect) && isLastQuestion;
+  const showCompletionCta = completed;
+  const nextHref =
+    nextStepPath(exercise) ??
+    (exercise.courseId ? `/courses/${exercise.courseId}` : "/courses");
 
   return (
     <div className="relative pb-12">
@@ -645,7 +624,7 @@ export default function QuizExercisePage() {
               {isCorrect === false && (
                 <button
                   type="button"
-                  onClick={resetQuiz}
+                  onClick={resetQuestionState}
                   className="inline-flex items-center gap-1.5 rounded-xl border border-[rgb(var(--border))] px-4 py-2.5 text-sm font-bold text-[rgb(var(--text))] transition-colors hover:border-[rgb(var(--primary)/0.5)]"
                 >
                   <RotateCcw size={15} />
@@ -667,27 +646,19 @@ export default function QuizExercisePage() {
                   </Link>
                 )}
 
-                {showCompletionCta &&
-                  (exercise.nextExerciseId && exercise.nextExerciseType ? (
-                    <Link
-                      href={exercisePath(
-                        exercise.nextExerciseId,
-                        exercise.nextExerciseType,
-                      )}
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-[rgb(var(--button))] px-5 py-2.5 text-sm font-black uppercase tracking-wide text-[rgb(var(--button-text))] transition hover:brightness-110"
-                    >
-                      {t("site.nextMissionButton")}
-                      <FastForward size={15} />
-                    </Link>
-                  ) : (
-                    <Link
-                      href="/dashboard"
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-[rgb(var(--button))] px-5 py-2.5 text-sm font-black uppercase tracking-wide text-[rgb(var(--button-text))] transition hover:brightness-110"
-                    >
-                      {t("site.courseCompleteButton")}
-                      <FastForward size={15} />
-                    </Link>
-                  ))}
+                {showCompletionCta && (
+                  <Link
+                    href={nextHref}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-[rgb(var(--button))] px-5 py-2.5 text-sm font-black uppercase tracking-wide text-[rgb(var(--button-text))] transition hover:brightness-110"
+                  >
+                    {exercise.nextExerciseId
+                      ? t("site.nextMissionButton")
+                      : exercise.nextLessonId
+                        ? t("site.academyLesson.nextLesson")
+                        : t("site.courseCompleteButton")}
+                    <FastForward size={15} />
+                  </Link>
+                )}
               </div>
             </div>
 
@@ -739,10 +710,15 @@ export default function QuizExercisePage() {
                   label={t("site.academyQuiz.stepReveal")}
                 />
                 <Step
-                  done={completed || (isCorrect === true && isLastQuestion)}
+                  done={completed}
                   label={t("site.academyQuiz.stepContinue")}
                 />
               </ul>
+              {!completed && (
+                <p className="mt-3 text-xs text-[rgb(var(--secondary-text))]">
+                  {t("site.academyQuiz.answerAllToComplete")}
+                </p>
+              )}
             </div>
 
             {(xpGained > 0 || coinsGained > 0) && (

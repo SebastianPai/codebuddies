@@ -208,6 +208,12 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
       const hadPreviousRoom = !!this.map;
 
       const loadNextRoom = () => {
+        // Nombres y burbujas son objetos aparte del sprite: se destruyen
+        // explícitamente (antes de vaciar la escena) o quedaban flotando como
+        // "usuarios duplicados".
+        this.otherPlayers?.getChildren().forEach((child: any) => child.hud?.destroy());
+        this.hud?.destroy();
+
         this.destroyCurrentMap();
 
         this.otherPlayers?.clear(true, true);
@@ -380,7 +386,9 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     });
 
     window.addEventListener("build:item:selected", (event: any) => {
-      this.buildSystem.start(event.detail);
+      // availableAmount = unidades de ese mueble en el inventario; con eso
+      // el ghost sigue activo tras cada colocación hasta agotarlas.
+      this.buildSystem.start(event.detail, 0, event.detail?.availableAmount ?? 1);
       this.selectedFloorTileIndex = null;
       this.selectedSurfaceTexture = null;
     });
@@ -521,7 +529,8 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
       this.buildSystem.rotate();
     });
 
-    // ❌ ESC para cancelar pintura o un mueble que se está moviendo
+    // ESC: cancela pintura, un mueble que se está moviendo, o termina la
+    // colocación continua de un mueble del inventario.
     this.input.keyboard?.on("keydown-ESC", () => {
       if (this.selectedSurfaceTexture || this.selectedFloorTileIndex !== null) {
         window.dispatchEvent(new CustomEvent("build:surface:cancel"));
@@ -529,6 +538,11 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
 
       if (this.movingRoomItem) {
         this.movingRoomItem = null;
+        this.buildSystem.stop();
+        return;
+      }
+
+      if (this.buildSystem.getCurrentItem()) {
         this.buildSystem.stop();
       }
     });
@@ -1041,7 +1055,26 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     return null;
   }
 
+  /**
+   * ¿Está abierto el modo construcción?
+   *
+   * La fuente de verdad es el estado `buildMode` de Game.tsx, que llega por el
+   * evento `build:mode:set` que ya existía; acá sólo se guarda para poder
+   * consultarlo. No hay un booleano global nuevo.
+   *
+   * Lo lee RoomItemsManager para decidir qué hace el click izquierdo: en
+   * construcción sigue seleccionando el mueble (mover / rotar / recoger) y en
+   * modo juego interactúa con él.
+   */
+  private buildModeActive = false;
+
+  isBuildModeActive() {
+    return this.buildModeActive;
+  }
+
   private setBuildMode(active: boolean) {
+    this.buildModeActive = active;
+
     const hudContainer = (this.hud as any)?.container;
     if (hudContainer?.setVisible) {
       hudContainer.setVisible(!active);
@@ -1120,6 +1153,15 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     // Mascota del jugador: se muestra siguiéndolo si la "sacó" a esta sala
     // (Pet.activeRoomId). Se resincroniza cuando el panel de mascota emite
     // "pet:changed" y al cerrar la escena se limpia.
+    // createWorld corre en CADA room:joined (cambio de sala y reconexión):
+    // sin destruir las instancias anteriores, su sync() pendiente terminaba
+    // creando otro sprite huérfano (mascota/mayordomo duplicados y
+    // congelados, sobre todo con red lenta).
+    window.removeEventListener("pet:changed", this.onPetChanged);
+    window.removeEventListener("butler:changed", this.onButlerChanged);
+    this.petSystem?.destroy();
+    this.butlerSystem?.destroy();
+
     this.petSystem = new PetSystem(this);
     void this.petSystem.sync();
     window.addEventListener("pet:changed", this.onPetChanged);
@@ -1209,6 +1251,8 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
 
     this.furniturePlacement.initialize();
 
+    // El HUD anterior (sala previa o antes de reconectar) no debe quedar vivo.
+    this.hud?.destroy();
     this.hud = new PlayerHUD({
       scene: this,
       playerSprite: this.player,
@@ -1715,6 +1759,10 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
   update() {
     this.buildSystem?.update(this.input.activePointer);
     this.updateBuildPreviewTint(this.input.activePointer);
+    // Animaciones de world objects. Recibe el reloj de PARED, no el delta: el
+    // frame se deriva del `at` que mandó el servidor, así que todos los
+    // clientes ven el mismo frame aunque sus bucles vayan desfasados.
+    this.roomItems?.update(Date.now());
     this.petSystem?.update(this.game.loop.delta);
     this.butlerSystem?.update(this.game.loop.delta);
     if (!this.player || !this.isoGrid || !this.navGrid) return;

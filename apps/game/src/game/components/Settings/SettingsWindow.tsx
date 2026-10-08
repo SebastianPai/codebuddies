@@ -17,6 +17,7 @@ import {
   type MyBadgeSettings,
 } from "../../network/badges";
 import { CHAT_BUBBLE_THEMES } from "../../hud/nameplateStyles";
+import { themeSwatchStyle } from "../../hud/hudStyleUtils";
 import { useChatBubbleTheme } from "../../hooks/useChatBubbleTheme";
 import { useNameEffect } from "../../hooks/useNameEffect";
 import { useTranslation } from "../../../i18n/useTranslation";
@@ -25,10 +26,6 @@ import styles from "./SettingsWindow.module.css";
 
 const CHAT_THEME_LIST = Object.values(CHAT_BUBBLE_THEMES);
 const NAME_EFFECT_LIST = getNameEffectCatalog();
-
-function hexOf(color: number) {
-  return `#${color.toString(16).padStart(6, "0")}`;
-}
 
 interface Props {
   username: string;
@@ -66,7 +63,7 @@ export default function SettingsWindow({ username, onClose, onUsernameChanged }:
 
   const {
     themeId: chatThemeId,
-    isPremium,
+    isUnlocked: isChatThemeUnlocked,
     saving: savingTheme,
     error: chatThemeErrorCode,
     selectTheme: selectChatTheme,
@@ -250,9 +247,16 @@ export default function SettingsWindow({ username, onClose, onUsernameChanged }:
                         <UserBadges
                           verified={type === "VERIFIED"}
                           isCreator={type === "CREATOR"}
+                          premium={type === "PREMIUM"}
                           size={18}
                         />
-                        {t(type === "VERIFIED" ? "settings.badgeLabelVerified" : "settings.badgeLabelCreator")}
+                        {t(
+                          type === "VERIFIED"
+                            ? "settings.badgeLabelVerified"
+                            : type === "CREATOR"
+                              ? "settings.badgeLabelCreator"
+                              : "settings.badgeLabelPremium",
+                        )}
                       </label>
                     );
                   })}
@@ -290,7 +294,7 @@ export default function SettingsWindow({ username, onClose, onUsernameChanged }:
           <div className={styles.sectionBody}>
             <div className={styles.themeSwatchGrid}>
               {CHAT_THEME_LIST.map((theme) => {
-                const locked = theme.tier === "premium" && !isPremium;
+                const locked = !isChatThemeUnlocked(theme.id, theme.tier);
                 const selected = chatThemeId === theme.id;
                 return (
                   <button
@@ -301,11 +305,7 @@ export default function SettingsWindow({ username, onClose, onUsernameChanged }:
                     }`}
                     disabled={savingTheme}
                     onClick={() => void selectChatTheme(theme.id, theme.tier)}
-                    style={{
-                      background: hexOf(theme.backgroundColor),
-                      borderColor: hexOf(theme.borderColor),
-                      color: theme.textColor,
-                    }}
+                    style={{ ...themeSwatchStyle(theme), color: theme.textColor }}
                   >
                     {locked && <Lock size={11} className={styles.themeSwatchLockIcon} />}
                     <span style={{ color: theme.nameColor }}>{theme.label}</span>

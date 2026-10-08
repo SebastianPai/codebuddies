@@ -30,6 +30,8 @@ import {
 } from "@/features/academy";
 import { useAuth } from "@/shared/hooks/use-auth";
 import { useReward } from "../../../../../../contexts/RewardContext";
+import { exercisePath, lessonPath } from "@/shared/utils/exercise-path";
+import { trackEvent } from "../../../../../../components/analytics/events";
 
 interface LessonExercise {
   id: string;
@@ -52,12 +54,23 @@ interface LessonResponse {
   course?: { title?: string | null; experience?: number; coins?: number };
 }
 
+interface SidebarExercise {
+  id: string;
+  title: string | null;
+  type: string;
+  order: number;
+  locked?: boolean;
+  completed?: boolean;
+}
+
 interface SidebarLesson {
   id: string;
   order: number;
   title: string | null;
   locked?: boolean;
   lockedReason?: "premium" | "progression" | null;
+  theoryCompleted?: boolean;
+  exercises?: SidebarExercise[];
 }
 
 interface CourseResponse {
@@ -65,11 +78,6 @@ interface CourseResponse {
   title: string | null;
   module?: { id?: string; title: string | null };
   lessons?: SidebarLesson[];
-}
-
-interface ProgressItem {
-  lesson?: { id: string } | null;
-  exercise?: { id: string } | null;
 }
 
 export default function LessonTheoryPage() {
@@ -85,9 +93,8 @@ export default function LessonTheoryPage() {
 
   const [lesson, setLesson] = useState<LessonResponse | null>(null);
   const [course, setCourse] = useState<CourseResponse | null>(null);
-  const [completedLessonIds, setCompletedLessonIds] = useState<Set<string>>(
-    new Set(),
-  );
+  // Teoría marcada como leída en esta visita (antes de recargar el curso).
+  const [theoryJustDone, setTheoryJustDone] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [completing, setCompleting] = useState(false);
 
@@ -107,27 +114,14 @@ export default function LessonTheoryPage() {
       return;
     }
 
-    if (isAuthenticated && user?.userId) {
-      try {
-        const progress = await api.get<ProgressItem[]>(
-          `/progress/user/${user.userId}`,
-        );
-        setCompletedLessonIds(
-          new Set(
-            progress
-              .filter((item) => item.lesson?.id && !item.exercise?.id)
-              .map((item) => item.lesson!.id),
-          ),
-        );
-      } catch {
-        // el progreso es secundario, no bloquea la lección
-      }
-    }
-  }, [courseId, lessonId, apiLang, isAuthenticated, user?.userId]);
+  }, [courseId, lessonId, apiLang]);
 
   useEffect(() => {
+    setTheoryJustDone(false);
     void load();
-  }, [load]);
+    // `isAuthenticated` cambia cuando termina de hidratar la sesión: recarga
+    // para traer el estado de progreso del usuario (viene en /courses/:id).
+  }, [load, isAuthenticated]);
 
   const doc = useMemo(
     () => normalizeLessonContent(lesson?.content),
@@ -146,12 +140,28 @@ export default function LessonTheoryPage() {
     return [];
   }, [course?.lessons, lesson]);
 
+  // Una lección está completa con la teoría leída + todos sus ejercicios
+  // calificables (LIVE es placeholder y no cuenta) — mismo criterio que el
+  // candado de progresión del backend.
+  const isLessonDone = useCallback(
+    (item: SidebarLesson) =>
+      Boolean(item.theoryCompleted || (item.id === lessonId && theoryJustDone)) &&
+      (item.exercises ?? [])
+        .filter((ex) => ex.type !== "LIVE")
+        .every((ex) => ex.completed),
+    [lessonId, theoryJustDone],
+  );
+
   const currentIndex = sidebarLessons.findIndex((item) => item.id === lessonId);
+  const currentLesson = currentIndex >= 0 ? sidebarLessons[currentIndex] : null;
   const totalLessons = sidebarLessons.length;
-  const completedCount = sidebarLessons.filter((item) =>
-    completedLessonIds.has(item.id),
-  ).length;
-  const isCompleted = completedLessonIds.has(lessonId);
+  const completedCount = sidebarLessons.filter(isLessonDone).length;
+  const isCompleted = Boolean(currentLesson?.theoryCompleted) || theoryJustDone;
+  const lessonExercises = currentLesson?.exercises ?? [];
+  const gradableExercises = lessonExercises.filter((ex) => ex.type !== "LIVE");
+  const exercisesDone = gradableExercises.filter((ex) => ex.completed).length;
+  const nextLesson =
+    currentIndex >= 0 ? (sidebarLessons[currentIndex + 1] ?? null) : null;
 
   // Gate estilo "términos y condiciones": el botón de continuar se habilita
   // cuando el contenido se leyó hasta el final (centinela + observer). Una
@@ -198,10 +208,23 @@ export default function LessonTheoryPage() {
   const xp = lesson?.experience ?? lesson?.course?.experience ?? 50;
   const coins = lesson?.coins ?? lesson?.course?.coins ?? 10;
 
-  const firstExercise = lesson?.exercises?.[0];
+  // Siguiente paso real: el primer ejercicio pendiente de esta lección; si
+  // ya están todos, la teoría de la lección siguiente; si no queda nada, el
+  // curso.
+  const firstExercise =
+    gradableExercises.find((ex) => !ex.completed) ??
+    (lessonExercises.length === 0 ? lesson?.exercises?.[0] : undefined) ??
+    null;
   const nextHref = firstExercise
-    ? `/learn/exercise/${firstExercise.type.toLowerCase()}/${firstExercise.id}`
-    : `/courses/${courseId}`;
+    ? exercisePath(firstExercise.id, firstExercise.type)
+    : nextLesson
+      ? lessonPath(courseId, nextLesson.id)
+      : `/courses/${courseId}`;
+  const continueLabel = firstExercise
+    ? t("site.academyLesson.continueToExercises")
+    : nextLesson
+      ? t("site.academyLesson.nextLesson")
+      : t("site.academyLesson.backToCourse");
 
   const isAdmin = user?.role === "ADMIN";
   const [adminBusy, setAdminBusy] = useState<string | null>(null);
@@ -231,12 +254,7 @@ export default function LessonTheoryPage() {
   );
 
   const handleContinue = useCallback(async () => {
-    if (
-      isAuthenticated &&
-      lesson &&
-      !lesson.locked &&
-      !completedLessonIds.has(lessonId)
-    ) {
+    if (isAuthenticated && lesson && !lesson.locked && !isCompleted) {
       setCompleting(true);
       try {
         const result = await api.post<{
@@ -244,7 +262,10 @@ export default function LessonTheoryPage() {
           xpAdded?: number;
           coinsAdded?: number;
         }>("/progress", { lessonId });
-        setCompletedLessonIds((current) => new Set(current).add(lessonId));
+        setTheoryJustDone(true);
+        if (!result.alreadyCompleted) {
+          trackEvent("lesson_complete", { course_id: courseId, lesson_id: lessonId });
+        }
         if (!result.alreadyCompleted && (result.xpAdded || result.coinsAdded)) {
           showReward({
             xp: result.xpAdded ?? 0,
@@ -261,7 +282,7 @@ export default function LessonTheoryPage() {
   }, [
     isAuthenticated,
     lesson,
-    completedLessonIds,
+    isCompleted,
     lessonId,
     nextHref,
     router,
@@ -330,7 +351,7 @@ export default function LessonTheoryPage() {
 
       <ol className="space-y-1">
         {sidebarLessons.map((item) => {
-          const done = completedLessonIds.has(item.id);
+          const done = isLessonDone(item);
           const active = item.id === lessonId;
           const rowClass = classNames(
             "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition",
@@ -584,9 +605,7 @@ export default function LessonTheoryPage() {
                   <Loader label="" size={16} />
                 ) : (
                   <>
-                    {firstExercise
-                      ? t("site.academyLesson.continueToExercises")
-                      : t("site.academyLesson.backToCourse")}
+                    {continueLabel}
                     <ArrowRight size={16} />
                   </>
                 )}
@@ -595,6 +614,13 @@ export default function LessonTheoryPage() {
                 <p className="mt-2 text-xs text-[rgb(var(--secondary-text))]">
                   {t("site.academyLesson.readToEndHint")}
                 </p>
+              )}
+
+              {lessonExercises.length > 0 && (
+                <LessonExerciseSteps
+                  exercises={lessonExercises}
+                  theoryDone={isCompleted}
+                />
               )}
             </div>
           </>
@@ -609,14 +635,20 @@ export default function LessonTheoryPage() {
               {t("site.academyLesson.yourProgress")}
             </p>
             <ul className="mt-3 space-y-2 text-sm">
-              <ChecklistRow done label={t("site.academyLesson.readContent")} />
               <ChecklistRow
                 done={isCompleted}
-                label={t("site.academyLesson.completeExercises")}
+                label={t("site.academyLesson.readContent")}
               />
               <ChecklistRow
-                done={isCompleted}
-                label={t("site.academyLesson.getRewards")}
+                done={isCompleted && exercisesDone === gradableExercises.length}
+                label={
+                  gradableExercises.length > 0
+                    ? t("site.academyLesson.lessonExercisesProgress", {
+                        done: exercisesDone,
+                        total: gradableExercises.length,
+                      })
+                    : t("site.academyLesson.completeExercises")
+                }
               />
             </ul>
           </div>
@@ -634,9 +666,7 @@ export default function LessonTheoryPage() {
             className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[rgb(var(--button))] px-4 py-3 text-sm font-black uppercase tracking-wide text-[rgb(var(--button-text))] transition hover:brightness-110 disabled:opacity-60 disabled:hover:brightness-100"
           >
             <Gift size={15} />
-            {firstExercise
-              ? t("site.academyLesson.continueToExercises")
-              : t("site.academyLesson.backToCourse")}
+            {continueLabel}
           </button>
         </div>
       </aside>
@@ -683,5 +713,81 @@ function ChecklistRow({ done, label }: { done?: boolean; label: string }) {
         {label}
       </span>
     </li>
+  );
+}
+
+// Los ejercicios de la lección como camino: hecho / siguiente / bloqueado.
+function LessonExerciseSteps({
+  exercises,
+  theoryDone,
+}: {
+  exercises: SidebarExercise[];
+  theoryDone: boolean;
+}) {
+  const t = useTranslation();
+  return (
+    <div className="mt-6 border-t border-[rgb(var(--primary)/0.2)] pt-5">
+      <p className="text-[0.7rem] font-bold uppercase tracking-wide text-[rgb(var(--secondary-text))]">
+        {t("site.academyLesson.exercisesHeading")}
+      </p>
+      {!theoryDone && (
+        <p className="mt-1 text-xs text-[rgb(var(--secondary-text))]">
+          {t("site.academyLesson.stepReadFirst")}
+        </p>
+      )}
+      <ol className="mt-3 space-y-2">
+        {exercises.map((ex, index) => {
+          const locked = !ex.completed && (Boolean(ex.locked) || !theoryDone);
+          const row = (
+            <>
+              <span
+                className={classNames(
+                  "flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-black",
+                  ex.completed
+                    ? "bg-[rgb(var(--success)/0.15)] text-[rgb(var(--success))]"
+                    : locked
+                      ? "bg-[rgb(var(--border)/0.5)] text-[rgb(var(--disabled))]"
+                      : "bg-[rgb(var(--primary))] text-[rgb(var(--button-text))]",
+                )}
+              >
+                {ex.completed ? (
+                  <CheckCircle2 size={15} />
+                ) : locked ? (
+                  <Lock size={13} />
+                ) : (
+                  index + 1
+                )}
+              </span>
+              <span className="min-w-0 flex-1 truncate text-sm font-semibold">
+                {ex.title ?? "#" + (index + 1)}
+              </span>
+              <span className="text-[0.65rem] font-bold uppercase tracking-wide text-[rgb(var(--secondary-text))]">
+                {ex.type}
+              </span>
+            </>
+          );
+          return (
+            <li key={ex.id}>
+              {locked ? (
+                <div
+                  className="flex items-center gap-3 rounded-xl border border-[rgb(var(--border))] px-3 py-2.5 text-[rgb(var(--disabled))]"
+                  title={t("site.academyLesson.stepLockedHint")}
+                  aria-disabled
+                >
+                  {row}
+                </div>
+              ) : (
+                <Link
+                  href={exercisePath(ex.id, ex.type)}
+                  className="flex items-center gap-3 rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2.5 text-[rgb(var(--text))] transition hover:border-[rgb(var(--primary)/0.6)]"
+                >
+                  {row}
+                </Link>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </div>
   );
 }

@@ -1,0 +1,34 @@
+/* Mini escena de la vista previa: fondo de "sala" oscuro para que tanto las
+   burbujas claras como el nombre con contorno se lean como en el juego. */
+.scene {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 10px 8px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 120%, rgba(250, 204, 21, 0.12), transparent 60%),
+    linear-gradient(180deg, #2a2f3d, #171a23);
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  max-width: 100%;
+}
+
+.column > div:first-child {
+  /* La burbuja del juego mide hasta 280px; en la tarjeta se acota al ancho. */
+  max-width: 100%;
+}
+
+.face {
+  display: grid;
+  place-items: center;
+  color: #111827;
+  font-size: 15px;
+  font-weight: 800;
+}

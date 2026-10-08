@@ -70,5 +70,22 @@
   "interactTurnOn": "Encender",
   "interactTurnOff": "Apagar",
   "interactOpen": "Abrir",
-  "interactClose": "Cerrar"
+  "interactClose": "Cerrar",
+  "placingRemaining": "quedan {count}",
+  "placingHintClick": "Clic para colocar",
+  "placingHintRotate": "rotar",
+  "placingHintFinish": "terminar",
+  "upgradesButton": "Mejoras",
+  "upgradesTitle": "Mejoras del objeto",
+  "upgradesSubtitle": "Desbloquea nuevas funciones. Se compran una vez y valen para todas tus copias.",
+  "upgradesOthersHint": "Este objeto es de otro jugador: en la sala funciona con las mejoras de su dueño. Si compras mejoras, se aplican a tus propias copias.",
+  "upgradesLoading": "Cargando mejoras…",
+  "upgradesLoadError": "No pudimos cargar las mejoras.",
+  "upgradesEmpty": "Este objeto todavía no tiene mejoras.",
+  "upgradeUnlocks": "Desbloquea",
+  "upgradeOwned": "Tuya",
+  "upgradeNeedItem": "Necesitas el objeto",
+  "upgradeNeedsPrevious": "Requiere la anterior",
+  "upgradeBought": "¡Mejora \"{name}\" desbloqueada!",
+  "upgradeBuyError": "No se pudo comprar la mejora."
 }

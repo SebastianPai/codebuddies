@@ -14,6 +14,7 @@ import {
   isSpriteRotatable,
 } from "../utils/spriteFrames";
 import { BUILD_PREVIEW_DEPTH, WORLD_OVERLAY_DEPTH } from "../utils/depth";
+import { emitPlacementProgress } from "./buildPlacementEvents";
 
 export default class BuildSystem {
   private scene: LobbySceneType;
@@ -32,6 +33,11 @@ export default class BuildSystem {
 
   private footprintGraphics?: Phaser.GameObjects.Graphics;
 
+  // Unidades del inventario que quedan por colocar con el ghost actual.
+  // Mientras sea > 0 el mismo mueble sigue seleccionado tras cada click
+  // (colocar 10 sillas = 10 clicks, sin volver al panel).
+  private remaining = 1;
+
   constructor(scene: LobbySceneType) {
     this.scene = scene;
   }
@@ -39,12 +45,16 @@ export default class BuildSystem {
   // initialRotation: para el ghost de "mover un mueble ya colocado" (ver
   // LobbyScene "build:item:move"), que debe arrancar mostrando la rotación
   // actual del mueble en vez de siempre resetear a 0.
-  start(item: any, initialRotation = 0) {
-    this.stop();
+  start(item: any, initialRotation = 0, available = 1) {
+    // Sin avisar "terminó": se está cambiando de mueble, no saliendo.
+    this.stop(false);
 
     this.selectedItem = item;
+    this.remaining = Math.max(1, Math.floor(Number(available) || 1));
 
     this.rotation = ((initialRotation % 4) + 4) % 4;
+
+    emitPlacementProgress(item?.id, this.remaining);
 
     const imageUrl = item.imageUrl;
 
@@ -183,8 +193,20 @@ export default class BuildSystem {
     this.preview.setFrame(frameName);
   }
 
-  stop() {
+  /** Descuenta la unidad recién colocada; devuelve cuántas quedan. */
+  consumeOne(): number {
+    this.remaining = Math.max(0, this.remaining - 1);
+    emitPlacementProgress(this.selectedItem?.id, this.remaining);
+    return this.remaining;
+  }
+
+  stop(notify = true) {
+    const wasActive = !!this.selectedItem;
+
     this.selectedItem = null;
+    this.remaining = 1;
+
+    if (notify && wasActive) emitPlacementProgress(null, 0);
 
     this.rotation = 0;
 

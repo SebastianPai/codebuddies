@@ -206,7 +206,13 @@ export default function Navbar() {
     });
   }, [getPresenceSessionId, isAuthenticated, user]);
 
+  // Se dispara con cada mousemove/tecla: basta con reprogramar el
+  // temporizador de inactividad como mucho una vez cada 5 s.
+  const lastActivityRef = useRef(0);
   const resetPresenceInactivity = useCallback(() => {
+    const now = Date.now();
+    if (presenceRef.current && now - lastActivityRef.current < 5000) return;
+    lastActivityRef.current = now;
     connectPresence();
     if (inactiveTimerRef.current) clearTimeout(inactiveTimerRef.current);
     inactiveTimerRef.current = setTimeout(markOffline, INACTIVE_MS);

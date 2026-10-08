@@ -1,15 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import {
-  Twitter,
-  Github,
-  Linkedin,
-  Heart,
-  Terminal,
-  MapPin,
-} from "lucide-react";
+import { Heart, Terminal, MapPin } from "lucide-react";
 import { useTranslation } from "../src/i18n/useTranslation";
+import { SUPPORT_EMAIL } from "../src/config/site";
+import { openCookieSettings } from "./consent/consent";
 
 export default function Footer() {
   const t = useTranslation();
@@ -52,15 +47,17 @@ export default function Footer() {
               {t.footer.directory.title}
             </h4>
             <ul className="space-y-3 font-mono text-sm">
+              {/* Antes el href se armaba con el texto traducido
+                  ("/módulos", "/mi-progreso"...): todos daban 404. */}
               {[
-                t.footer.directory.modules,
-                t.footer.directory.progress,
-                t.footer.directory.badges,
-                t.footer.directory.ranking,
-              ].map((item) => (
-                <li key={item}>
+                { label: t.footer.directory.modules, href: "/courses" },
+                { label: t.footer.directory.progress, href: "/dashboard" },
+                { label: t.footer.directory.badges, href: "/badges" },
+                { label: t.footer.directory.ranking, href: "/rankings" },
+              ].map(({ label: item, href }) => (
+                <li key={href}>
                   <Link
-                    href={`/${item.toLowerCase().replace(" ", "-")}`}
+                    href={href}
                     className="hover:text-[rgb(var(--primary))] hover:translate-x-2 transition-all flex items-center gap-2 group"
                   >
                     <span className="opacity-0 group-hover:opacity-100 text-[rgb(var(--primary))] text-xs">
@@ -81,14 +78,12 @@ export default function Footer() {
             </h4>
             <ul className="space-y-3 font-mono text-sm">
               {[
-                t.footer.support.help,
-                t.footer.support.community,
-                t.footer.support.blog,
-                t.footer.support.contact,
-              ].map((item) => (
-                <li key={item}>
+                { label: t.footer.support.community, href: "/community" },
+                { label: t("navbar.refunds"), href: "/refund-policy" },
+              ].map(({ label: item, href }) => (
+                <li key={href}>
                   <Link
-                    href={`/${item.toLowerCase()}`}
+                    href={href}
                     className="hover:text-[rgb(var(--primary))] hover:translate-x-2 transition-all flex items-center gap-2 group"
                   >
                     <span className="opacity-0 group-hover:opacity-100 text-[rgb(var(--primary))] text-xs">
@@ -98,33 +93,22 @@ export default function Footer() {
                   </Link>
                 </li>
               ))}
+              <li>
+                <a
+                  href={`mailto:${SUPPORT_EMAIL}`}
+                  className="hover:text-[rgb(var(--primary))] hover:translate-x-2 transition-all flex items-center gap-2 group"
+                >
+                  <span className="opacity-0 group-hover:opacity-100 text-[rgb(var(--primary))] text-xs">
+                    &gt;
+                  </span>
+                  {t.footer.support.contact}
+                </a>
+              </li>
             </ul>
           </div>
 
           {/* Columna 4 - Social y Créditos Locales */}
           <div className="space-y-8">
-            <div>
-              <h4 className="font-black text-[rgb(var(--primary))] uppercase tracking-widest mb-6 text-sm">
-                {t.footer.social.follow}
-              </h4>
-              <div className="flex gap-4">
-                {[
-                  { Icon: Twitter, label: "Twitter" },
-                  { Icon: Github, label: "GitHub" },
-                  { Icon: Linkedin, label: "LinkedIn" },
-                ].map(({ Icon, label }) => (
-                  <a
-                    key={label}
-                    href="#"
-                    aria-label={label}
-                    className="p-3 border-2 border-white/20 hover:border-[rgb(var(--primary))] hover:text-[rgb(var(--primary))] hover:-translate-y-1 transition-all"
-                  >
-                    <Icon size={20} />
-                  </a>
-                ))}
-              </div>
-            </div>
-
             <div className="bg-[rgb(var(--primary))] p-4 border-2 border-black text-black -rotate-2 hover:rotate-0 transition-transform cursor-help shadow-[4px_4px_0_0_#fff]">
               <p className="font-black text-[10px] uppercase leading-none">
                 {t.footer.madeWith.line1}{" "}
@@ -146,7 +130,7 @@ export default function Footer() {
               {t.footer.legal.location}
             </p>
           </div>
-          <div className="flex gap-6">
+          <div className="flex flex-wrap justify-center gap-x-6 gap-y-3">
             <Link
               href="/privacy"
               className="hover:text-[rgb(var(--primary))]"
@@ -162,6 +146,16 @@ export default function Footer() {
             >
               {t("navbar.refunds")}
             </Link>
+            <Link href="/cookies" className="hover:text-[rgb(var(--primary))]">
+              {t("site.cookies.policyLink")}
+            </Link>
+            <button
+              type="button"
+              onClick={openCookieSettings}
+              className="uppercase tracking-[0.2em] hover:text-[rgb(var(--primary))]"
+            >
+              {t("site.cookies.settingsLink")}
+            </button>
           </div>
         </div>
       </div>

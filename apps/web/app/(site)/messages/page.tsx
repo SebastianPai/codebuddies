@@ -15,6 +15,7 @@ import {
   Trash2,
   UserPlus,
   X,
+  ArrowLeft,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import { useAuth } from "../../../hooks/useAuth";
@@ -106,6 +107,11 @@ export default function MessagesPage() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastTypingPingRef = useRef(0);
+  const activeIdRef = useRef("");
+  useEffect(() => {
+    activeIdRef.current = activeId;
+  }, [activeId]);
 
   const visibleConversations = conversations.filter(
     (item) => !locallyDeleted[item.id],
@@ -153,13 +159,50 @@ export default function MessagesPage() {
           [conversationId]: data,
         }));
         setClearedChats((prev) => ({ ...prev, [conversationId]: false }));
+        setConversations((prev) =>
+          prev.map((item) =>
+            item.id === conversationId ? { ...item, unreadCount: 0 } : item,
+          ),
+        );
         await api.patch(`/messages/conversations/${conversationId}/read`);
-        await load();
       } catch {
         toast.error(t("common.unexpectedError"));
       }
     },
-    [load, t],
+    [t],
+  );
+
+  // Inserta un mensaje en su conversación (sin duplicar) y actualiza la
+  // bandeja localmente: último mensaje, no leídos y orden. Antes cada
+  // mensaje recargaba conversaciones + solicitudes + amigos (3 requests).
+  const applyIncomingMessage = useCallback(
+    (conversationId: string, message: Message) => {
+      setMessagesByConversation((prev) => {
+        const current = prev[conversationId];
+        if (current?.some((item) => item.id === message.id)) return prev;
+        return { ...prev, [conversationId]: [...(current ?? []), message] };
+      });
+
+      let known = true;
+      setConversations((prev) => {
+        const index = prev.findIndex((item) => item.id === conversationId);
+        if (index === -1) {
+          known = false;
+          return prev;
+        }
+        const target = prev[index];
+        const isMine = message.senderId === myId;
+        const isOpen = activeIdRef.current === conversationId;
+        const updated: Conversation = {
+          ...target,
+          lastMessage: message,
+          unreadCount: isMine || isOpen ? target.unreadCount : target.unreadCount + 1,
+        };
+        return [updated, ...prev.slice(0, index), ...prev.slice(index + 1)];
+      });
+      if (!known) void load();
+    },
+    [load, myId],
   );
 
   // Realtime Events
@@ -168,20 +211,14 @@ export default function MessagesPage() {
       const payload = (event as CustomEvent).detail;
       const conversationId = payload.conversationId as string;
       const message = payload.message as Message;
+      if (!conversationId || !message) return;
 
-      void load();
+      applyIncomingMessage(conversationId, message);
 
-      setMessagesByConversation((prev) => ({
-        ...prev,
-        [conversationId]: prev[conversationId]?.some(
-          (item) => item.id === message.id,
-        )
-          ? prev[conversationId]
-          : [...(prev[conversationId] ?? []), message],
-      }));
-
-      if (conversationId === activeId) {
-        void api.patch(`/messages/conversations/${conversationId}/read`);
+      if (conversationId === activeId && message.senderId !== myId) {
+        void api
+          .patch(`/messages/conversations/${conversationId}/read`)
+          .catch(() => {});
       }
     };
 
@@ -295,7 +332,7 @@ export default function MessagesPage() {
         handleNotification,
       );
     };
-  }, [activeId, load, myId]);
+  }, [activeId, applyIncomingMessage, load, myId]);
 
   function patchMessages(
     conversationId: string,
@@ -341,10 +378,15 @@ export default function MessagesPage() {
     const text = bodyByConversation[conversationId]?.trim();
     if (!text) return;
     setBodyByConversation((prev) => ({ ...prev, [conversationId]: "" }));
+    if (typingTimer.current) clearTimeout(typingTimer.current);
+    lastTypingPingRef.current = 0;
     try {
-      await api.post(`/messages/conversations/${conversationId}/messages`, {
-        body: text,
-      });
+      const sent = await api.post<Message>(
+        `/messages/conversations/${conversationId}/messages`,
+        { body: text },
+      );
+      // No depende del evento SSE (puede estar desconectado por inactividad).
+      if (sent?.id) applyIncomingMessage(conversationId, sent);
     } catch {
       // Restore the draft so the user doesn't silently lose what they typed.
       setBodyByConversation((prev) => ({ ...prev, [conversationId]: text }));
@@ -352,24 +394,31 @@ export default function MessagesPage() {
     }
   }
 
-  async function setTyping(conversationId: string, value: string) {
+  function setTyping(conversationId: string, value: string) {
     setBodyByConversation((prev) => ({ ...prev, [conversationId]: value }));
-    try {
-      await api.post(`/messages/conversations/${conversationId}/typing`, {
-        isTyping: true,
-      });
-    } catch {
-      // Typing pings are best-effort; a transient failure isn't worth surfacing.
+    if (!value.trim()) return;
+
+    // Antes se mandaba un POST por CADA tecla. Ahora como mucho uno cada
+    // 2.5 s mientras se escribe, y un "dejó de escribir" al parar.
+    const now = Date.now();
+    if (now - lastTypingPingRef.current > 2500) {
+      lastTypingPingRef.current = now;
+      void api
+        .post(`/messages/conversations/${conversationId}/typing`, {
+          isTyping: true,
+        })
+        .catch(() => {});
     }
 
     if (typingTimer.current) clearTimeout(typingTimer.current);
     typingTimer.current = setTimeout(() => {
+      lastTypingPingRef.current = 0;
       void api
         .post(`/messages/conversations/${conversationId}/typing`, {
           isTyping: false,
         })
         .catch(() => {});
-    }, 900);
+    }, 2000);
   }
 
   async function react(
@@ -413,10 +462,14 @@ export default function MessagesPage() {
 
   return (
     <>
-      <main className="mx-auto flex h-[calc(100vh-96px)] max-w-7xl overflow-hidden rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))]">
-        <aside className="flex w-96 flex-col border-r border-[rgb(var(--border))]">
-          <div className="border-b border-[rgb(var(--border))] p-5">
-            <h1 className="flex items-center gap-3 text-3xl font-black">
+      <main className="mx-auto flex h-[calc(100dvh-112px)] min-h-[420px] max-w-7xl overflow-hidden rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))]">
+        <aside
+          className={`${
+            active ? "hidden md:flex" : "flex"
+          } w-full flex-col border-[rgb(var(--border))] md:w-80 md:border-r lg:w-96`}
+        >
+          <div className="border-b border-[rgb(var(--border))] p-4 sm:p-5">
+            <h1 className="flex items-center gap-3 text-2xl font-black sm:text-3xl">
               <MessageCircle className="text-[rgb(var(--primary))]" />
               {t("chat.messagesTitle")}
             </h1>
@@ -497,9 +550,13 @@ export default function MessagesPage() {
           </div>
         </aside>
 
-        <section className="flex min-w-0 flex-1 flex-col">
+        <section
+          className={`${active ? "flex" : "hidden md:flex"} min-w-0 flex-1 flex-col`}
+        >
           {active ? (
             <ChatPanel
+              key={active.id}
+              onBack={() => setActiveId("")}
               conversation={active}
               messages={
                 clearedChats[active.id]
@@ -600,6 +657,7 @@ type ChatPanelProps = {
   reactionFor: string | null;
   muted: boolean;
   compact?: boolean;
+  onBack?: () => void;
   onMenu: (id: string | null) => void;
   onEmoji: () => void;
   onReactionFor: (id: string | null) => void;
@@ -651,6 +709,12 @@ function ChatPanel(props: ChatPanelProps) {
 
   useEffect(() => {
     const previousCount = previousCountRef.current;
+    // Primera carga del historial: ir directo al final, sin animación.
+    if (previousCount === 0 && props.messages.length > 0) {
+      previousCountRef.current = props.messages.length;
+      requestAnimationFrame(() => scrollToBottom("auto"));
+      return;
+    }
     const nextCount = props.messages.length;
     const addedCount = Math.max(nextCount - previousCount, 0);
     previousCountRef.current = nextCount;
@@ -674,7 +738,17 @@ function ChatPanel(props: ChatPanelProps) {
   return (
     <>
       {!props.compact && (
-        <header className="flex items-center gap-3 border-b border-[rgb(var(--border))] p-4">
+        <header className="flex items-center gap-3 border-b border-[rgb(var(--border))] p-3 sm:p-4">
+          {props.onBack && (
+            <button
+              type="button"
+              onClick={props.onBack}
+              aria-label={t("chat.backToConversations")}
+              className="-ml-1 rounded-lg p-2 hover:bg-[rgb(var(--border)/0.4)] md:hidden"
+            >
+              <ArrowLeft size={18} />
+            </button>
+          )}
           <Avatar user={props.conversation.partner} />
           <div className="min-w-0 flex-1">
             <p className="truncate font-black">
@@ -714,6 +788,18 @@ function ChatPanel(props: ChatPanelProps) {
         )}
       </div>
 
+      {!isAtBottom && newMessageCount > 0 && (
+        <div className="pointer-events-none relative">
+          <button
+            type="button"
+            onClick={() => scrollToBottom("smooth")}
+            className="pointer-events-auto absolute -top-12 left-1/2 -translate-x-1/2 rounded-full bg-[rgb(var(--button))] px-4 py-1.5 text-xs font-bold text-[rgb(var(--button-text))] shadow-lg"
+          >
+            {t("chat.unreadMessages", { count: newMessageCount })}
+          </button>
+        </div>
+      )}
+
       <footer className="relative border-t border-[rgb(var(--border))] p-3">
         {props.emojiOpen && (
           <EmojiPicker
@@ -732,7 +818,13 @@ function ChatPanel(props: ChatPanelProps) {
           <input
             value={props.body}
             onChange={(e) => props.onBody(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && props.onSend()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.nativeEvent.isComposing) {
+                e.preventDefault();
+                props.onSend();
+              }
+            }}
+            maxLength={2000}
             placeholder={t("chat.messageInputPlaceholder")}
             className="min-w-0 flex-1 rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] px-3 py-2 outline-none focus:border-[rgb(var(--primary))]"
           />
@@ -765,6 +857,7 @@ const MessageList = memo(function MessageList({
   onReactionFor: (id: string | null) => void;
   onReact: (messageId: string, emoji: string) => void;
 }) {
+  const t = useTranslation();
   return (
     <>
       {messages.map((message) => {
@@ -806,7 +899,8 @@ const MessageList = memo(function MessageList({
                 onClick={() =>
                   onReactionFor(reactionFor === message.id ? null : message.id)
                 }
-                className="absolute -bottom-2 -left-2 hidden rounded-full bg-[rgb(var(--card))] p-1 shadow group-hover:block"
+                aria-label={t("chat.openEmojiPickerAction")}
+                className="absolute -bottom-2 -left-2 rounded-full bg-[rgb(var(--card))] p-1 opacity-60 shadow md:opacity-0 md:group-hover:opacity-100 focus:opacity-100"
               >
                 <Smile size={14} />
               </button>
@@ -840,7 +934,10 @@ function OptionsMenu(props: ChatPanelProps) {
       {open && (
         <div className="absolute right-0 top-10 z-20 w-48 overflow-hidden rounded-lg border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-xl">
           <button
-            onClick={props.onMute}
+            onClick={() => {
+              props.onMenu(null);
+              props.onMute();
+            }}
             className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-[rgb(var(--border)/0.4)]"
           >
             <BellOff size={15} /> {props.muted ? t("chat.unmuteAction") : t("chat.muteAction")}
@@ -852,19 +949,28 @@ function OptionsMenu(props: ChatPanelProps) {
             <ExternalLink size={15} /> {t("chat.viewProfileAction")}
           </Link>
           <button
-            onClick={props.onBlock}
+            onClick={() => {
+              props.onMenu(null);
+              props.onBlock();
+            }}
             className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-[rgb(var(--border)/0.4)]"
           >
             <Ban size={15} /> {t("chat.blockUserAction")}
           </button>
           <button
-            onClick={props.onClear}
+            onClick={() => {
+              props.onMenu(null);
+              props.onClear();
+            }}
             className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-[rgb(var(--border)/0.4)]"
           >
             <X size={15} /> {t("chat.clearLocalAction")}
           </button>
           <button
-            onClick={props.onDelete}
+            onClick={() => {
+              props.onMenu(null);
+              props.onDelete();
+            }}
             className="flex w-full items-center gap-2 px-3 py-2 text-left text-[rgb(var(--error-text))] hover:bg-[rgb(var(--error)/0.15)]"
           >
             <Trash2 size={15} /> {t("common.delete")}

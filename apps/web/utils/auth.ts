@@ -17,6 +17,11 @@ export interface User {
   nameEffectId?: string | null;
   unlockedEffectIds?: string[];
   isPremium?: boolean;
+  uiLanguage?: string | null;
+  // Versión de Términos/Privacidad aceptada vs. la vigente (ver
+  // LegalUpdateNotice).
+  legalVersion?: string | null;
+  legalCurrentVersion?: string;
   // true solo en la respuesta donde el backend acaba de extender la racha
   // (ver IdentityService.applyDailyLoginStreak) -- nunca en un reinicio a 1.
   streakJustIncreased?: boolean;
@@ -37,6 +42,7 @@ export function storeAuthSession(data: AuthResponse) {
   if (!data.access_token || !data.user?.userId) {
     throw new Error("Invalid auth response: missing token or user.userId");
   }
+  clearMeCache();
 
   localStorage.setItem("token", data.access_token.trim());
   localStorage.setItem("userId", data.user.userId.trim());
@@ -68,24 +74,44 @@ export async function register(
   email: string,
   password: string,
   referralCode?: string,
+  consent: { acceptLegal: boolean; marketingOptIn: boolean } = {
+    acceptLegal: false,
+    marketingOptIn: false,
+  },
 ): Promise<AuthResponse> {
   const data = await api.post<AuthResponse>("/identity/register", {
     username,
     email,
     password,
     referralCode,
+    acceptLegal: consent.acceptLegal,
+    marketingOptIn: consent.marketingOptIn,
   });
   storeAuthSession(data);
   return data;
 }
 
-export async function getCurrentUser(): Promise<User | null> {
+// /identity/me se pedía una vez por CADA componente que usa useAuth()
+// (navbar, chat, hub de recompensas, la página…) en cada carga, y otra vez
+// por cada uno tras cada recompensa. Ahora todas esas llamadas comparten una
+// sola petición en vuelo y reutilizan la respuesta por unos segundos.
+const ME_CACHE_MS = 5000;
+let meInflight: Promise<User | null> | null = null;
+let meCache: { user: User; at: number; token: string } | null = null;
+
+function clearMeCache() {
+  meCache = null;
+  meInflight = null;
+}
+
+async function fetchCurrentUser(token: string): Promise<User | null> {
   try {
     const user = await api.get<User>("/identity/me");
 
     if (user?.userId) {
       localStorage.setItem("userId", user.userId.trim());
       localStorage.setItem("user", JSON.stringify(user));
+      meCache = { user, at: Date.now(), token };
       return user;
     }
 
@@ -104,7 +130,31 @@ export async function getCurrentUser(): Promise<User | null> {
   }
 }
 
+export async function getCurrentUser(
+  options: { force?: boolean } = {},
+): Promise<User | null> {
+  const token = localStorage.getItem("token")?.trim() ?? "";
+  if (
+    !options.force &&
+    meCache &&
+    meCache.token === token &&
+    Date.now() - meCache.at < ME_CACHE_MS
+  ) {
+    return meCache.user;
+  }
+  if (meInflight && !options.force) return meInflight;
+
+  const request = fetchCurrentUser(token);
+  meInflight = request;
+  try {
+    return await request;
+  } finally {
+    if (meInflight === request) meInflight = null;
+  }
+}
+
 export function logout(redirect = true) {
+  clearMeCache();
   localStorage.removeItem("token");
   localStorage.removeItem("userId");
   localStorage.removeItem("user");
@@ -126,6 +176,8 @@ export async function refreshAuth(): Promise<boolean> {
 // (ver RewardContext.showReward) — sin esto, "el total" solo se veía
 // recién en el próximo login o al recargar /dashboard.
 export async function refreshUserStats(): Promise<void> {
-  await getCurrentUser();
+  // force: acá sí hace falta el dato fresco; los useAuth() que reaccionan al
+  // evento reutilizan esta misma respuesta en vez de pedir cada uno la suya.
+  await getCurrentUser({ force: true });
   emitAuthChanged();
 }

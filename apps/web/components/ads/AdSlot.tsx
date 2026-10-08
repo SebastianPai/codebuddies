@@ -5,7 +5,7 @@ import { useAuth } from "../../hooks/useAuth";
 
 declare global {
   interface Window {
-    adsbygoogle?: unknown[];
+    adsbygoogle?: unknown[] & { requestNonPersonalizedAds?: number };
   }
 }
 

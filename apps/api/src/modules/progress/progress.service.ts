@@ -25,7 +25,12 @@ export class ProgressService {
     private readonly battlePassService: BattlePassService,
   ) {}
 
-  async createProgress(userId: string, dto: CreateProgressDto, role?: Role) {
+  async createProgress(
+    userId: string,
+    dto: CreateProgressDto,
+    role?: Role,
+    options: { bypassLocks?: boolean } = {},
+  ) {
     this.logger.debug(`Recibido DTO: ${JSON.stringify(dto)} userId=${userId}`);
 
     const user = await this.prisma.user.findUnique({
@@ -47,7 +52,11 @@ export class ProgressService {
     const whereClause: Prisma.CompletionWhereInput = { userId };
     if (dto.courseId) whereClause.courseId = dto.courseId;
     if (dto.lessonId) whereClause.lessonId = dto.lessonId;
-    if (dto.exerciseId) whereClause.exerciseId = dto.exerciseId;
+    // Teoría = completion con exerciseId null. Sin este filtro, un ejercicio
+    // ya resuelto de la misma lección (que también guarda lessonId) se
+    // tomaba como "teoría ya completada" y la teoría nunca se registraba —
+    // la lección siguiente quedaba bloqueada para siempre.
+    whereClause.exerciseId = dto.exerciseId ?? null;
 
     const existing = await this.prisma.completion.findFirst({
       where: whereClause,
@@ -122,6 +131,21 @@ export class ProgressService {
       if (!lesson) {
         this.logger.warn(`Lección no encontrada: ${lessonIdToUse}`);
         throw new NotFoundException(`Lección ${lessonIdToUse} no encontrada`);
+      }
+
+      // La teoría de una lección bloqueada por progresión no se puede marcar
+      // leída (el contenido ni siquiera viaja al cliente).
+      if (
+        await this.premiumAccessService.isLessonProgressionLocked({
+          courseId: lesson.courseId,
+          lessonId: lessonIdToUse,
+          lessonOrder: lesson.order,
+          userId,
+          role,
+          bypass: options.bypassLocks,
+        })
+      ) {
+        throw new ForbiddenException('Completá la lección anterior primero');
       }
 
       xpToAdd += lesson.experience || 0;
@@ -362,6 +386,7 @@ export class ProgressService {
         userId,
         { lessonId: lesson.id },
         role,
+        { bypassLocks: true },
       );
       xpAdded += lessonResult.xpAdded ?? 0;
       coinsAdded += lessonResult.coinsAdded ?? 0;
@@ -397,31 +422,31 @@ export class ProgressService {
   // hardcodeados en el frontend). Se derivan de Completion en vez de
   // Enrollment porque Enrollment no se escribe en ningún flujo del
   // producto hoy — sería siempre una tabla vacía.
+  //
+  // El progreso cuenta PASOS (teoría de cada lección + ejercicios
+  // calificables), igual que el candado de progresión: el "siguiente paso"
+  // puede ser leer una lección, no solo un ejercicio.
   async getContinueLearning(userId: string, lang: string = 'es', take = 4) {
     const completions = await this.prisma.completion.findMany({
-      where: { userId, exerciseId: { not: null } },
+      where: { userId, lessonId: { not: null } },
       select: {
         createdAt: true,
-        exercise: {
-          select: {
-            id: true,
-            lessonId: true,
-            lesson: { select: { courseId: true } },
-          },
-        },
+        exerciseId: true,
+        lessonId: true,
+        lesson: { select: { courseId: true } },
       },
       orderBy: { createdAt: 'desc' },
-      take: 500,
+      take: 1000,
     });
 
-    const completedExerciseIds = new Set(
-      completions.map((c) => c.exercise!.id),
-    );
-
+    const theoryDone = new Set<string>();
+    const exerciseDone = new Set<string>();
     const lastActivityByCourse = new Map<string, Date>();
     for (const c of completions) {
-      const courseId = c.exercise!.lesson.courseId;
-      if (!lastActivityByCourse.has(courseId)) {
+      if (c.exerciseId) exerciseDone.add(c.exerciseId);
+      else if (c.lessonId) theoryDone.add(c.lessonId);
+      const courseId = c.lesson?.courseId;
+      if (courseId && !lastActivityByCourse.has(courseId)) {
         lastActivityByCourse.set(courseId, c.createdAt);
       }
     }
@@ -430,35 +455,57 @@ export class ProgressService {
     if (candidateCourseIds.length === 0) return [];
 
     const courses = await this.prisma.course.findMany({
-      where: { id: { in: candidateCourseIds } },
-      include: {
-        translations: { include: { language: true } },
+      where: { id: { in: candidateCourseIds }, status: 'PUBLISHED' },
+      select: {
+        id: true,
+        imageUrl: true,
+        translations: {
+          select: { title: true, language: { select: { code: true } } },
+        },
         lessons: {
+          where: { status: 'PUBLISHED' },
           orderBy: { order: 'asc' },
-          include: {
-            exercises: { orderBy: { order: 'asc' } },
+          select: {
+            id: true,
+            exercises: {
+              where: { status: 'PUBLISHED' },
+              orderBy: { order: 'asc' },
+              select: { id: true, type: true, lessonId: true },
+            },
           },
         },
       },
     });
 
+    type Step =
+      | { kind: 'theory'; lessonId: string }
+      | { kind: 'exercise'; lessonId: string; id: string; type: string };
+
     const inProgress = courses
       .map((course) => {
-        const allExercises = course.lessons.flatMap((l) => l.exercises);
-        const totalExercises = allExercises.length;
-        const completedCount = allExercises.filter((ex) =>
-          completedExerciseIds.has(ex.id),
-        ).length;
+        const steps: Step[] = course.lessons.flatMap((lesson) => [
+          { kind: 'theory' as const, lessonId: lesson.id },
+          ...lesson.exercises
+            .filter((ex) => PremiumAccessService.isGradable(ex.type))
+            .map((ex) => ({
+              kind: 'exercise' as const,
+              lessonId: lesson.id,
+              id: ex.id,
+              type: ex.type,
+            })),
+        ]);
+        const isDone = (step: Step) =>
+          step.kind === 'theory'
+            ? theoryDone.has(step.lessonId)
+            : exerciseDone.has(step.id);
 
-        if (totalExercises === 0 || completedCount === 0) return null;
-        if (completedCount >= totalExercises) return null; // ya completado
+        const totalSteps = steps.length;
+        const doneSteps = steps.filter(isDone).length;
+        if (totalSteps === 0 || doneSteps === 0) return null;
+        if (doneSteps >= totalSteps) return null; // ya completado
 
-        const nextExercise = allExercises.find(
-          (ex) => !completedExerciseIds.has(ex.id),
-        );
-        const nextLesson = course.lessons.find((l) =>
-          l.exercises.some((ex) => ex.id === nextExercise?.id),
-        );
+        const next = steps.find((step) => !isDone(step))!;
+        const exercises = steps.filter((step) => step.kind === 'exercise');
 
         const translation =
           course.translations.find((t) => t.language.code === lang) ||
@@ -469,17 +516,15 @@ export class ProgressService {
           courseId: course.id,
           title: translation?.title ?? null,
           imageUrl: course.imageUrl,
-          totalExercises,
-          completedExercises: completedCount,
-          progressPercent: Math.round((completedCount / totalExercises) * 100),
+          totalExercises: exercises.length,
+          completedExercises: exercises.filter(isDone).length,
+          progressPercent: Math.round((doneSteps / totalSteps) * 100),
           lastActivityAt: lastActivityByCourse.get(course.id)!,
-          nextExercise: nextExercise
-            ? {
-                id: nextExercise.id,
-                type: nextExercise.type,
-                lessonId: nextLesson?.id ?? nextExercise.lessonId,
-              }
-            : null,
+          nextLessonId: next.lessonId,
+          nextExercise:
+            next.kind === 'exercise'
+              ? { id: next.id, type: next.type, lessonId: next.lessonId }
+              : null,
         };
       })
       .filter((c): c is NonNullable<typeof c> => c !== null)

@@ -201,9 +201,15 @@ export class CertificatesService {
   }
 
   private buildVerificationUrl(verificationCode: string) {
-    const baseUrl =
+    // Dominio y ruta reales de la web (app/(site)/verify/[verificationCode]).
+    // Antes el default era https://codebuddies.app/certificates/verify: otro
+    // dominio y una ruta que no existe, así que todo QR/enlace de
+    // verificación emitido quedaba roto (ver la migración
+    // 20260926010000_fix_certificate_verification_url).
+    const baseUrl = (
       process.env.CERTIFICATE_VERIFICATION_BASE_URL ??
-      'https://codebuddies.app/certificates/verify';
+      'https://codebuddies.tech/verify'
+    ).replace(/\/$/, '');
 
     return `${baseUrl}/${verificationCode}`;
   }

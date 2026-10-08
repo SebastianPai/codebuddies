@@ -21,6 +21,8 @@ export type GameUser = {
   nameEffectId?: string | null;
   /** Ids de @codebuddies/visual-effects que este usuario puede usar hoy (free + premium si aplica + items comprados; todo si es ADMIN). */
   unlockedEffectIds?: string[];
+  /** Temas de burbuja usables (gratis + Premium o comprados en la tienda). */
+  unlockedChatBubbleThemeIds?: string[];
   isPremium?: boolean;
 };
 

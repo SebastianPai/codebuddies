@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import ItemForm from "../components/ItemForm";
+import ItemUpgradesEditor from "../../../../components/item-editor/ItemUpgradesEditor";
 import { api } from "@/shared/api/client";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
 
@@ -55,6 +56,7 @@ export default function EditItemPage() {
     <div className="p-10 space-y-6">
       <h1 className="text-2xl font-bold text-yellow-400">{t("items.editItemTitle")}</h1>
       <ItemForm initial={initial} onSubmit={update} />
+      {initial.formCategory === "world" && <ItemUpgradesEditor itemId={params.id} />}
     </div>
   );
 }
