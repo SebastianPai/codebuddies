@@ -45,6 +45,7 @@ import { getRealtimeUrl, getGameUrl } from "@/config/env";
 import { useGlobalNotifications } from "./notifications/GlobalNotificationsProvider";
 import { useThemeAsset } from "../hooks/useThemeAsset";
 import { ThemeImage, THEME_IMAGE_SPRITE_KEYFRAMES } from "./ThemeImage";
+import { AppIcon } from "./AppIcon";
 import { RainbowButton } from "@/shared/ui/rainbow-button";
 import { CurrencyIcon } from "@/shared/ui/currency-icon";
 import { RarityText } from "@/shared/ui/rarity-text";
@@ -266,10 +267,10 @@ export default function Navbar() {
   };
 
   const primaryLinks = [
-    { href: "/", label: t("navbar.home"), icon: <Home size={16} /> },
-    { href: "/courses", label: t("navbar.courses"), icon: <GraduationCap size={16} /> },
+    { href: "/", label: t("navbar.home"), icon: <AppIcon slot="ICON_HOME" size={16} fallback={<Home size={16} />} /> },
+    { href: "/courses", label: t("navbar.courses"), icon: <AppIcon slot="ICON_COURSES" size={16} fallback={<GraduationCap size={16} />} /> },
     { href: "/pricing", label: t("navbar.pricing"), icon: <Tag size={16} /> },
-    { href: "/rankings", label: t("navbar.rankings"), icon: <BarChart3 size={16} /> },
+    { href: "/rankings", label: t("navbar.rankings"), icon: <AppIcon slot="ICON_RANKINGS" size={16} fallback={<BarChart3 size={16} />} /> },
   ];
 
   const currentLang = LANGUAGES.find((l) => l.code === lang) ?? LANGUAGES[0];
@@ -321,7 +322,7 @@ export default function Navbar() {
             <RainbowButton
               href={getGameUrl()}
               text={t("navbar.playGame")}
-              icon={<Gamepad2 size={16} className="text-[rgb(var(--text))]" />}
+              icon={<AppIcon slot="ICON_PLAY" size={16} fallback={<Gamepad2 size={16} className="text-[rgb(var(--text))]" />} />}
               className="ml-1"
             />
 
@@ -388,7 +389,7 @@ export default function Navbar() {
                   aria-expanded={isUserMenuOpen}
                   className="flex items-center gap-2 px-4 py-2 bg-[rgba(var(--background),0.6)] backdrop-blur-md rounded-full hover:scale-[1.03] transition-all"
                 >
-                  <User size={14} className="text-[rgb(var(--primary))]" />
+                  <AppIcon slot="ICON_PROFILE" size={14} fallback={<User size={14} className="text-[rgb(var(--primary))]" />} />
 
                   <RarityText
                     effect={user?.username ? user?.nameEffectId : null}
@@ -480,7 +481,7 @@ export default function Navbar() {
                       className="flex items-center gap-3 rounded-2xl bg-[rgba(var(--background),0.6)] p-3"
                     >
                       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgb(var(--primary))]/15 text-[rgb(var(--primary))]">
-                        <User size={18} />
+                        <AppIcon slot="ICON_PROFILE" size={18} fallback={<User size={18} />} />
                       </span>
                       <span className="flex flex-col overflow-hidden">
                         <RarityText
@@ -505,7 +506,7 @@ export default function Navbar() {
                   <RainbowButton
                     href={getGameUrl()}
                     text={t("navbar.playGame")}
-                    icon={<Gamepad2 size={18} className="text-[rgb(var(--text))]" />}
+                    icon={<AppIcon slot="ICON_PLAY" size={18} fallback={<Gamepad2 size={18} className="text-[rgb(var(--text))]" />} />}
                     className="w-full rounded-2xl py-3"
                   />
                 </motion.div>
@@ -601,7 +602,7 @@ export default function Navbar() {
               className="flex flex-col items-center gap-3 pb-5 pt-2"
             >
               <div className="flex items-center gap-2 text-sm font-bold text-yellow-400">
-                <Sparkles size={16} className="animate-spin-slow" />
+                <AppIcon slot="ICON_REWARD_POPUP" size={16} fallback={<Sparkles size={16} className="animate-spin-slow" />} />
                 {t("navbar.reward")}
               </div>
 
@@ -652,11 +653,11 @@ function StatsPill({
       `}
     >
       <span className="flex items-center gap-1 text-[rgb(var(--primary))]">
-        <Trophy size={13} /> {user.level ?? 1}
+        <AppIcon slot="ICON_ACHIEVEMENTS" size={13} fallback={<Trophy size={13} />} /> {user.level ?? 1}
       </span>
       <span className="w-px h-3 bg-[rgb(var(--border))]" />
       <span className="flex items-center gap-1 text-yellow-400">
-        <Zap size={13} /> {(user.experience ?? 0).toLocaleString()}
+        <AppIcon slot="ICON_XP" size={13} fallback={<Zap size={13} />} /> {(user.experience ?? 0).toLocaleString()}
       </span>
       <span className="w-px h-3 bg-[rgb(var(--border))]" />
       <span className="flex items-center gap-1">
@@ -667,7 +668,7 @@ function StatsPill({
         <>
           <span className="w-px h-3 bg-[rgb(var(--border))]" />
           <span className="flex items-center gap-1 text-orange-400">
-            <Flame size={13} /> {user.streak}
+            <AppIcon slot="ICON_STREAK" size={13} fallback={<Flame size={13} />} /> {user.streak}
           </span>
         </>
       )}
@@ -693,38 +694,38 @@ function AccountMenuContent({
   return (
     <>
       <DropdownSection title={t("navbar.account")} />
-      <DropdownItem href="/dashboard" icon={<User size={16} />} label={t("navbar.profile")} />
-      <DropdownItem href={`/u/${username}`} icon={<User size={16} />} label={t("navbar.publicProfile")} />
-      <DropdownItem href="/certificates" icon={<Award size={16} />} label={t("navbar.certificates")} />
+      <DropdownItem href="/dashboard" icon={<AppIcon slot="ICON_PROFILE" size={16} fallback={<User size={16} />} />} label={t("navbar.profile")} />
+      <DropdownItem href={`/u/${username}`} icon={<AppIcon slot="ICON_PROFILE" size={16} fallback={<User size={16} />} />} label={t("navbar.publicProfile")} />
+      <DropdownItem href="/certificates" icon={<AppIcon slot="ICON_BADGES" size={16} fallback={<Award size={16} />} />} label={t("navbar.certificates")} />
       <DropdownItem href="/account/billing" icon={<CreditCard size={16} />} label={t("navbar.billing")} />
 
       <DropdownSection title={t("navbar.preferences")} />
-      <DropdownItem href="/settings" icon={<Settings size={16} />} label={t("navbar.settings")} />
+      <DropdownItem href="/settings" icon={<AppIcon slot="ICON_SETTINGS" size={16} fallback={<Settings size={16} />} />} label={t("navbar.settings")} />
       <DropdownItem
         href="/notifications"
-        icon={<Bell size={16} />}
+        icon={<AppIcon slot="ICON_NOTIFICATIONS" size={16} fallback={<Bell size={16} />} />}
         label={t("navbar.notifications")}
         badge={unreadCount}
         onClick={resetUnread}
       />
-      <DropdownItem href="/battle-pass" icon={<Ticket size={16} />} label={t("navbar.battlePass")} />
-      <DropdownItem href="/missions" icon={<Target size={16} />} label={t("navbar.missions")} />
-      <DropdownItem href="/achievements" icon={<Trophy size={16} />} label={t("navbar.achievements")} />
-      <DropdownItem href="/badges" icon={<Award size={16} />} label={t("navbar.badges")} />
-      <DropdownItem href="/rewards" icon={<Gift size={16} />} label={t("navbar.rewardCenter")} />
+      <DropdownItem href="/battle-pass" icon={<AppIcon slot="ICON_BATTLE_PASS" size={16} fallback={<Ticket size={16} />} />} label={t("navbar.battlePass")} />
+      <DropdownItem href="/missions" icon={<AppIcon slot="ICON_MISSIONS" size={16} fallback={<Target size={16} />} />} label={t("navbar.missions")} />
+      <DropdownItem href="/achievements" icon={<AppIcon slot="ICON_ACHIEVEMENTS" size={16} fallback={<Trophy size={16} />} />} label={t("navbar.achievements")} />
+      <DropdownItem href="/badges" icon={<AppIcon slot="ICON_BADGES" size={16} fallback={<Award size={16} />} />} label={t("navbar.badges")} />
+      <DropdownItem href="/rewards" icon={<AppIcon slot="ICON_REWARDS" size={16} fallback={<Gift size={16} />} />} label={t("navbar.rewardCenter")} />
       <DropdownItem href="/referrals" icon={<Users size={16} />} label={t("navbar.referrals")} />
       {isAdmin && <DropdownItem href="/admin" icon={<Shield size={16} />} label={t("navbar.adminPanel")} />}
 
       <DropdownSection title={t("navbar.actions")} />
-      <DropdownItem href="/friends" icon={<Users size={16} />} label={t("navbar.friends")} />
-      <DropdownItem href="/messages" icon={<MessageSquare size={16} />} label={t("navbar.messages")} />
-      <DropdownItem href="/courses" icon={<BookOpen size={16} />} label={t("navbar.myCourses")} />
+      <DropdownItem href="/friends" icon={<AppIcon slot="ICON_FRIENDS" size={16} fallback={<Users size={16} />} />} label={t("navbar.friends")} />
+      <DropdownItem href="/messages" icon={<AppIcon slot="ICON_MESSAGES" size={16} fallback={<MessageSquare size={16} />} />} label={t("navbar.messages")} />
+      <DropdownItem href="/courses" icon={<AppIcon slot="ICON_COURSES" size={16} fallback={<BookOpen size={16} />} />} label={t("navbar.myCourses")} />
 
       <button
         onClick={handleLogout}
         className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-red-500 hover:bg-red-500/10 transition-colors"
       >
-        <LogOut size={16} /> {t("navbar.logout")}
+        <AppIcon slot="ICON_LOGOUT" size={16} fallback={<LogOut size={16} />} /> {t("navbar.logout")}
       </button>
     </>
   );

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { MessageCircle, User } from "lucide-react";
+import { AppIcon } from "../AppIcon/AppIcon";
 
 import styles from "./PlayerQuickMenu.module.css";
 import { PublicProfile, getPublicProfile } from "../../network/profiles";
@@ -150,10 +151,10 @@ export default function PlayerQuickMenu({ username, x, y, onClose }: Props) {
       ) : (
         <div className={styles.actions}>
           <Button variant="secondary" size="sm" fullWidth onClick={handleViewProfile}>
-            <User size={13} /> {t("quickmenu.viewProfile")}
+            <AppIcon slot="ICON_PROFILE" size={13} fallback={<User size={13} />} /> {t("quickmenu.viewProfile")}
           </Button>
           <Button variant="primary" size="sm" fullWidth onClick={handleMessage} disabled={!profile}>
-            <MessageCircle size={13} /> {t("quickmenu.message")}
+            <AppIcon slot="ICON_MESSAGES" size={13} fallback={<MessageCircle size={13} />} /> {t("quickmenu.message")}
           </Button>
           <Button
             variant={profile?.friendshipStatus === "ACCEPTED" ? "danger" : "primary"}

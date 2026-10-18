@@ -2,6 +2,9 @@ import { Player } from "../types/player";
 import { OtherPlayer } from "../types/OtherPlayer";
 import { LobbySceneType } from "../types/LobbySceneType";
 import { audioManager } from "../audio/AudioManager";
+import { getThemeAsset } from "../network/themeAssets";
+import { reactionSlotForEmoji } from "../components/BottomBar/quickReactions";
+import type PlayerHUD from "../hud/PlayerHUD";
 
 export default class PlayerSocketSystem {
   private scene: LobbySceneType;
@@ -54,9 +57,26 @@ export default class PlayerSocketSystem {
     audioManager.play("notify");
   };
 
+  // Si la reacción tiene una imagen activa en /admin/theme-assets se dibuja
+  // esa en la burbuja; si no, el emoji de siempre (ver PlayerHUD.showReaction).
+  private showReaction = (
+    hud: PlayerHUD | undefined,
+    data: { reaction: string; chatBubbleThemeId?: string | null },
+  ) => {
+    if (!hud) return;
+
+    const slot = reactionSlotForEmoji(data.reaction);
+    if (!slot) {
+      hud.showChat(data.reaction, undefined, data.chatBubbleThemeId);
+      return;
+    }
+
+    void getThemeAsset(slot).then((asset) => hud.showReaction(data.reaction, asset, data.chatBubbleThemeId));
+  };
+
   private handlePlayerReaction = (data: any) => {
     if (data.playerId === this.socket.id) {
-      (this.scene as any).hud.showChat(data.reaction, undefined, data.chatBubbleThemeId);
+      this.showReaction((this.scene as any).hud, data);
 
       return;
     }
@@ -65,7 +85,7 @@ export default class PlayerSocketSystem {
       .getChildren()
       .find((c: any) => c.playerId === data.playerId);
 
-    other?.hud.showChat(data.reaction, undefined, data.chatBubbleThemeId);
+    this.showReaction(other?.hud, data);
     audioManager.play("notify");
   };
 
