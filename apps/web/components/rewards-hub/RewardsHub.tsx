@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AppIcon } from "../AppIcon";
 import { Award, Check, ChevronRight, Crown, Flame, Gift, LayoutGrid, Lock, Target, Ticket, Trophy, Users, X, Zap } from "lucide-react";
 import { toast } from "react-toastify";
 import { api } from "../../utils/api";
@@ -243,7 +244,7 @@ export default function RewardsHub() {
           whileTap={{ scale: 0.94 }}
           className="pointer-events-auto relative flex h-12 w-12 items-center justify-center rounded-2xl border border-[rgb(var(--primary)/0.5)] bg-[rgb(var(--card))] text-[rgb(var(--primary))] shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition hover:-translate-y-0.5 hover:border-[rgb(var(--primary))] sm:h-14 sm:w-14"
         >
-          <Gift size={22} />
+          <AppIcon slot="ICON_REWARDS_HUB" size={22} fallback={<Gift size={22} />} />
           {count > 0 && (
             <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-[rgb(var(--error))] px-1 text-[11px] font-black text-white ring-2 ring-[rgb(var(--card))]">
               {count > 9 ? "9+" : count}
@@ -325,7 +326,7 @@ export default function RewardsHub() {
 
               <header className="flex items-center gap-3 px-5 pb-3 pt-3 sm:pt-5">
                 <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[rgb(var(--primary)/0.15)] text-[rgb(var(--primary))]">
-                  <Gift size={20} />
+                  <AppIcon slot="ICON_REWARDS_HUB" size={20} fallback={<Gift size={20} />} />
                 </span>
                 <div className="min-w-0 flex-1">
                   <h2 className="truncate text-lg font-black text-[rgb(var(--text))]">
@@ -348,8 +349,8 @@ export default function RewardsHub() {
               </header>
 
               <nav className="mx-5 grid grid-cols-3 gap-1 rounded-2xl bg-[rgb(var(--background))] p-1" role="tablist">
-                <TabButton active={tab === "pass"} onClick={() => setTab("pass")} icon={<Ticket size={15} />} label={t("battlePass.hub.tabPass")} badge={data?.battlePass?.claimable.length ?? 0} />
-                <TabButton active={tab === "streak"} onClick={() => setTab("streak")} icon={<Flame size={15} />} label={t("battlePass.hub.tabStreak")} badge={data?.streak.milestones.filter((m) => m.status === "CLAIMABLE").length ?? 0} />
+                <TabButton active={tab === "pass"} onClick={() => setTab("pass")} icon={<AppIcon slot="ICON_BATTLE_PASS" size={15} fallback={<Ticket size={15} />} />} label={t("battlePass.hub.tabPass")} badge={data?.battlePass?.claimable.length ?? 0} />
+                <TabButton active={tab === "streak"} onClick={() => setTab("streak")} icon={<AppIcon slot="ICON_STREAK" size={15} fallback={<Flame size={15} />} />} label={t("battlePass.hub.tabStreak")} badge={data?.streak.milestones.filter((m) => m.status === "CLAIMABLE").length ?? 0} />
                 <TabButton active={tab === "more"} onClick={() => setTab("more")} icon={<LayoutGrid size={15} />} label={t("battlePass.hub.tabMore")} badge={0} />
               </nav>
 
@@ -696,12 +697,12 @@ function StreakTab({
 function MoreTab({ onNavigate }: { onNavigate: () => void }) {
   const t = useTranslation();
   const tiles = [
-    { href: "/battle-pass", icon: <Ticket size={22} />, label: t("navbar.battlePass") },
-    { href: "/missions", icon: <Target size={22} />, label: t("navbar.missions") },
-    { href: "/achievements", icon: <Trophy size={22} />, label: t("navbar.achievements") },
-    { href: "/badges", icon: <Award size={22} />, label: t("navbar.badges") },
-    { href: "/rewards", icon: <Gift size={22} />, label: t("navbar.rewardCenter") },
-    { href: "/referrals", icon: <Users size={22} />, label: t("navbar.referrals") },
+    { href: "/battle-pass", icon: <AppIcon slot="ICON_BATTLE_PASS" size={22} fallback={<Ticket size={22} />} />, label: t("navbar.battlePass") },
+    { href: "/missions", icon: <AppIcon slot="ICON_MISSIONS" size={22} fallback={<Target size={22} />} />, label: t("navbar.missions") },
+    { href: "/achievements", icon: <AppIcon slot="ACHIEVEMENT_ICON" size={22} fallback={<Trophy size={22} />} />, label: t("navbar.achievements") },
+    { href: "/badges", icon: <AppIcon slot="ICON_BADGES" size={22} fallback={<Award size={22} />} />, label: t("navbar.badges") },
+    { href: "/rewards", icon: <AppIcon slot="ICON_REWARDS" size={22} fallback={<Gift size={22} />} />, label: t("navbar.rewardCenter") },
+    { href: "/referrals", icon: <AppIcon slot="ICON_FRIENDS" size={22} fallback={<Users size={22} />} />, label: t("navbar.referrals") },
   ];
   return (
     <div>

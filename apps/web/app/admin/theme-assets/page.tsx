@@ -213,11 +213,12 @@ export default function AdminThemeAssetsPage() {
       <style>{SPRITE_KEYFRAMES}</style>
 
       <div>
-        <h1 className="text-3xl font-black text-yellow-400">Imágenes del juego</h1>
+        <h1 className="text-3xl font-black text-yellow-400">Imágenes e íconos</h1>
         <p className="mt-1 text-sm text-zinc-400">
-          Centraliza acá las imágenes que aparecen en todo el juego (logo, puerta de Salas, etc.). Cada una admite
-          hasta {MAX_VARIANTS} variantes guardadas — subí una para Navidad, otra para Halloween, y elegí cuál está
-          activa. Sin ninguna activa se usa la imagen por defecto del código.
+          Centraliza acá las imágenes e íconos de la web y del juego (logo, menú, reacciones del chat, misiones, etc.).
+          Los íconos marcados &quot;web + juego&quot; están conectados: subís una imagen y cambia en los dos lados a la vez.
+          Cada uno admite hasta {MAX_VARIANTS} variantes guardadas — subí una para Navidad, otra para Halloween, y elegí
+          cuál está activa. Sin ninguna activa se usa el ícono por defecto del código.
         </p>
       </div>
 

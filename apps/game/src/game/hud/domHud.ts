@@ -4,6 +4,8 @@ import styles from "./domHud.module.css";
 import type { ChatBubbleTheme } from "./nameplateStyles";
 import { bubbleThemeVars, nameEffectClass } from "./hudStyleUtils";
 import { reactionKey, reactionSvg } from "./reactionIcons";
+import { peekThemeAsset } from "../network/themeAssets";
+import { reactionSlot } from "../components/BottomBar/quickReactions";
 
 export { nameEffectClass };
 
@@ -85,7 +87,12 @@ export function createBubbleElement({ message, theme, name, nameEffectId, face, 
   const messageEl = document.createElement("span");
   messageEl.className = styles.message;
   const reaction = reactionKey(message);
-  if (reaction) {
+  const reactionAsset = reaction ? peekReactionAsset(reaction) : null;
+  if (reactionAsset) {
+    // Reacción con imagen del admin (/admin/theme-assets).
+    messageEl.appendChild(reactionImageElement(reactionAsset));
+    messageEl.style.display = "inline-flex";
+  } else if (reaction) {
     // Reacción rápida: SVG propio (estático), no el texto del jugador.
     messageEl.innerHTML = reactionSvg(reaction);
     messageEl.style.display = "inline-flex";
@@ -426,4 +433,38 @@ export function snapshotHead(
       else image.onload = crop;
     });
   });
+}
+
+const REACTION_IMAGE_SIZE = 22;
+
+function peekReactionAsset(reaction: string) {
+  const slot = reactionSlot(reaction);
+  return slot ? peekThemeAsset(slot) : null;
+}
+
+// Mismo tamaño que el SVG por defecto. En modo SPRITE muestra solo el primer
+// cuadro (la burbuja dura unos segundos, no vale la pena animarla). Se arma
+// con propiedades del DOM, no innerHTML, aunque la URL venga del admin.
+function reactionImageElement(asset: NonNullable<ReturnType<typeof peekThemeAsset>>): HTMLElement {
+  if (asset.mode === "SPRITE") {
+    const frame = document.createElement("span");
+    frame.style.display = "inline-block";
+    frame.style.width = `${REACTION_IMAGE_SIZE}px`;
+    frame.style.height = `${REACTION_IMAGE_SIZE}px`;
+    frame.style.backgroundImage = `url(${JSON.stringify(asset.imageUrl)})`;
+    frame.style.backgroundRepeat = "no-repeat";
+    frame.style.backgroundSize = `${Math.max(1, asset.frameCount) * 100}% 100%`;
+    frame.style.backgroundPosition = "0 0";
+    frame.style.imageRendering = "pixelated";
+    return frame;
+  }
+
+  const img = document.createElement("img");
+  img.src = asset.imageUrl;
+  img.alt = "";
+  img.width = REACTION_IMAGE_SIZE;
+  img.height = REACTION_IMAGE_SIZE;
+  img.style.objectFit = "contain";
+  img.style.imageRendering = "pixelated";
+  return img;
 }

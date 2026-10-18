@@ -17,6 +17,7 @@ import { useThemeAsset } from "../../network/themeAssets";
 import { ThemeImage } from "../ThemeImage/ThemeImage";
 import { CoinIcon } from "../shared/ThemeIcons";
 import BoostChip from "../shared/BoostChip";
+import { AppIcon, type AppIconSlot } from "../AppIcon/AppIcon";
 import { useTranslation } from "../../../i18n/useTranslation";
 import { getAssetsUrl } from "../../../config/env";
 
@@ -162,6 +163,9 @@ function LeftSidebar({
     danger?: boolean;
     accent?: boolean;
     badge?: number;
+    // Key del ícono administrable (/admin/theme-assets); `icon` es el
+    // fallback cuando no hay ninguna imagen activa.
+    slot: AppIconSlot;
     icon: ReactElement;
     // Ancla del onboarding guiado (ver Onboarding/GameOnboarding.tsx).
     tour?: string;
@@ -170,6 +174,7 @@ function LeftSidebar({
   const menu: MenuItem[] = [
     {
       name: t("hud.sidebar.home"),
+      slot: "ICON_HOME",
       onClick: onGoHome,
       accent: true,
       icon: (
@@ -188,6 +193,7 @@ function LeftSidebar({
     },
     {
       name: t("hud.sidebar.openPc"),
+      slot: "ICON_PC",
       onClick: onOpenPc,
       tour: "pc",
       icon: (
@@ -206,6 +212,7 @@ function LeftSidebar({
     },
     {
       name: t("hud.sidebar.wardrobe"),
+      slot: "ICON_WARDROBE",
       onClick: onCustomize,
       tour: "customize",
       icon: (
@@ -224,6 +231,7 @@ function LeftSidebar({
     },
     {
       name: t("hud.sidebar.friends"),
+      slot: "ICON_FRIENDS",
       onClick: onOpenFriends,
       tour: "friends",
       icon: (
@@ -242,6 +250,7 @@ function LeftSidebar({
     },
     {
       name: t("hud.sidebar.messages"),
+      slot: "ICON_MESSAGES",
       onClick: onOpenMessages,
       badge: unreadMessages,
       icon: (
@@ -259,6 +268,7 @@ function LeftSidebar({
     },
     {
       name: t("hud.sidebar.notifications"),
+      slot: "ICON_NOTIFICATIONS",
       onClick: onOpenNotifications,
       badge: unreadNotifications,
       icon: (
@@ -277,6 +287,7 @@ function LeftSidebar({
     },
     {
       name: t("hud.sidebar.tournaments"),
+      slot: "ICON_TOURNAMENTS",
       // Todavía no existe ningún backend de torneos (sin controller, sin
       // modelo Prisma) — antes este botón no hacía absolutamente nada al
       // clickearlo (ni siquiera un onClick). Este aviso es honesto: informa
@@ -302,6 +313,7 @@ function LeftSidebar({
     },
     {
       name: t("hud.sidebar.shop"),
+      slot: "ICON_SHOP",
       onClick: onOpenShop,
       tour: "shop",
       icon: (
@@ -320,6 +332,7 @@ function LeftSidebar({
     },
     {
       name: t("hud.sidebar.pet"),
+      slot: "ICON_PET",
       onClick: onOpenPet,
       icon: (
         <svg
@@ -337,6 +350,7 @@ function LeftSidebar({
     },
     {
       name: t("hud.sidebar.butler"),
+      slot: "ICON_BUTLER",
       onClick: onOpenButler,
       icon: (
         <svg
@@ -355,6 +369,7 @@ function LeftSidebar({
     },
     {
       name: t("hud.sidebar.build"),
+      slot: "ICON_BUILD",
       onClick: onOpenBuildMode,
       icon: (
         <svg
@@ -373,6 +388,7 @@ function LeftSidebar({
     },
     {
       name: t("hud.sidebar.marketplace"),
+      slot: "ICON_MARKETPLACE",
       onClick: onOpenMarketplace,
       icon: (
         <svg
@@ -391,6 +407,7 @@ function LeftSidebar({
     },
     {
       name: t("hud.sidebar.settings"),
+      slot: "ICON_SETTINGS",
       onClick: onOpenSettings,
       icon: (
         <svg
@@ -408,6 +425,7 @@ function LeftSidebar({
     },
     {
       name: t("hud.sidebar.exit"),
+      slot: "ICON_LOGOUT",
       onClick: onExitGame,
       danger: true,
       icon: (
@@ -541,7 +559,7 @@ function LeftSidebar({
               onClick={item.onClick}
             >
               <div className="menu-icon">
-                {item.icon}
+                <AppIcon slot={item.slot} size={19} fallback={item.icon} alt={item.name} />
                 {!!item.badge && (
                   <span className="menu-badge">{item.badge > 99 ? "99+" : item.badge}</span>
                 )}

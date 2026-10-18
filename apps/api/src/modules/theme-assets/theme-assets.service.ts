@@ -16,6 +16,12 @@ function clamp(value: number, min: number, max: number): number {
 // Slots conocidos por el código — agregar uno acá + consumirlo en el
 // frontend (Navbar/RoomList/etc.) es todo lo que hace falta para sumar una
 // nueva imagen administrable, sin migraciones nuevas.
+//
+// Los ICON_* son "iconos por significado", no por pantalla: la misma key se
+// consume tanto en apps/web como en apps/game (componente AppIcon de cada
+// app), así que cambiar la imagen de ICON_PROFILE la cambia en el navbar de
+// la web y en el menú del juego a la vez. El label dice dónde aparece cada
+// uno para que el admin sepa qué está tocando.
 const SLOT_REGISTRY: { key: string; label: string; category: string }[] = [
   { key: 'LOGO', label: 'Logo principal', category: 'Marca' },
   // Íconos de la economía: se usan en TODA la web y el juego (saldo, precios,
@@ -25,6 +31,48 @@ const SLOT_REGISTRY: { key: string; label: string; category: string }[] = [
   { key: 'ROOM_DOOR', label: 'Puerta de Salas', category: 'Juego' },
   { key: 'HOME_HERO_PHOTO', label: 'Foto — Home (polaroid)', category: 'Marketing' },
   { key: 'AUTH_HERO_PHOTO', label: 'Foto — Login / Registro', category: 'Marketing' },
+
+  // Navegación compartida web + juego
+  { key: 'ICON_HOME', label: 'Inicio (web + juego)', category: 'Iconos · Navegación' },
+  { key: 'ICON_PROFILE', label: 'Perfil (web + juego)', category: 'Iconos · Navegación' },
+  { key: 'ICON_FRIENDS', label: 'Amigos (web + juego)', category: 'Iconos · Navegación' },
+  { key: 'ICON_MESSAGES', label: 'Mensajes (web + juego)', category: 'Iconos · Navegación' },
+  { key: 'ICON_NOTIFICATIONS', label: 'Notificaciones (web + juego)', category: 'Iconos · Navegación' },
+  { key: 'ICON_SETTINGS', label: 'Configuración (web + juego)', category: 'Iconos · Navegación' },
+  { key: 'ICON_LOGOUT', label: 'Salir / Cerrar sesión (web + juego)', category: 'Iconos · Navegación' },
+  { key: 'ICON_COURSES', label: 'Cursos (web)', category: 'Iconos · Navegación' },
+  { key: 'ICON_RANKINGS', label: 'Rankings (web)', category: 'Iconos · Navegación' },
+  { key: 'ICON_PLAY', label: 'Jugar / Entrar al juego (web)', category: 'Iconos · Navegación' },
+
+  // Gamificación / recompensas
+  { key: 'ICON_DAILY_QUEST', label: 'Misión diaria (web)', category: 'Iconos · Recompensas' },
+  { key: 'ICON_MISSIONS', label: 'Misiones (web)', category: 'Iconos · Recompensas' },
+  { key: 'ICON_REWARDS', label: 'Centro de recompensas (web)', category: 'Iconos · Recompensas' },
+  { key: 'ICON_REWARDS_HUB', label: 'Botón flotante de recompensas (web, abajo a la izquierda)', category: 'Iconos · Recompensas' },
+  // Logros: se reusa ACHIEVEMENT_ICON (arriba, categoría Marca).
+  { key: 'ICON_BADGES', label: 'Insignias / Certificados (web)', category: 'Iconos · Recompensas' },
+  { key: 'ICON_BATTLE_PASS', label: 'Pase de batalla (web)', category: 'Iconos · Recompensas' },
+  { key: 'ICON_XP', label: 'XP (web)', category: 'Iconos · Recompensas' },
+  { key: 'ICON_STREAK', label: 'Racha (web)', category: 'Iconos · Recompensas' },
+
+  // Menú lateral del juego
+  { key: 'ICON_PC', label: 'PC (juego)', category: 'Iconos · Juego' },
+  { key: 'ICON_WARDROBE', label: 'Vestuario (juego)', category: 'Iconos · Juego' },
+  { key: 'ICON_TOURNAMENTS', label: 'Torneos (juego)', category: 'Iconos · Juego' },
+  { key: 'ICON_SHOP', label: 'Tienda (juego)', category: 'Iconos · Juego' },
+  { key: 'ICON_PET', label: 'Mascota (juego)', category: 'Iconos · Juego' },
+  { key: 'ICON_BUTLER', label: 'Mayordomo (juego)', category: 'Iconos · Juego' },
+  { key: 'ICON_BUILD', label: 'Construir (juego)', category: 'Iconos · Juego' },
+  { key: 'ICON_MARKETPLACE', label: 'Marketplace (juego)', category: 'Iconos · Juego' },
+  { key: 'ICON_CHAT_THEME', label: 'Tema del chat (juego)', category: 'Iconos · Juego' },
+  { key: 'ICON_SEND', label: 'Enviar mensaje (juego)', category: 'Iconos · Juego' },
+
+  // Reacciones rápidas del chat del juego — se ven en el botón y también
+  // arriba de la cabeza del jugador cuando alguien la manda.
+  { key: 'REACTION_WAVE', label: 'Reacción: saludar 👋', category: 'Reacciones del chat' },
+  { key: 'REACTION_LAUGH', label: 'Reacción: reír 😂', category: 'Reacciones del chat' },
+  { key: 'REACTION_FIRE', label: 'Reacción: fuego 🔥', category: 'Reacciones del chat' },
+  { key: 'REACTION_BYE', label: 'Reacción: paz ✌️', category: 'Reacciones del chat' },
 ];
 
 export type ResolvedThemeAsset = {
@@ -104,10 +152,18 @@ export class ThemeAssetsService {
   async adminListSlots() {
     await this.ensureSlotsSeeded();
 
-    return this.prisma.themeAssetSlot.findMany({
+    const slots = await this.prisma.themeAssetSlot.findMany({
       orderBy: { key: 'asc' },
       include: { variants: { orderBy: { order: 'asc' } } },
     });
+
+    // Mismo orden que SLOT_REGISTRY (agrupa las categorías como están
+    // pensadas); slots viejos que ya no están en el registro van al final.
+    const position = (key: string) => {
+      const index = SLOT_REGISTRY.findIndex((slot) => slot.key === key);
+      return index === -1 ? Number.MAX_SAFE_INTEGER : index;
+    };
+    return slots.sort((a, b) => position(a.key) - position(b.key));
   }
 
   async adminCreateVariant(slotKey: string, input: UpsertVariantInput) {

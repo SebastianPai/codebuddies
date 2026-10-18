@@ -47,6 +47,13 @@ async function fetchResolved(): Promise<ResolvedThemeAssets> {
   return inFlight;
 }
 
+// Lectura sincrónica del cache, para código fuera de React (burbujas del
+// HUD). null si todavía no se cargó o no hay variante activa — los íconos
+// de la barra de chat (AppIcon) ya disparan la carga al montar el juego.
+export function peekThemeAsset(key: string): ResolvedThemeAsset | null {
+  return cache?.[key] ?? null;
+}
+
 // undefined = cargando, null = sin variante activa (usar el asset por defecto).
 export function useThemeAsset(key: string): ResolvedThemeAsset | null | undefined {
   const [value, setValue] = useState<ResolvedThemeAsset | null | undefined>(cache ? cache[key] ?? null : undefined);
