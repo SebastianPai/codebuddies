@@ -6,13 +6,8 @@ import "./BottomBar.css";
 import ChatThemePopover from "./ChatThemePopover";
 import { audioManager } from "../../audio/AudioManager";
 import { useTranslation } from "../../../i18n/useTranslation";
-
-const QUICK_REACTIONS = [
-  { emoji: "👋", textKey: "hud.bottomBar.reactionWave", action: "wave" },
-  { emoji: "😂", textKey: "hud.bottomBar.reactionLaugh", action: "laugh" },
-  { emoji: "🔥", textKey: "hud.bottomBar.reactionFire", action: "fire" },
-  { emoji: "✌️", textKey: "hud.bottomBar.reactionBye", action: "bye" },
-];
+import { AppIcon } from "../AppIcon/AppIcon";
+import { QUICK_REACTIONS } from "./quickReactions";
 
 function BottomBar() {
   const t = useTranslation();
@@ -74,7 +69,7 @@ function BottomBar() {
             data-label={t("hud.bottomBar.chatThemeTitle")}
             onClick={toggleThemePopover}
           >
-            <Palette size={15} />
+            <AppIcon slot="ICON_CHAT_THEME" size={15} fallback={<Palette size={15} />} />
           </button>
 
           <div className="composer-divider" />
@@ -87,7 +82,7 @@ function BottomBar() {
                 data-label={t(reaction.textKey)}
                 onClick={() => sendReaction(reaction.emoji)}
               >
-                <span>{reaction.emoji}</span>
+                <AppIcon slot={reaction.slot} size={18} fallback={<span>{reaction.emoji}</span>} alt={t(reaction.textKey)} />
               </button>
             ))}
           </div>
@@ -110,7 +105,7 @@ function BottomBar() {
             aria-label={t("hud.bottomBar.send")}
             disabled={!message.trim()}
           >
-            <Send size={16} />
+            <AppIcon slot="ICON_SEND" size={16} fallback={<Send size={16} />} />
           </button>
         </div>
 

@@ -1,6 +1,7 @@
 import { Flame, Trophy, Zap } from "lucide-react";
 import { useTranslation } from "@/i18n/useTranslation";
 import { CurrencyIcon } from "@/shared/ui/currency-icon";
+import { AppIcon } from "../../../../components/AppIcon";
 import { RarityText } from "@/shared/ui/rarity-text";
 import type { DashboardUser } from "../types/dashboard";
 
@@ -15,14 +16,14 @@ interface DashboardHeaderProps {
 export function DashboardHeader({ user, xp, coins, streak, rank }: DashboardHeaderProps) {
   const t = useTranslation();
   const stats = [
-    { icon: <Zap size={18} />, label: "XP", value: xp.toLocaleString() },
-    { icon: <Flame size={18} />, label: t("dashboard.streak"), value: String(streak) },
+    { icon: <AppIcon slot="ICON_XP" size={18} fallback={<Zap size={18} />} />, label: "XP", value: xp.toLocaleString() },
+    { icon: <AppIcon slot="ICON_STREAK" size={18} fallback={<Flame size={18} />} />, label: t("dashboard.streak"), value: String(streak) },
     {
       icon: <CurrencyIcon currency="coins" size={18} />,
       label: "Coins",
       value: <RarityText effect="goldRank">{coins.toLocaleString()}</RarityText>,
     },
-    { icon: <Trophy size={18} />, label: t("dashboard.rank"), value: rank ? `#${rank}` : "-" },
+    { icon: <AppIcon slot="ICON_RANKINGS" size={18} fallback={<Trophy size={18} />} />, label: t("dashboard.rank"), value: rank ? `#${rank}` : "-" },
   ];
   return (
     <section className="mb-8">

@@ -7,6 +7,7 @@ import { FOCUS_RING, PRESSABLE } from "@/shared/ui/styles";
 import { RarityBorder } from "@/shared/ui/rarity-border";
 import { RarityText } from "@/shared/ui/rarity-text";
 import { resolvePodiumEffect } from "@codebuddies/visual-effects";
+import { AppIcon } from "../../../../components/AppIcon";
 import type { DailyMission, DashboardUser, ReferralOverview, TopPlayerEntry } from "../types/dashboard";
 
 type LoadStatus = "loading" | "error" | "ready";
@@ -73,7 +74,7 @@ export function DashboardSidebar({
     <div className="min-w-0 space-y-6">
       <div className="rounded-3xl bg-[rgb(var(--button))] p-6 text-[rgb(var(--button-text))]">
         <div className="mb-6 flex items-center justify-between">
-          <Target size={28} />
+          <AppIcon slot="ICON_DAILY_QUEST" size={28} fallback={<Target size={28} />} />
           <span className="rounded-full bg-[rgb(var(--text))] px-3 py-1 text-xs font-bold uppercase text-[rgb(var(--background))]">
             {t("dashboard.dailyQuest")}
           </span>

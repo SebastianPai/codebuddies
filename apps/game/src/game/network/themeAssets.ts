@@ -47,6 +47,13 @@ async function fetchResolved(): Promise<ResolvedThemeAssets> {
   return inFlight;
 }
 
+// Versión sin hook, para código fuera de React (Phaser: PlayerHUD,
+// PlayerSocketSystem). Comparte el mismo cache/fetch que useThemeAsset.
+export async function getThemeAsset(key: string): Promise<ResolvedThemeAsset | null> {
+  const resolved = await fetchResolved();
+  return resolved[key] ?? null;
+}
+
 // undefined = cargando, null = sin variante activa (usar el asset por defecto).
 export function useThemeAsset(key: string): ResolvedThemeAsset | null | undefined {
   const [value, setValue] = useState<ResolvedThemeAsset | null | undefined>(cache ? cache[key] ?? null : undefined);
