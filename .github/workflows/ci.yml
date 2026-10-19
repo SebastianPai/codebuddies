@@ -42,7 +42,7 @@ jobs:
       DATABASE_URL: postgresql://codebuddies:codebuddies@localhost:5432/codebuddies_db
       JWT_SECRET: ci-only-secret-not-for-production
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: pnpm/action-setup@v4
         with:
@@ -89,7 +89,7 @@ jobs:
     name: Dependency audit (informational)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: pnpm/action-setup@v4
         with:
@@ -116,7 +116,7 @@ jobs:
     env:
       NEXT_PUBLIC_API_URL: http://localhost:3001
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: pnpm/action-setup@v4
         with:
@@ -148,7 +148,7 @@ jobs:
     env:
       NEXT_PUBLIC_API_URL: http://localhost:3001
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: pnpm/action-setup@v4
         with:
