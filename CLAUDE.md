@@ -22,10 +22,10 @@ desfasado de la base de datos.
 
 ### Ramas peligrosas (NO desplegar ni fusionar tal cual)
 
-Estado al 2026-10-20: las 3 apps de Heroku corren `7e9a9fa`, la punta de la
+Estado al 2026-10-20: las 3 apps de Heroku corren `2624b5c`, la punta de la
 rama `feat/premium-colors-parallax` (`feat/codestudio-v2` + íconos + colores
 premium + parallax). Es la rama base para todo trabajo nuevo. Lo que sigue en
-la tabla vale para cualquier rama que NO contenga `7e9a9fa`:
+la tabla vale para cualquier rama que NO contenga `2624b5c`:
 
 | Rama | Por qué es peligrosa |
 |---|---|
