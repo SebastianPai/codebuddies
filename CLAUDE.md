@@ -22,26 +22,19 @@ desfasado de la base de datos.
 
 ### Ramas peligrosas (NO desplegar ni fusionar tal cual)
 
-Estado al 2026-10-20: producción está a medio desplegar.
-- `codebuddies-api` = `973e02a` (rama `feat/premium-colors-parallax`, con las
-  migraciones `room_item_color` y `theme_asset_parallax_depth` ya aplicadas).
-- `codebuddies-web` y `codebuddies-game` = `01bed6b` (rama
-  `deploy/icons-on-codestudio-v2`). Falta desplegar `feat/premium-colors-parallax`
-  en estas dos (los cambios de la API son compatibles con las versiones viejas).
-
-La rama base para trabajo nuevo es `feat/premium-colors-parallax`. Lo que
-sigue en la tabla vale para todas las ramas que no la contienen:
+Estado al 2026-10-20: las 3 apps de Heroku corren `7e9a9fa`, la punta de la
+rama `feat/premium-colors-parallax` (`feat/codestudio-v2` + íconos + colores
+premium + parallax). Es la rama base para todo trabajo nuevo. Lo que sigue en
+la tabla vale para cualquier rama que NO contenga `7e9a9fa`:
 
 | Rama | Por qué es peligrosa |
 |---|---|
 | `main` | Está 83 commits atrás de producción. |
-| `feat/codestudio-v2` | Le falta el commit de íconos (`01bed6b`) que ya está en producción. |
-| `feat/academy-content-prefill` | Su último commit es un "snapshot del árbol de trabajo antes de formatear el equipo": 363 archivos sobre una base vieja. Desplegarla revierte 57 commits. Antes de usarla hay que revisar archivo por archivo qué trae que producción no tenga. |
+| `feat/codestudio-v2` y `deploy/icons-on-codestudio-v2` | Les faltan los commits de colores y parallax que ya están en producción (y sus migraciones). |
+| `feat/academy-content-prefill` | "Snapshot antes de formatear el equipo" sobre una base vieja: desplegarla revierte muchos commits. Ya se revisó (2026-10-20): no trae trabajo que falte en producción, solo 2 scripts `scratch-*.mjs`. Se puede archivar. |
 | `feat/admin-configurable-icons` | Reemplazada por `deploy/icons-on-codestudio-v2`. Se basa en `main`, así que también está atrás. |
 | `backup/game-zz-pc-previews` | Páginas de prueba (`zz-pc`). No desplegar. |
 | `release/*`, `feat/*` y `dependabot/*` viejas | Todas están atrás de producción. |
 
-La rama que corre producción es `deploy/icons-on-codestudio-v2`. Todo
-trabajo nuevo debe salir de ella (o de un commit que la contenga).
 
 Cuando una rama se despliega, actualizá esta tabla y la línea de "Estado".
