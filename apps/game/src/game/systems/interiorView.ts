@@ -16,8 +16,8 @@ const STORAGE_KEY = "interiorView";
 /** Cuántos objetos apilados en una casilla la convierten en pared. */
 export const WALL_STACK_MIN = 3;
 
-/** Opacidad de una pared fantasma: se ve dónde está, pero deja ver detrás. */
-export const GHOST_ALPHA = 0.22;
+/** Opacidad de una pared fantasma: casi invisible, solo un rastro de dónde está. */
+export const GHOST_ALPHA = 0.02;
 
 export type InteriorItem = {
   id: string;
