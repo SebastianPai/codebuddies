@@ -90,6 +90,12 @@ export class UpdateWorldItemDto {
   @Matches(/^#[0-9a-fA-F]{6}$/)
   lightColor?: string | null;
 
+  // Forma de la luz (círculo o cono "porción de pizza"), punto de origen y
+  // dirección. El service la reconstruye con rangos fijos.
+  @IsOptional()
+  @IsObject()
+  lightConfig?: Record<string, unknown> | null;
+
   @IsOptional()
   @IsBoolean()
   rotatable?: boolean;

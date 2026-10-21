@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { WorldObject } from "../types/WorldObject";
 import { GHOST_ALPHA, ghostedItemIds, readInteriorView } from "./interiorView";
+import type { LightSource } from "./AmbientLightOverlay";
 import {
   getDirectionalFootprint,
   getDirectionalSurface,
@@ -471,7 +472,9 @@ export default class RoomItemsManager {
    * Radio y color salen de WorldItemData (lightRadius / lightColor); sin
    * ellos, la luz cálida de siempre con un radio según el tamaño del sprite.
    */
-  private lightOf(worldObject: WorldObject): { radius: number; color: number } | null {
+  private lightOf(
+    worldObject: WorldObject,
+  ): { radius: number; color: number; x: number; y: number; cone?: { direction: number; spread: number } } | null {
     const worldData = worldObject.item?.worldData;
     const toggles =
       !!worldData?.isInteractable && (worldData?.interactionTypes ?? []).includes("TOGGLE");
@@ -482,7 +485,21 @@ export default class RoomItemsManager {
     const radius = Number(worldData?.lightRadius) || Math.max(64, sprite.displayWidth * 1.1);
     const hex = typeof worldData?.lightColor === "string" ? worldData.lightColor : "";
     const color = /^#[0-9a-f]{6}$/i.test(hex) ? parseInt(hex.slice(1), 16) : 0xffe6b0;
-    return { radius, color };
+
+    // Origen y forma (admin → "Forma de la luz"). Sin config: círculo en el
+    // centro del sprite, como siempre. El origen es relativo al centro-abajo
+    // del sprite (su ancla), así sigue al objeto si se mueve.
+    const config = worldData?.lightConfig as
+      | { shape?: string; originX?: number; originY?: number; direction?: number; spread?: number }
+      | null
+      | undefined;
+    const x = config ? sprite.x + (Number(config.originX) || 0) : sprite.x;
+    const y = config ? sprite.y + (Number(config.originY) || 0) : sprite.y - sprite.displayHeight * 0.5;
+    const cone =
+      config?.shape === "CONE"
+        ? { direction: Number(config.direction) || 0, spread: Number(config.spread) || 70 }
+        : undefined;
+    return { radius, color, x, y, cone };
   }
 
   /**
@@ -490,13 +507,12 @@ export default class RoomItemsManager {
    * coordenadas del mundo. Se leen del sprite en vivo, así siguen al objeto
    * si se mueve o se re-apila.
    */
-  getLightSources(): { x: number; y: number; radius: number }[] {
-    const lights: { x: number; y: number; radius: number }[] = [];
+  getLightSources(): LightSource[] {
+    const lights: LightSource[] = [];
     this.items.forEach((worldObject) => {
       const light = this.lightOf(worldObject);
       if (!light) return;
-      const sprite = worldObject.sprite;
-      lights.push({ x: sprite.x, y: sprite.y - sprite.displayHeight * 0.5, radius: light.radius });
+      lights.push({ x: light.x, y: light.y, radius: light.radius, cone: light.cone });
     });
     return lights;
   }
@@ -509,9 +525,11 @@ export default class RoomItemsManager {
     if (!worldObject) return;
 
     const light = this.lightOf(worldObject);
-    const sprite = worldObject.sprite;
-    const glowX = sprite.x;
-    const glowY = sprite.y - sprite.displayHeight * 0.5;
+    // El brillo de color va donde está la luz: en un cono, a mitad de camino
+    // hacia donde apunta (es lo que se ve por el agujero de la oscuridad).
+    const coneRad = light?.cone ? (light.cone.direction * Math.PI) / 180 : 0;
+    const glowX = light ? light.x + (light.cone ? Math.cos(coneRad) * light.radius * 0.45 : 0) : 0;
+    const glowY = light ? light.y + (light.cone ? Math.sin(coneRad) * light.radius * 0.45 : 0) : 0;
 
     if (light) {
       if (!worldObject.glowLight) {
@@ -528,7 +546,7 @@ export default class RoomItemsManager {
         worldObject.glowLight.color.setFromRGB(Phaser.Display.Color.IntegerToRGB(light.color));
         worldObject.glowLight.radius = light.radius;
       }
-      worldObject.glowLight.setDepth(sprite.depth - 1);
+      worldObject.glowLight.setDepth(worldObject.sprite.depth - 1);
     } else if (worldObject.glowLight) {
       worldObject.glowLight.destroy();
       worldObject.glowLight = null;

@@ -25,12 +25,22 @@ const FADE_OUT_MS = 300;
 
 const GRADIENT_KEY = "cb-light-gradient";
 const GRADIENT_SIZE = 256;
+const CONE_SIZE = 512;
 // El agujero es algo más grande que el radio nominal: el borde del degradado
 // es casi transparente, así se nota un círculo de luz del tamaño pedido.
 const HOLE_SCALE = 1.25;
 
-/** Una fuente de luz en coordenadas del MUNDO. */
-export type LightSource = { x: number; y: number; radius: number };
+/**
+ * Una fuente de luz en coordenadas del MUNDO. `cone` = porción de pizza que
+ * sale de (x, y) hacia `direction` (grados en pantalla, 0 = derecha, 90 =
+ * abajo) con una apertura de `spread` grados. Sin `cone`, círculo.
+ */
+export type LightSource = {
+  x: number;
+  y: number;
+  radius: number;
+  cone?: { direction: number; spread: number };
+};
 
 export default class AmbientLightOverlay {
   private rect?: Phaser.GameObjects.Rectangle;
@@ -84,10 +94,23 @@ export default class AmbientLightOverlay {
         this.pool.push(image);
         this.maskSource.add(image);
       }
-      image
-        .setVisible(true)
-        .setPosition(light.x, light.y)
-        .setScale((light.radius * 2 * HOLE_SCALE) / GRADIENT_SIZE);
+      if (light.cone) {
+        const key = this.ensureConeTexture(light.cone.spread);
+        if (image.texture.key !== key) image.setTexture(key);
+        image
+          .setVisible(true)
+          .setPosition(light.x, light.y)
+          .setRotation(Phaser.Math.DegToRad(light.cone.direction))
+          // El cono tiene el vértice en el centro del lienzo (radio = la mitad).
+          .setScale((light.radius * 2 * HOLE_SCALE) / CONE_SIZE);
+      } else {
+        if (image.texture.key !== GRADIENT_KEY) image.setTexture(GRADIENT_KEY);
+        image
+          .setVisible(true)
+          .setPosition(light.x, light.y)
+          .setRotation(0)
+          .setScale((light.radius * 2 * HOLE_SCALE) / GRADIENT_SIZE);
+      }
     }
     // Las que sobran se esconden (se reusan si después hay más luces).
     for (let i = lights.length; i < this.pool.length; i++) this.pool[i].setVisible(false);
@@ -127,6 +150,40 @@ export default class AmbientLightOverlay {
     this.maskSource = undefined;
     this.rect?.destroy();
     this.rect = undefined;
+  }
+
+  /**
+   * Cono ("porción de pizza") apuntando a la derecha, con el vértice en el
+   * centro del lienzo. La apertura se redondea de a 5° para cachear pocas
+   * texturas aunque cada objeto use un valor distinto.
+   */
+  private ensureConeTexture(spread: number): string {
+    const step = Phaser.Math.Clamp(Math.round(spread / 5) * 5, 10, 180);
+    const key = `cb-light-cone-${step}`;
+    if (this.scene.textures.exists(key)) return key;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = CONE_SIZE;
+    canvas.height = CONE_SIZE;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return GRADIENT_KEY;
+    const c = CONE_SIZE / 2;
+    const half = Phaser.Math.DegToRad(step) / 2;
+    const gradient = ctx.createRadialGradient(c, c, 0, c, c, c);
+    gradient.addColorStop(0, "rgba(255,255,255,1)");
+    gradient.addColorStop(0.5, "rgba(255,255,255,0.8)");
+    gradient.addColorStop(0.8, "rgba(255,255,255,0.3)");
+    gradient.addColorStop(1, "rgba(255,255,255,0)");
+    // Bordes laterales suaves (donde el navegador soporta filter en canvas).
+    ctx.filter = "blur(6px)";
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.moveTo(c, c);
+    ctx.arc(c, c, c - 8, -half, half);
+    ctx.closePath();
+    ctx.fill();
+    this.scene.textures.addCanvas(key, canvas);
+    return key;
   }
 
   /** Degradado radial blanco → transparente, generado una sola vez. */

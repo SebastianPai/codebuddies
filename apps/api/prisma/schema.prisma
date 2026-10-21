@@ -1185,6 +1185,9 @@ model WorldItemData {
   emitsLight  Boolean @default(false)
   lightRadius Int?
   lightColor  String?
+  // Forma de la luz: { shape: CIRCLE|CONE, originX, originY, direction, spread }.
+  // null = círculo centrado. Ver world-item-data/light-config.util.ts.
+  lightConfig Json?
 
   item Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
 }

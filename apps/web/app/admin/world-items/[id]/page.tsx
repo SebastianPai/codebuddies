@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/shared/api/client";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
+import LightShapeEditor from "../../../../components/item-editor/LightShapeEditor";
 
 // Mismos defaults que el juego (LightingOverlay) cuando el objeto no los trae.
 const DEFAULT_LIGHT_RADIUS = 140;
@@ -49,6 +50,12 @@ export default function WorldItemDetailsPage() {
     }
   }, [itemId]);
 
+  // Forma/radio/color se editan si el objeto emite luz siempre o si es una
+  // lámpara que se enciende (TOGGLE): las dos iluminan en el juego.
+  const lightEditable =
+    !!worldItem?.emitsLight ||
+    (!!worldItem?.isInteractable && (worldItem?.interactionTypes ?? []).includes("TOGGLE"));
+
   async function save() {
     try {
       setSaving(true);
@@ -66,8 +73,9 @@ export default function WorldItemDetailsPage() {
         rotatable: worldItem.rotatable,
 
         emitsLight: !!worldItem.emitsLight,
-        lightRadius: worldItem.emitsLight ? Number(worldItem.lightRadius) || DEFAULT_LIGHT_RADIUS : null,
-        lightColor: worldItem.emitsLight ? worldItem.lightColor || DEFAULT_LIGHT_COLOR : null,
+        lightRadius: lightEditable ? Number(worldItem.lightRadius) || DEFAULT_LIGHT_RADIUS : null,
+        lightColor: lightEditable ? worldItem.lightColor || DEFAULT_LIGHT_COLOR : null,
+        lightConfig: lightEditable ? worldItem.lightConfig ?? null : null,
 
         placementType: worldItem.placementType,
 
@@ -291,7 +299,8 @@ export default function WorldItemDetailsPage() {
                 </div>
               </label>
 
-              {worldItem.emitsLight && (
+              {lightEditable && (
+                <>
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   <label className="text-sm">
                     {t("items.lightRadius")} ({Number(worldItem.lightRadius) || DEFAULT_LIGHT_RADIUS}px)
@@ -327,6 +336,26 @@ export default function WorldItemDetailsPage() {
                     </div>
                   </label>
                 </div>
+                <div className="mt-3">
+                  <LightShapeEditor
+                    imageUrl={worldItem.item?.imageUrl ?? worldItem.previewImageUrl}
+                    faces={Number(worldItem.directions) || 1}
+                    radius={Number(worldItem.lightRadius) || DEFAULT_LIGHT_RADIUS}
+                    color={worldItem.lightColor || DEFAULT_LIGHT_COLOR}
+                    value={worldItem.lightConfig ?? null}
+                    onChange={(lightConfig) => setWorldItem({ ...worldItem, lightConfig })}
+                    labels={{
+                      title: t("items.lightShapeTitle"),
+                      hint: t("items.lightShapeHint"),
+                      circle: t("items.lightShapeCircle"),
+                      cone: t("items.lightShapeCone"),
+                      direction: t("items.lightShapeDirection"),
+                      spread: t("items.lightShapeSpread"),
+                      reset: t("items.lightShapeReset"),
+                    }}
+                  />
+                </div>
+                </>
               )}
             </div>
 

@@ -1,3 +1,5 @@
+import { Prisma } from '@prisma/client';
+import { sanitizeLightConfig } from './light-config.util';
 import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { PrismaService } from '../../../prisma/prisma.service';
@@ -85,6 +87,12 @@ export class WorldItemDataService {
     // intacto. Un `null` explícito sí lo limpia.
     delete data.behavior;
     Object.assign(data, buildBehaviorData(dto.behavior));
+
+    // Forma de la luz: se reconstruye con rangos fijos (ver light-config.util).
+    if (dto.lightConfig !== undefined) {
+      const lightConfig = sanitizeLightConfig(dto.lightConfig);
+      data.lightConfig = lightConfig ?? Prisma.DbNull;
+    }
 
     // Nunca confiar en el valor crudo: rango, "entero", sync y escalares
     // legacy los reimpone el backend. `exists` cubre el update parcial.
