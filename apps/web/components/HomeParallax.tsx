@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useThemeAsset, type ResolvedThemeAsset } from "../hooks/useThemeAsset";
 
 // Fondo parallax del hero de la home: 5 capas administrables desde
@@ -40,8 +41,33 @@ export function HomeParallax() {
     if (asset) layers.push({ asset, depth: asset.parallaxDepth ?? LAYERS[index].defaultDepth });
   });
 
-  const rootRef = useRef<HTMLDivElement>(null);
+  const anchorRef = useRef<HTMLDivElement>(null);
   const layerRefs = useRef<(HTMLImageElement | null)[]>([]);
+  // Alto en px desde el tope de la página hasta el final del hero.
+  const [height, setHeight] = useState<number | null>(null);
+
+  // El fondo se dibuja en <body> (portal), no dentro del hero: el hero vive
+  // en un <main max-w-7xl> y la página tiene overflow-x-hidden, así que
+  // cualquier capa dentro quedaba recortada a la columna central. Este
+  // efecto mide dónde termina el hero para darle al fondo ese mismo alto.
+  const hasLayers = layers.length > 0;
+  useEffect(() => {
+    const section = anchorRef.current?.parentElement;
+    if (!hasLayers || !section) return;
+
+    const measure = () => {
+      const rect = section.getBoundingClientRect();
+      setHeight(Math.round(rect.bottom + window.scrollY));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(section);
+    window.addEventListener("resize", measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [hasLayers]);
 
   useEffect(() => {
     if (layers.length === 0) return;
@@ -86,13 +112,19 @@ export function HomeParallax() {
       if (frame) window.cancelAnimationFrame(frame);
     };
     // Las capas solo cambian cuando llega el fetch de theme-assets.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [layers.length]);
+  }, [layers.length, height]);
 
   if (layers.length === 0) return null;
 
-  return (
-    <div ref={rootRef} aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+  const background = height !== null && (
+    // De borde a borde y desde el tope de la página (detrás del navbar) hasta
+    // el final del hero. z-0: arriba del fondo de la página, debajo del
+    // contenido del hero (que está en un contenedor z-10).
+    <div
+      aria-hidden="true"
+      className="pointer-events-none absolute left-0 top-0 z-0 w-full overflow-hidden"
+      style={{ height }}
+    >
       {layers.map(({ asset, depth }, index) => (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -117,5 +149,13 @@ export function HomeParallax() {
       <div className="absolute inset-0 bg-gradient-to-r from-black/55 via-black/20 to-transparent" />
       <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-[rgb(var(--background))]" />
     </div>
+  );
+
+  return (
+    <>
+      {/* Marca invisible dentro del hero, solo para medirlo. */}
+      <div ref={anchorRef} aria-hidden="true" className="hidden" />
+      {background && createPortal(background, document.body)}
+    </>
   );
 }

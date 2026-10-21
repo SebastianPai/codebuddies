@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, ImageIcon, Upload } from "lucide-react";
+import { Check, Grid3x3, ImageIcon, Images, Upload } from "lucide-react";
 import { api } from "../../utils/api";
 
 import { describeFrameSelection, sortByFrameName } from "./behavior-guidance";
+import { gridFits, guessSheetGrid, readSheetSize, sliceSheet, type SheetGrid } from "./sheet-slicer";
 
 /**
  * Sube los frames sueltos de UNA animación y devuelve la metadata del atlas.
@@ -80,6 +81,15 @@ type Props = {
     done: string;
     replace: string;
     order: string;
+    modeFrames: string;
+    modeSheet: string;
+    sheetDrop: string;
+    sheetHint: string;
+    sheetCols: string;
+    sheetRows: string;
+    sheetSlice: string;
+    sheetRowsMismatch: string;
+    sheetNotDivisible: string;
   };
 };
 
@@ -123,6 +133,47 @@ export default function FrameSetUpload({
   const [error, setError] = useState<string | null>(null);
   /** Resultado de la última subida, para confirmar que salió bien. */
   const [done, setDone] = useState<{ frames: number; rows: number } | null>(null);
+
+  // Modo "una sola imagen": la hoja completa se recorta en el navegador y
+  // los cuadros resultantes siguen el MISMO camino que los sueltos (lista
+  // numerada + POST /uploads/frames). Ver sheet-slicer.ts.
+  const [mode, setMode] = useState<"frames" | "sheet">("sheet");
+  const sheetInputRef = useRef<HTMLInputElement>(null);
+  const [sheet, setSheet] = useState<{ file: File; width: number; height: number; url: string } | null>(null);
+  const [grid, setGrid] = useState<SheetGrid>({ cols: 1, rows: directions });
+  const sheetRowsOk = grid.rows === Math.max(1, directions);
+  const sheetFits = sheet ? gridFits(sheet.width, sheet.height, grid) : false;
+
+  useEffect(() => {
+    return () => {
+      if (sheet) URL.revokeObjectURL(sheet.url);
+    };
+  }, [sheet]);
+
+  async function pickSheet(list: FileList | null) {
+    const file = list?.[0];
+    if (!file || !file.type.startsWith("image/")) return;
+    setError(null);
+    setDone(null);
+    setFiles([]);
+    try {
+      const size = await readSheetSize(file);
+      setSheet({ file, ...size, url: URL.createObjectURL(file) });
+      setGrid(guessSheetGrid(size.width, size.height, directions));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  async function slice() {
+    if (!sheet || !sheetFits || !sheetRowsOk) return;
+    setError(null);
+    try {
+      setFiles(sortByFrameName(await sliceSheet(sheet.file, grid), (file) => file.name));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
 
   const selection = describeFrameSelection(
     files.map((file) => file.name),
@@ -194,11 +245,140 @@ export default function FrameSetUpload({
         ? labels.tooMany
         : null;
 
+  const modeButton = (value: "frames" | "sheet", label: string, Icon: typeof Images) => (
+    <button
+      type="button"
+      onClick={() => {
+        setMode(value);
+        setFiles([]);
+        setError(null);
+      }}
+      aria-pressed={mode === value}
+      className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-bold ${
+        mode === value ? "bg-yellow-400 text-black" : "bg-zinc-900 text-zinc-400 hover:text-zinc-200"
+      }`}
+    >
+      <Icon size={12} /> {label}
+    </button>
+  );
+
   return (
     <div className="space-y-2">
+      <div className="flex gap-1" role="group">
+        {modeButton("sheet", labels.modeSheet, Grid3x3)}
+        {modeButton("frames", labels.modeFrames, Images)}
+      </div>
+
+      {mode === "sheet" && (
+        <div className="space-y-2">
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={() => sheetInputRef.current?.click()}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={(event) => {
+              event.preventDefault();
+              if (!disabled) void pickSheet(event.dataTransfer.files);
+            }}
+            className={`flex min-h-24 w-full flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed p-3 text-center text-sm transition ${
+              disabled
+                ? "cursor-not-allowed border-zinc-800 bg-black/30 text-zinc-600"
+                : "cursor-pointer border-zinc-700 bg-black/50 text-zinc-400 hover:border-yellow-400"
+            }`}
+          >
+            <span className="flex items-center gap-2 font-bold">
+              <Upload size={14} />
+              {labels.sheetDrop}
+            </span>
+            <span className="text-xs text-zinc-600">{fill(labels.sheetHint, { rows: Math.max(1, directions) })}</span>
+            {hasSheet && <span className="text-xs text-zinc-600">{labels.replace}</span>}
+          </button>
+
+          {sheet && (
+            <div className="space-y-2 rounded-xl border border-zinc-800 bg-black/40 p-3">
+              {/* Vista de la hoja con la cuadrícula que se va a cortar encima. */}
+              <div
+                className="relative w-full overflow-hidden rounded border border-zinc-800 bg-[repeating-conic-gradient(#27272a_0%_25%,#131316_0%_50%)] bg-[length:8px_8px]"
+                style={{ aspectRatio: `${sheet.width} / ${sheet.height}` }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={sheet.url} alt="" className="absolute inset-0 h-full w-full" style={{ imageRendering: "pixelated" }} />
+                <div
+                  className="pointer-events-none absolute inset-0"
+                  style={{
+                    backgroundImage:
+                      "linear-gradient(to right, rgba(250,204,21,.7) 1px, transparent 1px), linear-gradient(to bottom, rgba(250,204,21,.7) 1px, transparent 1px)",
+                    backgroundSize: `${100 / Math.max(1, grid.cols)}% ${100 / Math.max(1, grid.rows)}%`,
+                  }}
+                />
+              </div>
+              <p className="text-[11px] text-zinc-500">
+                {sheet.width}×{sheet.height}px
+                {sheetFits && ` · ${sheet.width / grid.cols}×${sheet.height / grid.rows}px`}
+              </p>
+
+              <div className="flex flex-wrap items-end gap-3 text-xs text-zinc-400">
+                <label className="flex flex-col gap-1">
+                  {labels.sheetCols}
+                  <input
+                    type="number"
+                    min={1}
+                    max={64}
+                    value={grid.cols}
+                    onChange={(event) => setGrid((g) => ({ ...g, cols: Math.max(1, Number(event.target.value) || 1) }))}
+                    className="w-20 rounded border border-zinc-800 bg-black px-2 py-1 text-white"
+                  />
+                </label>
+                <label className="flex flex-col gap-1">
+                  {labels.sheetRows}
+                  <input
+                    type="number"
+                    min={1}
+                    max={4}
+                    value={grid.rows}
+                    onChange={(event) => setGrid((g) => ({ ...g, rows: Math.max(1, Number(event.target.value) || 1) }))}
+                    className="w-20 rounded border border-zinc-800 bg-black px-2 py-1 text-white"
+                  />
+                </label>
+                <button
+                  type="button"
+                  disabled={!sheetFits || !sheetRowsOk || disabled}
+                  onClick={() => void slice()}
+                  className="rounded border border-yellow-400/40 px-3 py-1 text-xs font-bold text-yellow-300 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {fill(labels.sheetSlice, { count: grid.cols * grid.rows })}
+                </button>
+              </div>
+
+              {!sheetRowsOk && (
+                <p className="rounded-lg border border-amber-900/60 bg-amber-950/20 px-3 py-2 text-xs text-amber-200">
+                  {fill(labels.sheetRowsMismatch, { rows: grid.rows, expected: Math.max(1, directions) })}
+                </p>
+              )}
+              {sheetRowsOk && !sheetFits && (
+                <p className="rounded-lg border border-amber-900/60 bg-amber-950/20 px-3 py-2 text-xs text-amber-200">
+                  {fill(labels.sheetNotDivisible, { width: sheet.width, height: sheet.height, cols: grid.cols, rows: grid.rows })}
+                </p>
+              )}
+            </div>
+          )}
+
+          <input
+            ref={sheetInputRef}
+            type="file"
+            accept="image/png"
+            className="hidden"
+            onChange={(event) => {
+              void pickSheet(event.target.files);
+              event.target.value = "";
+            }}
+          />
+        </div>
+      )}
+
       {/* Es un <button>: la zona de arrastre también se abre con teclado, que
           con un <div onClick> no pasaba. */}
-      <button
+      {mode === "frames" && <button
         type="button"
         disabled={disabled}
         onClick={() => inputRef.current?.click()}
@@ -224,7 +404,7 @@ export default function FrameSetUpload({
           </span>
         )}
         {hasSheet && <span className="text-xs text-zinc-600">{labels.replace}</span>}
-      </button>
+      </button>}
 
       {files.length > 0 && (
         <div className="space-y-2 rounded-xl border border-zinc-800 bg-black/40 p-3">

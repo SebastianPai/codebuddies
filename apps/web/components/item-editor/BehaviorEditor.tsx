@@ -709,6 +709,15 @@ export default function BehaviorEditor({
                               done: t("items.behaviorFramesDone"),
                               replace: t("items.behaviorFramesReplace"),
                               order: t("items.behaviorFramesOrder"),
+                              modeFrames: t("items.behaviorFramesModeFrames"),
+                              modeSheet: t("items.behaviorFramesModeSheet"),
+                              sheetDrop: t("items.behaviorSheetDrop"),
+                              sheetHint: t("items.behaviorSheetHint"),
+                              sheetCols: t("items.behaviorSheetCols"),
+                              sheetRows: t("items.behaviorSheetRows"),
+                              sheetSlice: t("items.behaviorSheetSlice"),
+                              sheetRowsMismatch: t("items.behaviorSheetRowsMismatch"),
+                              sheetNotDivisible: t("items.behaviorSheetNotDivisible"),
                             }}
                           />
                         )}
