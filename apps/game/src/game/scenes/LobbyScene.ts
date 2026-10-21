@@ -752,6 +752,9 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
       const response = await fetch(`${apiUrl}/uploads`, {
         method: "POST",
         body: formData,
+        // Igual que network/http.ts: la sesión puede vivir solo en la cookie
+        // (sin token en storage), y sin esto cada miniatura daba 401.
+        credentials: "include",
         // Sin esto, /uploads (protegido con JwtAuthGuard) devolvía 401 en
         // silencio: la miniatura de la sala nunca llegaba a subirse ni a
         // emitir "room:thumbnail:update", así que la imagen jamás se

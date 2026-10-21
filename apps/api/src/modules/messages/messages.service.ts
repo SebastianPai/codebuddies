@@ -38,6 +38,20 @@ export class MessagesService {
     });
     if (!target) throw new NotFoundException('User not found');
 
+    if (await this.isBlocked(userId, targetUserId)) {
+      throw new ForbiddenException('No puedes enviarle mensajes a este usuario');
+    }
+
+    // Si la conversación ya existe (por ejemplo, porque el otro aceptó una
+    // solicitud de mensaje), se abre aunque no sean amigos. Antes solo se
+    // miraba la amistad: después de aceptar una solicitud, cada clic en
+    // "Mensaje" creaba OTRA solicitud y el chat nunca se abría.
+    const existing = await this.prisma.conversation.findUnique({
+      where: { directKey: this.directKey(userId, targetUserId) },
+      include: { participants: true },
+    });
+    if (existing) return existing;
+
     const areFriends = await this.areFriends(userId, targetUserId);
     if (!areFriends) {
       const messageRequest = await this.createRequest(userId, targetUserId);
@@ -318,6 +332,21 @@ export class MessagesService {
     });
 
     return !!friendship;
+  }
+
+  private async isBlocked(userAId: string, userBId: string) {
+    const block = await this.prisma.friendship.findFirst({
+      where: {
+        status: FriendshipStatus.BLOCKED,
+        OR: [
+          { requesterId: userAId, addresseeId: userBId },
+          { requesterId: userBId, addresseeId: userAId },
+        ],
+      },
+      select: { id: true },
+    });
+
+    return !!block;
   }
 
   private async findOrCreateDirectConversation(

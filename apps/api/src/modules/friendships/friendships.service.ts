@@ -64,6 +64,15 @@ export class FriendshipsService {
         return updated;
       }
 
+      // El otro ya me había mandado solicitud: los dos quieren ser amigos,
+      // así que se acepta en vez de dejar dos personas esperándose.
+      if (
+        existing.status === FriendshipStatus.PENDING &&
+        existing.requesterId === targetUserId
+      ) {
+        return this.accept(requesterId, existing.id);
+      }
+
       return this.withUsers(existing.id);
     }
 
@@ -138,6 +147,11 @@ export class FriendshipsService {
   async accept(userId: string, friendshipId: string) {
     const friendship = await this.getFriendship(friendshipId);
     if (friendship.addresseeId !== userId) throw new ForbiddenException();
+    // Solo una solicitud pendiente se acepta: antes un usuario bloqueado
+    // (addressee del bloqueo) podía "aceptarlo" y quedar como amigo.
+    if (friendship.status !== FriendshipStatus.PENDING) {
+      throw new ConflictException('Esta solicitud ya no está pendiente');
+    }
 
     const updated = await this.prisma.friendship.update({
       where: { id: friendshipId },

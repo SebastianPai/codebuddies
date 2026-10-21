@@ -84,7 +84,10 @@ export default function PlayerQuickMenu({ username, x, y, onClose }: Props) {
 
     setBusy(true);
     try {
-      if (profile.friendshipStatus === "NONE") {
+      // Sin relación el server manda null (no "NONE"), y tras un rechazo
+      // "REJECTED": antes solo se aceptaba "NONE" y el botón "Agregar amigo"
+      // no hacía nada.
+      if (!profile.friendshipStatus || profile.friendshipStatus === "NONE" || profile.friendshipStatus === "REJECTED") {
         await sendFriendRequest(profile.id);
       } else if (
         profile.friendshipStatus === "PENDING" &&
