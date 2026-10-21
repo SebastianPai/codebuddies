@@ -72,3 +72,9 @@
     bottom: calc(168px + env(safe-area-inset-bottom));
   }
 }
+
+/* Modo "Ver interior" encendido. */
+.zoom-btn-active {
+  background: rgba(250, 204, 21, 0.22);
+  color: #facc15;
+}

@@ -1,7 +1,8 @@
 "use client";
 
 import { memo, useEffect, useState } from "react";
-import { Maximize, Minimize, Minus, Plus } from "lucide-react";
+import { Eye, EyeOff, Maximize, Minimize, Minus, Plus } from "lucide-react";
+import { readInteriorView, setInteriorView } from "../../systems/interiorView";
 import "./ZoomControls.css";
 import { useTranslation } from "../../../i18n/useTranslation";
 
@@ -12,6 +13,7 @@ import { useTranslation } from "../../../i18n/useTranslation";
 function ZoomControls() {
   const t = useTranslation();
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [interior, setInterior] = useState(readInteriorView);
 
   useEffect(() => {
     const handleChange = () => setIsFullscreen(!!document.fullscreenElement);
@@ -32,6 +34,21 @@ function ZoomControls() {
 
   return (
     <div className="zoom-controls">
+      {/* Modo tipo Los Sims: paredes de adelante (3+ cubos) en fantasma. */}
+      <button
+        type="button"
+        className={`zoom-btn ${interior ? "zoom-btn-active" : ""}`}
+        aria-pressed={interior}
+        aria-label={interior ? t("hud.zoom.interiorOff") : t("hud.zoom.interiorOn")}
+        title={interior ? t("hud.zoom.interiorOff") : t("hud.zoom.interiorOn")}
+        onClick={() => {
+          const next = !interior;
+          setInterior(next);
+          setInteriorView(next);
+        }}
+      >
+        {interior ? <EyeOff size={16} /> : <Eye size={16} />}
+      </button>
       <button
         type="button"
         className="zoom-btn"

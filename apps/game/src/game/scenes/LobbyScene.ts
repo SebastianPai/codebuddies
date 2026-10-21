@@ -1,3 +1,4 @@
+import { INTERIOR_VIEW_EVENT } from "../systems/interiorView";
 import Phaser from "phaser";
 import { getApiUrl, getAssetsUrl } from "../../config/env";
 import { Player } from "../types/player";
@@ -71,6 +72,10 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
 
   private roomItems!: RoomItemsManager;
   private petSystem?: PetSystem;
+  private onInteriorViewChanged = (event: Event) => {
+    this.roomItems?.setInteriorView(!!(event as CustomEvent<boolean>).detail);
+  };
+
   private onPetChanged = () => this.petSystem?.sync();
   private butlerSystem?: ButlerSystem;
   // Mascotas/mayordomos de otras personas sacados en esta sala.
@@ -1156,6 +1161,13 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     // aunque falle la carga de un asset o alguien añada un camino nuevo.
     this.roomItems.setOccupancyListener(() => {
       this.navDirty = true;
+    });
+
+    // Botón "Ver interior" (ZoomControls): paredes de adelante en fantasma.
+    window.removeEventListener(INTERIOR_VIEW_EVENT, this.onInteriorViewChanged);
+    window.addEventListener(INTERIOR_VIEW_EVENT, this.onInteriorViewChanged);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      window.removeEventListener(INTERIOR_VIEW_EVENT, this.onInteriorViewChanged);
     });
 
     // Mascota del jugador: se muestra siguiéndolo si la "sacó" a esta sala

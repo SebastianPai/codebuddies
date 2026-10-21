@@ -39,7 +39,9 @@
     "in": "Acercar",
     "out": "Alejar",
     "fullscreen": "Pantalla completa",
-    "exitFullscreen": "Salir de pantalla completa"
+    "exitFullscreen": "Salir de pantalla completa",
+    "interiorOn": "Ver interior (paredes de adelante transparentes)",
+    "interiorOff": "Ver paredes completas"
   },
   "bottomBar": {
     "reactionWave": "Saludar",

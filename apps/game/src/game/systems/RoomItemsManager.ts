@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { WorldObject } from "../types/WorldObject";
+import { GHOST_ALPHA, ghostedItemIds, readInteriorView } from "./interiorView";
 import {
   getDirectionalFootprint,
   getDirectionalSurface,
@@ -72,6 +73,11 @@ export default class RoomItemsManager {
   private grid: IsoGrid;
 
   private items = new Map<string, WorldObject>();
+
+  // Modo "Ver interior" (ver interiorView.ts): paredes de adelante en
+  // fantasma. Solo visual, se recalcula en cada invalidateOccupancy().
+  private interiorView = readInteriorView();
+  private ghosted = new Set<string>();
 
   // Sprite del mueble actualmente seleccionado (clic simple, sin abrir
   // modal) — solo uno a la vez, se destiñe automáticamente al seleccionar
@@ -558,6 +564,51 @@ export default class RoomItemsManager {
   invalidateOccupancy() {
     this.occupancyCache = null;
     this.occupancyListener?.();
+    // Toda alta/baja/movimiento/rotación pasa por acá: así las paredes que
+    // van en fantasma están siempre al día sin que nadie se acuerde de avisar.
+    this.applyInteriorView();
+  }
+
+  setInteriorView(enabled: boolean) {
+    this.interiorView = enabled;
+    this.applyInteriorView();
+  }
+
+  private isSurfaceObject(worldObject: WorldObject) {
+    const worldData = worldObject.item?.worldData;
+    return (
+      (worldObject.surfaceSprites?.length ?? 0) > 0 ||
+      !!worldObject.wallSide ||
+      worldData?.kind === "FLOOR" ||
+      worldData?.kind === "WALL"
+    );
+  }
+
+  private applyInteriorView() {
+    const next = this.interiorView
+      ? ghostedItemIds(
+          [...this.items.values()].map((worldObject) => ({
+            id: worldObject.roomItemId,
+            tileX: worldObject.tileX,
+            tileY: worldObject.tileY,
+            isSurface: this.isSurfaceObject(worldObject),
+          })),
+          this.grid.width,
+          this.grid.height,
+        )
+      : new Set<string>();
+
+    // Solo se tocan los que cambian: los demás conservan su alpha.
+    const changed = new Set([...this.ghosted, ...next]);
+    changed.forEach((id) => {
+      const worldObject = this.items.get(id);
+      if (!worldObject) return;
+      const ghost = next.has(id);
+      worldObject.sprite.setAlpha(ghost ? GHOST_ALPHA : 1);
+      // Una pared fantasma no atrapa el click: se puede tocar lo de adentro.
+      if (worldObject.sprite.input) worldObject.sprite.input.enabled = !ghost;
+    });
+    this.ghosted = next;
   }
 
   private computeOccupancyEntries(excludeId?: string) {

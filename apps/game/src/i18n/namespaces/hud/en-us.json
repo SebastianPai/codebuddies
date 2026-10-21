@@ -39,7 +39,9 @@
     "in": "Zoom in",
     "out": "Zoom out",
     "fullscreen": "Fullscreen",
-    "exitFullscreen": "Exit fullscreen"
+    "exitFullscreen": "Exit fullscreen",
+    "interiorOn": "See inside (front walls transparent)",
+    "interiorOff": "Show full walls"
   },
   "bottomBar": {
     "reactionWave": "Wave",

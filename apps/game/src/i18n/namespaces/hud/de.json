@@ -39,7 +39,9 @@
     "in": "Vergrößern",
     "out": "Verkleinern",
     "fullscreen": "Vollbild",
-    "exitFullscreen": "Vollbild verlassen"
+    "exitFullscreen": "Vollbild verlassen",
+    "interiorOn": "Innenansicht (vordere Wände transparent)",
+    "interiorOff": "Wände vollständig zeigen"
   },
   "bottomBar": {
     "reactionWave": "Winken",
