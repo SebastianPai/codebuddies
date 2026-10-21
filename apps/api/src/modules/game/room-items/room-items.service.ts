@@ -1,3 +1,5 @@
+import { canUseColor } from '@codebuddies/world-objects';
+import { PremiumAccessService } from '../../premium-access/premium-access.service';
 import {
   Injectable,
   ForbiddenException,
@@ -31,7 +33,10 @@ import {
 
 @Injectable()
 export class RoomItemsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private premiumAccess: PremiumAccessService,
+  ) {}
 
   async getRoomItems(roomId: string) {
     const roomItems = await this.prisma.roomItem.findMany({
@@ -711,6 +716,45 @@ export class RoomItemsService {
           },
         },
       });
+    });
+  }
+
+  // ====================== COLOREAR UN OBJETO ======================
+  // Solo objetos marcados "Coloreable" en el admin (Item.colorable). Mismo
+  // permiso que rotar (es decoración de la sala) y misma paleta que la ropa
+  // del avatar: free para todos, premium con suscripción (ver
+  // packages/world-objects/palettes.ts). color null = sprite original.
+  async colorItem(userId: string, roomItemId: string, color: number | null) {
+    const roomItem = await this.prisma.roomItem.findUnique({
+      where: { id: roomItemId },
+      include: { item: { select: { colorable: true } } },
+    });
+
+    if (!roomItem) {
+      throw new NotFoundException('Objeto no encontrado');
+    }
+    if (!roomItem.item.colorable) {
+      throw new BadRequestException('Este objeto no se puede colorear');
+    }
+
+    const permissions = await this.getEffectivePermissions(userId, roomItem.roomId);
+    if (!permissions.canRotateObjects) {
+      throw new ForbiddenException('No puedes colorear este objeto');
+    }
+
+    if (!canUseColor('COLOR', color, false)) {
+      const hasPremium = await this.premiumAccess.hasPremiumAccess(userId);
+      if (!canUseColor('COLOR', color, hasPremium)) {
+        throw new ForbiddenException(
+          hasPremium ? 'Ese color no existe en la paleta.' : 'Ese color es Premium.',
+        );
+      }
+    }
+
+    return this.prisma.roomItem.update({
+      where: { id: roomItemId },
+      data: { color },
+      include: { item: { include: { worldData: true } } },
     });
   }
 

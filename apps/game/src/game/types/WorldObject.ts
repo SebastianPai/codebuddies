@@ -24,6 +24,9 @@ export interface WorldObject {
 
   state?: any;
 
+  // Tinte elegido por el dueño (solo items colorable). null = sprite original.
+  color?: number | null;
+
   sprite: Phaser.GameObjects.Sprite;
 
   surfaceSprites?: Phaser.GameObjects.Sprite[];

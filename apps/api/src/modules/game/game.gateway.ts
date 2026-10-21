@@ -73,6 +73,7 @@ import {
   PlaceItemDto,
   RemoveItemDto,
   RotateItemDto,
+  ColorItemDto,
 } from './ws/dto/room-items.dto';
 
 import { UseInterceptors } from '@nestjs/common';
@@ -572,6 +573,19 @@ export class GameGateway
     @ConnectedSocket() socket: Socket,
   ) {
     this.roomItemsHandler.rotateItem(
+      this.server,
+      socket,
+      socket.data.user?.userId,
+      data,
+    );
+  }
+
+  @SubscribeMessage('room:item:color')
+  handleColorRoomItem(
+    @MessageBody() data: ColorItemDto,
+    @ConnectedSocket() socket: Socket,
+  ) {
+    this.roomItemsHandler.colorItem(
       this.server,
       socket,
       socket.data.user?.userId,

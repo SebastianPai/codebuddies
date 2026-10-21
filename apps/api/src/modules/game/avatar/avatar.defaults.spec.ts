@@ -10,7 +10,7 @@ describe('AvatarService: avatar por defecto al conectarse', () => {
       userItem: { upsert: jest.fn(), createMany: jest.fn() },
       avatarSlot: { upsert: jest.fn(), count: jest.fn(), createMany: jest.fn() },
     };
-    const service = new AvatarService(prisma as never);
+    const service = new AvatarService(prisma as never, { hasPremiumAccess: async () => false } as never);
     jest.spyOn(service, 'getUserAvatar').mockResolvedValue({ id: 'av1', slots: [] } as never);
     return { prisma, service };
   };

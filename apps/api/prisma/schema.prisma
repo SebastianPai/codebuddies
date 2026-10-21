@@ -1427,6 +1427,11 @@ model RoomItem {
 
   rotation Int @default(0)
 
+  // tinte elegido por el dueño (solo si Item.colorable). null = sprite
+  // original. Paleta en packages/world-objects/palettes.ts.
+
+  color Int?
+
   // capa visual
 
   zIndex Int @default(0)

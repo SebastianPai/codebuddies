@@ -6,10 +6,27 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { AvatarSlotType } from '@prisma/client';
+import { canUseColor, type PaletteKind } from '@codebuddies/world-objects';
+import { PremiumAccessService } from '../../premium-access/premium-access.service';
 
 @Injectable()
 export class AvatarService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private premiumAccess: PremiumAccessService,
+  ) {}
+
+  // Colores free para todos, premium solo con suscripción activa (ver
+  // packages/world-objects/palettes.ts). Cualquier otro valor se rechaza:
+  // antes el server guardaba lo que mandara el cliente.
+  private async assertColorAllowed(userId: string, kind: PaletteKind, color?: number | null) {
+    if (canUseColor(kind, color, false)) return;
+    const hasPremium = await this.premiumAccess.hasPremiumAccess(userId);
+    if (canUseColor(kind, color, hasPremium)) return;
+    throw new ForbiddenException(
+      hasPremium ? 'Ese color no existe en la paleta.' : 'Ese color es Premium.',
+    );
+  }
 
   // ────────────────────────────────────────────────
   // Función de utilidad: parsea string → AvatarSlotType seguro
@@ -221,6 +238,8 @@ export class AvatarService {
       //   throw new BadRequestException('Este item no corresponde al slot indicado');
       // }
 
+      await this.assertColorAllowed(userId, parsedSlot === 'BODY' ? 'SKIN' : 'COLOR', color);
+
       await this.prisma.avatarSlot.upsert({
         where: { avatarId_slot: { avatarId: avatar.id, slot: parsedSlot } },
         update: { itemId, color: color ?? null },
@@ -265,6 +284,7 @@ export class AvatarService {
   // Actualizar el color de piel
   // ────────────────────────────────────────────────
   async updateSkinColor(userId: string, skinColor: number) {
+    await this.assertColorAllowed(userId, 'SKIN', skinColor);
     await this.ensureAvatar(userId);
 
     await this.prisma.avatar.update({

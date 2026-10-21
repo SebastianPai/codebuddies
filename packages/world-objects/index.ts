@@ -99,6 +99,17 @@ export {
 } from './machine';
 
 export {
+  type PaletteKind,
+  SKIN_FREE_COLORS,
+  SKIN_PREMIUM_COLORS,
+  COLOR_FREE_COLORS,
+  COLOR_PREMIUM_COLORS,
+  paletteColors,
+  isPremiumColor,
+  canUseColor,
+} from './palettes';
+
+export {
   type ItemUpgradeDefinition,
   upgradeableStates,
   lockedStatesFor,

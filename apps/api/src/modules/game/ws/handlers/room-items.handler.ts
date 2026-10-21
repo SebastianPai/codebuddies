@@ -4,6 +4,7 @@ import { Server, Socket } from 'socket.io';
 import { RoomItemsService } from '../../room-items/room-items.service';
 import {
   ClearRoomDto,
+  ColorItemDto,
   InteractItemDto,
   MoveItemDto,
   PaintAllSurfaceDto,
@@ -129,6 +130,29 @@ export class RoomItemsHandler {
       this.logger.error(`Error rotando item ${data.roomItemId}`, err);
       socket.emit('room:item:error', {
         message: err.message || 'No se pudo rotar el item',
+      });
+    }
+  }
+
+  // ====================== COLOREAR ITEM ======================
+  async colorItem(
+    server: Server,
+    socket: Socket,
+    userId: string,
+    data: ColorItemDto,
+  ) {
+    try {
+      const updatedItem = await this.roomItemsService.colorItem(
+        userId,
+        data.roomItemId,
+        data.color ?? null,
+      );
+
+      server.to(updatedItem.roomId).emit('room:item:colored', updatedItem);
+    } catch (err: any) {
+      this.logger.error(`Error coloreando item ${data.roomItemId}`, err);
+      socket.emit('room:item:error', {
+        message: err.message || 'No se pudo colorear el item',
       });
     }
   }

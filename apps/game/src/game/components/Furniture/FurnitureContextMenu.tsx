@@ -1,7 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { RotateCw, Trash2, Move, Copy, CopyPlus, Power, DoorOpen, Sparkles } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { RotateCw, Trash2, Move, Copy, CopyPlus, Power, DoorOpen, Sparkles, Palette } from "lucide-react";
+import { COLOR_FREE_COLORS, COLOR_PREMIUM_COLORS } from "@codebuddies/world-objects";
+import ColorSwatchPicker from "../shared/ColorSwatchPicker";
+import { useIsPremium } from "../../hooks/useIsPremium";
 import type { UpgradesTarget } from "./ItemUpgradesModal";
 import styles from "./FurnitureContextMenu.module.css";
 import Button from "../shared/Button";
@@ -75,6 +78,17 @@ export default function FurnitureContextMenu({
     if (!furniture?.roomItemId) return;
     emitRoomItemInteraction(furniture.roomItemId, interaction);
     onClose();
+  };
+
+  // Colorear: solo objetos marcados "Coloreable" en el admin y con el mismo
+  // permiso que rotar (el server valida ambas cosas y la paleta premium).
+  const canColor = !!furniture?.item?.colorable && permissions.canRotateObjects;
+  const [showColors, setShowColors] = useState(false);
+  const isPremium = useIsPremium();
+  const setColor = (color: number | null) => {
+    const socket = (window as any).phaserSocket;
+    if (!socket || !furniture?.roomItemId) return;
+    socket.emit("room:item:color", { roomItemId: furniture.roomItemId, color });
   };
 
   const rotate = () => {
@@ -183,6 +197,22 @@ export default function FurnitureContextMenu({
           <Button variant="secondary" size="sm" fullWidth onClick={rotate}>
             <RotateCw size={13} /> {t("buildmode.rotateButton")}
           </Button>
+        )}
+        {canColor && (
+          <Button variant="secondary" size="sm" fullWidth onClick={() => setShowColors((open) => !open)}>
+            <Palette size={13} /> {t("buildmode.colorButton")}
+          </Button>
+        )}
+        {canColor && showColors && (
+          <ColorSwatchPicker
+            colors={COLOR_FREE_COLORS}
+            premiumColors={COLOR_PREMIUM_COLORS}
+            isPremium={isPremium}
+            value={furniture?.color ?? null}
+            onSelect={setColor}
+            onClear={() => setColor(null)}
+            className={styles.colorPicker}
+          />
         )}
         {permissions.canDeleteObjects && (
           <Button variant="danger" size="sm" fullWidth onClick={pickUp}>

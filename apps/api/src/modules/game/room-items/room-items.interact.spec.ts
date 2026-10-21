@@ -9,6 +9,7 @@ import {
 } from '@codebuddies/world-objects';
 
 import { RoomItemsService } from './room-items.service';
+import { PremiumAccessService } from '../../premium-access/premium-access.service';
 import { PrismaService } from '../../../prisma/prisma.service';
 
 /**
@@ -78,7 +79,11 @@ describe('RoomItemsService.interactItem', () => {
     jest.useRealTimers();
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [RoomItemsService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        RoomItemsService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: PremiumAccessService, useValue: { hasPremiumAccess: async () => false } },
+      ],
     }).compile();
 
     service = module.get<RoomItemsService>(RoomItemsService);

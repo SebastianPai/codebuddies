@@ -59,6 +59,16 @@ export class RotateItemDto {
   roomItemId!: string;
 }
 
+export class ColorItemDto {
+  @IsString()
+  roomItemId!: string;
+
+  // null = quitar el color (sprite original).
+  @IsOptional()
+  @IsInt()
+  color!: number | null;
+}
+
 export class RemoveItemDto {
   @IsString()
   roomItemId!: string;

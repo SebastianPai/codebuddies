@@ -38,6 +38,7 @@ export type RoomItemPayload = {
   parentRoomItemId?: string | null;
   wallSide?: string | null;
   wallOffset?: number | null;
+  color?: number | null;
 };
 
 // Clicable solo donde el frame ACTUAL del PNG es opaco: el aire transparente
@@ -220,6 +221,7 @@ export default class RoomItemsManager {
       wallSide,
       wallOffset,
       state,
+      color: payload.color ?? null,
       sprite,
       surfaceSprites,
       item: itemData,
@@ -229,6 +231,7 @@ export default class RoomItemsManager {
     this.invalidateOccupancy();
 
     if (!isSurface) {
+      this.applyColor(worldObject);
       this.updateSingleItemDepth(worldObject);
       sprite.setInteractive(ITEM_INTERACTIVE_CONFIG);
       // Estado inicial (ej: la TV ya estaba encendida al entrar a la sala).
@@ -370,6 +373,20 @@ export default class RoomItemsManager {
     return this.animator.respondsToTrigger(id, "CLICK");
   }
 
+  // Tinte del objeto (room:item:colored). Mientras está seleccionado manda
+  // el resaltado azul; al deseleccionar se vuelve a aplicar este color.
+  setItemColor(id: string, color: number | null) {
+    const worldObject = this.items.get(id);
+    if (!worldObject) return;
+    worldObject.color = color;
+    if (this.selectedId !== id) this.applyColor(worldObject);
+  }
+
+  private applyColor(worldObject: WorldObject) {
+    if (worldObject.color == null) worldObject.sprite.clearTint();
+    else worldObject.sprite.setTint(worldObject.color);
+  }
+
   // Solo resalta el sprite (tint); no abre ningún modal por sí solo — quién
   // reacciona a "room:item:selected" decide qué UI mostrar.
   selectItem(id: string) {
@@ -390,7 +407,8 @@ export default class RoomItemsManager {
     if (!this.selectedId) return false;
 
     const worldObject = this.items.get(this.selectedId);
-    worldObject?.sprite.clearTint();
+    // Vuelve al color elegido por el dueño, no al sprite sin tinte.
+    if (worldObject) this.applyColor(worldObject);
     this.selectedId = null;
 
     return true;

@@ -64,3 +64,8 @@
   text-align: center;
   padding: 4px 0;
 }
+
+.colorPicker {
+  padding: 6px 2px;
+  max-width: 220px;
+}

@@ -58,6 +58,7 @@
   "ownerIdLabel": "ID del dueño:",
   "rotationLabel": "Rotacion:",
   "rotateButton": "Rotar",
+  "colorButton": "Color",
   "pickUpButton": "Recoger",
   "moveButton": "Mover",
   "duplicateButton": "Duplicar",

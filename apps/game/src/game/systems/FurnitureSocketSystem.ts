@@ -123,6 +123,10 @@ export default class FurnitureSocketSystem {
     this.scene.refreshPathfinding?.();
   };
 
+  private handleItemColored = (item: any) => {
+    this.roomItems.setItemColor(item.id, item.color ?? null);
+  };
+
   private handleItemRotated = (item: any) => {
     const worldObject = this.roomItems.getItem(item.id);
 
@@ -177,6 +181,7 @@ export default class FurnitureSocketSystem {
     this.socket.on("room:items:cleared", this.handleItemsCleared);
     this.socket.on("room:item:moved", this.handleItemMoved);
     this.socket.on("room:item:rotated", this.handleItemRotated);
+    this.socket.on("room:item:colored", this.handleItemColored);
     this.socket.on("room:item:state", this.handleItemState);
   }
 
@@ -189,6 +194,7 @@ export default class FurnitureSocketSystem {
     this.socket.off("room:items:cleared", this.handleItemsCleared);
     this.socket.off("room:item:moved", this.handleItemMoved);
     this.socket.off("room:item:rotated", this.handleItemRotated);
+    this.socket.off("room:item:colored", this.handleItemColored);
     this.socket.off("room:item:state", this.handleItemState);
   }
 }

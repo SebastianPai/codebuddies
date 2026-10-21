@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { PremiumAccessService } from '../../premium-access/premium-access.service';
 import { AvatarService } from './avatar.service';
 import { PrismaService } from '../../../prisma/prisma.service';
 
@@ -7,7 +8,11 @@ describe('AvatarService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [AvatarService, { provide: PrismaService, useValue: {} }],
+      providers: [
+        AvatarService,
+        { provide: PrismaService, useValue: {} },
+        { provide: PremiumAccessService, useValue: { hasPremiumAccess: async () => false } },
+      ],
     }).compile();
 
     service = module.get<AvatarService>(AvatarService);

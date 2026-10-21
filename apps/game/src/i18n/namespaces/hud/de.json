@@ -94,7 +94,11 @@
   },
   "colorPicker": {
     "groupLabel": "Farbe wählen",
-    "colorLabel": "Farbe {hex}"
+    "colorLabel": "Farbe {hex}",
+    "clear": "Originalfarbe",
+    "premiumLabel": "Premium-Farben",
+    "premiumTitle": "Premium-Farbe",
+    "premiumMessage": "Werde Premium, um diese Farben für deinen Avatar und deine Objekte zu nutzen."
   },
   "imagePreview": {
     "zoomOut": "Verkleinern",
