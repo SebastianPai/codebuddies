@@ -77,6 +77,12 @@ export async function optimizeImage(
 
   const rootFolder = folder.split('/')[0];
   try {
+    // WebP/PNG animados (APNG): sharp sin { animated: true } se queda solo con
+    // el primer cuadro, así que re-codificarlos borraba la animación (p. ej.
+    // una capa animada del parallax). Ya vienen comprimidos: se suben tal cual.
+    const pages = (await sharp(buffer, { animated: true }).metadata()).pages ?? 1;
+    if (pages > 1) return original;
+
     let candidate: OptimizedImage;
     if (PHOTO_FOLDERS.has(rootFolder)) {
       candidate = {

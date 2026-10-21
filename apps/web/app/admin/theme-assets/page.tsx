@@ -501,6 +501,10 @@ function VariantTile({
           {parallaxDefaultDepth !== undefined && (
             <div className="mt-2 space-y-2 border-t border-zinc-800 pt-2 text-[11px] text-zinc-400">
               <p className="text-[10px] uppercase tracking-wide text-zinc-500">Parallax</p>
+              <p className="text-[10px] leading-snug text-zinc-500">
+                Para que la capa se mueva sola: elige &quot;Sprite&quot; arriba con una tira horizontal de cuadros (lo más
+                liviano), o sube un GIF/WebP animado. Para que cargue rápido, apunta a menos de 1 MB por capa.
+              </p>
               <label className="block">
                 Distancia ({depth}) — {depth >= 70 ? "lejos, casi quieta" : depth >= 35 ? "intermedia" : "cerca, se mueve mucho"}
                 <input

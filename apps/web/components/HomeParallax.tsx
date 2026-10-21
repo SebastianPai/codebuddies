@@ -12,6 +12,24 @@ import { useThemeAsset, type ResolvedThemeAsset } from "../hooks/useThemeAsset";
 //
 // Capas sin imagen activa no se dibujan; si no hay ninguna, el componente no
 // renderiza nada y la home queda exactamente como antes.
+//
+// CAPAS ANIMADAS (lo más liviano primero):
+//   - Sprite sheet (modo "Sprite" en el admin): una tira horizontal de N
+//     cuadros animada con CSS (steps), sin JavaScript por cuadro. Es la
+//     opción más liviana y la que mejor se ve en pixel art.
+//   - GIF / WebP animado: se muestran tal cual con <img> (el backend ya no
+//     les borra la animación al optimizarlos).
+// Con "reducir movimiento" activado en el sistema, todo queda quieto.
+
+const SPRITE_KEYFRAMES = `
+@keyframes parallax-sprite-slide {
+  from { background-position: 0% 0; }
+  to { background-position: 100% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .parallax-sprite { animation: none !important; }
+}
+`;
 
 const LAYERS = [
   { slot: "PARALLAX_1", defaultDepth: 95 }, // cielo estrellado: casi quieto
@@ -42,9 +60,11 @@ export function HomeParallax() {
   });
 
   const anchorRef = useRef<HTMLDivElement>(null);
-  const layerRefs = useRef<(HTMLImageElement | null)[]>([]);
+  const layerRefs = useRef<(HTMLDivElement | null)[]>([]);
   // Alto en px desde el tope de la página hasta el final del hero.
   const [height, setHeight] = useState<number | null>(null);
+  // Ancho real del fondo (100% del body), para cubrir con los sprite sheets.
+  const [width, setWidth] = useState(0);
 
   // El fondo se dibuja en <body> (portal), no dentro del hero: el hero vive
   // en un <main max-w-7xl> y la página tiene overflow-x-hidden, así que
@@ -58,6 +78,7 @@ export function HomeParallax() {
     const measure = () => {
       const rect = section.getBoundingClientRect();
       setHeight(Math.round(rect.bottom + window.scrollY));
+      setWidth(document.body.clientWidth);
     };
     measure();
     const observer = new ResizeObserver(measure);
@@ -125,24 +146,34 @@ export function HomeParallax() {
       className="pointer-events-none absolute left-0 top-0 z-0 w-full overflow-hidden"
       style={{ height }}
     >
+      <style>{SPRITE_KEYFRAMES}</style>
       {layers.map(({ asset, depth }, index) => (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        // El contenedor recibe el movimiento del parallax; adentro va la
+        // imagen fija/animada o el sprite sheet.
+        <div
           key={asset.imageUrl}
           ref={(el) => {
             layerRefs.current[index] = el;
           }}
-          src={asset.imageUrl}
-          alt=""
           data-depth={depth}
           // 10% extra de ancho/alto para que al moverse nunca se vea el borde.
           data-scale={1.1 * (asset.scale || 1)}
-          className="absolute inset-0 h-full w-full object-cover will-change-transform"
-          style={{
-            objectPosition: `${asset.offsetX ?? 50}% ${asset.offsetY ?? 100}%`,
-            transform: `scale(${1.1 * (asset.scale || 1)})`,
-          }}
-        />
+          className="absolute inset-0 will-change-transform"
+          style={{ transform: `scale(${1.1 * (asset.scale || 1)})` }}
+        >
+          {asset.mode === "SPRITE" ? (
+            <SpriteCover asset={asset} boxWidth={width} boxHeight={height ?? 0} />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={asset.imageUrl}
+              alt=""
+              decoding="async"
+              className="absolute inset-0 h-full w-full object-cover"
+              style={{ objectPosition: `${asset.offsetX ?? 50}% ${asset.offsetY ?? 100}%` }}
+            />
+          )}
+        </div>
       ))}
       {/* Para que el texto del hero se lea encima y la última capa se funda
           con el resto de la página en vez de cortarse en seco. */}
@@ -157,5 +188,67 @@ export function HomeParallax() {
       <div ref={anchorRef} aria-hidden="true" className="hidden" />
       {background && createPortal(background, document.body)}
     </>
+  );
+}
+
+/**
+ * Sprite sheet horizontal (N cuadros iguales) que CUBRE el fondo como un
+ * object-cover, animado solo con CSS. El tamaño del cuadro sale de la imagen
+ * real, así que no hay que configurarlo a mano: basta con "Cuadros" y
+ * "Velocidad" en el admin.
+ */
+function SpriteCover({
+  asset,
+  boxWidth,
+  boxHeight,
+}: {
+  asset: ResolvedThemeAsset;
+  boxWidth: number;
+  boxHeight: number;
+}) {
+  const [frame, setFrame] = useState<{ w: number; h: number } | null>(null);
+  const frames = Math.max(1, asset.frameCount);
+
+  useEffect(() => {
+    let cancelled = false;
+    const img = new window.Image();
+    img.onload = () => {
+      if (!cancelled) setFrame({ w: img.naturalWidth / frames, h: img.naturalHeight });
+    };
+    img.src = asset.imageUrl;
+    return () => {
+      cancelled = true;
+    };
+  }, [asset.imageUrl, frames]);
+
+  if (!frame || !boxWidth || !boxHeight || !frame.h) return null;
+
+  // object-cover: el cuadro escala hasta tapar todo y se encuadra con el
+  // foco X/Y del admin (offsetX/offsetY, 50/100 = centrado abajo).
+  const scale = Math.max(boxWidth / frame.w, boxHeight / frame.h);
+  const w = frame.w * scale;
+  const h = frame.h * scale;
+  const left = (boxWidth - w) * ((asset.offsetX ?? 50) / 100);
+  const top = (boxHeight - h) * ((asset.offsetY ?? 100) / 100);
+
+  return (
+    <div
+      className="parallax-sprite absolute"
+      style={{
+        left,
+        top,
+        width: w,
+        height: h,
+        backgroundImage: `url(${JSON.stringify(asset.imageUrl)})`,
+        backgroundRepeat: "no-repeat",
+        backgroundSize: `${frames * 100}% 100%`,
+        imageRendering: "pixelated",
+        animationName: frames > 1 ? "parallax-sprite-slide" : undefined,
+        animationDuration: `${frames / Math.max(1, asset.frameRate)}s`,
+        animationTimingFunction: `steps(${Math.max(2, frames)}, jump-none)`,
+        animationIterationCount: "infinite",
+        animationDirection: asset.direction === "PINGPONG" ? "alternate" : "normal",
+      }}
+    />
   );
 }

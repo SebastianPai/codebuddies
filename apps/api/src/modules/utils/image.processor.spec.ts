@@ -60,4 +60,17 @@ describe('optimizeImage', () => {
     );
     expect(result.buffer).toBe(input);
   });
+
+  it('sube tal cual un WebP animado (re-codificarlo dejaba solo el primer cuadro)', async () => {
+    const frame = (color: string) =>
+      sharp({ create: { width: 8, height: 8, channels: 4, background: color } }).png().toBuffer();
+    const input = await sharp([await frame('#f00'), await frame('#00f')], { join: { animated: true } })
+      .webp()
+      .toBuffer();
+
+    const result = await optimizeImage(input, await detectImage(input), 'theme-assets');
+
+    expect(result.buffer).toBe(input);
+    expect((await sharp(result.buffer, { animated: true }).metadata()).pages).toBe(2);
+  });
 });
