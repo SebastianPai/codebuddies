@@ -79,8 +79,11 @@ export type AnimatorTextures = {
       width: number,
       height: number,
     ): unknown;
-    readonly width?: number;
-    readonly height?: number;
+    // En Phaser 3 una Texture NO tiene width/height: el tamaño real está en
+    // su imagen fuente. Antes se leía `texture.width` (siempre undefined en
+    // el juego), resolveAtlasGeometry devolvía null y NINGUNA animación con
+    // atlas propio llegaba a dibujarse: el objeto se quedaba estático.
+    getSourceImage(): { width: number; height: number } | unknown;
   };
 };
 
@@ -440,7 +443,9 @@ export default class WorldObjectAnimator {
     animation: WorldAnimation,
     textureKey: string,
   ): AtlasGeometry | null {
-    const texture = this.textures.get(textureKey);
+    const source = this.textures.get(textureKey)?.getSourceImage() as
+      | { width?: number; height?: number }
+      | undefined;
 
     // La derivación vive en el paquete compartido, así que el editor y el
     // juego recortan el atlas con la MISMA función. Antes había una copia
@@ -449,7 +454,7 @@ export default class WorldObjectAnimator {
     // ahora comprueba que las dos rutas usan una sola implementación.
     return resolveAtlasGeometry(
       animation,
-      { width: Number(texture?.width), height: Number(texture?.height) },
+      { width: Number(source?.width), height: Number(source?.height) },
       getFaceCount(entry.object.item?.worldData),
     );
   }

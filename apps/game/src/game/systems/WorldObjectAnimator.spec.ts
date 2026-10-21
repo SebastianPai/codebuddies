@@ -63,12 +63,9 @@ function makeTextures() {
       return {
         has: (name: string) => !!texture?.frames.has(name),
         add: (name, _i, x, y, w, h) => texture?.frames.set(name, { x, y, w, h }),
-        get width() {
-          return texture?.width;
-        },
-        get height() {
-          return texture?.height;
-        },
+        // Igual que Phaser.Textures.Texture: el tamaño SOLO sale de la
+        // imagen fuente (la Texture no tiene width/height propios).
+        getSourceImage: () => ({ width: texture?.width, height: texture?.height }),
       };
     },
   };
