@@ -5,13 +5,17 @@ import { AMBIENT_LIGHT_DEPTH } from "../utils/depth";
 //
 // Antes era un rectángulo negro encima de todo: las lámparas encendidas
 // brillaban DEBAJO de él, así que con la sala a oscuras no iluminaban nada.
-// Ahora la oscuridad es una RenderTexture que se rellena de negro y a la que
-// se le "borra" un degradado suave en cada fuente de luz: la luz de verdad
-// atraviesa la oscuridad y deja ver el color del brillo que hay debajo.
+// Ahora el rectángulo lleva una MÁSCARA INVERTIDA hecha con un degradado
+// suave por cada fuente de luz: donde hay luz el negro desaparece y se ve
+// el brillo de color que hay debajo (ver RoomItemsManager.applyItemState).
 //
-// LIVIANO: la textura tiene el tamaño de lo que ve la cámara en unidades del
-// mundo (no del canvas), solo se redibuja mientras la sala está oscura, y el
-// degradado es UNA textura de 256px generada una vez y reutilizada.
+// Por qué máscara y no RenderTexture.erase(): se probó en el juego real y en
+// Phaser 3.90 el erase sobre la textura no dejaba ningún agujero. La
+// BitmapMask invertida es el camino estándar de Phaser para esto y funciona.
+//
+// LIVIANO: un solo rectángulo del tamaño de lo que ve la cámara, una textura
+// de degradado de 256px generada una vez, y un pool de imágenes que se
+// reutilizan (no se crea nada nuevo por frame). Sin oscuridad no se dibuja.
 //
 // Tope de opacidad: a intensidad 100 la sala debe seguir siendo jugable
 // (verse muebles/otros jugadores), no un rectángulo negro opaco.
@@ -29,10 +33,10 @@ const HOLE_SCALE = 1.25;
 export type LightSource = { x: number; y: number; radius: number };
 
 export default class AmbientLightOverlay {
-  private rt?: Phaser.GameObjects.RenderTexture;
-  private stamp?: Phaser.GameObjects.Image;
-  /** Opacidad actual de la oscuridad (la anima el tween). */
-  private readonly darkness = { value: 0 };
+  private rect?: Phaser.GameObjects.Rectangle;
+  private maskSource?: Phaser.GameObjects.Container;
+  private mask?: Phaser.Display.Masks.BitmapMask;
+  private readonly pool: Phaser.GameObjects.Image[] = [];
   private tween?: Phaser.Tweens.Tween;
 
   constructor(
@@ -45,12 +49,14 @@ export default class AmbientLightOverlay {
     const target = (clamped / 100) * MAX_ALPHA;
 
     if (target > 0) this.ensureObjects();
+    const rect = this.rect;
+    if (!rect) return;
 
     this.tween?.stop();
     this.tween = this.scene.tweens.add({
-      targets: this.darkness,
-      value: target,
-      duration: target > this.darkness.value ? FADE_IN_MS : FADE_OUT_MS,
+      targets: rect,
+      alpha: target,
+      duration: target > rect.alpha ? FADE_IN_MS : FADE_OUT_MS,
       ease: "Sine.easeInOut",
       onComplete: () => {
         if (target <= 0) this.clearObjects();
@@ -60,36 +66,31 @@ export default class AmbientLightOverlay {
 
   /** Un tick del bucle de la escena (LobbyScene.update). */
   update() {
-    const rt = this.rt;
-    if (!rt || !this.stamp) return;
+    const rect = this.rect;
+    if (!rect || !this.maskSource) return;
+    if (rect.alpha <= 0.001) return;
 
-    const alpha = this.darkness.value;
-    if (alpha <= 0.001) {
-      rt.setVisible(false);
-      return;
-    }
-
-    // La textura cubre exactamente lo que ve la cámara, en unidades del
-    // mundo: así cada luz se borra en su posición real sin convertir a
-    // coordenadas de pantalla, y no importa el zoom ni el desplazamiento.
+    // El rectángulo cubre exactamente lo que ve la cámara, en coordenadas
+    // del mundo: no importa el zoom ni hacia dónde mire.
     const view = this.scene.cameras.main.worldView;
-    const width = Math.max(1, Math.ceil(view.width));
-    const height = Math.max(1, Math.ceil(view.height));
-    if (rt.width !== width || rt.height !== height) rt.resize(width, height);
-    rt.setPosition(view.x, view.y).setVisible(true);
+    rect.setPosition(view.x, view.y).setSize(Math.ceil(view.width) + 2, Math.ceil(view.height) + 2);
 
-    rt.clear();
-    rt.fill(0x000000, alpha);
-
-    for (const light of this.getLights()) {
-      const size = light.radius * 2 * HOLE_SCALE;
-      const x = light.x - view.x;
-      const y = light.y - view.y;
-      // Fuera de lo visible: no hace falta borrar nada.
-      if (x + size / 2 < 0 || y + size / 2 < 0 || x - size / 2 > width || y - size / 2 > height) continue;
-      this.stamp.setScale(size / GRADIENT_SIZE);
-      rt.erase(this.stamp, x, y);
+    const lights = this.getLights();
+    for (let i = 0; i < lights.length; i++) {
+      const light = lights[i];
+      let image = this.pool[i];
+      if (!image) {
+        image = this.scene.make.image({ key: GRADIENT_KEY, add: false }).setOrigin(0.5);
+        this.pool.push(image);
+        this.maskSource.add(image);
+      }
+      image
+        .setVisible(true)
+        .setPosition(light.x, light.y)
+        .setScale((light.radius * 2 * HOLE_SCALE) / GRADIENT_SIZE);
     }
+    // Las que sobran se esconden (se reusan si después hay más luces).
+    for (let i = lights.length; i < this.pool.length; i++) this.pool[i].setVisible(false);
   }
 
   destroy() {
@@ -98,24 +99,34 @@ export default class AmbientLightOverlay {
   }
 
   private ensureObjects() {
-    if (this.rt) return;
+    if (this.rect) return;
     this.ensureGradientTexture();
 
-    this.rt = this.scene.add
-      .renderTexture(0, 0, 1, 1)
+    this.rect = this.scene.add
+      .rectangle(0, 0, 1, 1, 0x000000)
       .setOrigin(0, 0)
       .setDepth(AMBIENT_LIGHT_DEPTH)
-      .setVisible(false);
+      .setAlpha(0);
 
-    // Sello del degradado: no se agrega a la escena, solo se usa para borrar.
-    this.stamp = this.scene.make.image({ key: GRADIENT_KEY, add: false }).setOrigin(0.5);
+    // Fuente de la máscara: NO va a la escena, solo define dónde hay luz.
+    this.maskSource = this.scene.make.container({ x: 0, y: 0, add: false });
+    this.mask = new Phaser.Display.Masks.BitmapMask(this.scene, this.maskSource);
+    // Invertida: el negro se ve donde la máscara está vacía y desaparece
+    // donde hay degradado (las luces).
+    this.mask.invertAlpha = true;
+    this.rect.setMask(this.mask);
+    this.update();
   }
 
   private clearObjects() {
-    this.rt?.destroy();
-    this.rt = undefined;
-    this.stamp?.destroy();
-    this.stamp = undefined;
+    this.rect?.clearMask();
+    this.mask?.destroy();
+    this.mask = undefined;
+    this.pool.length = 0;
+    this.maskSource?.destroy(); // destruye también las imágenes del pool
+    this.maskSource = undefined;
+    this.rect?.destroy();
+    this.rect = undefined;
   }
 
   /** Degradado radial blanco → transparente, generado una sola vez. */
