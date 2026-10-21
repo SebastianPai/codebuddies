@@ -263,12 +263,16 @@ export class RoomItemsService {
     rotation = 0,
     wallSide?: WallSide,
     wallOffset?: number,
+    // Color elegido antes de colocar (solo items colorable). null = original.
+    color: number | null = null,
   ) {
     const permissions = await this.getEffectivePermissions(userId, roomId);
 
     if (!permissions.canPlaceObjects) {
       throw new ForbiddenException('No puedes modificar esta sala');
     }
+
+    await this.assertColorAllowed(userId, color);
 
     return this.prisma.$transaction(async (tx) => {
       await this.lockRoomForWrite(tx, roomId);
@@ -297,6 +301,10 @@ export class RoomItemsService {
 
       if (!item?.worldData) {
         throw new BadRequestException('Este item no se puede colocar en salas');
+      }
+
+      if (color !== null && !item.colorable) {
+        throw new BadRequestException('Este objeto no se puede colorear');
       }
 
       const isWallItem =
@@ -363,6 +371,7 @@ export class RoomItemsService {
           parentRoomItemId,
           wallSide: isWallItem ? wallSide : undefined,
           wallOffset: isWallItem ? wallOffset : undefined,
+          color,
         },
         include: {
           item: {
@@ -719,6 +728,16 @@ export class RoomItemsService {
     });
   }
 
+  // Paleta general (ropa/objetos): free para todos, premium con suscripción.
+  private async assertColorAllowed(userId: string, color: number | null) {
+    if (canUseColor('COLOR', color, false)) return;
+    const hasPremium = await this.premiumAccess.hasPremiumAccess(userId);
+    if (canUseColor('COLOR', color, hasPremium)) return;
+    throw new ForbiddenException(
+      hasPremium ? 'Ese color no existe en la paleta.' : 'Ese color es Premium.',
+    );
+  }
+
   // ====================== COLOREAR UN OBJETO ======================
   // Solo objetos marcados "Coloreable" en el admin (Item.colorable). Mismo
   // permiso que rotar (es decoración de la sala) y misma paleta que la ropa
@@ -742,14 +761,7 @@ export class RoomItemsService {
       throw new ForbiddenException('No puedes colorear este objeto');
     }
 
-    if (!canUseColor('COLOR', color, false)) {
-      const hasPremium = await this.premiumAccess.hasPremiumAccess(userId);
-      if (!canUseColor('COLOR', color, hasPremium)) {
-        throw new ForbiddenException(
-          hasPremium ? 'Ese color no existe en la paleta.' : 'Ese color es Premium.',
-        );
-      }
-    }
+    await this.assertColorAllowed(userId, color);
 
     return this.prisma.roomItem.update({
       where: { id: roomItemId },

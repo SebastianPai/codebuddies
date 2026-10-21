@@ -59,6 +59,7 @@
   "rotationLabel": "Drehung:",
   "rotateButton": "Drehen",
   "colorButton": "Farbe",
+  "placementColorTitle": "Objektfarbe (vor dem Platzieren)",
   "pickUpButton": "Aufnehmen",
   "moveButton": "Verschieben",
   "duplicateButton": "Duplizieren",

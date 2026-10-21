@@ -35,6 +35,11 @@ export class PlaceItemDto {
   @IsOptional()
   @IsNumber()
   wallOffset?: number;
+
+  // Color elegido antes de colocar (solo items colorable).
+  @IsOptional()
+  @IsInt()
+  color?: number | null;
 }
 
 export class MoveItemDto {

@@ -59,6 +59,7 @@
   "rotationLabel": "Rotacion:",
   "rotateButton": "Rotar",
   "colorButton": "Color",
+  "placementColorTitle": "Color del objeto (antes de colocarlo)",
   "pickUpButton": "Recoger",
   "moveButton": "Mover",
   "duplicateButton": "Duplicar",

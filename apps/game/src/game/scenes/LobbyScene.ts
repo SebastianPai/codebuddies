@@ -697,6 +697,8 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
       x: target.x,
       y: target.y,
       rotation: furniture.rotation ?? 0,
+      // Duplicar copia también el color elegido.
+      ...(furniture.item?.colorable && furniture.color != null ? { color: furniture.color } : {}),
       ...(furniture.wallSide ? { wallSide: furniture.wallSide, wallOffset: furniture.wallOffset } : {}),
     });
   }

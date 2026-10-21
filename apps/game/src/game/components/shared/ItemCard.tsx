@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode, useState } from "react";
-import { Lock, Star, ZoomIn, type LucideIcon } from "lucide-react";
+import { Lock, Palette, Star, ZoomIn, type LucideIcon } from "lucide-react";
 import { getEffectDefinition, resolveItemRarityEffect } from "@codebuddies/visual-effects";
 
 import styles from "./ItemCard.module.css";
@@ -110,6 +110,13 @@ export default function ItemCard({
             <ItemPreview item={item} alt={label} className={styles.preview} />
           )}
           {!!stackCount && stackCount > 1 && <span className={styles.stack}>x{stackCount}</span>}
+          {/* Objeto especial: el admin lo marcó "Coloreable" (avatar o mueble). */}
+          {item?.colorable && (
+            <span className={styles.colorable} title={t("hud.colorPicker.colorableBadge")}>
+              <Palette size={11} aria-hidden="true" />
+              <span className={styles.srOnly}>{t("hud.colorPicker.colorableBadge")}</span>
+            </span>
+          )}
           {locked && (
             <span className={styles.lockIcon} aria-hidden="true">
               <Lock size={13} />

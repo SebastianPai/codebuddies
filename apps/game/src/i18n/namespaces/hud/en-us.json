@@ -98,7 +98,8 @@
     "clear": "Original color",
     "premiumLabel": "Premium colors",
     "premiumTitle": "Premium color",
-    "premiumMessage": "Go Premium to use these colors on your avatar and your objects."
+    "premiumMessage": "Go Premium to use these colors on your avatar and your objects.",
+    "colorableBadge": "Special item: its color can be changed"
   },
   "imagePreview": {
     "zoomOut": "Zoom out",

@@ -18,12 +18,16 @@ import {
 import { BUILD_COMMAND_STACK_CHANGED_EVENT } from "../../systems/BuildCommandStack";
 import {
   BUILD_PLACEMENT_PROGRESS_EVENT,
+  setPlacementColor,
   type BuildPlacementProgress,
 } from "../../systems/buildPlacementEvents";
 import { FURNITURE_TYPES, ITEM_ROOMS, getFurnitureType, getItemRooms } from "../../utils/itemTaxonomy";
 import ItemPreview from "../UI/ItemPreview";
 import SharedItemGrid from "../shared/ItemGrid";
 import ItemCard from "../shared/ItemCard";
+import ColorSwatchPicker from "../shared/ColorSwatchPicker";
+import { COLOR_FREE_COLORS, COLOR_PREMIUM_COLORS } from "@codebuddies/world-objects";
+import { useIsPremium } from "../../hooks/useIsPremium";
 import BackgroundSelector from "../RoomSystem/BackgroundSelector/BackgroundSelector";
 import type { Background } from "../../types/room";
 import { EffectivePermissions, NO_PERMISSIONS } from "../../types/permissions";
@@ -194,6 +198,14 @@ export default function BuildModePanel({
   const [activePaintItem, setActivePaintItem] = useState<any | null>(null);
   const [activePlacementItem, setActivePlacementItem] = useState<any | null>(null);
   const [placementRemaining, setPlacementRemaining] = useState(0);
+  // Color para los muebles coloreables, elegido antes de colocarlos (lo lee
+  // FurniturePlacementSystem en cada click). null = color original.
+  const [placementColor, setPlacementColorState] = useState<number | null>(null);
+  const isPremium = useIsPremium();
+  const choosePlacementColor = (color: number | null) => {
+    setPlacementColorState(color);
+    setPlacementColor(color);
+  };
   const [roomFilter, setRoomFilter] = useState("all");
 
   // El ghost vive en Phaser (BuildSystem); acá solo se refleja cuántas
@@ -218,6 +230,7 @@ export default function BuildModePanel({
     setActivePaintItem(null);
     onCancelPainting();
     setActivePlacementItem(item);
+    choosePlacementColor(null);
     setPlacementRemaining(item?.availableAmount ?? 1);
     registerRecent(item?.id);
     onPlaceWorldItem(item);
@@ -548,6 +561,20 @@ export default function BuildModePanel({
             >
               {t("buildmode.cancelSelectionButton")}
             </button>
+          </div>
+        )}
+
+        {activePlacementItem?.colorable && (
+          <div className={styles.placementColor}>
+            <strong>{t("buildmode.placementColorTitle")}</strong>
+            <ColorSwatchPicker
+              colors={COLOR_FREE_COLORS}
+              premiumColors={COLOR_PREMIUM_COLORS}
+              isPremium={isPremium}
+              value={placementColor}
+              onSelect={choosePlacementColor}
+              onClear={() => choosePlacementColor(null)}
+            />
           </div>
         )}
 

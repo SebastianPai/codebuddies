@@ -1,3 +1,4 @@
+import { getPlacementColor } from "./buildPlacementEvents";
 import Phaser from "phaser";
 import BuildSystem from "./BuildSystem";
 import PlacementValidator from "./PlacementValidator";
@@ -81,6 +82,7 @@ export default class FurniturePlacementSystem {
       x: tx,
       y: ty,
       rotation: this.buildSystem.getRotation(),
+      ...(item.colorable && getPlacementColor() !== null && { color: getPlacementColor() }),
       ...(placementType === "WALL" && {
         wallSide: this.inferWallSide(tx, ty),
         wallOffset: 0,

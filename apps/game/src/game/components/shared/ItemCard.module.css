@@ -243,3 +243,32 @@
     opacity: 1;
   }
 }
+
+/* Distintivo de objeto coloreable: arcoíris para que se note que es especial. */
+.colorable {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--cb-radius-pill);
+  color: #fff;
+  background: conic-gradient(#ff4d4d, #ffb84d, #f9ff4d, #4dff88, #4dd2ff, #8c4dff, #ff4dd2, #ff4d4d);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.55);
+}
+
+.colorable svg {
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.9));
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

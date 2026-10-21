@@ -583,3 +583,11 @@
   background: rgba(250, 204, 21, 0.12);
   color: #fff7cc;
 }
+
+.placementColor {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  font-size: 12px;
+}

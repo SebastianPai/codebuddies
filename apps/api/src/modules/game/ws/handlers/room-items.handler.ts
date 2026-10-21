@@ -68,6 +68,7 @@ export class RoomItemsHandler {
         data.rotation ?? 0,
         data.wallSide,
         data.wallOffset,
+        data.color ?? null,
       );
 
       // Notificar a todos en la sala

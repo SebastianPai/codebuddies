@@ -15,3 +15,17 @@ export function emitPlacementProgress(itemId: string | null | undefined, remaini
     }),
   );
 }
+
+// Color elegido en el panel ANTES de colocar un mueble coloreable
+// (Item.colorable). Lo lee FurniturePlacementSystem al emitir
+// room:item:place; null = color original del sprite. Se resetea cada vez
+// que se elige otro mueble en el panel.
+let placementColor: number | null = null;
+
+export function setPlacementColor(color: number | null) {
+  placementColor = color;
+}
+
+export function getPlacementColor(): number | null {
+  return placementColor;
+}
