@@ -22,10 +22,11 @@ desfasado de la base de datos.
 
 ### Ramas peligrosas (NO desplegar ni fusionar tal cual)
 
-Estado al 2026-10-20: las 3 apps de Heroku corren `2624b5c`, la punta de la
-rama `feat/premium-colors-parallax` (`feat/codestudio-v2` + íconos + colores
+Estado al 2026-10-21: `codebuddies-game` corre `a05cbbb` y `codebuddies-api` /
+`codebuddies-web` corren `2624b5c` (mismo código para esas dos; `a05cbbb` solo
+tocó el juego). Todo es la rama `feat/premium-colors-parallax` (`feat/codestudio-v2` + íconos + colores
 premium + parallax). Es la rama base para todo trabajo nuevo. Lo que sigue en
-la tabla vale para cualquier rama que NO contenga `2624b5c`:
+la tabla vale para cualquier rama que NO contenga `a05cbbb`:
 
 | Rama | Por qué es peligrosa |
 |---|---|
