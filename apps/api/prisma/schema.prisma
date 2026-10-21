@@ -3545,6 +3545,10 @@ model ThemeAssetVariant {
   scale    Float @default(1)
   rotation Float @default(0)
 
+  // Solo slots PARALLAX_*: distancia de la capa (0 cerca .. 100 lejos).
+  // null = default de la capa en el frontend (ver HomeParallax.tsx).
+  parallaxDepth Int?
+
   isActive Boolean @default(false)
   order    Int     @default(0)
 

@@ -17,6 +17,9 @@ export type ResolvedThemeAsset = {
   offsetY: number;
   scale: number;
   rotation: number;
+  // Solo PARALLAX_*: distancia de la capa (0 cerca .. 100 lejos); null =
+  // default de esa capa (ver components/HomeParallax.tsx).
+  parallaxDepth?: number | null;
 };
 
 type ResolvedThemeAssets = Record<string, ResolvedThemeAsset | null>;

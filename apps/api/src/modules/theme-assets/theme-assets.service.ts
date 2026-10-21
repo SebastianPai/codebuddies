@@ -30,6 +30,16 @@ const SLOT_REGISTRY: { key: string; label: string; category: string }[] = [
   { key: 'ACHIEVEMENT_ICON', label: 'Ícono de logro', category: 'Marca' },
   { key: 'ROOM_DOOR', label: 'Puerta de Salas', category: 'Juego' },
   { key: 'HOME_HERO_PHOTO', label: 'Foto — Home (polaroid)', category: 'Marketing' },
+
+  // Fondo parallax del inicio de la web: 5 capas apiladas, 1 = la de más
+  // atrás. Cada variante tiene su "Distancia" (parallaxDepth) en el admin:
+  // más lejos = se mueve menos al hacer scroll/mover el mouse. Capas sin
+  // imagen activa no se dibujan; sin ninguna, el inicio queda como siempre.
+  { key: 'PARALLAX_1', label: 'Capa 1 (fondo): cielo estrellado', category: 'Parallax del inicio' },
+  { key: 'PARALLAX_2', label: 'Capa 2: montañas', category: 'Parallax del inicio' },
+  { key: 'PARALLAX_3', label: 'Capa 3: pueblo', category: 'Parallax del inicio' },
+  { key: 'PARALLAX_4', label: 'Capa 4: cipreses y árboles', category: 'Parallax del inicio' },
+  { key: 'PARALLAX_5', label: 'Capa 5 (frente): rocas y siluetas', category: 'Parallax del inicio' },
   { key: 'AUTH_HERO_PHOTO', label: 'Foto — Login / Registro', category: 'Marketing' },
 
   // Navegación compartida web + juego
@@ -85,6 +95,9 @@ export type ResolvedThemeAsset = {
   offsetY: number;
   scale: number;
   rotation: number;
+  // Solo PARALLAX_*: 0 = pegado a la pantalla (se mueve mucho), 100 = muy
+  // lejos (casi quieto). null = el default de esa capa en el frontend.
+  parallaxDepth: number | null;
 };
 
 type UpsertVariantInput = {
@@ -98,6 +111,7 @@ type UpsertVariantInput = {
   offsetY?: number;
   scale?: number;
   rotation?: number;
+  parallaxDepth?: number | null;
   order?: number;
 };
 
@@ -141,6 +155,7 @@ export class ThemeAssetsService {
             offsetY: active.offsetY,
             scale: active.scale,
             rotation: active.rotation,
+            parallaxDepth: active.parallaxDepth,
           }
         : null;
     }
@@ -206,6 +221,7 @@ export class ThemeAssetsService {
         offsetY: clamp(input.offsetY ?? 50, 0, 100),
         scale: clamp(input.scale ?? 1, 0.5, 4),
         rotation: clamp(input.rotation ?? 0, -180, 180),
+        parallaxDepth: input.parallaxDepth == null ? null : clamp(input.parallaxDepth, 0, 100),
         order: slot.variants.length,
       },
     });
@@ -225,6 +241,9 @@ export class ThemeAssetsService {
       ...(input.offsetY !== undefined ? { offsetY: clamp(input.offsetY, 0, 100) } : {}),
       ...(input.scale !== undefined ? { scale: clamp(input.scale, 0.5, 4) } : {}),
       ...(input.rotation !== undefined ? { rotation: clamp(input.rotation, -180, 180) } : {}),
+      ...(input.parallaxDepth !== undefined
+        ? { parallaxDepth: input.parallaxDepth === null ? null : clamp(input.parallaxDepth, 0, 100) }
+        : {}),
     };
 
     await this.prisma.themeAssetVariant.update({ where: { id: variantId }, data });

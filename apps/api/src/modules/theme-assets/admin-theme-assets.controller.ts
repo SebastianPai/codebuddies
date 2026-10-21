@@ -16,6 +16,7 @@ type VariantBody = {
   offsetY?: number;
   scale?: number;
   rotation?: number;
+  parallaxDepth?: number | null;
 };
 
 @UseGuards(JwtAuthGuard, RolesGuard)

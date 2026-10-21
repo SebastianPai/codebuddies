@@ -10,6 +10,7 @@ import { useTranslation } from "../../src/i18n/useTranslation"; // ← Asegúrat
 import { WorldPulseBar } from "../../src/features/world-pulse/world-pulse-bar";
 import { useThemeAsset } from "../../hooks/useThemeAsset";
 import { ThemeFramedPhoto } from "../../components/ThemeFramedPhoto";
+import { HomeParallax } from "../../components/HomeParallax";
 
 // Interfaces
 interface CoursePreview {
@@ -194,7 +195,8 @@ export default function BrutalistLanding() {
 
       <div className="relative z-10">
         {/* --- HERO SECTION --- */}
-        <section className="relative pt-32 pb-20 px-4 flex flex-col items-center min-h-[90vh]">
+        <section className="relative isolate pt-32 pb-20 px-4 flex flex-col items-center min-h-[90vh]">
+          <HomeParallax />
           <div className="flex flex-col md:flex-row items-center gap-12 max-w-7xl mx-auto w-full relative z-10">
             <div className="flex-1 text-left">
               <motion.div

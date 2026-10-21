@@ -21,6 +21,7 @@ type ThemeAssetVariant = {
   offsetY: number;
   scale: number;
   rotation: number;
+  parallaxDepth: number | null;
   isActive: boolean;
   order: number;
 };
@@ -34,6 +35,15 @@ type ThemeAssetSlot = {
 };
 
 const MAX_VARIANTS = 5;
+
+// Mismo default que components/HomeParallax.tsx (0 cerca .. 100 lejos).
+const PARALLAX_DEFAULT_DEPTH: Record<string, number> = {
+  PARALLAX_1: 95,
+  PARALLAX_2: 75,
+  PARALLAX_3: 50,
+  PARALLAX_4: 25,
+  PARALLAX_5: 5,
+};
 const PREVIEW_SIZE = 56;
 
 // Mismo truco que usa apps/game (background-position en pasos discretos)
@@ -296,6 +306,7 @@ function SlotCard({
           <VariantTile
             key={variant.id}
             variant={variant}
+            parallaxDefaultDepth={PARALLAX_DEFAULT_DEPTH[slot.key]}
             onSetActive={() => onSetActive(variant.id)}
             onDelete={() => onDelete(variant.id)}
             onPatch={(patch) => onPatch(variant.id, patch)}
@@ -337,16 +348,20 @@ function SlotCard({
 
 function VariantTile({
   variant,
+  parallaxDefaultDepth,
   onSetActive,
   onDelete,
   onPatch,
 }: {
   variant: ThemeAssetVariant;
+  // Solo en slots PARALLAX_*: muestra el control de distancia.
+  parallaxDefaultDepth?: number;
   onSetActive: () => void;
   onDelete: () => void;
   onPatch: (patch: Partial<ThemeAssetVariant>) => void;
 }) {
   const [editing, setEditing] = useState(false);
+  const [depth, setDepth] = useState(variant.parallaxDepth ?? parallaxDefaultDepth ?? 50);
   const [frameCount, setFrameCount] = useState(variant.frameCount);
   const [direction, setDirection] = useState<AnimationDirection>(variant.direction);
   const [frameRate, setFrameRate] = useState(variant.frameRate);
@@ -478,6 +493,32 @@ function VariantTile({
                   className="w-full rounded-md bg-yellow-400 px-2 py-1 font-black text-black"
                 >
                   Guardar
+                </button>
+              )}
+            </div>
+          )}
+
+          {parallaxDefaultDepth !== undefined && (
+            <div className="mt-2 space-y-2 border-t border-zinc-800 pt-2 text-[11px] text-zinc-400">
+              <p className="text-[10px] uppercase tracking-wide text-zinc-500">Parallax</p>
+              <label className="block">
+                Distancia ({depth}) — {depth >= 70 ? "lejos, casi quieta" : depth >= 35 ? "intermedia" : "cerca, se mueve mucho"}
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={depth}
+                  onChange={(event) => setDepth(Number(event.target.value))}
+                  className="mt-1 w-full accent-yellow-400"
+                />
+              </label>
+              {depth !== (variant.parallaxDepth ?? parallaxDefaultDepth) && (
+                <button
+                  type="button"
+                  onClick={() => onPatch({ parallaxDepth: depth })}
+                  className="w-full rounded-md bg-yellow-400 px-2 py-1 font-black text-black"
+                >
+                  Guardar distancia
                 </button>
               )}
             </div>
