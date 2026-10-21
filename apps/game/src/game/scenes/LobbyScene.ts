@@ -196,7 +196,9 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     const socket = (this.game as any).socket;
     const user = (this.game as any).user;
     this.backgroundManager = new BackgroundManager(this);
-    this.ambientLight = new AmbientLightOverlay(this);
+    // Las luces salen de los objetos de la sala (lámparas encendidas, velas…)
+    // y agujerean la oscuridad; ver AmbientLightOverlay.
+    this.ambientLight = new AmbientLightOverlay(this, () => this.roomItems?.getLightSources() ?? []);
     // Overlay de verificación geométrica (F9). Apagado por defecto y sin
     // coste cuando lo está.
     this.isoDebug = new IsoDebugOverlay(this);
@@ -1802,6 +1804,7 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     // frame se deriva del `at` que mandó el servidor, así que todos los
     // clientes ven el mismo frame aunque sus bucles vayan desfasados.
     this.roomItems?.update(Date.now());
+    this.ambientLight?.update();
     this.petSystem?.update(this.game.loop.delta);
     this.butlerSystem?.update(this.game.loop.delta);
     this.roomCompanions?.update(this.game.loop.delta);

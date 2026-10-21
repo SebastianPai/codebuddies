@@ -5,6 +5,12 @@ import { useParams, useRouter } from "next/navigation";
 import { api } from "@/shared/api/client";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
 
+// Mismos defaults que el juego (LightingOverlay) cuando el objeto no los trae.
+const DEFAULT_LIGHT_RADIUS = 140;
+const DEFAULT_LIGHT_COLOR = "#ffe6b0";
+// Cálida, vela, fría, neón y verde: atajos para no buscar el hex a mano.
+const LIGHT_PRESETS = ["#ffe6b0", "#ffb347", "#cfe8ff", "#ff6ec7", "#9dff9d"];
+
 export default function WorldItemDetailsPage() {
   const t = useTranslation();
   const params = useParams();
@@ -58,6 +64,10 @@ export default function WorldItemDetailsPage() {
         walkable: worldItem.walkable,
         isInteractable: worldItem.isInteractable,
         rotatable: worldItem.rotatable,
+
+        emitsLight: !!worldItem.emitsLight,
+        lightRadius: worldItem.emitsLight ? Number(worldItem.lightRadius) || DEFAULT_LIGHT_RADIUS : null,
+        lightColor: worldItem.emitsLight ? worldItem.lightColor || DEFAULT_LIGHT_COLOR : null,
 
         placementType: worldItem.placementType,
 
@@ -258,6 +268,67 @@ export default function WorldItemDetailsPage() {
                 </p>
               </div>
             </label>
+
+            {/* Luz propia: atraviesa la oscuridad de la sala. Con interacción
+                "encender" solo ilumina encendido; si no, siempre. */}
+            <div className="rounded-xl border border-zinc-800 p-3">
+              <label className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={!!worldItem.emitsLight}
+                  onChange={(e) =>
+                    setWorldItem({
+                      ...worldItem,
+                      emitsLight: e.target.checked,
+                      lightRadius: worldItem.lightRadius ?? DEFAULT_LIGHT_RADIUS,
+                      lightColor: worldItem.lightColor ?? DEFAULT_LIGHT_COLOR,
+                    })
+                  }
+                />
+                <div>
+                  <p>{t("items.lightEmits")}</p>
+                  <p className="text-xs text-zinc-500">{t("items.lightEmitsDescription")}</p>
+                </div>
+              </label>
+
+              {worldItem.emitsLight && (
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <label className="text-sm">
+                    {t("items.lightRadius")} ({Number(worldItem.lightRadius) || DEFAULT_LIGHT_RADIUS}px)
+                    <input
+                      type="range"
+                      min={16}
+                      max={600}
+                      step={4}
+                      value={Number(worldItem.lightRadius) || DEFAULT_LIGHT_RADIUS}
+                      onChange={(e) => setWorldItem({ ...worldItem, lightRadius: Number(e.target.value) })}
+                      className="mt-1 w-full accent-yellow-400"
+                    />
+                  </label>
+                  <label className="text-sm">
+                    {t("items.lightColor")}
+                    <div className="mt-1 flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={worldItem.lightColor || DEFAULT_LIGHT_COLOR}
+                        onChange={(e) => setWorldItem({ ...worldItem, lightColor: e.target.value })}
+                        className="h-8 w-12 cursor-pointer rounded border border-zinc-700 bg-transparent"
+                      />
+                      {LIGHT_PRESETS.map((preset) => (
+                        <button
+                          key={preset}
+                          type="button"
+                          title={preset}
+                          onClick={() => setWorldItem({ ...worldItem, lightColor: preset })}
+                          className="h-6 w-6 rounded-full border border-zinc-700"
+                          style={{ background: preset }}
+                        />
+                      ))}
+                    </div>
+                  </label>
+                </div>
+              )}
+            </div>
 
             <div>
               <p className="mb-1">{t("items.facesLabel")}</p>

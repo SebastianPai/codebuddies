@@ -6,6 +6,9 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  Min,
+  Max,
+  Matches,
 } from 'class-validator';
 import {
   FurnitureCategory,
@@ -69,6 +72,23 @@ export class UpdateWorldItemDto {
   @IsOptional()
   @IsBoolean()
   isInteractable?: boolean;
+
+  // Luz propia del objeto (vela, farol, lámpara). Con interacción TOGGLE
+  // solo ilumina encendido; sin ella, ilumina siempre. La usa el juego para
+  // "agujerear" la oscuridad de la sala (ver LightingOverlay).
+  @IsOptional()
+  @IsBoolean()
+  emitsLight?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @Min(16)
+  @Max(600)
+  lightRadius?: number | null;
+
+  @IsOptional()
+  @Matches(/^#[0-9a-fA-F]{6}$/)
+  lightColor?: string | null;
 
   @IsOptional()
   @IsBoolean()

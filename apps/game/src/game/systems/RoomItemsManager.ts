@@ -463,30 +463,70 @@ export default class RoomItemsManager {
     return sprites;
   }
 
-  // Refleja worldObject.state visualmente. Hoy: state.on -> luz cálida de
-  // "encendido" (PointLight, sin asset).
+  /**
+   * Luz de un objeto, o null si ahora no ilumina.
+   *
+   * - Con interacción "encender" (TOGGLE): ilumina solo encendido.
+   * - Sin ella, si el admin marcó "Emite luz": ilumina siempre (vela, farol).
+   * Radio y color salen de WorldItemData (lightRadius / lightColor); sin
+   * ellos, la luz cálida de siempre con un radio según el tamaño del sprite.
+   */
+  private lightOf(worldObject: WorldObject): { radius: number; color: number } | null {
+    const worldData = worldObject.item?.worldData;
+    const toggles =
+      !!worldData?.isInteractable && (worldData?.interactionTypes ?? []).includes("TOGGLE");
+    const lit = toggles ? !!worldObject.state?.on : !!worldData?.emitsLight;
+    if (!lit) return null;
+
+    const sprite = worldObject.sprite;
+    const radius = Number(worldData?.lightRadius) || Math.max(64, sprite.displayWidth * 1.1);
+    const hex = typeof worldData?.lightColor === "string" ? worldData.lightColor : "";
+    const color = /^#[0-9a-f]{6}$/i.test(hex) ? parseInt(hex.slice(1), 16) : 0xffe6b0;
+    return { radius, color };
+  }
+
+  /**
+   * Fuentes de luz para la oscuridad de la sala (AmbientLightOverlay), en
+   * coordenadas del mundo. Se leen del sprite en vivo, así siguen al objeto
+   * si se mueve o se re-apila.
+   */
+  getLightSources(): { x: number; y: number; radius: number }[] {
+    const lights: { x: number; y: number; radius: number }[] = [];
+    this.items.forEach((worldObject) => {
+      const light = this.lightOf(worldObject);
+      if (!light) return;
+      const sprite = worldObject.sprite;
+      lights.push({ x: sprite.x, y: sprite.y - sprite.displayHeight * 0.5, radius: light.radius });
+    });
+    return lights;
+  }
+
+  // Refleja worldObject.state visualmente: si el objeto ilumina (ver
+  // lightOf) tiene un brillo de color detrás (PointLight, sin asset), que es
+  // lo que se ve a través del agujero de la oscuridad.
   applyItemState(id: string) {
     const worldObject = this.items.get(id);
     if (!worldObject) return;
 
-    const on = !!worldObject.state?.on;
+    const light = this.lightOf(worldObject);
     const sprite = worldObject.sprite;
     const glowX = sprite.x;
     const glowY = sprite.y - sprite.displayHeight * 0.5;
 
-    if (on) {
-      const radius = Math.max(48, sprite.displayWidth * 0.9);
+    if (light) {
       if (!worldObject.glowLight) {
         worldObject.glowLight = this.scene.add.pointlight(
           glowX,
           glowY,
-          0xffe6b0,
-          radius,
+          light.color,
+          light.radius,
           0.9,
           0.05,
         );
       } else {
         worldObject.glowLight.setPosition(glowX, glowY);
+        worldObject.glowLight.color.setFromRGB(Phaser.Display.Color.IntegerToRGB(light.color));
+        worldObject.glowLight.radius = light.radius;
       }
       worldObject.glowLight.setDepth(sprite.depth - 1);
     } else if (worldObject.glowLight) {
