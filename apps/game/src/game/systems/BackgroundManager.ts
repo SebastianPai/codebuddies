@@ -3,12 +3,17 @@ import { canonicalAssetKey, loadTextureOnce } from "../utils/phaserAssetCache";
 
 type BackgroundScaleMode = "cover" | "contain" | "height";
 
+const SOLID_COLOR = /^#[0-9a-f]{6}$/i;
+
 type RoomBackground = {
   id?: string;
   name?: string;
   imageUrl?: string;
   previewUrl?: string;
   metadata?: {
+    // Fondo de color sólido (p. ej. los pastel Premium): se pinta como color
+    // de la cámara, sin cargar ninguna imagen. imageUrl es solo la miniatura.
+    color?: string;
     anchor?: {
       x?: number;
       y?: number;
@@ -35,6 +40,13 @@ export default class BackgroundManager {
     background?: RoomBackground | null,
     composition: BackgroundComposition = {},
   ) {
+    const color = background?.metadata?.color;
+    if (color && SOLID_COLOR.test(color)) {
+      this.clear();
+      this.scene.cameras.main.setBackgroundColor(color);
+      return;
+    }
+
     if (!background?.imageUrl) {
       this.clear();
       return;
@@ -52,6 +64,9 @@ export default class BackgroundManager {
   }
 
   clear() {
+    // Vuelve al color por defecto (transparente: se ve el del juego) por si
+    // el fondo anterior era de color sólido.
+    this.scene.cameras?.main?.setBackgroundColor("rgba(0,0,0,0)");
     this.image?.destroy();
     this.image = undefined;
     this.currentKey = undefined;
