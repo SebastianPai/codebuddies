@@ -485,7 +485,7 @@ export default class RoomItemsManager {
     const sprite = worldObject.sprite;
     const radius = Number(worldData?.lightRadius) || Math.max(64, sprite.displayWidth * 1.1);
     const hex = typeof worldData?.lightColor === "string" ? worldData.lightColor : "";
-    const color = /^#[0-9a-f]{6}$/i.test(hex) ? parseInt(hex.slice(1), 16) : 0xffe6b0;
+    const color = /^#[0-9a-f]{6}$/i.test(hex) ? parseInt(hex.slice(1), 16) : 0xffb35c;
 
     // Origen y forma (admin → "Forma de la luz"). Sin config: círculo en el
     // centro del sprite, como siempre. El origen es relativo al centro-abajo
@@ -501,7 +501,9 @@ export default class RoomItemsManager {
       ? rotateLightOrigin(Number(config.originX) || 0, Number(config.originY) || 0, steps)
       : null;
     const x = origin ? sprite.x + origin.x : sprite.x;
-    const y = origin ? sprite.y + origin.y : sprite.y - sprite.displayHeight * 0.5;
+    // Sin config, el charco de luz se apoya en el PISO (cerca de la base del
+    // objeto), no en la mitad del sprite: lo que se ilumina es el suelo.
+    const y = origin ? sprite.y + origin.y : sprite.y - sprite.displayHeight * 0.18;
     const cone =
       config?.shape === "CONE"
         ? {

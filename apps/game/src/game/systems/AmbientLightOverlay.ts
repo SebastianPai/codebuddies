@@ -31,6 +31,9 @@ const FADE_OUT_MS = 300;
 const DARKNESS_COLOR = 0x070b1a;
 
 const GRADIENT_KEY = "cb-light-gradient-v2";
+// Brillo de color: el centro es más tenue que el anillo medio, así no cubre
+// con neblina el propio objeto que emite la luz (la lámpara se ve nítida).
+const GLOW_KEY = "cb-light-glow-v1";
 const GRADIENT_SIZE = 256;
 const CONE_SIZE = 512;
 // El agujero es algo más grande que el radio nominal: el borde del degradado
@@ -39,9 +42,12 @@ const HOLE_SCALE = 1.35;
 // Achatado del charco de luz en el piso (perspectiva isométrica 2:1).
 const FLOOR_SQUASH = 0.62;
 // Brillo del color: sutil con la sala iluminada, más presente a oscuras.
-const GLOW_ALPHA_LIT = 0.1;
-const GLOW_ALPHA_DARK = 0.38;
-const GLOW_SCALE = 0.85;
+const GLOW_ALPHA_LIT = 0.08;
+const GLOW_ALPHA_DARK = 0.26;
+const GLOW_SCALE = 0.95;
+// Saturación mínima del brillo: un color pálido sumado en modo aditivo se
+// lava a blanco; así conserva su tono (cálida = ámbar, fría = azul).
+const GLOW_MIN_SATURATION = 0.62;
 
 /**
  * Una fuente de luz en coordenadas del MUNDO. `cone` = porción de pizza que
@@ -56,6 +62,18 @@ export type LightSource = {
   color?: number;
   cone?: { direction: number; spread: number };
 };
+
+/** Mismo tono, pero con saturación mínima y brillo pleno (ver GLOW_MIN_SATURATION). */
+function saturate(color: number): number {
+  const c = Phaser.Display.Color.IntegerToColor(color);
+  const hsv = Phaser.Display.Color.RGBToHSV(c.red, c.green, c.blue);
+  const rgb = Phaser.Display.Color.HSVToRGB(hsv.h, Math.max(hsv.s, GLOW_MIN_SATURATION), 1) as {
+    r: number;
+    g: number;
+    b: number;
+  };
+  return Phaser.Display.Color.GetColor(rgb.r, rgb.g, rgb.b);
+}
 
 export default class AmbientLightOverlay {
   private rect?: Phaser.GameObjects.Rectangle;
@@ -124,8 +142,8 @@ export default class AmbientLightOverlay {
       }
 
       const glow = this.imageAt(this.glows, i, true);
-      this.placeLight(glow, light, GLOW_SCALE * flicker);
-      glow.setTint(light.color ?? 0xffd59a).setAlpha(glowAlpha * (0.85 + 0.15 * flicker));
+      this.placeLight(glow, light, GLOW_SCALE * flicker, GLOW_KEY);
+      glow.setTint(saturate(light.color ?? 0xffb35c)).setAlpha(glowAlpha * (0.85 + 0.15 * flicker));
     });
 
     this.hideFrom(this.holes, lights.length);
@@ -140,7 +158,12 @@ export default class AmbientLightOverlay {
   }
 
   /** Posición, forma y tamaño de una luz (charco ovalado o cono). */
-  private placeLight(image: Phaser.GameObjects.Image, light: LightSource, scale: number) {
+  private placeLight(
+    image: Phaser.GameObjects.Image,
+    light: LightSource,
+    scale: number,
+    circleKey = GRADIENT_KEY,
+  ) {
     image.setVisible(true).setPosition(light.x, light.y);
     if (light.cone) {
       const key = this.ensureConeTexture(light.cone.spread);
@@ -150,7 +173,7 @@ export default class AmbientLightOverlay {
         // El cono tiene el vértice en el centro del lienzo (radio = la mitad).
         .setScale((light.radius * 2 * scale) / CONE_SIZE);
     } else {
-      if (image.texture.key !== GRADIENT_KEY) image.setTexture(GRADIENT_KEY);
+      if (image.texture.key !== circleKey) image.setTexture(circleKey);
       const s = (light.radius * 2 * scale) / GRADIENT_SIZE;
       image.setRotation(0).setScale(s, s * FLOOR_SQUASH);
     }
@@ -171,8 +194,9 @@ export default class AmbientLightOverlay {
     if (image) return image;
 
     if (glow) {
+      this.ensureGlowTexture();
       image = this.scene.add
-        .image(0, 0, GRADIENT_KEY)
+        .image(0, 0, GLOW_KEY)
         .setOrigin(0.5)
         .setBlendMode(Phaser.BlendModes.ADD)
         .setDepth(AMBIENT_LIGHT_DEPTH + 1);
@@ -257,6 +281,25 @@ export default class AmbientLightOverlay {
     ctx.fill();
     this.scene.textures.addCanvas(key, canvas);
     return key;
+  }
+
+  private ensureGlowTexture() {
+    if (this.scene.textures.exists(GLOW_KEY)) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = GRADIENT_SIZE;
+    canvas.height = GRADIENT_SIZE;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const r = GRADIENT_SIZE / 2;
+    const gradient = ctx.createRadialGradient(r, r, 0, r, r, r);
+    gradient.addColorStop(0, "rgba(255,255,255,0.35)");
+    gradient.addColorStop(0.25, "rgba(255,255,255,0.75)");
+    gradient.addColorStop(0.5, "rgba(255,255,255,0.5)");
+    gradient.addColorStop(0.78, "rgba(255,255,255,0.16)");
+    gradient.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, GRADIENT_SIZE, GRADIENT_SIZE);
+    this.scene.textures.addCanvas(GLOW_KEY, canvas);
   }
 
   /** Degradado radial blanco → transparente, generado una sola vez. */
