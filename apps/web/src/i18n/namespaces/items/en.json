@@ -107,7 +107,7 @@
   "createWorldItemTitle": "Create world item",
   "createWorldItemDescription": "World items reuse the existing item flow. Create the base item first and then configure its world data from the list.",
   "createBaseItemLink": "Create base item",
-  "backToWorldItems": "Back to world items",
+  "backToWorldItems": "Back to World Objects",
   "createTextureTitle": "Create texture",
   "createTextureDescription": "Create floor tiles or wall textures to sell in the shop.",
   "createTextureError": "Error creating texture: ",
@@ -503,5 +503,6 @@
   "behaviorReverseHint": "Plays frames from last to first",
   "behaviorDuplicateReversed": "Duplicate reversed (same frames)",
   "lightLinkTitle": "Object light",
-  "lightLinkHint": "Set whether it emits light, its color (warm, cold…), its shape (circle or cone) and where it starts."
+  "lightLinkHint": "Set whether it emits light, its color (warm, cold…), its shape (circle or cone) and where it starts.",
+  "worldItemNotFoundHint": "This world object doesn't exist or the link uses the wrong id. Go back to the list and open it from there."
 }

@@ -107,7 +107,7 @@
   "createWorldItemTitle": "Crear objeto del mundo",
   "createWorldItemDescription": "Los objetos del mundo reutilizan el flujo existente de items. Crea el item base primero y luego configura sus datos de mundo desde la lista.",
   "createBaseItemLink": "Crear item base",
-  "backToWorldItems": "Volver a objetos del mundo",
+  "backToWorldItems": "Volver a Objetos del Mundo",
   "createTextureTitle": "Crear textura",
   "createTextureDescription": "Crea baldosas de suelo o texturas de pared para vender en la tienda.",
   "createTextureError": "Error al crear textura: ",
@@ -503,5 +503,6 @@
   "behaviorReverseHint": "Reproduce los frames del último al primero",
   "behaviorDuplicateReversed": "Duplicar al revés (mismos frames)",
   "lightLinkTitle": "Luz del objeto",
-  "lightLinkHint": "Configura si emite luz, su color (cálida, fría…), su forma (círculo o cono) y de dónde sale."
+  "lightLinkHint": "Configura si emite luz, su color (cálida, fría…), su forma (círculo o cono) y de dónde sale.",
+  "worldItemNotFoundHint": "Este objeto del mundo no existe o el enlace usa un id equivocado. Vuelve a la lista y ábrelo desde ahí."
 }

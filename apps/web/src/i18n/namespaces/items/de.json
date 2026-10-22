@@ -107,7 +107,7 @@
   "createWorldItemTitle": "Welt-Item erstellen",
   "createWorldItemDescription": "Welt-Items nutzen den bestehenden Item-Flow wieder. Erstelle zuerst das Basis-Item und konfiguriere danach seine Weltdaten aus der Liste.",
   "createBaseItemLink": "Basis-Item erstellen",
-  "backToWorldItems": "Zurück zu den Welt-Items",
+  "backToWorldItems": "Zurück zu Weltobjekten",
   "createTextureTitle": "Textur erstellen",
   "createTextureDescription": "Erstelle Bodenkacheln oder Wandtexturen zum Verkauf im Shop.",
   "createTextureError": "Fehler beim Erstellen der Textur: ",
@@ -503,5 +503,6 @@
   "behaviorReverseHint": "Spielt die Frames vom letzten zum ersten ab",
   "behaviorDuplicateReversed": "Rückwärts duplizieren (gleiche Frames)",
   "lightLinkTitle": "Licht des Objekts",
-  "lightLinkHint": "Lege fest, ob es leuchtet, seine Farbe (warm, kalt…), Form (Kreis oder Kegel) und Ursprung."
+  "lightLinkHint": "Lege fest, ob es leuchtet, seine Farbe (warm, kalt…), Form (Kreis oder Kegel) und Ursprung.",
+  "worldItemNotFoundHint": "Dieses Weltobjekt existiert nicht oder der Link nutzt eine falsche ID. Öffne es über die Liste."
 }

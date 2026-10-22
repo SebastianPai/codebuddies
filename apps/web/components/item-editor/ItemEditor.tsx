@@ -1215,9 +1215,9 @@ export default function ItemEditor({
       </section>
 
       {/* Luz del objeto: vive en el editor avanzado de Objetos del Mundo. */}
-      {mode === "admin" && category === "world" && (initial?.id || initial?.itemId) && (
+      {mode === "admin" && category === "world" && (initial?.itemId || initial?.id) && (
         <a
-          href={`/admin/world-items/${initial?.id ?? initial?.itemId}`}
+          href={`/admin/world-items/${initial?.itemId ?? initial?.id}`}
           className="flex items-center justify-between rounded-2xl border border-yellow-400/30 bg-yellow-400/5 p-4 text-sm text-yellow-200 hover:border-yellow-400"
         >
           <span>
