@@ -522,42 +522,21 @@ export default class RoomItemsManager {
     this.items.forEach((worldObject) => {
       const light = this.lightOf(worldObject);
       if (!light) return;
-      lights.push({ x: light.x, y: light.y, radius: light.radius, cone: light.cone });
+      lights.push({ x: light.x, y: light.y, radius: light.radius, color: light.color, cone: light.cone });
     });
     return lights;
   }
 
-  // Refleja worldObject.state visualmente: si el objeto ilumina (ver
-  // lightOf) tiene un brillo de color detrás (PointLight, sin asset), que es
-  // lo que se ve a través del agujero de la oscuridad.
+  // Refleja worldObject.state visualmente. La luz ya no se dibuja acá: la
+  // dibuja AmbientLightOverlay a partir de getLightSources() (agujero en la
+  // oscuridad + brillo suave del color). Antes había un PointLight casi
+  // blanco y fuerte que quemaba el centro en un blob blanco; si quedó uno
+  // de una versión anterior, se elimina.
   applyItemState(id: string) {
     const worldObject = this.items.get(id);
     if (!worldObject) return;
 
-    const light = this.lightOf(worldObject);
-    // El brillo de color va donde está la luz: en un cono, a mitad de camino
-    // hacia donde apunta (es lo que se ve por el agujero de la oscuridad).
-    const coneRad = light?.cone ? (light.cone.direction * Math.PI) / 180 : 0;
-    const glowX = light ? light.x + (light.cone ? Math.cos(coneRad) * light.radius * 0.45 : 0) : 0;
-    const glowY = light ? light.y + (light.cone ? Math.sin(coneRad) * light.radius * 0.45 : 0) : 0;
-
-    if (light) {
-      if (!worldObject.glowLight) {
-        worldObject.glowLight = this.scene.add.pointlight(
-          glowX,
-          glowY,
-          light.color,
-          light.radius,
-          0.9,
-          0.05,
-        );
-      } else {
-        worldObject.glowLight.setPosition(glowX, glowY);
-        worldObject.glowLight.color.setFromRGB(Phaser.Display.Color.IntegerToRGB(light.color));
-        worldObject.glowLight.radius = light.radius;
-      }
-      worldObject.glowLight.setDepth(worldObject.sprite.depth - 1);
-    } else if (worldObject.glowLight) {
+    if (worldObject.glowLight) {
       worldObject.glowLight.destroy();
       worldObject.glowLight = null;
     }
