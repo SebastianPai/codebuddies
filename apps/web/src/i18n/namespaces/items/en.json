@@ -77,7 +77,7 @@
   "lightTemperatureWarm": "Warmer (candle)",
   "lightTemperatureCold": "Colder (moon)",
   "lightShapeTitle": "Light shape",
-  "lightShapeHint": "Drag the yellow dot to choose where the light starts. As a cone, choose where it points and how wide the slice is.",
+  "lightShapeHint": "Set it for the front face: drag the yellow dot to choose where the light starts. As a cone, choose where it points and how wide it is. When the object is rotated in the room, the light rotates with it.",
   "lightShapeCircle": "Circle",
   "lightShapeCone": "Cone (slice)",
   "lightShapeDirection": "Direction",
@@ -501,5 +501,7 @@
   "behaviorTemplateLoop": "Always looping (plant)",
   "behaviorReverse": "Reversed",
   "behaviorReverseHint": "Plays frames from last to first",
-  "behaviorDuplicateReversed": "Duplicate reversed (same frames)"
+  "behaviorDuplicateReversed": "Duplicate reversed (same frames)",
+  "lightLinkTitle": "Object light",
+  "lightLinkHint": "Set whether it emits light, its color (warm, cold…), its shape (circle or cone) and where it starts."
 }

@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { WorldObject } from "../types/WorldObject";
 import { GHOST_ALPHA, ghostedItemIds, readInteriorView } from "./interiorView";
 import type { LightSource } from "./AmbientLightOverlay";
+import { rotateConeDirection, rotateLightOrigin } from "./lightRotation";
 import {
   getDirectionalFootprint,
   getDirectionalSurface,
@@ -493,11 +494,20 @@ export default class RoomItemsManager {
       | { shape?: string; originX?: number; originY?: number; direction?: number; spread?: number }
       | null
       | undefined;
-    const x = config ? sprite.x + (Number(config.originX) || 0) : sprite.x;
-    const y = config ? sprite.y + (Number(config.originY) || 0) : sprite.y - sprite.displayHeight * 0.5;
+    // La config es para la cara frontal (rotación 0): al girar el objeto,
+    // el origen y el cono giran con él sobre el piso (ver lightRotation.ts).
+    const steps = worldObject.rotation ?? 0;
+    const origin = config
+      ? rotateLightOrigin(Number(config.originX) || 0, Number(config.originY) || 0, steps)
+      : null;
+    const x = origin ? sprite.x + origin.x : sprite.x;
+    const y = origin ? sprite.y + origin.y : sprite.y - sprite.displayHeight * 0.5;
     const cone =
       config?.shape === "CONE"
-        ? { direction: Number(config.direction) || 0, spread: Number(config.spread) || 70 }
+        ? {
+            direction: rotateConeDirection(Number(config.direction) || 0, steps),
+            spread: Number(config.spread) || 70,
+          }
         : undefined;
     return { radius, color, x, y, cone };
   }

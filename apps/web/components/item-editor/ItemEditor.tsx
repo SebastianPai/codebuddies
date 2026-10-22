@@ -1214,6 +1214,20 @@ export default function ItemEditor({
         </LabeledField>
       </section>
 
+      {/* Luz del objeto: vive en el editor avanzado de Objetos del Mundo. */}
+      {mode === "admin" && category === "world" && (initial?.id || initial?.itemId) && (
+        <a
+          href={`/admin/world-items/${initial?.id ?? initial?.itemId}`}
+          className="flex items-center justify-between rounded-2xl border border-yellow-400/30 bg-yellow-400/5 p-4 text-sm text-yellow-200 hover:border-yellow-400"
+        >
+          <span>
+            <strong>{t("items.lightLinkTitle")}</strong>
+            <span className="block text-xs text-zinc-400">{t("items.lightLinkHint")}</span>
+          </span>
+          <span aria-hidden="true">→</span>
+        </a>
+      )}
+
       <section className="grid gap-3 md:grid-cols-3">
         <label className="flex items-center gap-2 rounded-2xl border border-zinc-800 bg-black/50 p-4 text-sm text-zinc-300">
           <input type="checkbox" checked={colorable} onChange={(event) => setColorable(event.target.checked)} />

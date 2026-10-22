@@ -77,7 +77,7 @@
   "lightTemperatureWarm": "Wärmer (Kerze)",
   "lightTemperatureCold": "Kälter (Mond)",
   "lightShapeTitle": "Lichtform",
-  "lightShapeHint": "Ziehe den gelben Punkt, um den Ursprung des Lichts zu wählen. Als Kegel wählst du Richtung und Öffnung.",
+  "lightShapeHint": "Für die Vorderseite einstellen: Ziehe den gelben Punkt für den Ursprung. Als Kegel Richtung und Öffnung wählen. Dreht man das Objekt im Raum, dreht sich das Licht mit.",
   "lightShapeCircle": "Kreis",
   "lightShapeCone": "Kegel (Stück)",
   "lightShapeDirection": "Richtung",
@@ -501,5 +501,7 @@
   "behaviorTemplateLoop": "Immer in Schleife (Pflanze)",
   "behaviorReverse": "Rückwärts",
   "behaviorReverseHint": "Spielt die Frames vom letzten zum ersten ab",
-  "behaviorDuplicateReversed": "Rückwärts duplizieren (gleiche Frames)"
+  "behaviorDuplicateReversed": "Rückwärts duplizieren (gleiche Frames)",
+  "lightLinkTitle": "Licht des Objekts",
+  "lightLinkHint": "Lege fest, ob es leuchtet, seine Farbe (warm, kalt…), Form (Kreis oder Kegel) und Ursprung."
 }

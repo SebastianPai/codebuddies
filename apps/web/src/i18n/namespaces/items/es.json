@@ -77,7 +77,7 @@
   "lightTemperatureWarm": "Más cálida (vela)",
   "lightTemperatureCold": "Más fría (luna)",
   "lightShapeTitle": "Forma de la luz",
-  "lightShapeHint": "Arrastra el punto amarillo para elegir de dónde sale la luz. Como cono, elige hacia dónde apunta y qué tan abierta es la porción.",
+  "lightShapeHint": "Configura la cara frontal: arrastra el punto amarillo para elegir de dónde sale la luz. Como cono, elige hacia dónde apunta y qué tan abierta es. Al rotar el objeto en la sala, la luz gira con él.",
   "lightShapeCircle": "Círculo",
   "lightShapeCone": "Cono (porción)",
   "lightShapeDirection": "Dirección",
@@ -501,5 +501,7 @@
   "behaviorTemplateLoop": "Bucle siempre (planta)",
   "behaviorReverse": "Al revés",
   "behaviorReverseHint": "Reproduce los frames del último al primero",
-  "behaviorDuplicateReversed": "Duplicar al revés (mismos frames)"
+  "behaviorDuplicateReversed": "Duplicar al revés (mismos frames)",
+  "lightLinkTitle": "Luz del objeto",
+  "lightLinkHint": "Configura si emite luz, su color (cálida, fría…), su forma (círculo o cono) y de dónde sale."
 }
