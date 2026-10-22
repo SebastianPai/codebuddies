@@ -22,11 +22,11 @@ desfasado de la base de datos.
 
 ### Ramas peligrosas (NO desplegar ni fusionar tal cual)
 
-Estado al 2026-10-21: `codebuddies-web` corre `4d719f1` y `codebuddies-api` /
-`codebuddies-game` corren `e4380bc` (`4d719f1` solo tocó la web). Todo es la
+Estado al 2026-10-21: `codebuddies-web` y `codebuddies-game` corren `93de906` y
+`codebuddies-api` corre `e4380bc` (lo posterior no tocó la API). Todo es la
 rama `feat/premium-colors-parallax` (`feat/codestudio-v2` + íconos + colores
 premium + parallax). Es la rama base para todo trabajo nuevo. Lo que sigue en
-la tabla vale para cualquier rama que NO contenga `4d719f1`:
+la tabla vale para cualquier rama que NO contenga `93de906`:
 
 | Rama | Por qué es peligrosa |
 |---|---|
