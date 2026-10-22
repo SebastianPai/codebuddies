@@ -9,8 +9,34 @@ import LightShapeEditor from "../../../../components/item-editor/LightShapeEdito
 // Mismos defaults que el juego (LightingOverlay) cuando el objeto no los trae.
 const DEFAULT_LIGHT_RADIUS = 140;
 const DEFAULT_LIGHT_COLOR = "#ffe6b0";
-// Cálida, vela, fría, neón y verde: atajos para no buscar el hex a mano.
-const LIGHT_PRESETS = ["#ffe6b0", "#ffb347", "#cfe8ff", "#ff6ec7", "#9dff9d"];
+// Luces con nombre: atajos para no buscar el hex a mano. `key` es la
+// traducción (items.lightPreset<Key>).
+const LIGHT_PRESETS = [
+  { key: "Candle", color: "#ff9a3c" },
+  { key: "Warm", color: "#ffd59a" },
+  { key: "Neutral", color: "#fff4e0" },
+  { key: "Cold", color: "#d6e8ff" },
+  { key: "Moon", color: "#a9c4ff" },
+  { key: "Fire", color: "#ff5a1f" },
+  { key: "NeonPink", color: "#ff6ec7" },
+  { key: "NeonBlue", color: "#3fd2ff" },
+  { key: "Green", color: "#8dff8a" },
+  { key: "Purple", color: "#b98cff" },
+] as const;
+
+/**
+ * Color de una bombilla según su temperatura en Kelvin (1500K vela .. 10000K
+ * cielo), con la aproximación de Tanner Helland. Igual que en una bombilla
+ * real: número bajo = cálida/naranja, número alto = fría/azulada.
+ */
+function kelvinToHex(kelvin: number): string {
+  const t = kelvin / 100;
+  const clamp = (v: number) => Math.max(0, Math.min(255, Math.round(v)));
+  const r = t <= 66 ? 255 : clamp(329.698727446 * Math.pow(t - 60, -0.1332047592));
+  const g = t <= 66 ? clamp(99.4708025861 * Math.log(t) - 161.1195681661) : clamp(288.1221695283 * Math.pow(t - 60, -0.0755148492));
+  const b = t >= 66 ? 255 : t <= 19 ? 0 : clamp(138.5177312231 * Math.log(t - 10) - 305.0447927307);
+  return "#" + [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("");
+}
 
 export default function WorldItemDetailsPage() {
   const t = useTranslation();
@@ -323,17 +349,47 @@ export default function WorldItemDetailsPage() {
                         onChange={(e) => setWorldItem({ ...worldItem, lightColor: e.target.value })}
                         className="h-8 w-12 cursor-pointer rounded border border-zinc-700 bg-transparent"
                       />
-                      {LIGHT_PRESETS.map((preset) => (
-                        <button
-                          key={preset}
-                          type="button"
-                          title={preset}
-                          onClick={() => setWorldItem({ ...worldItem, lightColor: preset })}
-                          className="h-6 w-6 rounded-full border border-zinc-700"
-                          style={{ background: preset }}
-                        />
-                      ))}
                     </div>
+                  </label>
+                </div>
+
+                {/* Luces con nombre + temperatura como en una bombilla real. */}
+                <div className="mt-3 space-y-3">
+                  <div className="flex flex-wrap gap-2">
+                    {LIGHT_PRESETS.map((preset) => {
+                      const active = (worldItem.lightColor || DEFAULT_LIGHT_COLOR).toLowerCase() === preset.color;
+                      return (
+                        <button
+                          key={preset.key}
+                          type="button"
+                          onClick={() => setWorldItem({ ...worldItem, lightColor: preset.color })}
+                          aria-pressed={active}
+                          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold ${
+                            active ? "border-yellow-400 bg-yellow-400/10 text-yellow-300" : "border-zinc-700 text-zinc-300 hover:border-zinc-500"
+                          }`}
+                        >
+                          <span className="h-3 w-3 rounded-full" style={{ background: preset.color, boxShadow: `0 0 8px ${preset.color}` }} />
+                          {t(`items.lightPreset${preset.key}`)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <label className="block text-sm">
+                    {t("items.lightTemperature")}
+                    <input
+                      type="range"
+                      min={1500}
+                      max={10000}
+                      step={100}
+                      defaultValue={3000}
+                      onChange={(e) => setWorldItem({ ...worldItem, lightColor: kelvinToHex(Number(e.target.value)) })}
+                      className="mt-1 w-full"
+                      style={{ accentColor: worldItem.lightColor || DEFAULT_LIGHT_COLOR, background: "linear-gradient(to right, #ff8a1f, #ffd59a, #fff4e0, #d6e8ff, #9bbcff)", borderRadius: 999, height: 6 }}
+                    />
+                    <span className="mt-1 flex justify-between text-[11px] text-zinc-500">
+                      <span>{t("items.lightTemperatureWarm")}</span>
+                      <span>{t("items.lightTemperatureCold")}</span>
+                    </span>
                   </label>
                 </div>
                 <div className="mt-3">
