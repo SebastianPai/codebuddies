@@ -69,6 +69,7 @@ export class RoomItemsHandler {
         data.wallSide,
         data.wallOffset,
         data.color ?? null,
+        data.elevation,
       );
 
       // Notificar a todos en la sala

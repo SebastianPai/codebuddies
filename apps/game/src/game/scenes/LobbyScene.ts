@@ -13,7 +13,9 @@ import ButlerSystem from "../systems/ButlerSystem";
 import BuildCommandStack from "../systems/BuildCommandStack";
 import AmbientLightOverlay from "../systems/AmbientLightOverlay";
 import RoomItemsManager from "../systems/RoomItemsManager";
-import PlacementValidator from "../systems/PlacementValidator";
+import PlacementValidator, {
+  type SideAttachTarget,
+} from "../systems/PlacementValidator";
 import { LobbySceneType } from "../types/LobbySceneType";
 import FurnitureSocketSystem from "../systems/FurnitureSocketSystem";
 import FurniturePlacementSystem from "../systems/FurniturePlacementSystem";
@@ -1798,8 +1800,9 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
   }
 
   update() {
-    this.buildSystem?.update(this.input.activePointer);
-    this.updateBuildPreviewTint(this.input.activePointer);
+    const sideAttach = this.resolveSideAttach(this.input.activePointer);
+    this.buildSystem?.update(this.input.activePointer, sideAttach);
+    this.updateBuildPreviewTint(this.input.activePointer, sideAttach);
     // Animaciones de world objects. Recibe el reloj de PARED, no el delta: el
     // frame se deriva del `at` que mandó el servidor, así que todos los
     // clientes ven el mismo frame aunque sus bucles vayan desfasados.
@@ -2021,11 +2024,44 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     this.hud?.update();
   }
 
-  private updateBuildPreviewTint(pointer: Phaser.Input.Pointer) {
+  // Casilla flotante al costado de otro bloque bajo el cursor (ver
+  // PlacementValidator.findSideAttach). Shift la ignora y coloca en el suelo
+  // como siempre; al mover un mueble ya colocado no aplica (room:item:move
+  // no cambia la altura).
+  resolveSideAttach(pointer: Phaser.Input.Pointer): SideAttachTarget | null {
+    const item = this.buildSystem?.getCurrentItem();
+    if (!item || !this.isoGrid || !this.placementValidator) return null;
+    if (this.movingRoomItem) return null;
+    if ((pointer.event as MouseEvent | undefined)?.shiftKey) return null;
+
+    const world = this.isoGrid.pointerToWorld(this.cameras.main, pointer);
+    return this.placementValidator.findSideAttach(
+      world.x,
+      world.y,
+      item,
+      this.buildSystem.getRotation(),
+    );
+  }
+
+  private updateBuildPreviewTint(
+    pointer: Phaser.Input.Pointer,
+    sideAttach: SideAttachTarget | null,
+  ) {
     const item = this.buildSystem?.getCurrentItem();
     const preview = this.buildSystem?.getPreview();
 
     if (!item || !preview || !this.isoGrid || !this.placementValidator) {
+      return;
+    }
+
+    if (sideAttach) {
+      this.buildSystem.drawFootprint(
+        [{ x: sideAttach.x, y: sideAttach.y }],
+        true,
+        "stack",
+        sideAttach.elevation,
+      );
+      preview.setTint(0x44aaff);
       return;
     }
 

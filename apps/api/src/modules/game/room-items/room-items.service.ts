@@ -31,6 +31,10 @@ import {
   lockedStatesForPairs,
 } from '../../item-upgrades/item-upgrades.util';
 
+// Tope de altura de un bloque pegado al costado de otro. Igual que
+// DEFAULT_MAX_STACK_HEIGHT del juego (PlacementValidator.ts).
+const SIDE_ATTACH_MAX_ELEVATION = 5;
+
 @Injectable()
 export class RoomItemsService {
   constructor(
@@ -265,6 +269,10 @@ export class RoomItemsService {
     wallOffset?: number,
     // Color elegido antes de colocar (solo items colorable). null = original.
     color: number | null = null,
+    // Altura para pegar un bloque al costado de otro, flotando. Solo se
+    // acepta si la casilla está libre y un vecino directo es un bloque a
+    // exactamente esa altura (validado abajo, dentro de la transacción).
+    sideElevation?: number,
   ) {
     const permissions = await this.getEffectivePermissions(userId, roomId);
 
@@ -273,6 +281,19 @@ export class RoomItemsService {
     }
 
     await this.assertColorAllowed(userId, color);
+
+    const floating = !wallSide && !!sideElevation && sideElevation > 0;
+
+    if (floating) {
+      // El bloque flotante no puede salirse del mapa: la sala no se expande.
+      const grid = await this.getRoomGridSize(roomId);
+      if (x < 0 || y < 0 || x >= grid.width || y >= grid.height) {
+        throw new BadRequestException('Posición fuera de los límites de la sala');
+      }
+      if (sideElevation > SIDE_ATTACH_MAX_ELEVATION) {
+        throw new BadRequestException('Demasiado alto');
+      }
+    }
 
     return this.prisma.$transaction(async (tx) => {
       await this.lockRoomForWrite(tx, roomId);
@@ -326,7 +347,44 @@ export class RoomItemsService {
       let elevation = 0;
       let parentRoomItemId: string | undefined;
 
-      if (!wallSide && occupyingItems.length > 0) {
+      if (floating) {
+        if (
+          occupyingItems.length > 0 ||
+          !item.worldData.canBeStacked ||
+          footprint.width !== 1 ||
+          footprint.height !== 1
+        ) {
+          throw new BadRequestException('No puedes colocar ese objeto ahí');
+        }
+
+        const neighbors = await tx.roomItem.findMany({
+          where: {
+            roomId,
+            wallSide: null,
+            elevation: sideElevation,
+            OR: [
+              { x: x + 1, y },
+              { x: x - 1, y },
+              { x, y: y + 1 },
+              { x, y: y - 1 },
+            ],
+          },
+          include: { item: { include: { worldData: true } } },
+        });
+
+        const touchesBlock = neighbors.some(
+          (neighbor) =>
+            !this.isSurfaceRoomItem(neighbor) &&
+            (neighbor.item.worldData?.canBeStacked ||
+              neighbor.item.worldData?.allowsStacking),
+        );
+
+        if (!touchesBlock) {
+          throw new BadRequestException('No hay un bloque al lado a esa altura');
+        }
+
+        elevation = sideElevation;
+      } else if (!wallSide && occupyingItems.length > 0) {
         const stackTarget = occupyingItems
           .filter((roomItem) => roomItem.item.worldData?.allowsStacking)
           .sort((a, b) => b.elevation - a.elevation)[0];

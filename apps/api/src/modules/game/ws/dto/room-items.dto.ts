@@ -40,6 +40,14 @@ export class PlaceItemDto {
   @IsOptional()
   @IsInt()
   color?: number | null;
+
+  // Altura pedida para pegar un bloque al costado de otro, flotando (ver
+  // RoomItemsService.placeItem). Sin esto se coloca en el suelo o apilado.
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  elevation?: number;
 }
 
 export class MoveItemDto {

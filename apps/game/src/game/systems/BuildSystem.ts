@@ -15,6 +15,7 @@ import {
 } from "../utils/spriteFrames";
 import { BUILD_PREVIEW_DEPTH, WORLD_OVERLAY_DEPTH } from "../utils/depth";
 import { emitPlacementProgress } from "./buildPlacementEvents";
+import type { SideAttachTarget } from "./PlacementValidator";
 
 export default class BuildSystem {
   private scene: LobbySceneType;
@@ -127,17 +128,19 @@ export default class BuildSystem {
     return toWorldTiles(tileX, tileY, footprint);
   }
 
-  update(pointer: Phaser.Input.Pointer) {
+  // sideAttach: casilla flotante al costado de otro bloque (ver
+  // PlacementValidator.findSideAttach); si viene, manda sobre el cursor.
+  update(pointer: Phaser.Input.Pointer, sideAttach?: SideAttachTarget | null) {
     const grid = this.scene.isoGrid;
     if (!this.preview || !grid) return;
 
-    const tile = grid.pointerToTile(this.scene.cameras.main, pointer);
+    const tile = sideAttach ?? grid.pointerToTile(this.scene.cameras.main, pointer);
     if (!tile) return;
 
     const roomItems = (this.scene as any).roomItems;
-    const highest = roomItems?.getHighestItemAt(tile.x, tile.y);
+    const highest = sideAttach ? null : roomItems?.getHighestItemAt(tile.x, tile.y);
 
-    let elevation = 0;
+    let elevation = sideAttach?.elevation ?? 0;
 
     if (highest) {
       const stackHeight = highest.item?.worldData?.stackHeight ?? 1;
@@ -242,6 +245,8 @@ export default class BuildSystem {
     tiles: IsoTile[],
     valid: boolean,
     support: "ground" | "stack" = "ground",
+    // Rombo levantado a esta altura (bloque pegado al costado de otro).
+    elevation = 0,
   ) {
     const grid = this.scene.isoGrid;
     if (!this.footprintGraphics || !grid) return;
@@ -257,8 +262,9 @@ export default class BuildSystem {
       const diamond = grid.groundDiamond(tile.x, tile.y);
       if (!diamond) continue;
 
+      const lift = elevation * grid.elevationStep;
       this.footprintGraphics.fillPoints(
-        diamond.map((p) => new Phaser.Geom.Point(p.x, p.y)),
+        diamond.map((p) => new Phaser.Geom.Point(p.x, p.y - lift)),
         true,
       );
     }

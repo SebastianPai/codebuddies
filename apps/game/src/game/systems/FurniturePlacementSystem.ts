@@ -51,7 +51,11 @@ export default class FurniturePlacementSystem {
     const grid = this.scene.isoGrid;
     if (!grid) return;
 
-    const tile = grid.pointerToTile(this.scene.cameras.main, pointer);
+    // Mismo criterio que el ghost (LobbyScene.update): si el cursor apunta
+    // al costado de otro bloque, se pega ahí flotando a su altura.
+    const sideAttach = (this.scene as any).resolveSideAttach?.(pointer) ?? null;
+
+    const tile = sideAttach ?? grid.pointerToTile(this.scene.cameras.main, pointer);
 
     if (!tile) return;
 
@@ -82,6 +86,7 @@ export default class FurniturePlacementSystem {
       x: tx,
       y: ty,
       rotation: this.buildSystem.getRotation(),
+      ...(sideAttach && { elevation: sideAttach.elevation }),
       ...(item.colorable && getPlacementColor() !== null && { color: getPlacementColor() }),
       ...(placementType === "WALL" && {
         wallSide: this.inferWallSide(tx, ty),
