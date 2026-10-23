@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { sileo } from "sileo";
-import { Award, BookOpen, CalendarDays, CircleHelp, Plus, Rocket, Wallet } from "lucide-react";
+import { Award, BookOpen, CalendarDays, CircleHelp, Clapperboard, Plus, Rocket, Wallet } from "lucide-react";
 import {
   cancelCodeStudioDevelopment,
   chooseCodeStudioDecision,
@@ -41,12 +41,14 @@ import DecisionModal from "./DecisionModal";
 import Tour, { TOUR_STEPS, tourSeen } from "./Tour";
 import GuideView from "./GuideView";
 import OfficeView from "./OfficeView";
+import StageUpOverlay, { type StageUp } from "./StageUpOverlay";
 import { useTranslation } from "../../../i18n/useTranslation";
 import { useLanguage } from "../../../i18n/LanguageContext";
 import { celebrate } from "../Rewards/celebrate";
 
 const POLL_MS = 10_000;
 const SELECTED_KEY = "cs-selected-company";
+const VIDEO_MODE_KEY = "cs-video-mode";
 // Eventos que merecen un toast al aparecer (el resto solo va al feed).
 const TOAST_KINDS = new Set(["milestone", "stage", "level-up", "bug", "market", "release", "failure"]);
 
@@ -55,6 +57,22 @@ function readSelected() {
     return window.localStorage.getItem(SELECTED_KEY) ?? "";
   } catch {
     return "";
+  }
+}
+
+function readVideoMode() {
+  try {
+    return window.localStorage.getItem(VIDEO_MODE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function saveVideoMode(on: boolean) {
+  try {
+    window.localStorage.setItem(VIDEO_MODE_KEY, on ? "1" : "0");
+  } catch {
+    // Sin storage: el modo dura hasta cerrar CodeStudio.
   }
 }
 
@@ -79,6 +97,19 @@ export default function CodeStudio({ initialView }: { initialView?: string }) {
   const [showDecision, setShowDecision] = useState(false);
   // Paso del tutorial abierto (null = cerrado).
   const [tourStep, setTourStep] = useState<number | null>(null);
+  // Modo video: oculta tutorial, ayudas y textos chicos para grabar limpio.
+  const [videoMode, setVideoMode] = useState(false);
+  useEffect(() => setVideoMode(readVideoMode()), []);
+  const toggleVideoMode = () => {
+    const next = !videoMode;
+    setVideoMode(next);
+    saveVideoMode(next);
+    if (next) setTourStep(null);
+  };
+  // Subida de etapa a pantalla completa (ver StageUpOverlay).
+  const [stageUp, setStageUp] = useState<StageUp | null>(null);
+  const closeStageUp = useCallback(() => setStageUp(null), []);
+  const stageRef = useRef<Map<string, CompanyView["stage"]>>(new Map());
   const seenEventsRef = useRef<Map<string, Set<string>>>(new Map());
   const pollingRef = useRef(false);
 
@@ -94,6 +125,16 @@ export default function CodeStudio({ initialView }: { initialView?: string }) {
   const applyCompany = useCallback(
     (next: CompanyView) => {
       toastNewEvents(next);
+      const before = stageRef.current.get(next.id);
+      stageRef.current.set(next.id, next.stage);
+      if (before && next.stage.index > before.index) {
+        setStageUp({
+          index: next.stage.index,
+          name: next.stage.name,
+          tagline: next.stage.tagline,
+          reward: before.next?.reward ?? null,
+        });
+      }
       setCompany(next);
       setStudio((current) =>
         current
@@ -168,7 +209,7 @@ export default function CodeStudio({ initialView }: { initialView?: string }) {
   // El tutorial sale solo la primera vez que hay una empresa activa.
   const hasActiveCompany = !!company && company.status !== "FAILED";
   useEffect(() => {
-    if (!hasActiveCompany || tourSeen()) return;
+    if (!hasActiveCompany || tourSeen() || readVideoMode()) return;
     setTourStep(0);
     setView(TOUR_STEPS[0]);
   }, [hasActiveCompany]);
@@ -261,7 +302,7 @@ export default function CodeStudio({ initialView }: { initialView?: string }) {
   const failedAllowed: ViewKey[] = ["guide", "career", "ranking", "settings"];
 
   return (
-    <div className="cs2-shell">
+    <div className={`cs2-shell ${videoMode ? "cs2-video" : ""}`.trim()}>
       <header className="cs2-header">
         <div className="cs2-brand">
           <span>CS</span>
@@ -299,7 +340,20 @@ export default function CodeStudio({ initialView }: { initialView?: string }) {
           </div>
         )}
 
-        {company && !failed && (
+        {company && (
+          <button
+            type="button"
+            className={`cs2-icon-btn ${videoMode ? "active" : ""}`.trim()}
+            onClick={toggleVideoMode}
+            aria-pressed={videoMode}
+            aria-label={t("codestudio.header.videoMode")}
+            title={t("codestudio.header.videoMode")}
+          >
+            <Clapperboard size={16} />
+          </button>
+        )}
+
+        {company && !failed && !videoMode && (
           <button
             type="button"
             className="cs2-icon-btn"
@@ -424,7 +478,9 @@ export default function CodeStudio({ initialView }: { initialView?: string }) {
         )}
       </main>
 
-      {tourStep !== null && company && !failed && <Tour step={tourStep} onStep={goTourStep} onClose={() => setTourStep(null)} blocked={officeBlocking}
+      {stageUp && <StageUpOverlay stage={stageUp} onClose={closeStageUp} />}
+
+      {tourStep !== null && company && !failed && !videoMode && <Tour step={tourStep} onStep={goTourStep} onClose={() => setTourStep(null)} blocked={officeBlocking}
           action={freeLayout ? { label: t("codestudio.tour.createOffice"), run: () => void createFreeOffice(), busy: creatingOffice } : undefined}
         />}
 

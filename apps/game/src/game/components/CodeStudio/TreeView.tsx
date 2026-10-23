@@ -1,7 +1,23 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { CheckCircle2, Clock, Hammer, Lock, Sparkles, TrendingDown, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  BadgeCheck,
+  Bot,
+  Boxes,
+  CheckCircle2,
+  Clock,
+  Coins,
+  Hammer,
+  Lock,
+  Server,
+  ShieldCheck,
+  Sparkles,
+  TrendingDown,
+  TrendingUp,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import Modal from "../shared/Modal";
 import type { Catalog, CatalogFeature, CompanyView } from "./types";
 import { ProgressBar, Stars, duration, effectLines, money } from "./ui";
@@ -17,6 +33,20 @@ type Props = {
 
 const MAX_QUEUE = 6;
 
+// Ícono y color de cada rama: el árbol se reconoce de un vistazo (y en un
+// video) sin leer los títulos.
+const BRANCH_LOOK: Record<string, { icon: LucideIcon; color: string }> = {
+  producto: { icon: Boxes, color: "#0a84ff" },
+  monetizacion: { icon: Coins, color: "#facc15" },
+  crecimiento: { icon: TrendingUp, color: "#30d158" },
+  calidad: { icon: BadgeCheck, color: "#64d2ff" },
+  escala: { icon: Server, color: "#ff9f0a" },
+  seguridad: { icon: ShieldCheck, color: "#ff453a" },
+  ia: { icon: Bot, color: "#bf5af2" },
+};
+const DEFAULT_LOOK = { icon: Boxes, color: "#a1a1a6" };
+const JUST_BUILT_MS = 2600;
+
 export default function TreeView({ company, catalog, busy, onBuild, onCancel }: Props) {
   const t = useTranslation();
   const [selected, setSelected] = useState<CatalogFeature | null>(null);
@@ -24,6 +54,22 @@ export default function TreeView({ company, catalog, busy, onBuild, onCancel }: 
   const featureBySlug = useMemo(() => new Map(catalog.features.map((feature) => [feature.slug, feature])), [catalog.features]);
   const installedCount = company.tree.filter((node) => node.state === "installed").length;
   const m = company.metrics;
+
+  // Features que se terminaron de construir desde el último poll: brillan
+  // un momento con "¡Listo!".
+  const installedRef = useRef<Set<string> | null>(null);
+  const [justBuilt, setJustBuilt] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    const now = new Set(company.tree.filter((node) => node.state === "installed").map((node) => node.slug));
+    const before = installedRef.current;
+    installedRef.current = now;
+    if (!before) return;
+    const fresh = [...now].filter((slug) => !before.has(slug));
+    if (fresh.length === 0) return;
+    setJustBuilt(new Set(fresh));
+    const timer = setTimeout(() => setJustBuilt(new Set()), JUST_BUILT_MS);
+    return () => clearTimeout(timer);
+  }, [company.tree]);
 
   const branches = catalog.branches.map((branch) => ({
     ...branch,
@@ -96,9 +142,14 @@ export default function TreeView({ company, catalog, busy, onBuild, onCancel }: 
       </section>
 
       <div className="cs2-tree" role="list">
-        {branches.map((branch) => (
-          <section key={branch.key} className="cs2-branch" role="listitem">
+        {branches.map((branch) => {
+          const look = BRANCH_LOOK[branch.key] ?? DEFAULT_LOOK;
+          return (
+          <section key={branch.key} className="cs2-branch" role="listitem" style={{ ["--branch" as string]: look.color }}>
             <header>
+              <i className="cs2-branch-icon" aria-hidden="true">
+                <look.icon size={18} />
+              </i>
               <b>{branch.name}</b>
               <small>{branch.description}</small>
             </header>
@@ -110,7 +161,13 @@ export default function TreeView({ company, catalog, busy, onBuild, onCancel }: 
                 const fit = node?.fit ?? 1;
                 const crossRequires = feature.requires.filter((slug) => featureBySlug.get(slug)?.branch !== feature.branch);
                 return (
-                  <button key={feature.slug} type="button" className={`cs2-node ${state}`} onClick={() => setSelected(feature)}>
+                  <button
+                    key={feature.slug}
+                    type="button"
+                    className={`cs2-node ${state} ${justBuilt.has(feature.slug) ? "just-built" : ""}`.trim()}
+                    onClick={() => setSelected(feature)}
+                  >
+                    {justBuilt.has(feature.slug) && <em className="cs2-node-done">{t("codestudio.tree.justBuilt")}</em>}
                     <div className="cs2-node-head">
                       {state === "installed" && <CheckCircle2 size={14} />}
                       {(state === "developing" || state === "queued") && <Hammer size={14} />}
@@ -142,7 +199,8 @@ export default function TreeView({ company, catalog, busy, onBuild, onCancel }: 
               })}
             </div>
           </section>
-        ))}
+          );
+        })}
       </div>
 
       {company.legacyFeatures.length > 0 && (

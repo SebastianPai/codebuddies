@@ -33,7 +33,8 @@
     "level": "Level {level}",
     "levelHint": "Dein Kontolevel: dasselbe wie auf der Plattform. Steig durch Lernen und Spielen auf und schalte App-Typen und mehr Startkapital frei.",
     "navigation": "CodeStudio-Bereiche",
-    "tutorial": "Tutorial ansehen"
+    "tutorial": "Tutorial ansehen",
+    "videoMode": "Videomodus: blendet Hilfen und Tutorial zum Aufnehmen aus"
   },
   "welcome": {
     "title": "Bau dein Startup von null auf",
@@ -135,7 +136,8 @@
     "upgrading": "Wird auf die nächste Version verbessert...",
     "upgradeHint": "v{version} leistet mehr: mehr Wirkung auf Nutzer, Zufriedenheit oder Umsatz. Kommt in die Entwicklungs-Warteschlange.",
     "upgrade": "Auf v{version} verbessern ({amount})",
-    "maxVersion": "Schon in der besten Version."
+    "maxVersion": "Schon in der besten Version.",
+    "justBuilt": "Fertig!"
   },
   "effects": {
     "growth": "+{value} neue Nutzer pro Tag",
@@ -743,5 +745,8 @@
       "step3": "Halte das Rating hoch: Investoren schauen darauf.",
       "go": "Zu Marketing"
     }
+  },
+  "stageUp": {
+    "title": "Neue Stufe!"
   }
 }

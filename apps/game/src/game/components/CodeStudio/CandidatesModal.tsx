@@ -54,9 +54,18 @@ export default function CandidatesModal({ companyId, role, cash, busy, onHire, o
             {data.candidates.map((candidate) => {
               const { impact } = candidate;
               const fitTone = impact.fit >= 70 ? "good" : impact.fit >= 45 ? "warn" : "bad";
+              // Solo la razón principal a favor y la principal en contra: el
+              // resto era un párrafo que nadie leía (y en video no se ve).
+              const reasons = [
+                impact.reasons.find((reason) => reason.tone === "good"),
+                impact.reasons.find((reason) => reason.tone === "bad"),
+              ].filter((reason): reason is (typeof impact.reasons)[number] => !!reason);
               return (
                 <article key={candidate.index} className={`cs2-card cs2-candidate cs2-candidate-${candidate.trait.tone}`}>
                   <header>
+                    <i className="cs2-candidate-avatar" aria-hidden="true">
+                      {candidate.name.trim().charAt(0).toUpperCase()}
+                    </i>
                     <div>
                       <b>{candidate.name}</b>
                       <small className="cs2-muted">{t("codestudio.candidates.age", { age: candidate.age })}</small>
@@ -102,7 +111,7 @@ export default function CandidatesModal({ companyId, role, cash, busy, onHire, o
                   </dl>
 
                   <ul className="cs2-candidate-reasons">
-                    {impact.reasons.map((reason) => (
+                    {reasons.map((reason) => (
                       <li key={reason.text} className={`cs2-tone-${reason.tone}`}>
                         {reason.tone === "good" ? <ThumbsUp size={12} /> : <ThumbsDown size={12} />}
                         <span>{reason.text}</span>

@@ -4193,3 +4193,294 @@ div.cs2-modal.cs2-candidates-modal {
     animation: none;
   }
 }
+
+/* ─── Modo video (botón claqueta de la cabecera) ─────────────────────────
+   Para grabar limpio: fuera tutorial, ayudas, misiones y textos chicos; lo
+   que queda (portada, números, árbol) se ve más grande. */
+.cs2-icon-btn.active {
+  color: #1b1400;
+  background: var(--px-yellow);
+  border-color: transparent;
+}
+
+.cs2-video .cs2-tour,
+.cs2-video .cs2-goal-how,
+.cs2-video .cs2-goal-guide,
+.cs2-video .cs2-firststeps,
+.cs2-video .cs2-daily,
+.cs2-video .cs2-ceiling,
+.cs2-video .cs2-away,
+.cs2-video .cs2-stage p,
+.cs2-video .cs2-stat small,
+.cs2-video .cs2-feed p,
+.cs2-video .cs2-branch header small,
+.cs2-video .cs2-node .cs2-lock,
+.cs2-video .cs2-node .cs2-requires,
+.cs2-video .cs2-candidates-modal .cs2-muted {
+  display: none !important;
+}
+
+.cs2-video .cs2-nav button.tour-target {
+  outline: none;
+  box-shadow: none;
+}
+
+.cs2-video .cs2-hero h2 {
+  font-size: 36px;
+}
+
+.cs2-video .cs2-hero-num b {
+  font-size: 36px;
+}
+
+/* ─── Árbol: ícono y color por rama, destello al terminar ──────────────── */
+.cs2-branch header {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: 10px;
+  border-top: 3px solid var(--branch, var(--px-cyan));
+}
+
+.cs2-branch header small {
+  grid-column: 1 / -1;
+}
+
+.cs2-branch header b {
+  font-size: 14px;
+  color: var(--branch, var(--px-cyan));
+}
+
+.cs2-branch-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  color: #fff;
+  background: linear-gradient(145deg, var(--branch), color-mix(in srgb, var(--branch) 55%, #000));
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--branch) 40%, transparent);
+}
+
+.cs2-node.installed {
+  border-color: color-mix(in srgb, var(--branch, var(--px-good)) 45%, transparent);
+}
+
+.cs2-node.just-built {
+  animation: cs2-node-built 2.6s var(--ease);
+}
+
+@keyframes cs2-node-built {
+  0% {
+    transform: scale(0.96);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--branch, var(--px-good)) 80%, transparent);
+  }
+  20% {
+    transform: scale(1.04);
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--branch, var(--px-good)) 45%, transparent), 0 0 30px var(--branch, var(--px-good));
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: var(--shadow-sm);
+  }
+}
+
+.cs2-node-done {
+  position: absolute;
+  top: -10px;
+  right: 8px;
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  font-style: normal;
+  font-size: 11.5px;
+  font-weight: 900;
+  color: #062b14;
+  background: var(--px-good);
+  animation: cs2-hero-pop 2.6s ease-out forwards;
+  pointer-events: none;
+}
+
+/* ─── Candidatos: avatar, compatibilidad grande y menos texto ──────────── */
+.cs2-candidate header > div {
+  flex: 1;
+}
+
+.cs2-candidate-avatar {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  font-style: normal;
+  font-family: var(--px-title);
+  font-size: 19px;
+  font-weight: 900;
+  color: #fff;
+  background: linear-gradient(145deg, var(--px-blue), var(--px-purple));
+}
+
+.cs2-candidate-fit b {
+  font-family: var(--px-title);
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.cs2-candidate-impact > div {
+  font-size: 14px;
+}
+
+.cs2-candidate-impact dd b {
+  font-family: var(--px-title);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.cs2-candidate-reasons {
+  font-size: 13px;
+}
+
+/* ─── Subida de etapa a pantalla completa (StageUpOverlay) ─────────────── */
+.cs2-shell {
+  position: relative;
+}
+
+.cs2-stageup {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  cursor: pointer;
+  background: radial-gradient(circle at 50% 45%, rgba(124, 92, 255, 0.55), rgba(5, 5, 10, 0.92) 70%);
+  animation: cs2-stageup-in 0.35s var(--ease);
+}
+
+@keyframes cs2-stageup-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.cs2-stageup-confetti i {
+  position: absolute;
+  top: -20px;
+  width: 9px;
+  height: 14px;
+  border-radius: 2px;
+  animation-name: cs2-confetti;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes cs2-confetti {
+  to {
+    top: 110%;
+    transform: rotate(720deg) translateX(30px);
+  }
+}
+
+.cs2-stageup-card {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 28px 36px;
+  text-align: center;
+  color: #fff;
+  animation: cs2-stageup-pop 0.6s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+@keyframes cs2-stageup-pop {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+}
+
+.cs2-stageup-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: var(--r-pill);
+  font-size: 15px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #1b1400;
+  background: var(--px-yellow);
+}
+
+.cs2-stageup-index {
+  font-family: var(--px-title);
+  font-size: 96px;
+  font-weight: 900;
+  line-height: 1;
+  background: linear-gradient(180deg, #fff, var(--px-yellow));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 30px rgba(250, 204, 21, 0.55));
+}
+
+.cs2-stageup h2 {
+  margin: 0;
+  font-family: var(--px-title);
+  font-size: 44px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+.cs2-stageup p {
+  margin: 0;
+  max-width: 460px;
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.cs2-stageup-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.cs2-stageup-chips span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  border-radius: var(--r-pill);
+  font-size: 16px;
+  font-weight: 900;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+@container (max-width: 560px) {
+  .cs2-stageup-index {
+    font-size: 72px;
+  }
+
+  .cs2-stageup h2 {
+    font-size: 32px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cs2-node.just-built,
+  .cs2-node-done,
+  .cs2-stageup,
+  .cs2-stageup-card,
+  .cs2-stageup-confetti i {
+    animation: none;
+  }
+
+  .cs2-stageup-confetti {
+    display: none;
+  }
+}

@@ -33,7 +33,8 @@
     "level": "Level {level}",
     "levelHint": "Your account level: the same one as the platform. Level up by studying and playing to unlock app types and more starting cash.",
     "navigation": "CodeStudio sections",
-    "tutorial": "Show tutorial"
+    "tutorial": "Show tutorial",
+    "videoMode": "Video mode: hides tips and tutorial for recording"
   },
   "welcome": {
     "title": "Build your startup from scratch",
@@ -135,7 +136,8 @@
     "upgrading": "Upgrading to the next version...",
     "upgradeHint": "v{version} performs better: more effect on users, satisfaction or revenue. It joins the development queue.",
     "upgrade": "Upgrade to v{version} ({amount})",
-    "maxVersion": "Already at its best version."
+    "maxVersion": "Already at its best version.",
+    "justBuilt": "Done!"
   },
   "effects": {
     "growth": "+{value} new users per day",
@@ -743,5 +745,8 @@
       "step3": "Keep the rating high: investors look at it.",
       "go": "Go to Marketing"
     }
+  },
+  "stageUp": {
+    "title": "New stage!"
   }
 }
