@@ -22,10 +22,10 @@ desfasado de la base de datos.
 
 ### Ramas peligrosas (NO desplegar ni fusionar tal cual)
 
-Estado al 2026-10-22: `codebuddies-web` corre `9d86f2d`, `codebuddies-game` y
-`codebuddies-api` corren `5c1e9d3` (cada uno es lo último que tocó esa app). Todo es la rama `feat/premium-colors-parallax` (`feat/codestudio-v2` + íconos + colores
+Estado al 2026-10-22: `codebuddies-web` corre `9d86f2d`, `codebuddies-game` corre
+`4edb91c` y `codebuddies-api` corre `5c1e9d3` (cada uno es lo último que tocó esa app). Todo es la rama `feat/premium-colors-parallax` (`feat/codestudio-v2` + íconos + colores
 premium + parallax). Es la rama base para todo trabajo nuevo. Lo que sigue en
-la tabla vale para cualquier rama que NO contenga `5c1e9d3`:
+la tabla vale para cualquier rama que NO contenga `4edb91c`:
 
 | Rama | Por qué es peligrosa |
 |---|---|
