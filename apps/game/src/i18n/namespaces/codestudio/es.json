@@ -66,7 +66,9 @@
     "chartProfit": "Ganancia diaria",
     "activity": "Qué está pasando",
     "goalDone": "Hecho",
-    "goalPending": "Pendiente"
+    "goalPending": "Pendiente",
+    "heroProgress": "{value}% hacia {name}",
+    "heroMaxed": "Llegaste a la cima"
   },
   "next": {
     "decision": "Tienes una decisión pendiente: {title}",

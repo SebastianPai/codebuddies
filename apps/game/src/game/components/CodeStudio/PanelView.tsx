@@ -9,6 +9,7 @@ import { ActiveBoosts, GrowthCeiling, WhileAway } from "./GrowthCeiling";
 import type { OfficeState } from "../../network/codestudio";
 import { useState } from "react";
 import GoalGuide, { hasGoalGuide } from "./GoalGuide";
+import StartupHero from "./StartupHero";
 import { useTranslation } from "../../../i18n/useTranslation";
 
 type Props = {
@@ -31,6 +32,7 @@ export default function PanelView({ company, catalog, office = null, onNavigate,
 
   return (
     <div className="cs2-stack">
+      <StartupHero company={company} catalog={catalog} />
       <WhileAway company={company} />
       {/* Camino: las etapas de la startup, siempre a la vista. */}
       <section className="cs2-card">
@@ -145,17 +147,6 @@ export default function PanelView({ company, catalog, office = null, onNavigate,
           hint={m.runwayDays !== null ? t("codestudio.kpi.runway", { days: Math.floor(m.runwayDays) }) : t("codestudio.kpi.profitable")}
         />
         <Stat
-          label={t("codestudio.kpi.users")}
-          value={num(company.activeUsers)}
-          hint={t("codestudio.kpi.usersFlow", { plus: num(m.dailyNewUsers), minus: num(m.dailyLostUsers) })}
-        />
-        <Stat
-          label={t("codestudio.kpi.profit")}
-          value={money(m.dailyProfit)}
-          tone={profitTone}
-          hint={t("codestudio.kpi.profitHint", { revenue: money(m.dailyRevenue), costs: money(m.dailyCosts) })}
-        />
-        <Stat
           label={t("codestudio.kpi.rating")}
           value={<><Star size={14} fill="currentColor" style={{ verticalAlign: -2 }} /> {company.rating.toFixed(1)}</>}
           tone={company.rating < 3 ? "bad" : company.rating >= 4 ? "good" : undefined}
@@ -166,11 +157,6 @@ export default function PanelView({ company, catalog, office = null, onNavigate,
           value={pct(m.churn, 1)}
           tone={m.churn > 0.04 ? "bad" : m.churn < 0.02 ? "good" : undefined}
           hint={t("codestudio.kpi.churnHint")}
-        />
-        <Stat
-          label={t("codestudio.kpi.valuation")}
-          value={money(company.valuation)}
-          hint={t("codestudio.kpi.equity", { value: company.founderEquity.toFixed(1) })}
         />
       </section>
 

@@ -66,7 +66,9 @@
     "chartProfit": "Daily profit",
     "activity": "What's happening",
     "goalDone": "Done",
-    "goalPending": "Pending"
+    "goalPending": "Pending",
+    "heroProgress": "{value}% to {name}",
+    "heroMaxed": "You reached the top"
   },
   "next": {
     "decision": "You have a pending decision: {title}",
