@@ -10,6 +10,7 @@ import { getUserBadges, getBadgeConfigCached, type BadgeIconConfig } from "../ne
 import { loadTextureOnce } from "../utils/phaserAssetCache";
 import type { AvatarSlot } from "../types/avatar";
 import { HUD_DEPTH as WORLD_HUD_DEPTH } from "../utils/depth";
+import type { ResolvedThemeAsset } from "../network/themeAssets";
 import {
   ChatBubbleStyle,
   ChatBubbleTheme,
@@ -513,7 +514,55 @@ export default class PlayerHUD {
   // así cada mensaje puede llevar el tema Premium que el remitente eligió
   // en Ajustes (ver network/auth.ts#GameUser.chatBubbleThemeId), aunque
   // dos jugadores distintos compartan la misma instancia de estilos base.
-  showChat(message: string, duration = 3000, themeId?: string | null) {
+  private destroyed = false;
+
+  // Reacción rápida (👋 😂 🔥 ✌️): si el admin activó una imagen para esa
+  // reacción en /admin/theme-assets, la burbuja muestra la imagen en vez
+  // del emoji; si no hay imagen o no carga, cae al emoji de siempre. En
+  // modo SPRITE se muestra solo el primer cuadro (la burbuja dura 3s, no
+  // vale la pena animarla).
+  showReaction(emoji: string, asset: ResolvedThemeAsset | null, themeId?: string | null) {
+    if (!asset) {
+      this.showChat(emoji, undefined, themeId);
+      return;
+    }
+
+    const textureKey = `theme-reaction:${asset.imageUrl}`;
+    void loadImageTexture(this.scene, textureKey, asset.imageUrl).then((loaded) => {
+      // La carga es asíncrona: el jugador pudo irse de la sala mientras tanto.
+      if (this.destroyed || !this.sprite) return;
+      if (!loaded) {
+        this.showChat(emoji, undefined, themeId);
+        return;
+      }
+      this.showChat(emoji, undefined, themeId, {
+        textureKey,
+        frameCount: asset.mode === "SPRITE" ? Math.max(1, asset.frameCount) : 1,
+      });
+    });
+  }
+
+  // Contenedor con width/height = tamaño visible (ya escalado y recortado al
+  // primer cuadro), para que showChat lo mida igual que a un <Text>.
+  private createReactionImage(textureKey: string, frameCount: number, size: number) {
+    const source = this.scene.textures.get(textureKey).getSourceImage() as HTMLImageElement;
+    const frameWidth = source.width / frameCount;
+    const scale = size / Math.max(1, source.height);
+
+    const image = this.scene.add.image(0, 0, textureKey).setOrigin(0, 0.5).setScale(scale);
+    if (frameCount > 1) image.setCrop(0, 0, frameWidth, source.height);
+
+    const container = this.scene.add.container(0, 0, [image]);
+    container.setSize(frameWidth * scale, size);
+    return container;
+  }
+
+  showChat(
+    message: string,
+    duration = 3000,
+    themeId?: string | null,
+    image?: { textureKey: string; frameCount: number },
+  ) {
     if (!this.sprite) {
       console.warn("[PlayerHUD] No se puede mostrar chat: sprite es null");
       return;
@@ -527,15 +576,17 @@ export default class PlayerHUD {
     const avatarSize = style.avatarSize;
     const avatarGap = 8;
 
-    const messageText = this.scene.add
-      .text(0, 0, message, {
-        fontFamily: style.fontFamily,
-        fontSize: `${style.fontSize}px`,
-        color: theme.textColor,
-        align: "left",
-        wordWrap: { width: style.maxWidth },
-      })
-      .setOrigin(0, 0.5);
+    const messageText = image
+      ? this.createReactionImage(image.textureKey, image.frameCount, Math.round(style.fontSize * 1.8))
+      : this.scene.add
+          .text(0, 0, message, {
+            fontFamily: style.fontFamily,
+            fontSize: `${style.fontSize}px`,
+            color: theme.textColor,
+            align: "left",
+            wordWrap: { width: style.maxWidth },
+          })
+          .setOrigin(0, 0.5);
 
     const paddingX = 12;
     const paddingY = 8;
@@ -677,6 +728,7 @@ export default class PlayerHUD {
   }
 
   destroy() {
+    this.destroyed = true;
     // usernameText.destroy() también libera su PostFXPipeline adjunto (si
     // había uno) -- no hace falta un cleanup aparte para el shader.
     this.usernameText.destroy();
