@@ -6,7 +6,7 @@
   "name": "Name",
   "category": "Category",
   "description": "Description",
-  "tags": "Tags separated by comma",
+  "tags": "Tags",
   "uploadPreview": "Upload sprite / preview PNG, JPG or WebP",
   "coins": "Coins",
   "gems": "Gems",
@@ -504,5 +504,23 @@
   "behaviorDuplicateReversed": "Duplicate reversed (same frames)",
   "lightLinkTitle": "Object light",
   "lightLinkHint": "Set whether it emits light, its color (warm, cold…), its shape (circle or cone) and where it starts.",
-  "worldItemNotFoundHint": "This world object doesn't exist or the link uses the wrong id. Go back to the list and open it from there."
+  "worldItemNotFoundHint": "This world object doesn't exist or the link uses the wrong id. Go back to the list and open it from there.",
+  "tagPlaceholder": "Type a tag and press Enter",
+  "removeTag": "Remove {tag}",
+  "categoryOption": {
+    "furniture": "Furniture",
+    "decoration": "Decoration",
+    "blocks": "Blocks",
+    "roof": "Roof",
+    "castle": "Castle",
+    "spooky": "Spooky",
+    "plants": "Plants",
+    "vehicles": "Vehicles",
+    "clothing": "Clothing",
+    "hair": "Hair",
+    "accessory": "Accessories",
+    "texturas": "Textures",
+    "effect": "Effect",
+    "chatBubble": "Chat bubble"
+  }
 }

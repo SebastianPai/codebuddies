@@ -6,7 +6,7 @@
   "name": "Nombre",
   "category": "Categoria",
   "description": "Descripcion",
-  "tags": "Tags separados por coma",
+  "tags": "Tags",
   "uploadPreview": "Sube sprite / preview PNG, JPG o WebP",
   "coins": "Coins",
   "gems": "Gems",
@@ -192,7 +192,7 @@
   "saveDraftButton": "Guardar borrador",
   "coinsHint": "Precio en monedas del juego. Ejemplo: 10 coins (bloques modulares: 1–5).",
   "maxStackLabel": "Cantidad máxima por compra",
-  "maxStackHint": "Máximo de unidades que un jugador puede poseer de este item -- también es el máximo que puede comprar en una sola operación. 1 = solo compra individual (valor por defecto). Con un valor mayor, el jugador puede elegir cantidad y comprar varias unidades de una vez en la tienda.",
+  "maxStackHint": "Máximo de unidades que un jugador puede tener de este item; también es lo máximo que compra de una vez. Los objetos del mundo arrancan en 999.",
   "gemsHint": "Sin efecto todavía -- no existe una moneda de gemas implementada. Se mantiene solo por compatibilidad de datos.",
   "rarityRangeHint": "Rango permitido para esta rareza: {min}-{max} coins",
   "rarityLabel": "Rareza",
@@ -504,5 +504,23 @@
   "behaviorDuplicateReversed": "Duplicar al revés (mismos frames)",
   "lightLinkTitle": "Luz del objeto",
   "lightLinkHint": "Configura si emite luz, su color (cálida, fría…), su forma (círculo o cono) y de dónde sale.",
-  "worldItemNotFoundHint": "Este objeto del mundo no existe o el enlace usa un id equivocado. Vuelve a la lista y ábrelo desde ahí."
+  "worldItemNotFoundHint": "Este objeto del mundo no existe o el enlace usa un id equivocado. Vuelve a la lista y ábrelo desde ahí.",
+  "tagPlaceholder": "Escribe un tag y pulsa Enter",
+  "removeTag": "Quitar {tag}",
+  "categoryOption": {
+    "furniture": "Muebles",
+    "decoration": "Decoración",
+    "blocks": "Bloques",
+    "roof": "Techo",
+    "castle": "Castillo",
+    "spooky": "Terror",
+    "plants": "Plantas",
+    "vehicles": "Vehículos",
+    "clothing": "Ropa",
+    "hair": "Pelo",
+    "accessory": "Accesorios",
+    "texturas": "Texturas",
+    "effect": "Efecto",
+    "chatBubble": "Burbuja de chat"
+  }
 }

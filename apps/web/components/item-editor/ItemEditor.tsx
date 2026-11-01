@@ -55,6 +55,17 @@ function LabeledField({ text, hint, children }: { text: string; hint?: string; c
 
 // Mismas keys que ITEM_ROOMS / FURNITURE_TYPES de apps/game/src/game/utils/itemTaxonomy.ts.
 const ROOM_TAG_PREFIX = "room:";
+
+// Categorías para elegir según el tipo de contenido (Item.category es texto
+// libre; esta lista solo evita tipearla). La etiqueta sale de
+// items.categoryOption.<valor>; un valor viejo que no esté acá se sigue mostrando.
+const ITEM_CATEGORY_OPTIONS: Record<string, string[]> = {
+  world: ["furniture", "decoration", "blocks", "roof", "castle", "spooky", "plants", "vehicles"],
+  avatar: ["clothing", "hair", "accessory"],
+  texture: ["texturas"],
+  effect: ["effect"],
+  chatBubble: ["chatBubble"],
+};
 const ITEM_ROOM_KEYS = ["living", "kitchen", "bedroom", "bathroom", "office", "outdoor"] as const;
 const OFFICE_TAG_KEYS = ["desk", "chair", "pc", "snacks", "water", "coffee", "basic"] as const;
 // Ropa de avatar: para quién es (sin marca = unisex) y su estilo. Un grupo
@@ -483,14 +494,19 @@ export default function ItemEditor({
   const [bubbleThemeId, setBubbleThemeId] = useState(
     initialIsBubble ? initial.effectKey.slice(CHAT_BUBBLE_PREFIX.length) : SELLABLE_CHAT_BUBBLES[0].id,
   );
-  const [coinsPrice, setCoinsPrice] = useState(initial?.coinsPrice ?? initial?.priceCoins ?? 10);
+  // Ítem nuevo: arranca en el precio mínimo (bloque del mundo = 1, el resto =
+  // mínimo de su rareza) hasta que alguien escriba otro precio.
+  const [coinsPrice, setCoinsPrice] = useState(initial?.coinsPrice ?? initial?.priceCoins ?? 1);
+  const [priceTouched, setPriceTouched] = useState(initial != null);
   const [gemsPrice, setGemsPrice] = useState(initial?.gemsPrice ?? 0);
   const [shopVisible, setShopVisible] = useState(initial?.shopVisible ?? mode === "admin");
   // Tope de unidades acumulables por usuario -- también el máximo comprable
   // en una sola operación de la tienda (ver ItemsService.buyItem). 1 =
   // compra individual (comportamiento de siempre); >1 habilita el selector
   // de cantidad en el shop del juego.
-  const [maxStack, setMaxStack] = useState(initial?.maxStack ?? 1);
+  const [maxStack, setMaxStack] = useState(
+    initial?.maxStack ?? (getInitialKind(initial) === "world" || getInitialKind(initial) === "texture" ? 999 : 1),
+  );
   const [colorable, setColorable] = useState(initial?.colorable ?? false);
 
   const [slot, setSlot] = useState(initial?.slot || "SHIRT");
@@ -545,8 +561,10 @@ export default function ItemEditor({
   const [placementType, setPlacementType] = useState(initial?.placementType || "FLOOR");
   const [allowsStacking, setAllowsStacking] = useState(initial?.allowsStacking ?? false);
   const [canBeStacked, setCanBeStacked] = useState(initial?.canBeStacked ?? false);
-  const [stackHeight, setStackHeight] = useState(initial?.stackHeight || 10);
-  const [maxStackHeight, setMaxStackHeight] = useState(initial?.maxStackHeight || 10);
+  // Casi todo lo que se sube es un sprite de 64x64 = 2 de altura de apilado.
+  const [stackHeight, setStackHeight] = useState(initial?.stackHeight || 2);
+  const [maxStackHeight, setMaxStackHeight] = useState(initial?.maxStackHeight || 20);
+  const [tagDraft, setTagDraft] = useState("");
   // Calibración visual del sprite (píxeles) por dirección. No toca
   // footprint/tiles: solo desplaza la imagen en el juego y en el preview.
   // Ver SpriteOffsetControls.
@@ -613,6 +631,20 @@ export default function ItemEditor({
   const [justSaved, setJustSaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const itemSpriteInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (initial) return;
+    const options = ITEM_CATEGORY_OPTIONS[category] ?? [];
+    setItemCategory((current: string) => (options.includes(current) ? current : options[0] ?? current));
+    setMaxStack(category === "world" || category === "texture" ? 999 : 1);
+  }, [category, initial]);
+
+  useEffect(() => {
+    if (priceTouched) return;
+    const isBlock = category === "world" && canBeStacked && Number(footprintWidth) === 1 && Number(footprintHeight) === 1;
+    const min = isBlock ? 1 : rarities.find((r) => r.id === rarity)?.minCoins;
+    if (min != null) setCoinsPrice(min);
+  }, [priceTouched, category, canBeStacked, footprintWidth, footprintHeight, rarity, rarities]);
 
   useEffect(() => {
     let mounted = true;
@@ -1029,17 +1061,52 @@ export default function ItemEditor({
               <input value={name} onChange={(event) => setName(event.target.value)} className={fieldClass} />
             </LabeledField>
             <LabeledField text={t("items.category")}>
-              <input value={itemCategory} onChange={(event) => setItemCategory(event.target.value)} className={fieldClass} />
+              <select value={itemCategory} onChange={(event) => setItemCategory(event.target.value)} className={fieldClass}>
+                {[...new Set([...(ITEM_CATEGORY_OPTIONS[category] ?? []), itemCategory].filter(Boolean))].map((value) => (
+                  <option key={value} value={value}>
+                    {ITEM_CATEGORY_OPTIONS[category]?.includes(value) ? t(`items.categoryOption.${value}`) : value}
+                  </option>
+                ))}
+              </select>
             </LabeledField>
           </div>
           <LabeledField text={t("items.description")}>
             <textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={3} className={fieldClass} />
           </LabeledField>
           <LabeledField text={t("items.tags")}>
-            <input value={tags} onChange={(event) => setTags(event.target.value)} className={fieldClass} />
+            <div className={`${fieldClass} flex flex-wrap items-center gap-2`}>
+              {compactTags(tags).map((tag) => (
+                <span key={tag} className="flex items-center gap-1 rounded-full bg-zinc-800 px-2 py-0.5 text-xs text-zinc-200">
+                  {tag}
+                  <button
+                    type="button"
+                    aria-label={t("items.removeTag", { tag })}
+                    onClick={() => setTags(compactTags(tags).filter((entry) => entry !== tag).join(", "))}
+                    className="text-zinc-400 hover:text-white"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+              <input
+                value={tagDraft}
+                onChange={(event) => setTagDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if ((event.key === "Enter" || event.key === ",") && tagDraft.trim()) {
+                    event.preventDefault();
+                    const list = compactTags(tags);
+                    if (!list.includes(tagDraft.trim())) setTags([...list, tagDraft.trim()].join(", "));
+                    setTagDraft("");
+                  }
+                }}
+                placeholder={t("items.tagPlaceholder")}
+                className="min-w-24 flex-1 bg-transparent text-sm outline-none"
+              />
+            </div>
           </LabeledField>
           {/* Muebles de la oficina de CodeStudio (ver api codestudio/content/office.ts):
               un clic agrega/quita el tag en vez de escribirlo a mano. */}
+          {category === "world" && (
           <div>
             <p className="mb-2 text-xs font-bold uppercase tracking-wide text-zinc-400">{t("items.officeTagsLabel")}</p>
             <div className="flex flex-wrap gap-2">
@@ -1061,8 +1128,10 @@ export default function ItemEditor({
               })}
             </div>
           </div>
+          )}
           {/* Ropa de avatar: mujer/hombre (sin marca = unisex), estilo y si la
               pueden usar los empleados de CodeStudio. */}
+          {category === "avatar" && (
           <div className="space-y-3">
             <p className="text-xs font-bold uppercase tracking-wide text-zinc-400">{t("items.wearTagsLabel")}</p>
             {WEAR_TAG_GROUPS.map((group) => {
@@ -1107,6 +1176,7 @@ export default function ItemEditor({
               );
             })()}
           </div>
+          )}
         </div>
 
         <div
@@ -1138,7 +1208,7 @@ export default function ItemEditor({
 
       <section className="grid gap-4 md:grid-cols-4">
         <LabeledField text={t("items.coins")} hint={t("items.coinsHint")}>
-          <input type="number" min="0" value={coinsPrice} onChange={(event) => setCoinsPrice(Number(event.target.value))} className={fieldClass} />
+          <input type="number" min="0" value={coinsPrice} onChange={(event) => { setPriceTouched(true); setCoinsPrice(Number(event.target.value)); }} className={fieldClass} />
           {(() => {
             const selected = rarities.find((r) => r.id === rarity);
             return selected ? (

@@ -6,7 +6,7 @@
   "name": "Name",
   "category": "Kategorie",
   "description": "Beschreibung",
-  "tags": "Tags durch Komma getrennt",
+  "tags": "Tags",
   "uploadPreview": "Sprite / Vorschau als PNG, JPG oder WebP hochladen",
   "coins": "Coins",
   "gems": "Gems",
@@ -504,5 +504,23 @@
   "behaviorDuplicateReversed": "Rückwärts duplizieren (gleiche Frames)",
   "lightLinkTitle": "Licht des Objekts",
   "lightLinkHint": "Lege fest, ob es leuchtet, seine Farbe (warm, kalt…), Form (Kreis oder Kegel) und Ursprung.",
-  "worldItemNotFoundHint": "Dieses Weltobjekt existiert nicht oder der Link nutzt eine falsche ID. Öffne es über die Liste."
+  "worldItemNotFoundHint": "Dieses Weltobjekt existiert nicht oder der Link nutzt eine falsche ID. Öffne es über die Liste.",
+  "tagPlaceholder": "Tag eingeben und Enter drücken",
+  "removeTag": "{tag} entfernen",
+  "categoryOption": {
+    "furniture": "Möbel",
+    "decoration": "Deko",
+    "blocks": "Blöcke",
+    "roof": "Dach",
+    "castle": "Burg",
+    "spooky": "Grusel",
+    "plants": "Pflanzen",
+    "vehicles": "Fahrzeuge",
+    "clothing": "Kleidung",
+    "hair": "Haare",
+    "accessory": "Accessoires",
+    "texturas": "Texturen",
+    "effect": "Effekt",
+    "chatBubble": "Chatblase"
+  }
 }
