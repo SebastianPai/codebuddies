@@ -24,6 +24,7 @@ import { PremiumAccessService } from '../../premium-access/premium-access.servic
 import {
   RARITY_DEFINITIONS,
   assertValidShopPrice,
+  isModularBlock,
 } from '../../../common/economy';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { RealtimeService } from '../../realtime/realtime.service';
@@ -117,7 +118,11 @@ export class ItemsService {
     // free/premium/ownable). Saltar la validación acá, no forzar una
     // rareza artificial solo para pasarla.
     if (!effectKey) {
-      assertValidShopPrice(rarity, coinsPrice);
+      assertValidShopPrice(
+        rarity,
+        coinsPrice,
+        Boolean(kind) && isModularBlock({ canBeStacked, footprintWidth, footprintHeight }),
+      );
     }
 
     const item = await this.prisma.item.create({
@@ -633,7 +638,14 @@ export class ItemsService {
     if (itemData.coinsPrice !== undefined || itemData.rarity !== undefined) {
       const current = await this.prisma.item.findUnique({
         where: { id },
-        select: { rarity: true, coinsPrice: true, effectKey: true },
+        select: {
+          rarity: true,
+          coinsPrice: true,
+          effectKey: true,
+          worldData: {
+            select: { canBeStacked: true, footprintWidth: true, footprintHeight: true },
+          },
+        },
       });
       if (!current) {
         throw new NotFoundException(`Item con ID ${id} no encontrado`);
@@ -646,7 +658,11 @@ export class ItemsService {
           itemData.coinsPrice !== undefined
             ? itemData.coinsPrice
             : current.coinsPrice;
-        assertValidShopPrice(nextRarity, nextCoinsPrice);
+        assertValidShopPrice(
+          nextRarity,
+          nextCoinsPrice,
+          isModularBlock(current.worldData),
+        );
       }
     }
 

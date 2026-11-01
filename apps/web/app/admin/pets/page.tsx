@@ -38,7 +38,7 @@ const EMPTY: Partial<Species> = {
   framesCount: 1,
   directions: 8,
   animations: [],
-  coinsPrice: 500,
+  coinsPrice: 50,
   shopVisible: true,
   enabled: true,
   sortOrder: 0,

@@ -190,7 +190,7 @@
   "animationFallback": "Animation",
   "previewAlt": "Item-Vorschau",
   "saveDraftButton": "Entwurf speichern",
-  "coinsHint": "Preis in Spiel-Coins. Beispiel: 100 Coins.",
+  "coinsHint": "Preis in Spiel-Coins. Beispiel: 10 Coins (Modulblöcke: 1–5).",
   "maxStackLabel": "Maximale Kaufmenge",
   "maxStackHint": "Maximale Anzahl an Einheiten, die ein Spieler von diesem Item besitzen kann -- auch das Maximum pro Kauf. 1 = nur Einzelkauf (Standard). Bei höheren Werten kann der Spieler im Shop eine Menge wählen und mehrere Einheiten auf einmal kaufen.",
   "gemsHint": "Noch nicht funktionsfähig – es ist keine Gem-Währung implementiert. Nur aus Gründen der Datenkompatibilität beibehalten.",

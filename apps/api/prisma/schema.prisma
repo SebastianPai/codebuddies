@@ -2503,7 +2503,7 @@ model BattlePassClaim {
 
 model Power {
   id         String @id @default(uuid())
-  priceCoins Int    @default(100)
+  priceCoins Int    @default(10)
 
   userPowers UserPower[]
 
@@ -3387,9 +3387,9 @@ model MarketplaceSettings {
   minAccountAgeDays    Int     @default(15)
   requireEmailVerified Boolean @default(true)
 
-  publicationFeeCoins Int @default(50)
-  minPriceCoins       Int @default(100)
-  maxPriceCoins       Int @default(10000)
+  publicationFeeCoins Int @default(5)
+  minPriceCoins       Int @default(10)
+  maxPriceCoins       Int @default(1000)
   commissionRate      Int @default(20)
 
   maxPendingItems        Int @default(5)

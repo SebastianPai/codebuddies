@@ -190,7 +190,7 @@
   "animationFallback": "Animation",
   "previewAlt": "Item preview",
   "saveDraftButton": "Save draft",
-  "coinsHint": "Price in in-game coins. Example: 100 coins.",
+  "coinsHint": "Price in in-game coins. Example: 10 coins (modular blocks: 1–5).",
   "maxStackLabel": "Max quantity per purchase",
   "maxStackHint": "Max units a player can own of this item -- also the max they can buy in a single purchase. 1 = single-unit purchase only (default). Higher values let players pick a quantity and buy several units at once in the shop.",
   "gemsHint": "Not functional yet -- there is no gem currency implemented. Kept only for data compatibility.",

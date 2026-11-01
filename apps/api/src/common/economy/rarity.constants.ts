@@ -23,16 +23,36 @@ export interface RarityDefinition {
   maxCoins: number;
 }
 
-// Rangos de referencia de la auditoría de economía de items (2026-08-20).
-// Son reglas de economía, no precios automáticos: la rareza la decide el
-// valor artístico/de contenido del objeto, nunca el precio ni al revés.
+// Rangos de referencia de la auditoría de economía de items (2026-08-20),
+// divididos entre 10 en el rebalanceo del 2026-10-31: lo que se gana
+// (lecciones 10, ejercicios 5, diarias 1-6) ya era chico, lo que sobraba
+// eran los precios. Son reglas de economía, no precios automáticos: la
+// rareza la decide el valor artístico/de contenido del objeto, nunca el
+// precio ni al revés.
 export const RARITY_DEFINITIONS: readonly RarityDefinition[] = [
-  { id: ItemRarity.COMMON, key: 'common', minCoins: 50, maxCoins: 200 },
-  { id: ItemRarity.UNCOMMON, key: 'uncommon', minCoins: 250, maxCoins: 600 },
-  { id: ItemRarity.RARE, key: 'rare', minCoins: 700, maxCoins: 1500 },
-  { id: ItemRarity.EPIC, key: 'epic', minCoins: 1800, maxCoins: 3500 },
-  { id: ItemRarity.LEGENDARY, key: 'legendary', minCoins: 4000, maxCoins: 7500 },
+  { id: ItemRarity.COMMON, key: 'common', minCoins: 5, maxCoins: 20 },
+  { id: ItemRarity.UNCOMMON, key: 'uncommon', minCoins: 25, maxCoins: 60 },
+  { id: ItemRarity.RARE, key: 'rare', minCoins: 70, maxCoins: 150 },
+  { id: ItemRarity.EPIC, key: 'epic', minCoins: 180, maxCoins: 350 },
+  { id: ItemRarity.LEGENDARY, key: 'legendary', minCoins: 400, maxCoins: 750 },
 ];
+
+// Bloques modulares (1x1 apilables, `worldData.canBeStacked`): una casa
+// lleva cientos, así que tienen su propio rango sin importar la rareza.
+export const BLOCK_PRICE_RANGE = { minCoins: 1, maxCoins: 5 } as const;
+
+export function isModularBlock(
+  worldData:
+    | { canBeStacked?: boolean | null; footprintWidth?: number | null; footprintHeight?: number | null }
+    | null
+    | undefined,
+): boolean {
+  return Boolean(
+    worldData?.canBeStacked &&
+      (worldData.footprintWidth ?? 1) === 1 &&
+      (worldData.footprintHeight ?? 1) === 1,
+  );
+}
 
 const RARITY_BY_ID = new Map<number, RarityDefinition>(
   RARITY_DEFINITIONS.map((def) => [def.id, def]),

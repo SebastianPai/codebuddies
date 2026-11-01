@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { RARITY_DEFINITIONS } from './rarity.constants';
+import { BLOCK_PRICE_RANGE, RARITY_DEFINITIONS } from './rarity.constants';
 
 const RARITY_BY_ID = new Map(RARITY_DEFINITIONS.map((def) => [def.id, def]));
 
@@ -13,13 +13,28 @@ const RARITY_BY_ID = new Map(RARITY_DEFINITIONS.map((def) => [def.id, def]));
 //   - coinsPrice 0/null/undefined = "no vendible" -- siempre permitido.
 //     Cubre items internos/default, objetos de Battle Pass mientras sean
 //     exclusivos, y objetos de evento que no se venden por coins.
-export function assertValidShopPrice(rarity: number, coinsPrice: number | null | undefined): void {
+//   - isBlock = bloque modular: valida contra BLOCK_PRICE_RANGE, no contra
+//     la rareza.
+export function assertValidShopPrice(
+  rarity: number,
+  coinsPrice: number | null | undefined,
+  isBlock = false,
+): void {
   if (coinsPrice === null || coinsPrice === undefined || coinsPrice === 0) {
     return;
   }
 
   if (coinsPrice < 0) {
     throw new BadRequestException('coinsPrice no puede ser negativo');
+  }
+
+  if (isBlock) {
+    if (coinsPrice < BLOCK_PRICE_RANGE.minCoins || coinsPrice > BLOCK_PRICE_RANGE.maxCoins) {
+      throw new BadRequestException(
+        `Un bloque modular debe costar entre ${BLOCK_PRICE_RANGE.minCoins} y ${BLOCK_PRICE_RANGE.maxCoins} coins (recibido: ${coinsPrice})`,
+      );
+    }
+    return;
   }
 
   const def = RARITY_BY_ID.get(rarity);

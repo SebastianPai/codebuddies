@@ -306,7 +306,7 @@ describe('ItemsService', () => {
       await expect(
         service.createItem({
           name: 'Test',
-          rarity: 3, // Epic: 1800-3500
+          rarity: 3, // Epic: 180-350
           coinsPrice: 100, // el mismo caso real de la auditoría
         } as never),
       ).rejects.toThrow(BadRequestException);
@@ -314,7 +314,7 @@ describe('ItemsService', () => {
     });
 
     it('updateItem rejects when the merged rarity+price combination is out of range', async () => {
-      prisma.item.findUnique.mockResolvedValue({ rarity: 3, coinsPrice: 2000 });
+      prisma.item.findUnique.mockResolvedValue({ rarity: 3, coinsPrice: 200 });
       const updateSpy = jest.fn();
       (prisma as unknown as { item: { update: jest.Mock } }).item.update = updateSpy;
 
@@ -351,7 +351,7 @@ describe('ItemsService', () => {
       kind: 'FURNITURE',
       width: 512,
       height: 128,
-      coinsPrice: 100,
+      coinsPrice: 10,
       rarity: 0,
       directions: 4,
     } as never;

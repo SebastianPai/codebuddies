@@ -190,7 +190,7 @@
   "animationFallback": "Animacion",
   "previewAlt": "Preview del item",
   "saveDraftButton": "Guardar borrador",
-  "coinsHint": "Precio en monedas del juego. Ejemplo: 100 coins.",
+  "coinsHint": "Precio en monedas del juego. Ejemplo: 10 coins (bloques modulares: 1–5).",
   "maxStackLabel": "Cantidad máxima por compra",
   "maxStackHint": "Máximo de unidades que un jugador puede poseer de este item -- también es el máximo que puede comprar en una sola operación. 1 = solo compra individual (valor por defecto). Con un valor mayor, el jugador puede elegir cantidad y comprar varias unidades de una vez en la tienda.",
   "gemsHint": "Sin efecto todavía -- no existe una moneda de gemas implementada. Se mantiene solo por compatibilidad de datos.",

@@ -36,7 +36,7 @@ export default function CreateTexturePage() {
           width: 1,
           height: 1,
           category: "texturas",
-          coinsPrice: 100,
+          coinsPrice: 10,
           shopVisible: true,
         }}
         onSubmit={create}

@@ -483,7 +483,7 @@ export default function ItemEditor({
   const [bubbleThemeId, setBubbleThemeId] = useState(
     initialIsBubble ? initial.effectKey.slice(CHAT_BUBBLE_PREFIX.length) : SELLABLE_CHAT_BUBBLES[0].id,
   );
-  const [coinsPrice, setCoinsPrice] = useState(initial?.coinsPrice ?? initial?.priceCoins ?? 100);
+  const [coinsPrice, setCoinsPrice] = useState(initial?.coinsPrice ?? initial?.priceCoins ?? 10);
   const [gemsPrice, setGemsPrice] = useState(initial?.gemsPrice ?? 0);
   const [shopVisible, setShopVisible] = useState(initial?.shopVisible ?? mode === "admin");
   // Tope de unidades acumulables por usuario -- también el máximo comprable

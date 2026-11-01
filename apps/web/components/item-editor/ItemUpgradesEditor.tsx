@@ -29,7 +29,7 @@ const EMPTY: Draft = {
   key: "",
   name: "",
   description: "",
-  priceCoins: 100,
+  priceCoins: 10,
   unlockStates: [],
   requiresId: null,
   sortOrder: 0,

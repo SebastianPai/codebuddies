@@ -25,9 +25,9 @@ describe('oficina de CodeStudio', () => {
 
   it('el mapa más chico es gratis y los grandes cuestan monedas', () => {
     expect(officePrice(400, 400)).toBe(0);
-    expect(officePrice(800, 400)).toBe(400);
-    expect(officePrice(1600, 400)).toBe(1000);
-    expect(officePrice(4000, 400)).toBe(2000);
+    expect(officePrice(800, 400)).toBe(40);
+    expect(officePrice(1600, 400)).toBe(100);
+    expect(officePrice(4000, 400)).toBe(200);
   });
 
   it('los empleados comentan lo que pasa y dan consejos', () => {

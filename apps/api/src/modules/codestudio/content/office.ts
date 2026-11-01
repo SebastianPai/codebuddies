@@ -74,9 +74,9 @@ export function officeFactors(summary: ReturnType<typeof officeSummary>, employe
 export function officePrice(area: number, smallestArea: number) {
   const ratio = area / Math.max(1, smallestArea);
   if (ratio <= 1.2) return 0;
-  if (ratio <= 2.5) return 400;
-  if (ratio <= 5) return 1000;
-  return 2000;
+  if (ratio <= 2.5) return 40;
+  if (ratio <= 5) return 100;
+  return 200;
 }
 
 // ─── Lo que dicen los empleados ──────────────────────────────────────────

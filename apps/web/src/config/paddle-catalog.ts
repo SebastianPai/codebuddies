@@ -89,7 +89,7 @@ export function getCoinPacks(): CoinPack[] {
     {
       key: 'coins_500',
       name: 'Small',
-      coins: 500,
+      coins: 50,
       priceId: requireEnv(
         'NEXT_PUBLIC_PADDLE_COIN_PRICE_ID_500',
         process.env.NEXT_PUBLIC_PADDLE_COIN_PRICE_ID_500,
@@ -98,8 +98,8 @@ export function getCoinPacks(): CoinPack[] {
     {
       key: 'coins_1100',
       name: 'Popular',
-      coins: 1100,
-      bonusCoins: 100,
+      coins: 110,
+      bonusCoins: 10,
       popular: true,
       priceId: requireEnv(
         'NEXT_PUBLIC_PADDLE_COIN_PRICE_ID_1100',
@@ -109,8 +109,8 @@ export function getCoinPacks(): CoinPack[] {
     {
       key: 'coins_3400',
       name: 'Large',
-      coins: 3400,
-      bonusCoins: 400,
+      coins: 340,
+      bonusCoins: 40,
       priceId: requireEnv(
         'NEXT_PUBLIC_PADDLE_COIN_PRICE_ID_3400',
         process.env.NEXT_PUBLIC_PADDLE_COIN_PRICE_ID_3400,
@@ -119,8 +119,8 @@ export function getCoinPacks(): CoinPack[] {
     {
       key: 'coins_6000',
       name: 'Ultimate',
-      coins: 6000,
-      bonusCoins: 1000,
+      coins: 600,
+      bonusCoins: 100,
       priceId: requireEnv(
         'NEXT_PUBLIC_PADDLE_COIN_PRICE_ID_6000',
         process.env.NEXT_PUBLIC_PADDLE_COIN_PRICE_ID_6000,
