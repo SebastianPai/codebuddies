@@ -89,5 +89,16 @@
   "upgradeNeedItem": "Objekt benötigt",
   "upgradeNeedsPrevious": "Vorheriges benötigt",
   "upgradeBought": "Upgrade \"{name}\" freigeschaltet!",
-  "upgradeBuyError": "Upgrade konnte nicht gekauft werden."
+  "upgradeBuyError": "Upgrade konnte nicht gekauft werden.",
+  "rowModeButton": "Reihe",
+  "rowModeHint": "Von einem Feld zum anderen ziehen, um eine ganze Reihe zu setzen (am PC auch Umschalt + Ziehen)",
+  "finishButton": "Fertig",
+  "groupAll": "Alle",
+  "groupOther": "Andere",
+  "catalogHint": "Was du hast und was es im Shop gibt, zusammen · Rechtsklick = Favorit",
+  "categoriesLabel": "Kategorien",
+  "hotbarLabel": "Schnellleiste (Tasten 1-9)",
+  "moreActions": "Mehr",
+  "notOwnedHint": "Du hast es noch nicht: hier kaufen und direkt platzieren.",
+  "exitShort": "Beenden"
 }

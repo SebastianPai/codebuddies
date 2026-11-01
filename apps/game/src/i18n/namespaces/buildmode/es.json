@@ -57,7 +57,7 @@
   "roomItemIdLabel": "ID del objeto:",
   "ownerIdLabel": "ID del dueño:",
   "rotationLabel": "Rotacion:",
-  "rotateButton": "Rotar",
+  "rotateButton": "Girar",
   "colorButton": "Color",
   "placementColorTitle": "Color del objeto (antes de colocarlo)",
   "pickUpButton": "Recoger",
@@ -89,5 +89,16 @@
   "upgradeNeedItem": "Necesitas el objeto",
   "upgradeNeedsPrevious": "Requiere la anterior",
   "upgradeBought": "¡Mejora \"{name}\" desbloqueada!",
-  "upgradeBuyError": "No se pudo comprar la mejora."
+  "upgradeBuyError": "No se pudo comprar la mejora.",
+  "rowModeButton": "Fila",
+  "rowModeHint": "Arrastra de una casilla a otra para poner una fila entera (en PC también con Shift + arrastrar)",
+  "finishButton": "Terminar",
+  "groupAll": "Todo",
+  "groupOther": "Otros",
+  "catalogHint": "Lo que tienes y lo de la tienda, todo junto · clic derecho = favorito",
+  "categoriesLabel": "Categorías",
+  "hotbarLabel": "Barra rápida (teclas 1-9)",
+  "moreActions": "Más",
+  "notOwnedHint": "Todavía no lo tienes: cómpralo aquí y empiezas a colocarlo.",
+  "exitShort": "Salir"
 }

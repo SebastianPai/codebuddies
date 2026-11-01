@@ -20,6 +20,15 @@ export default class FurniturePlacementSystem {
 
   private pendingTimeout?: ReturnType<typeof setTimeout>;
 
+  // Colocar en fila: con Shift (o el botón "Fila" en tablet, evento
+  // build:row-mode) se arrastra de una casilla a otra y al soltar se coloca
+  // una pieza en cada casilla de la recta, de a una (respetando `pending`).
+  private rowMode = false;
+
+  private rowStart: { x: number; y: number } | null = null;
+
+  private rowQueue: Array<{ x: number; y: number }> = [];
+
   constructor(
     scene: LobbySceneType,
     buildSystem: BuildSystem,
@@ -42,14 +51,16 @@ export default class FurniturePlacementSystem {
     // LobbyScene.moveSelectedRoomItem().
     if ((this.scene as any).movingRoomItem) return;
 
-    if (this.pending) return;
-
-    const preview = this.buildSystem.getPreview();
-
-    if (!preview) return;
+    if (this.pending || this.rowQueue.length) return;
 
     const grid = this.scene.isoGrid;
     if (!grid) return;
+
+    if (this.rowMode || (pointer.event as MouseEvent | undefined)?.shiftKey) {
+      const start = grid.pointerToTile(this.scene.cameras.main, pointer);
+      if (start) this.rowStart = { x: start.x, y: start.y };
+      return;
+    }
 
     // Mismo criterio que el ghost (LobbyScene.update): si el cursor apunta
     // al costado de otro bloque, se pega ahí flotando a su altura.
@@ -59,24 +70,52 @@ export default class FurniturePlacementSystem {
 
     if (!tile) return;
 
-    const tx = tile.x;
-    const ty = tile.y;
+    this.placeAt(tile.x, tile.y, sideAttach);
+  };
+
+  private handlePointerUp = (pointer: Phaser.Input.Pointer) => {
+    const start = this.rowStart;
+    this.rowStart = null;
+    const grid = this.scene.isoGrid;
+    if (!start || !grid || !this.buildSystem.getCurrentItem()) return;
+
+    const end = grid.pointerToTile(this.scene.cameras.main, pointer) ?? start;
+    // Recta sobre el eje que más se movió (fila o columna de la grilla).
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const alongX = Math.abs(dx) >= Math.abs(dy);
+    const steps = Math.abs(alongX ? dx : dy);
+    const dir = Math.sign(alongX ? dx : dy) || 1;
+    this.rowQueue = Array.from({ length: steps + 1 }, (_, i) =>
+      alongX ? { x: start.x + i * dir, y: start.y } : { x: start.x, y: start.y + i * dir },
+    );
+    this.placeNextInRow();
+  };
+
+  private placeNextInRow() {
+    while (this.rowQueue.length && !this.pending && this.buildSystem.getCurrentItem()) {
+      const next = this.rowQueue.shift()!;
+      this.placeAt(next.x, next.y, null);
+    }
+    if (!this.buildSystem.getCurrentItem()) this.rowQueue = [];
+  }
+
+  private handleRowMode = (event: Event) => {
+    this.rowMode = Boolean((event as CustomEvent<{ active?: boolean }>).detail?.active);
+    this.rowStart = null;
+  };
+
+  private placeAt(tx: number, ty: number, sideAttach: { elevation: number } | null) {
+    const item = this.buildSystem.getCurrentItem();
+    const preview = this.buildSystem.getPreview();
+
+    if (!item || !preview) return;
 
     if (!this.placementValidator.canPlace(tx, ty, item, this.buildSystem.getRotation())) {
-      console.warn("No se puede colocar aquí");
-
       return;
     }
 
     const socket = (this.scene.game as any).socket;
-
-    console.log("ENVIANDO ITEM", {
-      roomId: (this.scene.game as any).roomId,
-      itemId: item.id,
-      x: tx,
-      y: ty,
-      rotation: this.buildSystem.getRotation(),
-    });
 
     const placementType = item.worldData?.placementType ?? "FLOOR";
 
@@ -106,7 +145,7 @@ export default class FurniturePlacementSystem {
     if (this.buildSystem.consumeOne() <= 0) {
       this.buildSystem.stop();
     }
-  };
+  }
 
   /**
    * Llamado por FurnitureSocketSystem. `placed` = payload de
@@ -130,14 +169,21 @@ export default class FurniturePlacementSystem {
     if (this.pendingTimeout) clearTimeout(this.pendingTimeout);
     this.pendingTimeout = undefined;
     this.buildSystem.getPreview()?.setAlpha(0.6);
+    // Error del servidor (sin payload): se corta la fila para no insistir.
+    if (!placed) this.rowQueue = [];
+    this.placeNextInRow();
   }
 
   initialize() {
     this.scene.input.on("pointerdown", this.handlePointerDown);
+    this.scene.input.on("pointerup", this.handlePointerUp);
+    window.addEventListener("build:row-mode", this.handleRowMode);
   }
 
   destroy() {
     this.scene.input.off("pointerdown", this.handlePointerDown);
+    this.scene.input.off("pointerup", this.handlePointerUp);
+    window.removeEventListener("build:row-mode", this.handleRowMode);
     if (this.pendingTimeout) clearTimeout(this.pendingTimeout);
   }
 

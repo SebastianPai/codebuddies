@@ -1,19 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Backpack,
-  Boxes,
-  Clock,
+  Coins,
   Image as ImageIcon,
+  MoreHorizontal,
   Paintbrush,
   Redo2,
+  Rows3,
+  RotateCw,
+  Search,
   ShoppingBag,
   Star,
   Store,
+  Boxes,
   Undo2,
-  UserRound,
-  type LucideIcon,
+  X,
 } from "lucide-react";
 import { BUILD_COMMAND_STACK_CHANGED_EVENT } from "../../systems/BuildCommandStack";
 import {
@@ -21,10 +23,7 @@ import {
   setPlacementColor,
   type BuildPlacementProgress,
 } from "../../systems/buildPlacementEvents";
-import { FURNITURE_TYPES, ITEM_ROOMS, getFurnitureType, getItemRooms } from "../../utils/itemTaxonomy";
 import ItemPreview from "../UI/ItemPreview";
-import SharedItemGrid from "../shared/ItemGrid";
-import ItemCard from "../shared/ItemCard";
 import ColorSwatchPicker from "../shared/ColorSwatchPicker";
 import { COLOR_FREE_COLORS, COLOR_PREMIUM_COLORS } from "@codebuddies/world-objects";
 import { useIsPremium } from "../../hooks/useIsPremium";
@@ -33,28 +32,21 @@ import type { Background } from "../../types/room";
 import { EffectivePermissions, NO_PERMISSIONS } from "../../types/permissions";
 import styles from "./BuildModePanel.module.css";
 import { useTranslation } from "../../../i18n/useTranslation";
-import tabsOverflow from "../shared/tabsOverflow.module.css";
 
-// Antes "Tienda" y "Marketplace" eran dos pestañas más en esta misma grilla:
-// clickearlas abría la ventana externa (Shop/MarketplaceWindow) Y ADEMÁS
-// cambiaba activeTab acá dentro para mostrar una tarjeta "la tienda está
-// abierta" — dos cosas abiertas a la vez por lo mismo, y dos casillas menos
-// para las pestañas que sí tienen contenido real dentro del panel. Ahora
-// son botones de acceso rápido en el header (ver .headerActions), no
-// pestañas de contenido.
-type BuildTab =
-  | "objects"
-  | "favorites"
-  | "recent"
-  | "inventory"
-  | "textures"
-  | "background";
+// Modo construcción: arriba una barra (modo, buscador, deshacer, tienda),
+// un aviso chico mientras se coloca o pinta (con botones para tablet), la
+// barra rápida 1-9 y abajo el catálogo en fichas chicas. El centro de la
+// pantalla queda libre para construir. Antes era una columna lateral con
+// tarjetas grandes donde cabían 4 objetos y había que bajar mucho.
+type BuildMode = "objects" | "textures" | "environment";
 
 // "Recientes" es puramente local (últimos objetos colocados en ESTE
 // navegador) — a diferencia de favoritos, no tiene sentido sincronizarlo
 // entre dispositivos ni persistirlo server-side.
 const RECENTS_STORAGE_KEY = "codebuddies:build:recentItemIds";
 const MAX_RECENTS = 24;
+const HOTBAR_SIZE = 9;
+const BUY_QUANTITIES = [1, 10, 50];
 
 function loadRecentIds(): string[] {
   if (typeof window === "undefined") return [];
@@ -75,11 +67,23 @@ function pushRecentId(itemId: string) {
   return next;
 }
 
-// Secciones del listado de objetos: por tipo de mueble (WorldItemData.category,
-// ver itemTaxonomy). Antes se agrupaba por worldData.kind buscando "CHAIR",
-// "TABLE" o "DOOR", valores que ese enum no tiene -- todo caía en "Muebles".
-// Los NPC sí son un kind propio y van en su sección.
-const NPC_GROUP = { key: "NPC", labelKey: "buildmode.categoryNpcs", icon: UserRound };
+// Los nombres de los objetos del mundo traen la categoría como prefijo
+// ("Techo · Aguja", "Terror · Calabaza"): de ahí salen las categorías del
+// catálogo, sin depender de un campo aparte.
+function splitName(name: string | undefined): { group: string | null; short: string } {
+  const text = (name ?? "").trim();
+  const at = text.indexOf(" · ");
+  if (at <= 0) return { group: null, short: text };
+  return { group: text.slice(0, at), short: text.slice(at + 3) };
+}
+
+const isTypingTarget = (target: EventTarget | null) => {
+  const el = target as HTMLElement | null;
+  return !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable);
+};
+
+// Una ficha del catálogo: lo que tengo (con cantidad) o lo de la tienda (con precio).
+type Entry = { item: any; amount: number; price: number | null; maxStack: number };
 
 interface Props {
   inventory: any[];
@@ -121,15 +125,22 @@ export default function BuildModePanel({
     socketProp ||
     (typeof window !== "undefined" ? (window as any).phaserSocket : null);
   const [backgrounds, setBackgrounds] = useState<Background[]>([]);
+  const [shopItems, setShopItems] = useState<any[]>([]);
 
   useEffect(() => {
     if (!socket) return;
 
     socket.emit("getBackgrounds");
     socket.on("backgrounds:list", setBackgrounds);
+    // Lo de la tienda aparece en el mismo catálogo: se puede comprar sin
+    // salir del modo construcción.
+    const handleShop = (items: any[]) => setShopItems(Array.isArray(items) ? items : []);
+    socket.on("shop:items", handleShop);
+    socket.emit("shop:items:request");
 
     return () => {
       socket.off("backgrounds:list", setBackgrounds);
+      socket.off("shop:items", handleShop);
     };
   }, [socket]);
 
@@ -187,17 +198,23 @@ export default function BuildModePanel({
   const isPaintingAll = !!paintAllProgress;
   const paintAllPercent =
     paintAllProgress && paintAllProgress.total > 0
-      ? Math.min(
-          100,
-          Math.round((paintAllProgress.done / paintAllProgress.total) * 100),
-        )
+      ? Math.min(100, Math.round((paintAllProgress.done / paintAllProgress.total) * 100))
       : null;
-  const [activeTab, setActiveTab] = useState<BuildTab>("objects");
+  const [mode, setMode] = useState<BuildMode>("objects");
+  const [group, setGroup] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+  const [showMore, setShowMore] = useState(false);
   const [textureSize, setTextureSize] = useState("1x1");
   const [activePaintItem, setActivePaintItem] = useState<any | null>(null);
   const [activePlacementItem, setActivePlacementItem] = useState<any | null>(null);
   const [placementRemaining, setPlacementRemaining] = useState(0);
+  const [rowMode, setRowMode] = useState(false);
+  // Compra desde el catálogo: la ficha abierta y el id que se coloca apenas
+  // llega al inventario.
+  const [buyEntry, setBuyEntry] = useState<Entry | null>(null);
+  const [buying, setBuying] = useState(false);
+  const pendingPlaceId = useRef<string | null>(null);
   // Color para los muebles coloreables, elegido antes de colocarlos (lo lee
   // FurniturePlacementSystem en cada click). null = color original.
   const [placementColor, setPlacementColorState] = useState<number | null>(null);
@@ -206,7 +223,11 @@ export default function BuildModePanel({
     setPlacementColorState(color);
     setPlacementColor(color);
   };
-  const [roomFilter, setRoomFilter] = useState("all");
+
+  const toggleRowMode = (active: boolean) => {
+    setRowMode(active);
+    window.dispatchEvent(new CustomEvent("build:row-mode", { detail: { active } }));
+  };
 
   // El ghost vive en Phaser (BuildSystem); acá solo se refleja cuántas
   // unidades quedan y se cierra el estado cuando la colocación termina.
@@ -226,136 +247,238 @@ export default function BuildModePanel({
     return () => window.removeEventListener(BUILD_PLACEMENT_PROGRESS_EVENT, handleProgress);
   }, []);
 
-  const startPlacement = (item: any) => {
+  // Al salir del modo construcción el modo fila no debe quedar prendido.
+  useEffect(() => () => {
+    window.dispatchEvent(new CustomEvent("build:row-mode", { detail: { active: false } }));
+  }, []);
+
+  const startPlacement = (entry: Entry) => {
     setActivePaintItem(null);
     onCancelPainting();
+    const item = { ...entry.item, availableAmount: entry.amount };
     setActivePlacementItem(item);
     choosePlacementColor(null);
-    setPlacementRemaining(item?.availableAmount ?? 1);
-    registerRecent(item?.id);
+    setPlacementRemaining(entry.amount);
+    registerRecent(item.id);
     onPlaceWorldItem(item);
   };
 
-  const [textureWidth, textureHeight] = textureSize
-    .split("x")
-    .map((value) => Number(value) || 1);
+  const [textureWidth, textureHeight] = textureSize.split("x").map((value) => Number(value) || 1);
 
-  const { objects, allObjectsCount, textures, objectGroups, favoriteItems, recentItems, roomCounts } = useMemo(() => {
+  // Catálogo: lo que tengo y lo de la tienda que todavía no tengo, juntos.
+  const { objects, textures, groups } = useMemo(() => {
+    const owned = new Map<string, Entry>();
+    for (const inv of inventory) {
+      const item = inv.item;
+      if (item?.type !== "WORLD" || !item.id) continue;
+      owned.set(item.id, { item, amount: inv.amount ?? inv.quantity ?? 1, price: item.coinsPrice ?? null, maxStack: item.maxStack ?? 1 });
+    }
+    const all: Entry[] = [...owned.values()];
+    for (const item of shopItems) {
+      if (item?.type !== "WORLD" || !item.id || owned.has(item.id) || !(item.coinsPrice > 0)) continue;
+      all.push({ item, amount: 0, price: item.coinsPrice, maxStack: item.maxStack ?? 1 });
+    }
     const term = search.trim().toLowerCase();
-    const matches = (inv: any) =>
+    const matches = (entry: Entry) =>
       !term ||
-      inv.item?.name?.toLowerCase().includes(term) ||
-      inv.item?.id?.toLowerCase().includes(term) ||
-      inv.item?.worldData?.kind?.toLowerCase().includes(term);
-
-    const worldItems = inventory.filter((inv) => inv.item?.type === "WORLD");
-
-    const searchedObjects = worldItems.filter((inv) => {
-      const kind = inv.item?.worldData?.kind;
-      return kind !== "FLOOR" && kind !== "WALL" && matches(inv);
-    });
-
-    const counts: Record<string, number> = {};
-    searchedObjects.forEach((inv) => {
-      getItemRooms(inv.item).forEach((room) => {
-        counts[room] = (counts[room] ?? 0) + 1;
-      });
-    });
-
-    const objectItems =
-      roomFilter === "all"
-        ? searchedObjects
-        : searchedObjects.filter((inv) => getItemRooms(inv.item).includes(roomFilter));
-
-    const isNpc = (inv: any) => inv.item?.worldData?.kind === "NPC";
-    const groups = [
-      ...FURNITURE_TYPES.map((type) => ({
-        key: type.key,
-        labelKey: type.labelKey,
-        icon: type.icon as LucideIcon,
-        items: objectItems.filter((inv) => !isNpc(inv) && getFurnitureType(inv.item) === type.key),
-      })),
-      { ...NPC_GROUP, items: objectItems.filter(isNpc) },
-    ].filter((group) => group.items.length > 0);
-
-    // "Recientes" respeta el orden de colocación (más nuevo primero), no el
-    // orden del inventario — por eso se arma buscando cada id en orden en
-    // vez de filtrar objectItems directamente.
-    const recent = recentIds
-      .map((itemId) => searchedObjects.find((inv) => inv.item?.id === itemId))
-      .filter((inv): inv is (typeof searchedObjects)[number] => Boolean(inv));
-
-    return {
-      objects: objectItems,
-      allObjectsCount: searchedObjects.length,
-      objectGroups: groups,
-      roomCounts: counts,
-      favoriteItems: searchedObjects.filter((inv) => favoriteIds.includes(inv.item?.id)),
-      recentItems: recent,
-      textures: worldItems.filter((inv) => {
-        const kind = inv.item?.worldData?.kind;
-        return (kind === "FLOOR" || kind === "WALL") && matches(inv);
-      }),
+      entry.item.name?.toLowerCase().includes(term) ||
+      entry.item.description?.toLowerCase().includes(term) ||
+      entry.item.worldData?.kind?.toLowerCase().includes(term);
+    const isTexture = (entry: Entry) => {
+      const kind = entry.item.worldData?.kind;
+      return kind === "FLOOR" || kind === "WALL";
     };
-  }, [inventory, search, favoriteIds, recentIds, roomFilter]);
+    const byOwnedThenName = (a: Entry, b: Entry) =>
+      Number(b.amount > 0) - Number(a.amount > 0) || String(a.item.name).localeCompare(String(b.item.name));
+    const objectEntries = all.filter((entry) => !isTexture(entry) && matches(entry)).sort(byOwnedThenName);
+    const counts = new Map<string, number>();
+    for (const entry of objectEntries) {
+      const key = splitName(entry.item.name).group ?? "__other";
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return {
+      objects: objectEntries,
+      textures: all.filter((entry) => isTexture(entry) && matches(entry)).sort(byOwnedThenName),
+      groups: [...counts.entries()].sort((a, b) => (a[0] === "__other" ? 1 : b[0] === "__other" ? -1 : a[0].localeCompare(b[0]))),
+    };
+  }, [inventory, shopItems, search]);
 
-  // El fondo y la iluminación son herramientas de EDICIÓN de la sala (se
-  // usan mientras decorás, con vista previa inmediata en el mundo) — antes
-  // vivían en "Editar Mundo" junto a Permisos, lo que las hacía sentir como
-  // configuración administrativa y las escondía del lugar donde en realidad
-  // se decora. Ahora esta pestaña ("Ambiente") es la única que las muestra,
-  // igual que Objetos/Texturas, cada sección gateada por su propio permiso
-  // granular (alguien puede tener canChangeBackground sin canModifyLighting).
-  const showEnvironmentTab = permissions.canChangeBackground || permissions.canModifyLighting;
+  const ownedObjects = objects.filter((entry) => entry.amount > 0);
+  const favorites = ownedObjects.filter((entry) => favoriteIds.includes(entry.item.id));
+  const recents = recentIds
+    .map((id) => ownedObjects.find((entry) => entry.item.id === id))
+    .filter((entry): entry is Entry => Boolean(entry));
+  const hotbar = recents.slice(0, HOTBAR_SIZE);
 
-  const tabs: Array<{ id: BuildTab; label: string; icon: LucideIcon; count?: number }> = [
-    { id: "objects", label: t("buildmode.tabObjects"), icon: Boxes, count: allObjectsCount },
-    { id: "favorites", label: t("buildmode.tabFavorites"), icon: Star, count: favoriteItems.length },
-    { id: "recent", label: t("buildmode.tabRecent"), icon: Clock, count: recentItems.length },
-    { id: "inventory", label: t("buildmode.tabInventory"), icon: Backpack, count: inventory.length },
-    { id: "textures", label: t("buildmode.tabTextures"), icon: Paintbrush, count: textures.length },
-    ...(showEnvironmentTab
-      ? [{ id: "background" as const, label: t("buildmode.tabEnvironment"), icon: ImageIcon }]
-      : []),
+  const visible =
+    mode === "textures"
+      ? textures
+      : group === "all"
+        ? objects
+        : group === "favorites"
+          ? favorites
+          : group === "recent"
+            ? recents
+            : objects.filter((entry) => (splitName(entry.item.name).group ?? "__other") === group);
+
+  const pickEntry = (entry: Entry) => {
+    if (entry.amount <= 0) {
+      setBuyEntry(entry);
+      return;
+    }
+    if (mode === "textures") {
+      setActivePlacementItem(null);
+      setActivePaintItem(entry.item);
+      onPaintSurfaceTexture(entry.item, textureWidth, textureHeight);
+      return;
+    }
+    startPlacement(entry);
+  };
+
+  // Compra: al confirmar llega el inventario nuevo y se arranca a colocar.
+  useEffect(() => {
+    if (!socket) return;
+    const done = () => setBuying(false);
+    const fail = () => {
+      setBuying(false);
+      pendingPlaceId.current = null;
+    };
+    socket.on("shop:item:bought", done);
+    socket.on("shop:item:error", fail);
+    return () => {
+      socket.off("shop:item:bought", done);
+      socket.off("shop:item:error", fail);
+    };
+  }, [socket]);
+
+  useEffect(() => {
+    const id = pendingPlaceId.current;
+    if (!id) return;
+    const inv = inventory.find((entry) => entry.item?.id === id);
+    if (!inv) return;
+    pendingPlaceId.current = null;
+    pickEntry({ item: inv.item, amount: inv.amount ?? inv.quantity ?? 1, price: inv.item?.coinsPrice ?? null, maxStack: inv.item?.maxStack ?? 1 });
+    // Solo reacciona a inventario nuevo; pickEntry depende del modo actual a propósito.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inventory]);
+
+  const buy = (entry: Entry, quantity: number) => {
+    if (!socket || buying) return;
+    setBuying(true);
+    pendingPlaceId.current = entry.item.id;
+    socket.emit("shop:item:buy", entry.maxStack > 1 ? { itemId: entry.item.id, quantity } : { itemId: entry.item.id });
+    setBuyEntry(null);
+    setTimeout(() => setBuying(false), 8000);
+  };
+
+  // Atajos: "/" busca, 1-9 eligen de la barra rápida.
+  useEffect(() => {
+    const handleKey = (event: KeyboardEvent) => {
+      if (isTypingTarget(event.target) || event.ctrlKey || event.metaKey || event.altKey) return;
+      if (event.key === "/") {
+        event.preventDefault();
+        searchRef.current?.focus();
+        return;
+      }
+      const slot = Number(event.key);
+      if (Number.isInteger(slot) && slot >= 1 && slot <= HOTBAR_SIZE && hotbar[slot - 1]) {
+        setMode("objects");
+        startPlacement(hotbar[slot - 1]);
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  });
+
+  const showEnvironment = permissions.canChangeBackground || permissions.canModifyLighting;
+  const modes: Array<{ id: BuildMode; label: string; icon: typeof Boxes }> = [
+    { id: "objects", label: t("buildmode.tabObjects"), icon: Boxes },
+    { id: "textures", label: t("buildmode.tabTextures"), icon: Paintbrush },
+    ...(showEnvironment ? [{ id: "environment" as const, label: t("buildmode.tabEnvironment"), icon: ImageIcon }] : []),
   ];
+  const groupLabel = (key: string) => (key === "__other" ? t("buildmode.groupOther") : key);
+  const entryTitle = (entry: Entry) => entry.item.name || entry.item.worldData?.kind || t("buildmode.itemFallbackName");
+
+  const tile = (entry: Entry, key?: number) => {
+    const owned = entry.amount > 0;
+    const selected = activePlacementItem?.id === entry.item.id || activePaintItem?.id === entry.item.id;
+    return (
+      <button
+        key={entry.item.id}
+        type="button"
+        className={`${styles.tile} ${owned ? "" : styles.tileShop} ${selected ? styles.tileSelected : ""}`}
+        title={`${entryTitle(entry)}${entry.item.description ? ` — ${entry.item.description}` : ""}`}
+        aria-label={entryTitle(entry)}
+        onClick={() => pickEntry(entry)}
+        onContextMenu={(event) => {
+          event.preventDefault();
+          if (owned) toggleFavorite(entry.item.id);
+        }}
+      >
+        <ItemPreview item={entry.item} alt={entryTitle(entry)} className={styles.tileImage} />
+        {key !== undefined && <span className={styles.tileKey}>{key}</span>}
+        {owned ? (
+          <b className={styles.tileCount}>{entry.amount}</b>
+        ) : (
+          <b className={styles.tilePrice}>
+            <Coins size={9} /> {entry.price}
+          </b>
+        )}
+        {owned && favoriteIds.includes(entry.item.id) && <Star size={10} className={styles.tileStar} />}
+      </button>
+    );
+  };
 
   return (
-    <aside className={styles.panel} aria-label={t("buildmode.ariaBuildMode")}>
-      <div className={styles.header}>
-        <div>
-          <span className={styles.eyebrow}>{t("buildmode.eyebrowRoomEditor")}</span>
-          <h2>{t("buildmode.title")}</h2>
+    <div className={styles.root} aria-label={t("buildmode.ariaBuildMode")}>
+      {/* ============ Barra de arriba ============ */}
+      <div className={`${styles.glass} ${styles.topBar}`} role="toolbar" aria-label={t("buildmode.editorToolbarLabel")}>
+        <button type="button" className={styles.exitButton} onClick={onExit} title={t("buildmode.exitButton")}>
+          <X size={15} /> <span>{t("buildmode.exitShort")}</span>
+        </button>
+        <div className={styles.modes} role="tablist">
+          {modes.map((entry) => (
+            <button
+              key={entry.id}
+              type="button"
+              role="tab"
+              aria-selected={mode === entry.id}
+              className={`${styles.modeButton} ${mode === entry.id ? styles.modeActive : ""}`}
+              onClick={() => {
+                setMode(entry.id);
+                setBuyEntry(null);
+              }}
+            >
+              <entry.icon size={15} /> <span>{entry.label}</span>
+            </button>
+          ))}
         </div>
-        <div className={styles.headerActions}>
-          <button
-            className={styles.iconButton}
-            onClick={onOpenShop}
-            title={t("buildmode.tabShop")}
-            aria-label={t("buildmode.tabShop")}
-          >
-            <ShoppingBag size={16} />
-          </button>
-          <button
-            className={styles.iconButton}
-            onClick={onOpenMarketplace}
-            title={t("buildmode.tabMarketplace")}
-            aria-label={t("buildmode.tabMarketplace")}
-          >
-            <Store size={16} />
-          </button>
-          <button className={styles.exitButton} onClick={onExit}>
-            {t("buildmode.exitButton")}
-          </button>
-        </div>
-      </div>
-
-      <div className={styles.toolbar} role="toolbar" aria-label={t("buildmode.editorToolbarLabel")}>
+        {mode !== "environment" && (
+          <label className={styles.search}>
+            <Search size={14} />
+            <input
+              ref={searchRef}
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") {
+                  setSearch("");
+                  (event.target as HTMLInputElement).blur();
+                }
+              }}
+              placeholder={t("buildmode.searchPlaceholder")}
+              aria-label={t("buildmode.searchAriaLabel")}
+            />
+            <kbd>/</kbd>
+          </label>
+        )}
+        <span className={styles.separator} />
         <button
           type="button"
           className={styles.iconButton}
           disabled={!canUndo}
           onClick={() => window.dispatchEvent(new CustomEvent("build:command:undo"))}
-          title={t("buildmode.undoAction")}
+          title={`${t("buildmode.undoAction")} (Ctrl+Z)`}
           aria-label={t("buildmode.undoAction")}
         >
           <Undo2 size={16} />
@@ -365,286 +488,234 @@ export default function BuildModePanel({
           className={styles.iconButton}
           disabled={!canRedo}
           onClick={() => window.dispatchEvent(new CustomEvent("build:command:redo"))}
-          title={t("buildmode.redoAction")}
+          title={`${t("buildmode.redoAction")} (Ctrl+Y)`}
           aria-label={t("buildmode.redoAction")}
         >
           <Redo2 size={16} />
         </button>
-        <span className={styles.toolbarHint}>{t("buildmode.undoRedoHint")}</span>
+        <span className={styles.separator} />
+        <button type="button" className={styles.iconButton} onClick={onOpenShop} title={t("buildmode.tabShop")} aria-label={t("buildmode.tabShop")}>
+          <ShoppingBag size={16} />
+        </button>
+        <div className={styles.moreWrap}>
+          <button
+            type="button"
+            className={styles.iconButton}
+            aria-expanded={showMore}
+            onClick={() => setShowMore((value) => !value)}
+            title={t("buildmode.moreActions")}
+            aria-label={t("buildmode.moreActions")}
+          >
+            <MoreHorizontal size={16} />
+          </button>
+          {showMore && (
+            <div className={`${styles.glass} ${styles.moreMenu}`}>
+              <button type="button" onClick={() => { setShowMore(false); onOpenMarketplace(); }}>
+                <Store size={15} /> {t("buildmode.tabMarketplace")}
+              </button>
+              <button type="button" className={styles.dangerItem} onClick={() => { setShowMore(false); onClearRoom(); }}>
+                {t("buildmode.clearRoomButton")}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
-      {(activeTab === "objects" || activeTab === "inventory" || activeTab === "textures") && (
-        <div className={styles.searchBox}>
-          <span>{t("common.search")}</span>
-          <input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder={t("buildmode.searchPlaceholder")}
-            aria-label={t("buildmode.searchAriaLabel")}
-          />
+      {/* ============ Aviso de lo que se está haciendo (con botones para tablet) ============ */}
+      {activePlacementItem && (
+        <div className={`${styles.glass} ${styles.status}`} role="status">
+          <ItemPreview item={activePlacementItem} alt={activePlacementItem.name} className={styles.statusImage} />
+          <span className={styles.statusText}>
+            {t("buildmode.placingLabel")} <b>{splitName(activePlacementItem.name).short || t("buildmode.itemFallbackName")}</b> ×{placementRemaining}
+          </span>
+          <button type="button" className={styles.statusButton} onClick={() => window.dispatchEvent(new CustomEvent("build:item:rotate"))}>
+            <RotateCw size={14} /> {t("buildmode.rotateButton")} <kbd>R</kbd>
+          </button>
+          <button
+            type="button"
+            aria-pressed={rowMode}
+            className={`${styles.statusButton} ${rowMode ? styles.statusButtonOn : ""}`}
+            onClick={() => toggleRowMode(!rowMode)}
+            title={t("buildmode.rowModeHint")}
+          >
+            <Rows3 size={14} /> {t("buildmode.rowModeButton")} <kbd>Shift</kbd>
+          </button>
+          <button
+            type="button"
+            className={styles.statusButton}
+            onClick={() => {
+              setActivePlacementItem(null);
+              toggleRowMode(false);
+              onCancelPlacement();
+            }}
+          >
+            {t("buildmode.finishButton")} <kbd>ESC</kbd>
+          </button>
+          {activePlacementItem.colorable && (
+            <div className={styles.statusColors}>
+              <ColorSwatchPicker
+                colors={COLOR_FREE_COLORS}
+                premiumColors={COLOR_PREMIUM_COLORS}
+                isPremium={isPremium}
+                value={placementColor}
+                onSelect={choosePlacementColor}
+                onClear={() => choosePlacementColor(null)}
+              />
+            </div>
+          )}
         </div>
       )}
 
-      <nav className={`${styles.tabs} ${tabsOverflow.scrollRow}`} aria-label="Categorias de construccion">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            className={`${styles.tab} ${activeTab === tab.id ? styles.active : ""}`}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            <tab.icon size={15} className={styles.tabIcon} />
-            <span>{tab.label}</span>
-            {typeof tab.count === "number" && <b>{tab.count}</b>}
-          </button>
-        ))}
-      </nav>
-
-      {activeTab === "textures" && (
-        <div className={styles.toolRow}>
-          <label>
+      {activePaintItem && (
+        <div className={`${styles.glass} ${styles.status}`} role="status">
+          <ItemPreview item={activePaintItem} alt={activePaintItem.name} className={styles.statusImage} />
+          <span className={styles.statusText}>
+            {t("buildmode.paintingFloorLabel")} <b>{splitName(activePaintItem.name).short || t("buildmode.textureFallbackName")}</b>
+          </span>
+          <label className={styles.statusSelect}>
             {t("buildmode.brushLabel")}
             <select
               value={textureSize}
-              onChange={(event) => setTextureSize(event.target.value)}
+              onChange={(event) => {
+                setTextureSize(event.target.value);
+                const [w, h] = event.target.value.split("x").map((value) => Number(value) || 1);
+                onPaintSurfaceTexture(activePaintItem, w, h);
+              }}
             >
-              <option value="1x1">1 x 1</option>
-              <option value="2x2">2 x 2</option>
-              <option value="3x3">3 x 3</option>
-              <option value="2x3">2 x 3</option>
-              <option value="3x2">3 x 2</option>
+              {["1x1", "2x2", "3x3", "2x3", "3x2"].map((size) => (
+                <option key={size} value={size}>{size.replace("x", " x ")}</option>
+              ))}
             </select>
           </label>
+          {activePaintItem.worldData?.kind !== "WALL" && (
+            <button
+              type="button"
+              className={styles.statusButton}
+              disabled={isPaintingAll}
+              onClick={() => {
+                onPaintAllFloor();
+                setActivePaintItem(null);
+              }}
+            >
+              <Paintbrush size={14} /> {t("buildmode.paintAllFloorButton")}
+            </button>
+          )}
+          <button
+            type="button"
+            className={styles.statusButton}
+            onClick={() => {
+              setActivePaintItem(null);
+              onCancelPainting();
+            }}
+          >
+            {t("buildmode.finishButton")} <kbd>ESC</kbd>
+          </button>
+          <span className={styles.statusHint}>{t("buildmode.tipText")}</span>
         </div>
       )}
 
-      <div className={styles.content}>
-        {activeTab === "background" ? (
-          <div className={styles.backgroundPanel}>
-            {permissions.canChangeBackground && (
-              <section className={styles.environmentSection}>
-                <h3 className={styles.categoryTitle}>{t("buildmode.environmentBackgroundTitle")}</h3>
-                <BackgroundSelector
-                  backgrounds={backgrounds}
-                  selectedId={currentBackgroundId}
-                  onSelect={(id) => {
-                    if (!roomId) return;
-                    socket?.emit("room:changeBackground", { roomId, backgroundId: id });
-                  }}
-                />
-              </section>
-            )}
-
-            {permissions.canModifyLighting && roomId && (
-              <section className={styles.environmentSection}>
-                <h3 className={styles.categoryTitle}>{t("buildmode.environmentLightingTitle")}</h3>
-                <LightingControls roomId={roomId} socket={socket} />
-              </section>
-            )}
-          </div>
-        ) : activeTab === "textures" ? (
-          <BuildItemGrid
-            items={textures}
-            empty={t("buildmode.texturesEmpty")}
-            actionLabel={t("buildmode.paintAction")}
-            onAction={(item) => {
-              setActivePlacementItem(null);
-              setActivePaintItem(item);
-              onPaintSurfaceTexture(item, textureWidth, textureHeight);
-            }}
-          />
-        ) : activeTab === "favorites" ? (
-          <BuildItemGrid
-            items={favoriteItems}
-            empty={t("buildmode.favoritesEmptyTitle")}
-            actionLabel={t("buildmode.placeAction")}
-            favoriteIds={favoriteIds}
-            onToggleFavorite={toggleFavorite}
-            onAction={startPlacement}
-          />
-        ) : activeTab === "recent" ? (
-          <BuildItemGrid
-            items={recentItems}
-            empty={t("buildmode.recentEmptyTitle")}
-            actionLabel={t("buildmode.placeAction")}
-            favoriteIds={favoriteIds}
-            onToggleFavorite={toggleFavorite}
-            onAction={startPlacement}
-          />
-        ) : (
-          <>
-            {allObjectsCount > 0 && (
-              <div
-                className={`${styles.roomChips} ${tabsOverflow.scrollRow}`}
-                role="group"
-                aria-label={t("commerce.taxRoomFilterLabel")}
-              >
-                <button
-                  type="button"
-                  className={`${styles.roomChip} ${roomFilter === "all" ? styles.roomChipActive : ""}`}
-                  aria-pressed={roomFilter === "all"}
-                  onClick={() => setRoomFilter("all")}
-                >
-                  {t("commerce.taxAll")}
-                </button>
-                {ITEM_ROOMS.map((room) => {
-                  const count = roomCounts[room.key] ?? 0;
-                  return (
-                    <button
-                      key={room.key}
-                      type="button"
-                      className={`${styles.roomChip} ${roomFilter === room.key ? styles.roomChipActive : ""}`}
-                      aria-pressed={roomFilter === room.key}
-                      disabled={count === 0 && roomFilter !== room.key}
-                      onClick={() => setRoomFilter(room.key)}
-                    >
-                      <room.icon size={13} aria-hidden="true" />
-                      {t(room.labelKey)}
-                      <b>{count}</b>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-            {objects.length === 0 ? (
-              <div className={styles.empty}>
-                <strong>{t("buildmode.objectsEmptyTitle")}</strong>
-                <span>{t("buildmode.tryAnotherNameHint")}</span>
-              </div>
-            ) : (
-              <div className={styles.categoryList}>
-                {objectGroups.map((group) => (
-                  <section key={group.key} className={styles.categorySection}>
-                    <h3 className={styles.categoryTitle}>
-                      <group.icon size={14} /> {t(group.labelKey)}
-                      <b>{group.items.length}</b>
-                    </h3>
-                    <BuildItemGrid
-                      items={group.items}
-                      empty=""
-                      actionLabel={t("buildmode.placeAction")}
-                      favoriteIds={favoriteIds}
-                      onToggleFavorite={toggleFavorite}
-                      onAction={startPlacement}
-                    />
-                  </section>
-                ))}
-              </div>
-            )}
-          </>
-        )}
-      </div>
-
-      <div className={styles.footer}>
-        {activePlacementItem && (
-          <div className={styles.paintState}>
-            <div className={styles.activePreview}>
-              <ItemPreview item={activePlacementItem} alt={activePlacementItem.name} />
-              <div>
-                <strong>{t("buildmode.placingLabel")}</strong>
-                <span>
-                  {activePlacementItem.name || activePlacementItem.id || t("buildmode.itemFallbackName")}
-                  {" · "}
-                  {t("buildmode.placingRemaining", { count: placementRemaining })}
-                </span>
-                <span className={styles.escHint}>
-                  {t("buildmode.placingHintClick")} · <kbd>R</kbd> {t("buildmode.placingHintRotate")} ·{" "}
-                  <kbd>ESC</kbd> {t("buildmode.placingHintFinish")}
-                </span>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setActivePlacementItem(null);
-                onCancelPlacement();
-              }}
-            >
-              {t("buildmode.cancelSelectionButton")}
-            </button>
-          </div>
-        )}
-
-        {activePlacementItem?.colorable && (
-          <div className={styles.placementColor}>
-            <strong>{t("buildmode.placementColorTitle")}</strong>
-            <ColorSwatchPicker
-              colors={COLOR_FREE_COLORS}
-              premiumColors={COLOR_PREMIUM_COLORS}
-              isPremium={isPremium}
-              value={placementColor}
-              onSelect={choosePlacementColor}
-              onClear={() => choosePlacementColor(null)}
+      {isPaintingAll && (
+        <div className={`${styles.glass} ${styles.status}`} role="status" aria-live="polite">
+          <span className={styles.statusText}>
+            <Paintbrush size={14} /> {t("buildmode.paintingAllProgressLabel")} <b>{paintAllPercent === null ? "..." : `${paintAllPercent}%`}</b>
+          </span>
+          <span className={styles.progressTrack}>
+            <span
+              className={`${styles.progressFill} ${paintAllPercent === null ? styles.progressIndeterminate : ""}`}
+              style={paintAllPercent === null ? undefined : { width: `${paintAllPercent}%` }}
             />
+          </span>
+        </div>
+      )}
+
+      {/* ============ Abajo: barra rápida + catálogo ============ */}
+      <div className={styles.bottom}>
+        {mode === "objects" && hotbar.length > 0 && (
+          <div className={`${styles.glass} ${styles.hotbar}`} aria-label={t("buildmode.hotbarLabel")}>
+            {hotbar.map((entry, index) => tile(entry, index + 1))}
           </div>
         )}
 
-        {activePaintItem && (
-          <div className={styles.paintState}>
-            <div className={styles.activePreview}>
-              <ItemPreview item={activePaintItem} alt={activePaintItem.name} />
-              <div>
-                <strong>{t("buildmode.paintingFloorLabel")}</strong>
-                <span>
-                  {activePaintItem.name || activePaintItem.id || t("buildmode.textureFallbackName")} · {textureWidth}x{textureHeight}
-                </span>
-                <span className={styles.escHint}>
-                  {t("buildmode.dragToPaintHintPrefix")} <kbd>ESC</kbd> {t("buildmode.dragToPaintHintSuffix")}
-                </span>
+        <div className={`${styles.glass} ${styles.dock}`}>
+          {mode === "environment" ? (
+            <div className={styles.environment}>
+              {permissions.canChangeBackground && (
+                <section>
+                  <h3 className={styles.sectionTitle}>{t("buildmode.environmentBackgroundTitle")}</h3>
+                  <BackgroundSelector
+                    backgrounds={backgrounds}
+                    selectedId={currentBackgroundId}
+                    onSelect={(id) => {
+                      if (!roomId) return;
+                      socket?.emit("room:changeBackground", { roomId, backgroundId: id });
+                    }}
+                  />
+                </section>
+              )}
+              {permissions.canModifyLighting && roomId && (
+                <section>
+                  <h3 className={styles.sectionTitle}>{t("buildmode.environmentLightingTitle")}</h3>
+                  <LightingControls roomId={roomId} socket={socket} />
+                </section>
+              )}
+            </div>
+          ) : (
+            <>
+              {mode === "objects" && (
+                <div className={styles.chips} role="group" aria-label={t("buildmode.categoriesLabel")}>
+                  {[
+                    { key: "all", label: t("buildmode.groupAll"), count: objects.length },
+                    { key: "favorites", label: `★ ${t("buildmode.tabFavorites")}`, count: favorites.length },
+                    { key: "recent", label: t("buildmode.tabRecent"), count: recents.length },
+                    ...groups.map(([key, count]) => ({ key, label: groupLabel(key), count })),
+                  ].map((chip) => (
+                    <button
+                      key={chip.key}
+                      type="button"
+                      aria-pressed={group === chip.key}
+                      className={`${styles.chip} ${group === chip.key ? styles.chipActive : ""}`}
+                      onClick={() => setGroup(chip.key)}
+                    >
+                      {chip.label} <i>{chip.count}</i>
+                    </button>
+                  ))}
+                  <span className={styles.chipsHint}>{t("buildmode.catalogHint")}</span>
+                </div>
+              )}
+              {visible.length === 0 ? (
+                <div className={styles.empty}>
+                  <strong>{mode === "textures" ? t("buildmode.texturesEmpty") : group === "favorites" ? t("buildmode.favoritesEmptyTitle") : group === "recent" ? t("buildmode.recentEmptyTitle") : t("buildmode.objectsEmptyTitle")}</strong>
+                  <span>{t("buildmode.tryAnotherNameHint")}</span>
+                </div>
+              ) : (
+                <div className={styles.grid}>{visible.map((entry) => tile(entry))}</div>
+              )}
+            </>
+          )}
+
+          {buyEntry && (
+            <div className={`${styles.glass} ${styles.buyPopover}`} role="dialog" aria-label={entryTitle(buyEntry)}>
+              <ItemPreview item={buyEntry.item} alt={entryTitle(buyEntry)} className={styles.statusImage} />
+              <div className={styles.buyText}>
+                <strong>{entryTitle(buyEntry)}</strong>
+                {buyEntry.item.description && <span>{buyEntry.item.description}</span>}
+                <span className={styles.buyHint}>{t("buildmode.notOwnedHint")}</span>
+              </div>
+              <div className={styles.buyActions}>
+                {BUY_QUANTITIES.filter((quantity) => quantity === 1 || quantity <= buyEntry.maxStack).map((quantity) => (
+                  <button key={quantity} type="button" disabled={buying} onClick={() => buy(buyEntry, quantity)}>
+                    ×{quantity} · <Coins size={11} /> {(buyEntry.price ?? 0) * quantity}
+                  </button>
+                ))}
+                <button type="button" className={styles.buyCancel} onClick={() => setBuyEntry(null)}>
+                  {t("common.cancel")}
+                </button>
               </div>
             </div>
-            <div className={styles.paintActions}>
-              {activePaintItem.worldData?.kind !== "WALL" && (
-                <button
-                  type="button"
-                  className={styles.paintAllButton}
-                  disabled={isPaintingAll}
-                  onClick={() => {
-                    onPaintAllFloor();
-                    setActivePaintItem(null);
-                  }}
-                >
-                  <Paintbrush size={14} /> {t("buildmode.paintAllFloorButton")}
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  setActivePaintItem(null);
-                  onCancelPainting();
-                }}
-              >
-                {t("buildmode.cancelPaintButton")}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {isPaintingAll && (
-          <div className={styles.progressState} role="status" aria-live="polite">
-            <div className={styles.progressLabel}>
-              <span className={styles.progressLabelText}>
-                <Paintbrush size={14} /> {t("buildmode.paintingAllProgressLabel")}
-              </span>
-              <b>{paintAllPercent === null ? "..." : `${paintAllPercent}%`}</b>
-            </div>
-            <div className={styles.progressTrack}>
-              <div
-                className={`${styles.progressFill} ${paintAllPercent === null ? styles.progressIndeterminate : ""}`}
-                style={
-                  paintAllPercent === null
-                    ? undefined
-                    : { width: `${paintAllPercent}%` }
-                }
-              />
-            </div>
-          </div>
-        )}
-        <button className={styles.dangerButton} onClick={onClearRoom}>
-          {t("buildmode.clearRoomButton")}
-        </button>
-        <p>{t("buildmode.tipText")}</p>
+          )}
+        </div>
       </div>
-    </aside>
+    </div>
   );
 }
 
@@ -705,48 +776,5 @@ function LightingControls({ roomId, socket }: { roomId: string; socket: any }) {
         {t("common.saveChanges")}
       </button>
     </div>
-  );
-}
-
-function BuildItemGrid({
-  items,
-  empty,
-  actionLabel,
-  onAction,
-  favoriteIds,
-  onToggleFavorite,
-}: {
-  items: any[];
-  empty: string;
-  actionLabel: string;
-  onAction: (item: any) => void;
-  favoriteIds?: string[];
-  onToggleFavorite?: (itemId?: string) => void;
-}) {
-  const t = useTranslation();
-  return (
-    <SharedItemGrid
-      isEmpty={items.length === 0}
-      empty={
-        <>
-          <strong>{empty}</strong>
-          <span>{t("buildmode.tryAnotherNameHint")}</span>
-        </>
-      }
-    >
-      {items.map((inv) => (
-        <ItemCard
-          key={inv.id}
-          item={inv.item}
-          rarity={inv.item?.rarity}
-          title={inv.item?.name || inv.item?.worldData?.kind || t("buildmode.itemFallbackName")}
-          stackCount={inv.amount ?? inv.quantity ?? 1}
-          onClick={() => onAction({ ...inv.item, availableAmount: inv.amount ?? inv.quantity ?? 1 })}
-          actionHint={actionLabel}
-          isFavorite={favoriteIds?.includes(inv.item?.id)}
-          onToggleFavorite={onToggleFavorite ? () => onToggleFavorite(inv.item?.id) : undefined}
-        />
-      ))}
-    </SharedItemGrid>
   );
 }

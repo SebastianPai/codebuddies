@@ -1,252 +1,525 @@
-.panel {
+/* Modo construcción: barra arriba, aviso de estado, barra rápida y catálogo
+   abajo. El contenedor no captura el mouse: solo sus piezas, así el centro
+   de la pantalla sigue siendo el juego. */
+.root {
   position: fixed;
-  top: 18px;
-  left: 18px;
-  bottom: 18px;
+  inset: 0;
   z-index: 12000;
-  display: flex;
-  width: min(410px, calc(100vw - 32px));
-  flex-direction: column;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 28px;
-  color: #f7fbff;
-  background:
-    radial-gradient(circle at 18% 0%, rgba(250, 204, 21, 0.14), transparent 38%),
-    linear-gradient(160deg, rgba(20, 24, 32, 0.97), rgba(9, 11, 16, 0.97));
-  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.48);
-  backdrop-filter: blur(14px);
+  pointer-events: none;
+  color: #f5f7fb;
+}
+
+.root > * {
   pointer-events: auto;
-  animation: slideIn 180ms ease-out;
 }
 
-.header {
+.glass {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(14, 17, 24, 0.88);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(8px);
+}
+
+.root kbd {
+  border: 1px solid #4a5263;
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  padding: 0 5px;
+  color: #c9d0dc;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.root button {
+  font: inherit;
+}
+
+/* ---------- Barra de arriba ---------- */
+.topBar {
+  position: absolute;
+  top: 12px;
+  right: 0;
+  left: 0;
+  width: max-content;
+  margin: 0 auto;
   display: flex;
-  gap: 14px;
-  align-items: flex-start;
-  justify-content: space-between;
-  padding: 20px;
-}
-
-.eyebrow {
-  color: #facc15;
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-}
-
-.header h2 {
-  margin: 4px 0 0;
-  font-size: 26px;
-  line-height: 0.9;
-  letter-spacing: -0.04em;
-}
-
-/* Antes "Tienda"/"Marketplace" eran pestañas de contenido; ahora son
-   accesos directos junto a "Salir" — son ACCIONES (abren otra ventana),
-   no vistas del panel, así que van en el header, no en la grilla de tabs. */
-.headerActions {
-  display: flex;
+  max-width: calc(100vw - 24px);
   align-items: center;
   gap: 8px;
-  flex-shrink: 0;
+  padding: 7px 9px;
+  border-radius: 18px;
+}
+
+.exitButton {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  border-radius: 12px;
+  padding: 9px 13px;
+  color: #111;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  background: #facc15;
+}
+
+.modes {
+  display: flex;
+  border-radius: 12px;
+  padding: 3px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.modeButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  border-radius: 9px;
+  padding: 7px 12px;
+  color: #aeb6c6;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  background: transparent;
+}
+
+.modeActive {
+  color: #fff;
+  background: #2b3242;
+}
+
+.search {
+  display: flex;
+  width: 260px;
+  align-items: center;
+  gap: 8px;
+  border-radius: 12px;
+  padding: 7px 10px;
+  color: #8d96a8;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.search input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  color: #f5f7fb;
+  font-size: 14px;
+  background: transparent;
+}
+
+.separator {
+  width: 1px;
+  height: 26px;
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .iconButton {
   display: grid;
-  place-items: center;
   width: 36px;
   height: 36px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 12px;
-  color: #dce9ff;
-  background: rgba(255, 255, 255, 0.07);
+  place-items: center;
+  border: 0;
+  border-radius: 11px;
+  color: #d6dbe5;
   cursor: pointer;
-  transition:
-    transform 140ms ease,
-    background 140ms ease,
-    filter 140ms ease;
+  background: rgba(255, 255, 255, 0.07);
 }
 
-.iconButton:hover {
-  background: rgba(250, 204, 21, 0.16);
-  color: #ffd34d;
-  transform: translateY(-1px);
+.iconButton:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .iconButton:disabled {
-  opacity: 0.35;
   cursor: not-allowed;
-  transform: none;
-  background: rgba(255, 255, 255, 0.07);
-  color: #dce9ff;
+  opacity: 0.35;
 }
 
-/* Fila de herramientas de editor (deshacer/rehacer) — separada de las
-   pestañas de contenido porque son acciones sobre el historial de edición,
-   no vistas del inventario, y de los accesos rápidos del header (tienda/
-   marketplace) porque esas abren ventanas externas en vez de operar sobre
-   la sala misma. */
-.toolbar {
+.moreWrap {
+  position: relative;
+}
+
+.moreMenu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  display: grid;
+  min-width: 190px;
+  gap: 4px;
+  border-radius: 14px;
+  padding: 6px;
+}
+
+.moreMenu button {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 18px 14px;
-}
-
-.toolbarHint {
-  color: #6d7d99;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-}
-
-.exitButton,
-.dangerButton {
   border: 0;
-  border-radius: 16px;
-  padding: 11px 13px;
-  font-weight: 900;
+  border-radius: 10px;
+  padding: 9px 10px;
+  color: #e5e9f0;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: left;
   cursor: pointer;
-  transition:
-    transform 140ms ease,
-    filter 140ms ease;
+  background: transparent;
 }
 
-.exitButton {
-  max-width: 145px;
-  color: #08121f;
-  background: linear-gradient(135deg, #facc15, #fde047);
+.moreMenu button:hover {
+  background: rgba(255, 255, 255, 0.08);
 }
 
-.dangerButton {
-  color: #fff;
-  background: linear-gradient(135deg, #ff476a, #ff9f45);
+.moreMenu .dangerItem {
+  color: #fca5a5;
 }
 
-.exitButton:hover,
-.dangerButton:hover,
-.iconButton:hover,
-.tab:hover {
-  transform: translateY(-1px);
-  filter: brightness(1.07);
+/* ---------- Aviso de estado (colocando / pintando) ---------- */
+.status {
+  position: absolute;
+  top: 70px;
+  right: 0;
+  left: 0;
+  width: max-content;
+  margin: 0 auto;
+  display: flex;
+  max-width: calc(100vw - 24px);
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 14px;
+  padding: 6px 10px 6px 6px;
+  font-size: 13px;
 }
 
-.searchBox {
-  margin: 0 18px 14px;
+.statusImage {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 9px;
+  background: #1f2533;
+}
+
+.statusText b {
+  color: #facc15;
+}
+
+.statusButton {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 7px 10px;
+  color: #e5e9f0;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.statusButtonOn {
+  border-color: #facc15;
+  color: #111;
+  background: #facc15;
+}
+
+.statusSelect {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #9aa3b5;
+}
+
+.statusSelect select {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  padding: 4px 6px;
+  color: #f5f7fb;
+  background: #1f2533;
+}
+
+.statusHint {
+  width: 100%;
+  color: #9aa3b5;
+  font-size: 12px;
+  text-align: center;
+}
+
+.statusColors {
+  width: 100%;
+}
+
+/* ---------- Abajo: barra rápida y catálogo ---------- */
+.bottom {
+  position: absolute;
+  right: 0;
+  bottom: 12px;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.bottom > * {
+  pointer-events: auto;
+}
+
+.hotbar {
+  display: flex;
+  gap: 6px;
+  border-radius: 16px;
+  padding: 6px;
+}
+
+.hotbar .tile {
+  width: 56px;
+  height: 56px;
+}
+
+.dock {
+  position: relative;
+  width: min(1180px, calc(100vw - 24px));
+  border-radius: 20px;
+  padding: 10px 12px 12px;
+}
+
+.chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 9px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.chip {
+  flex: none;
+  border: 0;
+  border-radius: 999px;
+  padding: 6px 12px;
+  color: #c3cad6;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.chip i {
+  margin-left: 3px;
+  font-style: normal;
+  font-weight: 600;
+  opacity: 0.6;
+}
+
+.chipActive {
+  color: #111;
+  background: #facc15;
+}
+
+.chipsHint {
+  flex: none;
+  margin-left: auto;
+  padding-left: 12px;
+  color: #8d96a8;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* Dos filas de fichas chicas que se desplazan de costado: entran 20+ a la
+   vista sin bajar (antes cabían 4 tarjetas). */
+.grid {
   display: grid;
-  gap: 7px;
+  grid-auto-columns: 72px;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(2, 72px);
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
 }
 
-.searchBox span,
-.toolRow label {
+.tile {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 13px;
+  padding: 0;
+  cursor: pointer;
+  background: #1b2130;
+  transition:
+    transform 120ms ease,
+    background 120ms ease;
+}
+
+.tile:hover {
+  background: #252c3d;
+  transform: translateY(-2px);
+}
+
+.tileImage {
+  position: absolute;
+  inset: 7px;
+  width: auto;
+  height: auto;
+}
+
+.tileShop {
+  border-style: dashed;
+  background: rgba(27, 33, 48, 0.55);
+}
+
+.tileShop .tileImage {
+  opacity: 0.55;
+}
+
+.tileSelected {
+  outline: 3px solid #facc15;
+  outline-offset: 1px;
+}
+
+.tileCount,
+.tilePrice {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border-radius: 6px;
+  padding: 0 4px;
+  color: #111;
+  font-size: 10px;
+  font-weight: 800;
+  background: #facc15;
+}
+
+.tilePrice {
+  color: #ffe9a8;
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.tileKey {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  color: #9aa3b5;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.tileSelected .tileKey {
+  color: #facc15;
+}
+
+.tileStar {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  color: #facc15;
+  fill: #facc15;
+}
+
+.empty {
+  display: grid;
+  min-height: 152px;
+  place-content: center;
+  gap: 4px;
+  color: #9aa3b5;
+  font-size: 13px;
+  text-align: center;
+}
+
+.empty strong {
+  color: #e5e9f0;
+}
+
+/* Compra desde el catálogo. */
+.buyPopover {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  display: flex;
+  width: min(560px, calc(100vw - 32px));
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  border-radius: 16px;
+  padding: 10px;
+  transform: translateX(-50%);
+}
+
+.buyText {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 2px;
+  font-size: 13px;
+}
+
+.buyText span {
+  color: #aeb6c6;
+}
+
+.buyHint {
+  font-size: 12px;
+}
+
+.buyActions {
+  display: flex;
+  width: 100%;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.buyActions button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  border-radius: 10px;
+  padding: 8px 12px;
+  color: #111;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  background: #facc15;
+}
+
+.buyActions button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.buyActions .buyCancel {
+  margin-left: auto;
+  color: #e5e9f0;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Ambiente: fondo e iluminación. */
+.environment {
+  display: grid;
+  max-height: 40vh;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  overflow-y: auto;
+}
+
+.sectionTitle {
+  margin: 0 0 8px;
   color: #9fb3cf;
   font-size: 12px;
   font-weight: 800;
   text-transform: uppercase;
-}
-
-.searchBox input,
-.toolRow select {
-  width: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.13);
-  border-radius: 16px;
-  padding: 13px 14px;
-  color: #f7fbff;
-  background: rgba(255, 255, 255, 0.08);
-  outline: none;
-}
-
-.searchBox input:focus,
-.toolRow select:focus,
-.tab:focus-visible,
-.iconButton:focus-visible,
-.exitButton:focus-visible,
-.dangerButton:focus-visible {
-  outline: 3px solid rgba(250, 204, 21, 0.45);
-  outline-offset: 2px;
-}
-
-.tabs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  padding: 0 18px 14px;
-}
-
-.tab {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.11);
-  border-radius: 16px;
-  padding: 11px 12px;
-  color: #dce9ff;
-  background: rgba(255, 255, 255, 0.07);
-  cursor: pointer;
-  transition:
-    transform 140ms ease,
-    background 140ms ease,
-    filter 140ms ease;
-}
-
-.tab span {
-  flex: 1;
-  text-align: left;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.tabIcon {
-  flex-shrink: 0;
-  opacity: 0.85;
-}
-
-.tab b {
-  display: grid;
-  min-width: 24px;
-  height: 24px;
-  flex-shrink: 0;
-  place-items: center;
-  border-radius: 999px;
-  color: #07111f;
-  background: #facc15;
-  font-size: 12px;
-}
-
-.active {
-  color: #07111f;
-  background: linear-gradient(135deg, #facc15, #fde047);
-}
-
-.toolRow {
-  padding: 0 18px 14px;
-}
-
-.toolRow label {
-  display: grid;
-  gap: 8px;
-}
-
-.content {
-  min-height: 0;
-  flex: 1;
-  overflow: auto;
-  padding: 0 18px 16px;
-  scrollbar-color: #facc15 rgba(255, 255, 255, 0.08);
-}
-
-.backgroundPanel {
-  padding-top: 2px;
-  display: grid;
-  gap: 20px;
-}
-
-.environmentSection {
-  display: grid;
-  gap: 10px;
 }
 
 .lightingControls {
@@ -276,14 +549,6 @@
   font-weight: 900;
   cursor: pointer;
   background: linear-gradient(135deg, #facc15, #fde047);
-  transition:
-    transform 140ms ease,
-    filter 140ms ease;
-}
-
-.lightingSaveButton:hover:not(:disabled) {
-  transform: translateY(-1px);
-  filter: brightness(1.07);
 }
 
 .lightingSaveButton:disabled {
@@ -296,194 +561,22 @@
   border-radius: 14px;
   padding: 10px 12px;
   color: #ffe9a8;
-  background: rgba(250, 204, 21, 0.1);
   font-size: 12px;
   font-weight: 700;
-}
-
-.categoryList {
-  display: grid;
-  gap: 18px;
-}
-
-.categorySection {
-  display: grid;
-  gap: 10px;
-}
-
-.categoryTitle {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0;
-  color: #9fb3cf;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.categoryTitle b {
-  display: grid;
-  min-width: 18px;
-  height: 18px;
-  place-items: center;
-  margin-left: 2px;
-  border-radius: 999px;
-  color: #07111f;
-  background: rgba(159, 179, 207, 0.55);
-  font-size: 10px;
-}
-
-.empty {
-  display: grid;
-  gap: 8px;
-  border: 1px dashed rgba(255, 255, 255, 0.18);
-  border-radius: 20px;
-  padding: 18px;
-  color: #9fb3cf;
-  background: rgba(255, 255, 255, 0.05);
-}
-
-.empty strong {
-  color: #f7fbff;
-}
-
-.footer {
-  display: grid;
-  gap: 10px;
-  padding: 16px 18px 18px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.paintState {
-  display: grid;
-  gap: 8px;
-  border: 1px solid rgba(234, 179, 8, 0.28);
-  border-radius: 16px;
-  padding: 12px;
-  background: rgba(234, 179, 8, 0.1);
-}
-
-.paintState span {
-  color: #f7e7a6;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.activePreview {
-  display: grid;
-  grid-template-columns: 58px 1fr;
-  gap: 12px;
-  align-items: center;
-}
-
-.activePreview img,
-.activePreview > div:first-child {
-  width: 54px;
-  height: 54px;
-}
-
-.activePreview strong {
-  display: block;
-  margin-bottom: 4px;
-  color: #fff7c2;
-  font-size: 11px;
-  text-transform: uppercase;
-}
-
-.paintState .escHint {
-  display: block;
-  margin-top: 4px;
-  color: #c9b98a;
-  font-size: 10px;
-  font-weight: 500;
-  text-transform: none;
-}
-
-.escHint kbd {
-  display: inline-block;
-  padding: 1px 6px;
-  margin: 0 1px;
-  border-radius: 5px;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  background: rgba(0, 0, 0, 0.35);
-  color: #fff7c2;
-  font-family: inherit;
-  font-size: 9px;
-  font-weight: 800;
-}
-
-.paintState button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  border: 0;
-  border-radius: 12px;
-  padding: 10px 12px;
-  color: #111827;
-  background: #facc15;
-  font-weight: 900;
-  cursor: pointer;
-}
-
-.paintActions {
-  display: flex;
-  gap: 8px;
-}
-
-.paintActions button {
-  flex: 1;
-}
-
-.paintState .paintAllButton {
-  background: linear-gradient(135deg, #34d399, #10b981);
-  color: #06281f;
-}
-
-.paintState .paintAllButton:disabled {
-  cursor: not-allowed;
-  filter: grayscale(0.4) brightness(0.8);
-}
-
-.progressState {
-  display: grid;
-  gap: 8px;
-  border: 1px solid rgba(52, 211, 153, 0.28);
-  border-radius: 16px;
-  padding: 12px;
-  background: rgba(52, 211, 153, 0.1);
-}
-
-.progressLabel {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  color: #d3fbe9;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.progressLabelText {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.progressLabel b {
-  color: #fff;
-  font-size: 13px;
+  background: rgba(250, 204, 21, 0.1);
 }
 
 .progressTrack {
+  display: block;
   overflow: hidden;
-  height: 10px;
+  width: 160px;
+  height: 8px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.12);
 }
 
 .progressFill {
+  display: block;
   height: 100%;
   border-radius: 999px;
   background: linear-gradient(135deg, #34d399, #10b981);
@@ -504,90 +597,49 @@
   }
 }
 
-.footer p {
-  margin: 0;
-  color: #9fb3cf;
-  font-size: 12px;
-}
+/* Tablet y celular: se esconden los textos de los botones y las fichas
+   crecen un poco para el dedo. */
+@media (max-width: 900px) {
+  .modeButton span,
+  .exitButton span,
+  .search kbd,
+  .chipsHint,
+  .statusButton kbd {
+    display: none;
+  }
 
-@media (max-width: 740px) {
-  .panel {
-    inset: auto 12px 12px;
-    width: auto;
-    max-height: 72dvh;
+  .search {
+    width: 150px;
+  }
+
+  .grid {
+    grid-auto-columns: 64px;
+    grid-template-rows: repeat(2, 64px);
+  }
+
+  .tile {
+    width: 64px;
+    height: 64px;
   }
 }
 
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateX(-14px);
+@media (max-width: 560px) {
+  .topBar {
+    flex-wrap: wrap;
+    justify-content: center;
   }
-  to {
-    opacity: 1;
-    transform: translateX(0);
+
+  .search {
+    order: 10;
+    width: 100%;
   }
-}
 
-/* Filtro por ambiente (sala, cocina...) sobre la lista de objetos. */
-.roomChips {
-  display: flex;
-  gap: 6px;
-  padding-bottom: 12px;
-}
+  .status {
+    top: 112px;
+  }
 
-.roomChip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  flex: none;
-  height: 30px;
-  padding: 0 12px;
-  border: 1px solid rgba(255, 255, 255, 0.11);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.04);
-  color: #b9c6dc;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    border-color 140ms ease,
-    color 140ms ease,
-    background 140ms ease;
-}
-
-.roomChip:hover:not(:disabled) {
-  border-color: rgba(255, 255, 255, 0.26);
-  color: #eef4ff;
-}
-
-.roomChip:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.roomChip b {
-  min-width: 18px;
-  padding: 0 5px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  font-size: 10px;
-  line-height: 16px;
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-}
-
-.roomChipActive,
-.roomChipActive:hover:not(:disabled) {
-  border-color: #facc15;
-  background: rgba(250, 204, 21, 0.12);
-  color: #fff7cc;
-}
-
-.placementColor {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 8px 10px;
-  font-size: 12px;
+  .hotbar .tile {
+    width: 44px;
+    height: 44px;
+  }
 }

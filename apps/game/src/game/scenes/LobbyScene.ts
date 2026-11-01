@@ -540,6 +540,8 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     this.input.keyboard?.on("keydown-R", () => {
       this.buildSystem.rotate();
     });
+    // Botón "Girar" del modo construcción (tablet, sin teclado).
+    window.addEventListener("build:item:rotate", () => this.buildSystem.rotate());
 
     // ESC: cancela pintura, un mueble que se está moviendo, o termina la
     // colocación continua de un mueble del inventario.

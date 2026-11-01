@@ -89,5 +89,16 @@
   "upgradeNeedItem": "You need the item",
   "upgradeNeedsPrevious": "Requires the previous one",
   "upgradeBought": "Upgrade \"{name}\" unlocked!",
-  "upgradeBuyError": "Couldn't buy the upgrade."
+  "upgradeBuyError": "Couldn't buy the upgrade.",
+  "rowModeButton": "Row",
+  "rowModeHint": "Drag from one tile to another to place a whole row (on PC also Shift + drag)",
+  "finishButton": "Done",
+  "groupAll": "All",
+  "groupOther": "Other",
+  "catalogHint": "What you own and what's in the shop, together · right-click = favorite",
+  "categoriesLabel": "Categories",
+  "hotbarLabel": "Quick bar (keys 1-9)",
+  "moreActions": "More",
+  "notOwnedHint": "You don't own it yet: buy it here and start placing it.",
+  "exitShort": "Exit"
 }
