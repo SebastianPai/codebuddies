@@ -1,12 +1,25 @@
-import { Cormorant_Garamond, EB_Garamond } from "next/font/google";
+import localFont from "next/font/local";
 import type { PublicCertificate } from "./certificate-download-button";
 
 // Estilo diploma clásico (tipo universidades británicas): papel marfil,
 // tinta azul marino, filetes dorados y tipografía serif. Todo el tamaño se
 // define en unidades del contenedor (cqw), así el certificado se escala
 // como una imagen y se ve idéntico en móvil, tablet y PC.
-const display = Cormorant_Garamond({ subsets: ["latin"], weight: ["500", "600", "700"], style: ["normal", "italic"] });
-const body = EB_Garamond({ subsets: ["latin"], weight: ["400", "500"], style: ["normal", "italic"] });
+// Las fuentes (variables, subconjunto latino, licencia OFL) van en el repo:
+// con next/font/google el build dependía de la respuesta de Google Fonts y
+// falló en Heroku el 2026-11-01.
+const display = localFont({
+  src: [
+    { path: "../fonts/cormorant-garamond-latin-wght-normal.woff2", weight: "300 700", style: "normal" },
+    { path: "../fonts/cormorant-garamond-latin-wght-italic.woff2", weight: "300 700", style: "italic" },
+  ],
+});
+const body = localFont({
+  src: [
+    { path: "../fonts/eb-garamond-latin-wght-normal.woff2", weight: "400 800", style: "normal" },
+    { path: "../fonts/eb-garamond-latin-wght-italic.woff2", weight: "400 800", style: "italic" },
+  ],
+});
 
 export const CERT_COLORS = {
   paper: "#fbf7ee",
