@@ -95,10 +95,16 @@
   "finishButton": "Fertig",
   "groupAll": "Alle",
   "groupOther": "Andere",
-  "catalogHint": "Was du hast und was es im Shop gibt, zusammen · Rechtsklick = Favorit",
+  "catalogHint": "Tippe etwas aus dem Shop an, um es in deinem Raum auszuprobieren · Rechtsklick = Favorit",
   "categoriesLabel": "Kategorien",
   "hotbarLabel": "Schnellleiste (Tasten 1-9)",
   "moreActions": "Mehr",
   "notOwnedHint": "Du hast es noch nicht: hier kaufen und direkt platzieren.",
-  "exitShort": "Beenden"
+  "exitShort": "Beenden",
+  "tryingLabel": "Ausprobieren",
+  "tryingHint": "Bewegen und platzieren: du zahlst nur, wenn es dir gefällt",
+  "previewBuyQuestion": "Hier lassen? ×{count}",
+  "previewBuyButton": "Kaufen und platzieren",
+  "previewKeepTrying": "Weiter ausprobieren",
+  "shopDivider": "Shop"
 }

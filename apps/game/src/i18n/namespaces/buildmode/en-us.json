@@ -95,10 +95,16 @@
   "finishButton": "Done",
   "groupAll": "All",
   "groupOther": "Other",
-  "catalogHint": "What you own and what's in the shop, together · right-click = favorite",
+  "catalogHint": "Tap something from the shop to try it in your room · right-click = favorite",
   "categoriesLabel": "Categories",
   "hotbarLabel": "Quick bar (keys 1-9)",
   "moreActions": "More",
   "notOwnedHint": "You don't own it yet: buy it here and start placing it.",
-  "exitShort": "Exit"
+  "exitShort": "Exit",
+  "tryingLabel": "Trying",
+  "tryingHint": "Move it and place it: you only pay if you like it",
+  "previewBuyQuestion": "Leave it here? ×{count}",
+  "previewBuyButton": "Buy and place",
+  "previewKeepTrying": "Keep trying",
+  "shopDivider": "Shop"
 }

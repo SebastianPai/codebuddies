@@ -27,7 +27,7 @@ export default class FurniturePlacementSystem {
 
   private rowStart: { x: number; y: number } | null = null;
 
-  private rowQueue: Array<{ x: number; y: number }> = [];
+  private rowQueue: Array<{ x: number; y: number; elevation?: number }> = [];
 
   constructor(
     scene: LobbySceneType,
@@ -70,7 +70,43 @@ export default class FurniturePlacementSystem {
 
     if (!tile) return;
 
+    if (item.previewOnly) {
+      this.previewPlace([{ x: tile.x, y: tile.y, ...(sideAttach && { elevation: sideAttach.elevation }) }]);
+      return;
+    }
+
     this.placeAt(tile.x, tile.y, sideAttach);
+  };
+
+  // Probar antes de comprar: con un objeto de la tienda (previewOnly) el
+  // ghost se mueve igual, pero el clic no coloca nada: avisa al panel dónde
+  // iría para que ofrezca comprarlo. Al comprar, el panel devuelve las
+  // casillas con build:preview:commit y se colocan de verdad.
+  private previewPlace(positions: Array<{ x: number; y: number; elevation?: number }>) {
+    const item = this.buildSystem.getCurrentItem();
+    if (!item) return;
+    const rotation = this.buildSystem.getRotation();
+    const valid = positions.filter((p) => this.placementValidator.canPlace(p.x, p.y, item, rotation));
+    if (!valid.length) return;
+    window.dispatchEvent(new CustomEvent("build:preview:place", { detail: { itemId: item.id, positions: valid } }));
+  }
+
+  private handlePreviewCommit = (event: Event) => {
+    const positions = (event as CustomEvent<{ positions?: Array<{ x: number; y: number; elevation?: number }> }>).detail?.positions;
+    if (!positions?.length) return;
+    // El panel arranca la colocación del objeto ya comprado justo antes; el
+    // ghost se crea cuando carga la textura, así que se espera un poco.
+    let tries = 0;
+    const go = () => {
+      const item = this.buildSystem.getCurrentItem();
+      if (item && !item.previewOnly && this.buildSystem.getPreview()) {
+        this.rowQueue = [...positions];
+        this.placeNextInRow();
+      } else if (tries++ < 30) {
+        setTimeout(go, 100);
+      }
+    };
+    go();
   };
 
   private handlePointerUp = (pointer: Phaser.Input.Pointer) => {
@@ -86,16 +122,21 @@ export default class FurniturePlacementSystem {
     const alongX = Math.abs(dx) >= Math.abs(dy);
     const steps = Math.abs(alongX ? dx : dy);
     const dir = Math.sign(alongX ? dx : dy) || 1;
-    this.rowQueue = Array.from({ length: steps + 1 }, (_, i) =>
+    const line = Array.from({ length: steps + 1 }, (_, i) =>
       alongX ? { x: start.x + i * dir, y: start.y } : { x: start.x, y: start.y + i * dir },
     );
+    if (this.buildSystem.getCurrentItem()?.previewOnly) {
+      this.previewPlace(line);
+      return;
+    }
+    this.rowQueue = line;
     this.placeNextInRow();
   };
 
   private placeNextInRow() {
     while (this.rowQueue.length && !this.pending && this.buildSystem.getCurrentItem()) {
       const next = this.rowQueue.shift()!;
-      this.placeAt(next.x, next.y, null);
+      this.placeAt(next.x, next.y, next.elevation !== undefined ? { elevation: next.elevation } : null);
     }
     if (!this.buildSystem.getCurrentItem()) this.rowQueue = [];
   }
@@ -109,7 +150,7 @@ export default class FurniturePlacementSystem {
     const item = this.buildSystem.getCurrentItem();
     const preview = this.buildSystem.getPreview();
 
-    if (!item || !preview) return;
+    if (!item || !preview || item.previewOnly) return;
 
     if (!this.placementValidator.canPlace(tx, ty, item, this.buildSystem.getRotation())) {
       return;
@@ -178,12 +219,14 @@ export default class FurniturePlacementSystem {
     this.scene.input.on("pointerdown", this.handlePointerDown);
     this.scene.input.on("pointerup", this.handlePointerUp);
     window.addEventListener("build:row-mode", this.handleRowMode);
+    window.addEventListener("build:preview:commit", this.handlePreviewCommit);
   }
 
   destroy() {
     this.scene.input.off("pointerdown", this.handlePointerDown);
     this.scene.input.off("pointerup", this.handlePointerUp);
     window.removeEventListener("build:row-mode", this.handleRowMode);
+    window.removeEventListener("build:preview:commit", this.handlePreviewCommit);
     if (this.pendingTimeout) clearTimeout(this.pendingTimeout);
   }
 

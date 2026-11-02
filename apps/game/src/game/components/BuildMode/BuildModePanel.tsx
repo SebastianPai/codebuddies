@@ -215,6 +215,12 @@ export default function BuildModePanel({
   const [buyEntry, setBuyEntry] = useState<Entry | null>(null);
   const [buying, setBuying] = useState(false);
   const pendingPlaceId = useRef<string | null>(null);
+  // Probar antes de comprar: el objeto de la tienda se mueve por el mapa como
+  // si fuera mío; al intentar colocarlo aparecen las casillas elegidas y la
+  // compra. `positions` vuelve a Phaser cuando la compra llega al inventario.
+  const [previewEntry, setPreviewEntry] = useState<Entry | null>(null);
+  const [previewPositions, setPreviewPositions] = useState<Array<{ x: number; y: number; elevation?: number }> | null>(null);
+  const pendingPositions = useRef<Array<{ x: number; y: number; elevation?: number }> | null>(null);
   // Color para los muebles coloreables, elegido antes de colocarlos (lo lee
   // FurniturePlacementSystem en cada click). null = color original.
   const [placementColor, setPlacementColorState] = useState<number | null>(null);
@@ -238,6 +244,8 @@ export default function BuildModePanel({
       if (!detail.itemId || detail.remaining <= 0) {
         setActivePlacementItem(null);
         setPlacementRemaining(0);
+        setPreviewEntry(null);
+        setPreviewPositions(null);
         return;
       }
       setPlacementRemaining(detail.remaining);
@@ -252,9 +260,33 @@ export default function BuildModePanel({
     window.dispatchEvent(new CustomEvent("build:row-mode", { detail: { active: false } }));
   }, []);
 
+  const startPreview = (entry: Entry) => {
+    setActivePaintItem(null);
+    onCancelPainting();
+    setBuyEntry(null);
+    setPreviewPositions(null);
+    setPreviewEntry(entry);
+    const item = { ...entry.item, previewOnly: true, availableAmount: 999 };
+    setActivePlacementItem(item);
+    choosePlacementColor(null);
+    onPlaceWorldItem(item);
+  };
+
+  useEffect(() => {
+    const handlePreviewPlace = (event: Event) => {
+      const detail = (event as CustomEvent<{ itemId: string; positions: Array<{ x: number; y: number; elevation?: number }> }>).detail;
+      if (!detail?.positions?.length) return;
+      setPreviewPositions(detail.positions);
+    };
+    window.addEventListener("build:preview:place", handlePreviewPlace);
+    return () => window.removeEventListener("build:preview:place", handlePreviewPlace);
+  }, []);
+
   const startPlacement = (entry: Entry) => {
     setActivePaintItem(null);
     onCancelPainting();
+    setPreviewEntry(null);
+    setPreviewPositions(null);
     const item = { ...entry.item, availableAmount: entry.amount };
     setActivePlacementItem(item);
     choosePlacementColor(null);
@@ -323,7 +355,10 @@ export default function BuildModePanel({
 
   const pickEntry = (entry: Entry) => {
     if (entry.amount <= 0) {
-      setBuyEntry(entry);
+      // Objetos: se prueban en el mapa y se compran al colocarlos. Texturas:
+      // compra directa (pintar en modo prueba no tiene ghost que mover).
+      if (mode === "textures") setBuyEntry(entry);
+      else startPreview(entry);
       return;
     }
     if (mode === "textures") {
@@ -342,6 +377,7 @@ export default function BuildModePanel({
     const fail = () => {
       setBuying(false);
       pendingPlaceId.current = null;
+      pendingPositions.current = null;
     };
     socket.on("shop:item:bought", done);
     socket.on("shop:item:error", fail);
@@ -357,15 +393,23 @@ export default function BuildModePanel({
     const inv = inventory.find((entry) => entry.item?.id === id);
     if (!inv) return;
     pendingPlaceId.current = null;
+    const positions = pendingPositions.current;
+    pendingPositions.current = null;
     pickEntry({ item: inv.item, amount: inv.amount ?? inv.quantity ?? 1, price: inv.item?.coinsPrice ?? null, maxStack: inv.item?.maxStack ?? 1 });
+    // Venía de probarlo en el mapa: se coloca donde el jugador lo dejó.
+    if (positions?.length) {
+      window.dispatchEvent(new CustomEvent("build:preview:commit", { detail: { positions } }));
+    }
     // Solo reacciona a inventario nuevo; pickEntry depende del modo actual a propósito.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inventory]);
 
-  const buy = (entry: Entry, quantity: number) => {
+  const buy = (entry: Entry, quantity: number, positions?: Array<{ x: number; y: number; elevation?: number }>) => {
     if (!socket || buying) return;
     setBuying(true);
     pendingPlaceId.current = entry.item.id;
+    pendingPositions.current = positions?.slice(0, quantity) ?? null;
+    setPreviewPositions(null);
     socket.emit("shop:item:buy", entry.maxStack > 1 ? { itemId: entry.item.id, quantity } : { itemId: entry.item.id });
     setBuyEntry(null);
     setTimeout(() => setBuying(false), 8000);
@@ -525,9 +569,19 @@ export default function BuildModePanel({
       {activePlacementItem && (
         <div className={`${styles.glass} ${styles.status}`} role="status">
           <ItemPreview item={activePlacementItem} alt={activePlacementItem.name} className={styles.statusImage} />
-          <span className={styles.statusText}>
-            {t("buildmode.placingLabel")} <b>{splitName(activePlacementItem.name).short || t("buildmode.itemFallbackName")}</b> ×{placementRemaining}
-          </span>
+          {previewEntry ? (
+            <span className={styles.statusText}>
+              {t("buildmode.tryingLabel")} <b>{splitName(activePlacementItem.name).short || t("buildmode.itemFallbackName")}</b>
+              <span className={styles.statusPrice}>
+                <Coins size={11} /> {previewEntry.price}
+              </span>
+              <span className={styles.statusSub}>{t("buildmode.tryingHint")}</span>
+            </span>
+          ) : (
+            <span className={styles.statusText}>
+              {t("buildmode.placingLabel")} <b>{splitName(activePlacementItem.name).short || t("buildmode.itemFallbackName")}</b> ×{placementRemaining}
+            </span>
+          )}
           <button type="button" className={styles.statusButton} onClick={() => window.dispatchEvent(new CustomEvent("build:item:rotate"))}>
             <RotateCw size={14} /> {t("buildmode.rotateButton")} <kbd>R</kbd>
           </button>
@@ -545,6 +599,8 @@ export default function BuildModePanel({
             className={styles.statusButton}
             onClick={() => {
               setActivePlacementItem(null);
+              setPreviewEntry(null);
+              setPreviewPositions(null);
               toggleRowMode(false);
               onCancelPlacement();
             }}
@@ -565,6 +621,30 @@ export default function BuildModePanel({
           )}
         </div>
       )}
+
+      {previewEntry && previewPositions && (() => {
+        const count = previewEntry.maxStack > 1 ? previewPositions.length : 1;
+        const price = previewEntry.price ?? 0;
+        const extra = BUY_QUANTITIES.filter((quantity) => quantity > count && quantity <= previewEntry.maxStack);
+        return (
+          <div className={`${styles.glass} ${styles.previewBuy}`} role="dialog" aria-label={entryTitle(previewEntry)}>
+            <span className={styles.previewBuyText}>
+              {t("buildmode.previewBuyQuestion", { count })}
+            </span>
+            <button type="button" className={styles.previewBuyMain} disabled={buying} onClick={() => buy(previewEntry, count, previewPositions)}>
+              <ShoppingBag size={14} /> {t("buildmode.previewBuyButton")} · <Coins size={12} /> {price * count}
+            </button>
+            {extra.map((quantity) => (
+              <button key={quantity} type="button" className={styles.statusButton} disabled={buying} onClick={() => buy(previewEntry, quantity, previewPositions)}>
+                ×{quantity} · <Coins size={11} /> {price * quantity}
+              </button>
+            ))}
+            <button type="button" className={styles.statusButton} onClick={() => setPreviewPositions(null)}>
+              {t("buildmode.previewKeepTrying")}
+            </button>
+          </div>
+        );
+      })()}
 
       {activePaintItem && (
         <div className={`${styles.glass} ${styles.status}`} role="status">
@@ -688,7 +768,17 @@ export default function BuildModePanel({
                   <span>{t("buildmode.tryAnotherNameHint")}</span>
                 </div>
               ) : (
-                <div className={styles.grid}>{visible.map((entry) => tile(entry))}</div>
+                <div className={styles.grid}>
+                  {visible.filter((entry) => entry.amount > 0).map((entry) => tile(entry))}
+                  {visible.some((entry) => entry.amount <= 0) && (
+                    <div className={styles.shopDivider}>
+                      <span>
+                        <ShoppingBag size={11} /> {t("buildmode.shopDivider")}
+                      </span>
+                    </div>
+                  )}
+                  {visible.filter((entry) => entry.amount <= 0).map((entry) => tile(entry))}
+                </div>
               )}
             </>
           )}

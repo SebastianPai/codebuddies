@@ -95,10 +95,16 @@
   "finishButton": "Terminar",
   "groupAll": "Todo",
   "groupOther": "Otros",
-  "catalogHint": "Lo que tienes y lo de la tienda, todo junto · clic derecho = favorito",
+  "catalogHint": "Toca algo de la tienda para probarlo en tu sala · clic derecho = favorito",
   "categoriesLabel": "Categorías",
   "hotbarLabel": "Barra rápida (teclas 1-9)",
   "moreActions": "Más",
   "notOwnedHint": "Todavía no lo tienes: cómpralo aquí y empiezas a colocarlo.",
-  "exitShort": "Salir"
+  "exitShort": "Salir",
+  "tryingLabel": "Probando",
+  "tryingHint": "Muévelo y colócalo: pagas solo si te gusta",
+  "previewBuyQuestion": "¿Dejarlo aquí? ×{count}",
+  "previewBuyButton": "Comprar y colocar",
+  "previewKeepTrying": "Seguir probando",
+  "shopDivider": "Tienda"
 }

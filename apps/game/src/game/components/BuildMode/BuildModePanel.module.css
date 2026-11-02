@@ -200,7 +200,10 @@
   width: 34px;
   height: 34px;
   flex: none;
+  overflow: hidden;
   border-radius: 9px;
+  color: transparent;
+  font-size: 0;
   background: #1f2533;
 }
 
@@ -333,17 +336,108 @@
   white-space: nowrap;
 }
 
-/* Dos filas de fichas chicas que se desplazan de costado: entran 20+ a la
-   vista sin bajar (antes cabían 4 tarjetas). */
+/* Fichas chicas a lo ancho y se baja con la rueda: entran 30+ a la vista
+   (antes cabían 4 tarjetas). Primero lo mío; después, separado por una
+   línea sutil, lo de la tienda. */
 .grid {
   display: grid;
-  grid-auto-columns: 72px;
-  grid-auto-flow: column;
-  grid-template-rows: repeat(2, 72px);
+  grid-template-columns: repeat(auto-fill, 72px);
+  justify-content: space-between;
   gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 4px;
+  max-height: 190px;
+  overflow-y: auto;
+  padding: 2px 4px 4px 2px;
   scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+
+.shopDivider {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 2px 0;
+  color: #8d96a8;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.shopDivider::before,
+.shopDivider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.shopDivider span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.statusPrice {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 8px;
+  border-radius: 6px;
+  padding: 1px 6px;
+  color: #ffe9a8;
+  font-size: 12px;
+  font-weight: 800;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.statusSub {
+  margin-left: 8px;
+  color: #9aa3b5;
+  font-size: 12px;
+}
+
+/* Probar antes de comprar: aparece debajo del aviso al intentar colocar. */
+.previewBuy {
+  position: absolute;
+  top: 128px;
+  left: 0;
+  right: 0;
+  width: max-content;
+  max-width: calc(100vw - 24px);
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 16px;
+  padding: 10px 12px;
+  pointer-events: auto;
+  border: 1px solid rgba(250, 204, 21, 0.45);
+}
+
+.previewBuyText {
+  color: #e8ecf3;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.previewBuyMain {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  border-radius: 10px;
+  padding: 8px 14px;
+  color: #111;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  background: #facc15;
+}
+
+.previewBuyMain:disabled {
+  opacity: 0.6;
 }
 
 .tile {
@@ -613,8 +707,12 @@
   }
 
   .grid {
-    grid-auto-columns: 64px;
-    grid-template-rows: repeat(2, 64px);
+    grid-template-columns: repeat(auto-fill, 64px);
+    max-height: 170px;
+  }
+
+  .statusSub {
+    display: none;
   }
 
   .tile {
@@ -636,6 +734,10 @@
 
   .status {
     top: 112px;
+  }
+
+  .previewBuy {
+    top: 170px;
   }
 
   .hotbar .tile {
