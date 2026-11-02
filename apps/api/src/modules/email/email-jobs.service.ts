@@ -8,7 +8,7 @@ import { EmailService } from './email.service';
 // Regalo directo (no un código, no un descuento real de Paddle) que se
 // acredita automáticamente el día del cumpleaños de cada usuario. Sin UI de
 // admin a propósito -- si se necesita ajustar, se cambia acá.
-const BIRTHDAY_GIFT_COINS = 200;
+const BIRTHDAY_GIFT_COINS = 20;
 const BIRTHDAY_GIFT_PREMIUM_DAYS = 7;
 
 @Injectable()

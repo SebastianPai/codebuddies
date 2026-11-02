@@ -2046,7 +2046,7 @@ model Lesson {
   status   ContentStatus @default(PUBLISHED)
 
   experience Int @default(50)
-  coins      Int @default(10)
+  coins      Int @default(1)
 
   content Json?
 
@@ -2088,7 +2088,7 @@ model Exercise {
   codes Json?
 
   experience Int @default(10)
-  coins      Int @default(5)
+  coins      Int @default(1)
 
   createdAt DateTime @default(now())
 

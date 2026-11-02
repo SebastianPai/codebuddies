@@ -17,14 +17,15 @@ import type { AuthUser } from '../identity/decorators/current-user.decorator';
 //
 // Cada premio se paga una sola vez: la razón del CoinTransaction es la llave.
 
+// Monedas ÷10 desde el rebalance de economía (antes 30/40/40/60/80 + 300).
 export const STARTER_STEPS = [
-  { key: 'lesson', coins: 30 },
-  { key: 'exercise', coins: 40 },
-  { key: 'avatar', coins: 40 },
-  { key: 'startup', coins: 60 },
-  { key: 'streak', coins: 80 },
+  { key: 'lesson', coins: 3 },
+  { key: 'exercise', coins: 4 },
+  { key: 'avatar', coins: 4 },
+  { key: 'startup', coins: 6 },
+  { key: 'streak', coins: 8 },
 ] as const;
-export const STARTER_BONUS = 300;
+export const STARTER_BONUS = 30;
 
 type StepKey = (typeof STARTER_STEPS)[number]['key'];
 

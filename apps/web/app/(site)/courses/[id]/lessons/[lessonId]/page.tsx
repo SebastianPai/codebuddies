@@ -206,7 +206,7 @@ export default function LessonTheoryPage() {
   }, [reachedEnd, lessonId, doc.blocks.length]);
 
   const xp = lesson?.experience ?? lesson?.course?.experience ?? 50;
-  const coins = lesson?.coins ?? lesson?.course?.coins ?? 10;
+  const coins = lesson?.coins ?? lesson?.course?.coins ?? 1;
 
   // Siguiente paso real: el primer ejercicio pendiente de esta lección; si
   // ya están todos, la teoría de la lección siguiente; si no queda nada, el

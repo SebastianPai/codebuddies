@@ -10,7 +10,7 @@ export const INITIAL_CREATE_LESSON_VALUES: LessonFormValues = {
   type: "TEXT",
   status: "PUBLISHED",
   experience: 50,
-  coins: 10,
+  coins: 1,
   translations: [
     {
       languageCode: "es",

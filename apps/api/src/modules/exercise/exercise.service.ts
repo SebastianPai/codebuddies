@@ -102,7 +102,7 @@ export class ExerciseService {
         status: dto.status,
         codes: dto.codes as unknown as Prisma.InputJsonValue,
         experience: dto.experience ?? 10,
-        coins: dto.coins ?? 5,
+        coins: dto.coins ?? 1,
         order,
         translations: {
           create: dto.translations.map((t) => ({

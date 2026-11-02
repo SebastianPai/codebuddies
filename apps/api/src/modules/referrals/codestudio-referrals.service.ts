@@ -7,11 +7,11 @@ import { publicReferralLink } from './referral.helpers';
 // Referidos en CodeStudio: quien invita gana cuando su amigo avanza de
 // verdad (no solo por registrarse), y el amigo arranca con ventaja.
 //
-//   - Funda su primera startup  → quien invita +200 monedas; el amigo
+//   - Funda su primera startup  → quien invita +20 monedas; el amigo
 //     arranca con +$1.500 de caja.
-//   - Su startup llega a Product-Market Fit (mitad del camino) → +400.
-//   - Su startup llega a Unicornio (el final) → +1.500 monedas.
-//   - Hace su primera compra (monedas, premium o boost) → +500 monedas.
+//   - Su startup llega a Product-Market Fit (mitad del camino) → +40.
+//   - Su startup llega a Unicornio (el final) → +150 monedas.
+//   - Hace su primera compra (monedas, premium o boost) → +50 monedas.
 //   - Red de contactos: cada amigo que fundó abarata un 3% tus campañas
 //     (hasta 15%).
 //
@@ -21,10 +21,10 @@ import { publicReferralLink } from './referral.helpers';
 export type ReferralMilestone = 'founded' | 'pmf' | 'unicorn' | 'purchase';
 
 export const REFERRAL_MILESTONES: Record<ReferralMilestone, { coins: number; title: string; body: (friend: string) => string }> = {
-  founded: { coins: 200, title: 'Tu amigo fundó su startup', body: (friend) => `${friend} fundó su primera startup en CodeStudio: +200 monedas.` },
-  pmf: { coins: 400, title: 'La startup de tu amigo encontró su mercado', body: (friend) => `La startup de ${friend} llegó a Product-Market Fit: +400 monedas.` },
-  unicorn: { coins: 1500, title: '¡Tu amigo creó un unicornio!', body: (friend) => `La startup de ${friend} llegó a Unicornio: +1.500 monedas.` },
-  purchase: { coins: 500, title: 'Tu amigo apoyó CodeBuddies', body: (friend) => `${friend} hizo su primera compra: +500 monedas.` },
+  founded: { coins: 20, title: 'Tu amigo fundó su startup', body: (friend) => `${friend} fundó su primera startup en CodeStudio: +20 monedas.` },
+  pmf: { coins: 40, title: 'La startup de tu amigo encontró su mercado', body: (friend) => `La startup de ${friend} llegó a Product-Market Fit: +40 monedas.` },
+  unicorn: { coins: 150, title: '¡Tu amigo creó un unicornio!', body: (friend) => `La startup de ${friend} llegó a Unicornio: +150 monedas.` },
+  purchase: { coins: 50, title: 'Tu amigo apoyó CodeBuddies', body: (friend) => `${friend} hizo su primera compra: +50 monedas.` },
 };
 
 export const REFERRED_STARTING_BONUS = 1500;
