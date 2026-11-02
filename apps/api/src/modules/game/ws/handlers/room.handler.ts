@@ -200,6 +200,8 @@ export class RoomHandler {
           // a una sala con iluminación ya configurada nunca la veía aplicada
           // hasta que (si tenía permiso) abría la pestaña de Iluminación.
           ambientLightIntensity: room.ambientLightIntensity ?? null,
+          isDesign: room.isDesign,
+          designSourceRoomId: room.designSourceRoomId,
         },
         players: roomPlayers,
         items: roomItems,

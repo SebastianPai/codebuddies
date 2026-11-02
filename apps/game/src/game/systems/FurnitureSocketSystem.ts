@@ -98,6 +98,17 @@ export default class FurnitureSocketSystem {
     this.scene.refreshPathfinding?.();
   };
 
+  // La sala cambió entera de una vez (se hizo real un diseño): se vacía y se
+  // vuelve a armar con lo que mandó el servidor.
+  private handleItemsReplaced = (data: any) => {
+    this.roomItems.clear();
+    for (const item of data?.items ?? []) {
+      if (!item?.item?.imageUrl) continue;
+      this.spawn(item, item.item.imageUrl);
+    }
+    this.scene.refreshPathfinding?.();
+  };
+
   private handleItemMoved = (item: any) => {
     const worldObject = this.roomItems.getItem(item.id);
 
@@ -179,6 +190,7 @@ export default class FurnitureSocketSystem {
     this.socket.on("room:surfaces:painted-all", this.handleAllSurfacesPainted);
     this.socket.on("room:item:removed", this.handleItemRemoved);
     this.socket.on("room:items:cleared", this.handleItemsCleared);
+    this.socket.on("room:items:replaced", this.handleItemsReplaced);
     this.socket.on("room:item:moved", this.handleItemMoved);
     this.socket.on("room:item:rotated", this.handleItemRotated);
     this.socket.on("room:item:colored", this.handleItemColored);
@@ -192,6 +204,7 @@ export default class FurnitureSocketSystem {
     this.socket.off("room:surfaces:painted-all", this.handleAllSurfacesPainted);
     this.socket.off("room:item:removed", this.handleItemRemoved);
     this.socket.off("room:items:cleared", this.handleItemsCleared);
+    this.socket.off("room:items:replaced", this.handleItemsReplaced);
     this.socket.off("room:item:moved", this.handleItemMoved);
     this.socket.off("room:item:rotated", this.handleItemRotated);
     this.socket.off("room:item:colored", this.handleItemColored);

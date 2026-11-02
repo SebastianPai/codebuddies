@@ -745,3 +745,40 @@
     height: 44px;
   }
 }
+
+/* Sala de diseño: cuánto costaría hacerla real, siempre a la vista. */
+.designPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(250, 204, 21, 0.5);
+  border-radius: 999px;
+  padding: 5px 6px 5px 10px;
+  color: #fde68a;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  background: rgba(250, 204, 21, 0.1);
+}
+
+.designPill b {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: #ffe9a8;
+}
+
+.designPillAction {
+  border-radius: 999px;
+  padding: 3px 10px;
+  color: #111;
+  font-weight: 800;
+  background: #facc15;
+}
+
+@media (max-width: 900px) {
+  .designPillLabel {
+    display: none;
+  }
+}

@@ -1,0 +1,53 @@
+.banner {
+  position: fixed;
+  bottom: 92px;
+  left: 0;
+  right: 0;
+  z-index: 11000;
+  width: max-content;
+  max-width: calc(100vw - 24px);
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid rgba(250, 204, 21, 0.45);
+  border-radius: 16px;
+  padding: 8px 10px 8px 14px;
+  color: #f5f7fb;
+  font-size: 13px;
+  background: rgba(13, 17, 26, 0.88);
+  backdrop-filter: blur(10px);
+}
+
+.icon {
+  color: #facc15;
+}
+
+.text {
+  display: grid;
+  line-height: 1.25;
+}
+
+.text span {
+  color: #9aa3b5;
+  font-size: 12px;
+}
+
+.banner button {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  padding: 7px 12px;
+  color: #e8ecf3;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.banner button.primary {
+  border-color: transparent;
+  color: #111;
+  background: #facc15;
+}

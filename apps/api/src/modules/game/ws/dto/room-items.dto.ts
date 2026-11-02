@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsEnum,
   IsInt,
   IsNumber,
@@ -151,4 +152,15 @@ export class PaintAllSurfaceDto {
 export class ClearRoomDto {
   @IsString()
   roomId!: string;
+}
+
+// Sala de diseño: la sala real que se quiere diseñar; reset = empezar de
+// nuevo desde la sala real aunque ya hubiera un diseño a medias.
+export class OpenDesignDto {
+  @IsString()
+  roomId!: string;
+
+  @IsOptional()
+  @IsBoolean()
+  reset?: boolean;
 }

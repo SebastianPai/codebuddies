@@ -70,7 +70,7 @@ export class RoomsService {
 
   async getPublicRooms() {
     return this.prisma.room.findMany({
-      where: { isPublic: true },
+      where: { isPublic: true, isDesign: false },
       include: {
         owner: { select: { username: true, nameEffectId: true } },
         background: {
@@ -85,6 +85,7 @@ export class RoomsService {
   async getMyRooms(userId: string) {
     return this.prisma.room.findMany({
       where: {
+        isDesign: false,
         OR: [
           { ownerId: userId },
           { permissions: { some: { userId } } },
@@ -112,7 +113,7 @@ export class RoomsService {
     if (!owner) throw new NotFoundException('Usuario no encontrado');
 
     const rooms = await this.prisma.room.findMany({
-      where: { ownerId: owner.id },
+      where: { ownerId: owner.id, isDesign: false },
       include: {
         background: {
           select: { name: true, imageUrl: true, previewUrl: true },
@@ -166,6 +167,13 @@ export class RoomsService {
   ): Promise<CanJoinRoomResult> {
     const room = await this.getRoomById(roomId);
     if (!room) return { allowed: false, reason: 'ROOM_NOT_FOUND' };
+
+    // Sala de diseño: solo su dueño, sin invitaciones ni solicitudes.
+    if (room.isDesign) {
+      return room.ownerId === userId
+        ? { allowed: true, room }
+        : { allowed: false, reason: 'DESIGN_PRIVATE' };
+    }
 
     if (room.users.length >= room.maxUsers) {
       return { allowed: false, reason: 'ROOM_FULL' };

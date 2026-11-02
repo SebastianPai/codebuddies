@@ -1349,6 +1349,13 @@ model Room {
   // para ninguna sala existente hasta que su dueño la prenda explícitamente.
   ambientLightIntensity Int?
 
+  // Sala de diseño ("modo Sims"): copia privada de una sala del dueño donde
+  // se coloca cualquier objeto de la tienda sin gastar nada. Solo entra el
+  // dueño, no aparece en ninguna lista y "Hacerlo real" cobra lo que falta y
+  // reemplaza el contenido de designSourceRoomId. Una por jugador.
+  isDesign           Boolean @default(false)
+  designSourceRoomId String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

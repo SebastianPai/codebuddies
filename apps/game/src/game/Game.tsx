@@ -34,6 +34,8 @@ import FurnitureContextMenu from "./components/Furniture/FurnitureContextMenu";
 import ItemUpgradesModal, { type UpgradesTarget } from "./components/Furniture/ItemUpgradesModal";
 import PlayerQuickMenu from "./components/PlayerQuickMenu/PlayerQuickMenu";
 import BuildModePanel from "./components/BuildMode/BuildModePanel";
+import DesignApplyDialog from "./components/BuildMode/DesignApplyDialog";
+import DesignBanner from "./components/BuildMode/DesignBanner";
 import GameDialog from "./components/GameDialog/GameDialog";
 import FriendsPanel from "./components/Friends/FriendsPanel";
 import PetPanel from "./components/Pet/PetPanel";
@@ -51,6 +53,7 @@ import {
   GameDialogRequest,
   requestGameConfirm,
   resolveGameDialog,
+  showGameAlert,
 } from "./utils/dialog";
 import { useTranslation } from "../i18n/useTranslation";
 import { EffectivePermissions, NO_PERMISSIONS } from "./types/permissions";
@@ -120,7 +123,10 @@ export default function Game() {
     ownerId?: string;
     thumbnailUrl?: string | null;
     background?: { id: string } | null;
+    isDesign?: boolean;
+    designSourceRoomId?: string | null;
   } | null>(null);
+  const [showDesignApply, setShowDesignApply] = useState(false);
   const [myPermissions, setMyPermissions] = useState<EffectivePermissions>(NO_PERMISSIONS);
   const [showEditWorld, setShowEditWorld] = useState(false);
   // Los botones "Información"/"Invitar" de la tarjeta de sala (RightSidebar)
@@ -491,6 +497,74 @@ export default function Game() {
   };
 
   // =========================
+  // SALA DE DISEÑO
+  // =========================
+  // Copia privada de una sala propia donde todo se coloca gratis; "Hacerlo
+  // real" cobra lo que falta y deja la sala real igual al diseño.
+
+  const showDesignApplyRef = useRef(showDesignApply);
+  showDesignApplyRef.current = showDesignApply;
+  const enterRoomRef = useRef(handleEnterRoom);
+  enterRoomRef.current = handleEnterRoom;
+
+  const openDesign = (reset = false) => {
+    if (!socket || !currentRoom) return;
+    const roomId = currentRoom.isDesign ? currentRoom.designSourceRoomId : currentRoom.id;
+    if (!roomId) return;
+    socket.emit("design:open", { roomId, reset });
+  };
+
+  const leaveDesign = () => {
+    const sourceRoomId = currentRoom?.designSourceRoomId;
+    if (!sourceRoomId) return;
+    setBuildMode(false);
+    window.dispatchEvent(new CustomEvent("build:item:cancel"));
+    window.dispatchEvent(new CustomEvent("build:surface:cancel"));
+    enterRoomRef.current(sourceRoomId);
+  };
+
+  useEffect(() => {
+    if (!socket) return;
+    const handleOpened = (data: { roomId?: string }) => {
+      if (!data?.roomId) return;
+      // Si ya se estaba en la sala de diseño (empezar de nuevo) se vuelve a
+      // entrar igual para recargar los objetos copiados.
+      enterRoomRef.current(data.roomId);
+      setBuildMode(true);
+    };
+    const handleApplied = (data: { sourceRoomId?: string }) => {
+      socket.emit("player:stats:get");
+      audioManager.play("coin");
+      setBuildMode(false);
+      if (data?.sourceRoomId) enterRoomRef.current(data.sourceRoomId);
+    };
+    const handleError = (data: { message?: string }) => {
+      // Con la ventana de "Hacerlo real" abierta el error se ve ahí mismo.
+      if (showDesignApplyRef.current) return;
+      void showGameAlert({
+        title: t("buildmode.designErrorTitle"),
+        message: data?.message || t("buildmode.designGenericError"),
+        confirmLabel: t("common.understood"),
+        tone: "danger",
+      });
+    };
+    socket.on("design:opened", handleOpened);
+    socket.on("design:applied", handleApplied);
+    socket.on("design:error", handleError);
+    return () => {
+      socket.off("design:opened", handleOpened);
+      socket.off("design:applied", handleApplied);
+      socket.off("design:error", handleError);
+    };
+    // t cambia de identidad con el idioma; los textos se leen al momento.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [socket]);
+
+  const isOwnRoom =
+    !!currentRoom?.ownerId &&
+    currentRoom.ownerId === (currentUser?.userId ?? currentUser?.id);
+
+  // =========================
   // LEFT SIDEBAR CALLBACKS (estables vía useCallback)
   // =========================
   // LeftSidebar está memoizado con React.memo; si estos handlers se recrearan
@@ -724,7 +798,24 @@ export default function Game() {
           onCancelPlacement={() => {
             window.dispatchEvent(new CustomEvent("build:item:cancel"));
           }}
+          isDesign={!!currentRoom?.isDesign}
+          canDesign={isOwnRoom && !currentRoom?.isDesign}
+          onOpenDesign={openDesign}
+          onLeaveDesign={leaveDesign}
+          onApplyDesign={() => setShowDesignApply(true)}
         />
+      )}
+
+      {inGame && !buildMode && currentRoom?.isDesign && (
+        <DesignBanner
+          onKeepDesigning={() => setBuildMode(true)}
+          onApply={() => setShowDesignApply(true)}
+          onLeave={leaveDesign}
+        />
+      )}
+
+      {showDesignApply && socket && (
+        <DesignApplyDialog socket={socket} inventory={inventory} onClose={() => setShowDesignApply(false)} />
       )}
 
       {/* ================= ROOM LIST ================= */}

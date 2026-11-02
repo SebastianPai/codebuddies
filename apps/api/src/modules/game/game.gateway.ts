@@ -74,6 +74,7 @@ import {
   RemoveItemDto,
   RotateItemDto,
   ColorItemDto,
+  OpenDesignDto,
 } from './ws/dto/room-items.dto';
 
 import { UseInterceptors } from '@nestjs/common';
@@ -642,6 +643,29 @@ export class GameGateway
       socket,
       socket.data.user?.userId,
       data,
+    );
+  }
+
+  // ==================== SALA DE DISEÑO ====================
+  @SubscribeMessage('design:open')
+  handleOpenDesign(
+    @MessageBody() data: OpenDesignDto,
+    @ConnectedSocket() socket: Socket,
+  ) {
+    this.roomItemsHandler.openDesign(socket, socket.data.user?.userId, data);
+  }
+
+  @SubscribeMessage('design:quote')
+  handleDesignQuote(@ConnectedSocket() socket: Socket) {
+    this.roomItemsHandler.quoteDesign(socket, socket.data.user?.userId);
+  }
+
+  @SubscribeMessage('design:apply')
+  handleApplyDesign(@ConnectedSocket() socket: Socket) {
+    this.roomItemsHandler.applyDesign(
+      this.server,
+      socket,
+      socket.data.user?.userId,
     );
   }
 

@@ -7,6 +7,7 @@ import {
   ColorItemDto,
   InteractItemDto,
   MoveItemDto,
+  OpenDesignDto,
   PaintAllSurfaceDto,
   PaintSurfaceDto,
   PlaceItemDto,
@@ -310,6 +311,54 @@ export class RoomItemsHandler {
       });
       socket.emit('room:surface:paint-all:error', {
         message: err.message || 'No se pudo pintar toda la superficie',
+      });
+    }
+  }
+
+  // ====================== SALA DE DISEÑO ======================
+  async openDesign(socket: Socket, userId: string, data: OpenDesignDto) {
+    try {
+      const result = await this.roomItemsService.openDesign(
+        userId,
+        data.roomId,
+        !!data.reset,
+      );
+      socket.emit('design:opened', result);
+    } catch (err: any) {
+      socket.emit('design:error', {
+        message: err.message || 'No se pudo abrir el diseño',
+      });
+    }
+  }
+
+  async quoteDesign(socket: Socket, userId: string) {
+    try {
+      socket.emit('design:quote', await this.roomItemsService.getDesignQuote(userId));
+    } catch (err: any) {
+      socket.emit('design:error', {
+        message: err.message || 'No se pudo calcular el diseño',
+      });
+    }
+  }
+
+  async applyDesign(server: Server, socket: Socket, userId: string) {
+    try {
+      const result = await this.roomItemsService.applyDesign(userId);
+      // Quien esté en la sala real ve el cambio entero de una vez.
+      const items = await this.roomItemsService.getRoomItems(result.sourceRoomId);
+      server.to(result.sourceRoomId).emit('room:items:replaced', {
+        roomId: result.sourceRoomId,
+        items,
+      });
+      socket.emit('design:applied', result);
+      socket.emit('inventory:refresh');
+      this.logger.log(
+        `Diseño aplicado en ${result.sourceRoomId} por ${userId} (${result.spent} coins)`,
+      );
+    } catch (err: any) {
+      this.logger.warn(`Diseño rechazado para ${userId}: ${err.message}`);
+      socket.emit('design:error', {
+        message: err.message || 'No se pudo hacer real el diseño',
       });
     }
   }

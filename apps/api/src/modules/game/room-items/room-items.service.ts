@@ -35,6 +35,31 @@ import {
 // DEFAULT_MAX_STACK_HEIGHT del juego (PlacementValidator.ts).
 const SIDE_ATTACH_MAX_ELEVATION = 5;
 
+// Lo que se puede poner gratis en la sala de diseño: lo que se vende en la
+// tienda con monedas (lo de eventos o VIP no, porque no se podría pagar
+// después al hacerlo real).
+function isDesignable(item: {
+  shopVisible: boolean;
+  coinsPrice: number | null;
+  accessType: string;
+}) {
+  return (
+    item.shopVisible &&
+    (item.coinsPrice ?? 0) > 0 &&
+    (item.accessType === 'FREE' || item.accessType === 'PREMIUM')
+  );
+}
+
+type DesignQuoteLine = {
+  itemId: string;
+  needed: number;
+  have: number;
+  missing: number;
+  price: number;
+  cost: number;
+  buyable: boolean;
+};
+
 @Injectable()
 export class RoomItemsService {
   constructor(
@@ -295,6 +320,8 @@ export class RoomItemsService {
       }
     }
 
+    const design = await this.isDesignRoom(roomId);
+
     return this.prisma.$transaction(async (tx) => {
       await this.lockRoomForWrite(tx, roomId);
 
@@ -307,10 +334,6 @@ export class RoomItemsService {
         },
       });
 
-      if (!inventoryItem || inventoryItem.amount <= 0) {
-        throw new ForbiddenException('No tienes este objeto en inventario');
-      }
-
       const item = await tx.item.findUnique({
         where: {
           id: itemId,
@@ -319,6 +342,13 @@ export class RoomItemsService {
           worldData: true,
         },
       });
+
+      // En la sala de diseño se coloca gratis lo que se tiene o lo que se
+      // puede comprar; fuera de ella hace falta tenerlo en el inventario.
+      const owned = !!inventoryItem && inventoryItem.amount > 0;
+      if (!owned && !(design && item && isDesignable(item))) {
+        throw new ForbiddenException('No tienes este objeto en inventario');
+      }
 
       if (!item?.worldData) {
         throw new BadRequestException('Este item no se puede colocar en salas');
@@ -440,6 +470,8 @@ export class RoomItemsService {
         },
       });
 
+      if (design || !inventoryItem) return roomItem;
+
       await tx.marketplacePurchase.updateMany({
         where: {
           buyerId: userId,
@@ -516,6 +548,8 @@ export class RoomItemsService {
       throw new BadRequestException('Posición fuera de los límites de la sala');
     }
 
+    const design = await this.isDesignRoom(roomId);
+
     return this.prisma.$transaction(async (tx) => {
       await this.lockRoomForWrite(tx, roomId);
 
@@ -528,10 +562,6 @@ export class RoomItemsService {
         },
       });
 
-      if (!inventoryItem || inventoryItem.amount <= 0) {
-        throw new ForbiddenException('No tienes esta textura en inventario');
-      }
-
       const item = await tx.item.findUnique({
         where: {
           id: itemId,
@@ -540,6 +570,11 @@ export class RoomItemsService {
           worldData: true,
         },
       });
+
+      const owned = !!inventoryItem && inventoryItem.amount > 0;
+      if (!owned && !(design && item && isDesignable(item))) {
+        throw new ForbiddenException('No tienes esta textura en inventario');
+      }
 
       const kind = item?.worldData?.kind;
       const isFloorTexture = kind === 'FLOOR';
@@ -1019,12 +1054,20 @@ export class RoomItemsService {
       throw new ForbiddenException('No puedes retirar objetos aquí');
     }
 
+    // Lo de la sala de diseño nunca salió del inventario: quitarlo no
+    // devuelve nada (si no, sería una fábrica de objetos gratis).
+    const design = await this.isDesignRoom(roomItem.roomId);
+
     return this.prisma.$transaction(async (tx) => {
       await tx.roomItem.delete({
         where: {
           id: roomItemId,
         },
       });
+
+      if (design || this.isSurfaceRoomItem(roomItem)) {
+        return { success: true, itemId: roomItem.itemId };
+      }
 
       await tx.userItem.upsert({
         where: {
@@ -1079,9 +1122,10 @@ export class RoomItemsService {
       });
 
       const counts = new Map<string, number>();
+      const design = await this.isDesignRoom(roomId);
 
       roomItems.forEach((roomItem) => {
-        if (this.isSurfaceRoomItem(roomItem)) return;
+        if (design || this.isSurfaceRoomItem(roomItem)) return;
 
         counts.set(roomItem.itemId, (counts.get(roomItem.itemId) ?? 0) + 1);
       });
@@ -1340,6 +1384,342 @@ export class RoomItemsService {
       }
     }
     return false;
+  }
+
+  // ====================== SALA DE DISEÑO ======================
+
+  private async isDesignRoom(roomId: string) {
+    const room = await this.prisma.room.findUnique({
+      where: { id: roomId },
+      select: { isDesign: true },
+    });
+    return !!room?.isDesign;
+  }
+
+  /**
+   * Copia los objetos de una sala a otra. Los padres de una pila se crean
+   * antes que sus hijos (orden por elevación) para poder reenlazar
+   * parentRoomItemId con los ids nuevos.
+   */
+  private async copyRoomItems(
+    tx: any,
+    fromRoomId: string,
+    toRoomId: string,
+    userId: string,
+  ) {
+    const source = await tx.roomItem.findMany({
+      where: { roomId: fromRoomId },
+      orderBy: { elevation: 'asc' },
+    });
+    // Orden topológico: cada objeto después de su padre (si el padre no está
+    // en la sala, se copia suelto).
+    const present = new Set(source.map((roomItem: any) => roomItem.id));
+    const ordered: any[] = [];
+    const done = new Set<string>();
+    let pending = [...source];
+    while (pending.length) {
+      const next = pending.filter(
+        (roomItem: any) =>
+          !roomItem.parentRoomItemId ||
+          !present.has(roomItem.parentRoomItemId) ||
+          done.has(roomItem.parentRoomItemId),
+      );
+      if (!next.length) {
+        ordered.push(...pending);
+        break;
+      }
+      for (const roomItem of next) done.add(roomItem.id);
+      ordered.push(...next);
+      pending = pending.filter((roomItem: any) => !done.has(roomItem.id));
+    }
+    const ids = new Map<string, string>();
+    for (const roomItem of ordered) {
+      const created = await tx.roomItem.create({
+        data: {
+          roomId: toRoomId,
+          userId,
+          itemId: roomItem.itemId,
+          x: roomItem.x,
+          y: roomItem.y,
+          elevation: roomItem.elevation,
+          rotation: roomItem.rotation,
+          color: roomItem.color,
+          zIndex: roomItem.zIndex,
+          state: roomItem.state ?? undefined,
+          wallSide: roomItem.wallSide,
+          wallOffset: roomItem.wallOffset,
+          parentRoomItemId: roomItem.parentRoomItemId
+            ? ids.get(roomItem.parentRoomItemId)
+            : undefined,
+        },
+      });
+      ids.set(roomItem.id, created.id);
+    }
+    return source.length;
+  }
+
+  /**
+   * Abre la sala de diseño de `sourceRoomId` (una sala del jugador). Si ya
+   * estaba diseñando esa misma sala se sigue donde quedó; si era otra, o se
+   * pide `reset`, se arranca de nuevo con una copia de la sala real.
+   */
+  async openDesign(userId: string, sourceRoomId: string, reset = false) {
+    const source = await this.prisma.room.findUnique({
+      where: { id: sourceRoomId },
+    });
+    if (!source || source.isDesign) {
+      throw new NotFoundException('Sala no encontrada');
+    }
+    if (source.ownerId !== userId) {
+      throw new ForbiddenException('Solo puedes diseñar tus propias salas');
+    }
+
+    const existing = await this.prisma.room.findFirst({
+      where: { ownerId: userId, isDesign: true },
+    });
+
+    if (existing && existing.designSourceRoomId === sourceRoomId && !reset) {
+      return { roomId: existing.id, sourceRoomId };
+    }
+
+    return this.prisma.$transaction(
+      async (tx) => {
+        const room = existing
+          ? await tx.room.update({
+              where: { id: existing.id },
+              data: {
+                width: source.width,
+                height: source.height,
+                layoutId: source.layoutId,
+                backgroundId: source.backgroundId,
+                designSourceRoomId: sourceRoomId,
+              },
+            })
+          : await tx.room.create({
+              data: {
+                ownerId: userId,
+                name: 'Diseño',
+                description: '',
+                isPublic: false,
+                accessMode: 'PRIVATE_INVITE_ONLY',
+                isDesign: true,
+                maxUsers: 1,
+                width: source.width,
+                height: source.height,
+                layoutId: source.layoutId,
+                backgroundId: source.backgroundId,
+                designSourceRoomId: sourceRoomId,
+              },
+            });
+        await this.lockRoomForWrite(tx, room.id);
+        await tx.roomItem.deleteMany({ where: { roomId: room.id } });
+        await this.copyRoomItems(tx, sourceRoomId, room.id, userId);
+        return { roomId: room.id, sourceRoomId };
+      },
+      { timeout: 60000 },
+    );
+  }
+
+  /**
+   * Cuánto falta para hacer real el diseño. Al aplicarlo, lo que hoy está en
+   * la sala real vuelve al inventario, así que cuenta como "lo tengo".
+   * Las texturas no se gastan al pintar: con tener una alcanza.
+   */
+  private async quoteDesign(tx: any, userId: string) {
+    const design = await tx.room.findFirst({
+      where: { ownerId: userId, isDesign: true },
+    });
+    if (!design?.designSourceRoomId) {
+      throw new NotFoundException('No tienes un diseño abierto');
+    }
+
+    const [designItems, sourceItems, inventory] = await Promise.all([
+      tx.roomItem.findMany({
+        where: { roomId: design.id },
+        include: { item: { include: { worldData: true } } },
+      }),
+      tx.roomItem.findMany({
+        where: { roomId: design.designSourceRoomId },
+        include: { item: { include: { worldData: true } } },
+      }),
+      tx.userItem.findMany({ where: { userId } }),
+    ]);
+
+    const needed = new Map<
+      string,
+      { count: number; item: any; texture: boolean }
+    >();
+    for (const roomItem of designItems) {
+      const texture = !!this.isSurfaceRoomItem(roomItem);
+      const entry = needed.get(roomItem.itemId) ?? {
+        count: 0,
+        item: roomItem.item,
+        texture,
+      };
+      entry.count += texture ? 0 : 1;
+      needed.set(roomItem.itemId, entry);
+    }
+
+    const have = new Map<string, number>();
+    for (const inv of inventory) have.set(inv.itemId, inv.amount);
+    for (const roomItem of sourceItems) {
+      if (this.isSurfaceRoomItem(roomItem)) continue;
+      have.set(roomItem.itemId, (have.get(roomItem.itemId) ?? 0) + 1);
+    }
+
+    const lines: DesignQuoteLine[] = [];
+    for (const [itemId, { count, item, texture }] of needed) {
+      const owned = have.get(itemId) ?? 0;
+      const need = texture ? 1 : count;
+      const missing = Math.max(0, need - owned);
+      const price = item.coinsPrice ?? 0;
+      lines.push({
+        itemId,
+        needed: need,
+        have: owned,
+        missing,
+        price,
+        cost: missing * price,
+        buyable: missing === 0 || isDesignable(item),
+      });
+    }
+    lines.sort((a, b) => b.cost - a.cost);
+
+    const user = await tx.user.findUnique({
+      where: { id: userId },
+      select: { coins: true },
+    });
+
+    return {
+      design,
+      sourceRoomId: design.designSourceRoomId as string,
+      designItems,
+      sourceItems,
+      lines,
+      total: lines.reduce((sum, line) => sum + line.cost, 0),
+      coins: user?.coins ?? 0,
+    };
+  }
+
+  async getDesignQuote(userId: string) {
+    const quote = await this.quoteDesign(this.prisma, userId);
+    return {
+      roomId: quote.design.id,
+      sourceRoomId: quote.sourceRoomId,
+      lines: quote.lines,
+      total: quote.total,
+      coins: quote.coins,
+    };
+  }
+
+  /**
+   * "Hacerlo real": cobra lo que falta, devuelve al inventario lo que había
+   * en la sala real y la deja igual al diseño, gastando del inventario cada
+   * objeto colocado. Todo o nada en una sola transacción.
+   */
+  async applyDesign(userId: string) {
+    return this.prisma.$transaction(
+      async (tx) => {
+        const quote = await this.quoteDesign(tx, userId);
+        const { sourceRoomId, design } = quote;
+
+        await this.lockRoomForWrite(tx, sourceRoomId);
+        await this.lockRoomForWrite(tx, design.id);
+
+        if (quote.lines.some((line) => !line.buyable)) {
+          throw new BadRequestException(
+            'Tu diseño tiene objetos que no se venden en la tienda',
+          );
+        }
+
+        if (quote.total > 0) {
+          const debited = await tx.user.updateMany({
+            where: { id: userId, coins: { gte: quote.total } },
+            data: { coins: { decrement: quote.total } },
+          });
+          if (debited.count === 0) {
+            throw new BadRequestException('No tienes monedas suficientes');
+          }
+          await tx.coinTransaction.create({
+            data: {
+              userId,
+              amount: -quote.total,
+              reason: `design:${sourceRoomId}`,
+            },
+          });
+        }
+
+        const isSurface = (roomItem: any) => !!this.isSurfaceRoomItem(roomItem);
+
+        // Inventario final de cada objeto del diseño: lo que tenía + lo que
+        // había en la sala real + lo comprado - lo que queda colocado.
+        for (const line of quote.lines) {
+          const inv = await tx.userItem.findUnique({
+            where: { userId_itemId: { userId, itemId: line.itemId } },
+          });
+          const inRoom = quote.sourceItems.filter(
+            (roomItem: any) =>
+              roomItem.itemId === line.itemId && !isSurface(roomItem),
+          ).length;
+          const texture = quote.designItems.some(
+            (roomItem: any) =>
+              roomItem.itemId === line.itemId && isSurface(roomItem),
+          );
+          const placed = texture ? 0 : line.needed;
+          const final = (inv?.amount ?? 0) + inRoom + line.missing - placed;
+          if (final > 0) {
+            await tx.userItem.upsert({
+              where: { userId_itemId: { userId, itemId: line.itemId } },
+              update: { amount: final },
+              create: {
+                userId,
+                itemId: line.itemId,
+                amount: final,
+                source: 'shop',
+              },
+            });
+          } else if (inv) {
+            await tx.userItem.delete({
+              where: { userId_itemId: { userId, itemId: line.itemId } },
+            });
+          }
+        }
+
+        // Lo de la sala real que no se usa en el diseño vuelve entero.
+        const designIds = new Set(quote.lines.map((line) => line.itemId));
+        const leftovers = new Map<string, number>();
+        for (const roomItem of quote.sourceItems) {
+          if (isSurface(roomItem) || designIds.has(roomItem.itemId)) continue;
+          leftovers.set(
+            roomItem.itemId,
+            (leftovers.get(roomItem.itemId) ?? 0) + 1,
+          );
+        }
+        for (const [itemId, amount] of leftovers) {
+          await tx.userItem.upsert({
+            where: { userId_itemId: { userId, itemId } },
+            update: { amount: { increment: amount } },
+            create: { userId, itemId, amount },
+          });
+        }
+
+        await tx.roomItem.deleteMany({ where: { roomId: sourceRoomId } });
+        const placed = await this.copyRoomItems(
+          tx,
+          design.id,
+          sourceRoomId,
+          userId,
+        );
+
+        return {
+          sourceRoomId,
+          designRoomId: design.id,
+          placed,
+          spent: quote.total,
+        };
+      },
+      { timeout: 60000 },
+    );
   }
 
   async getSingleItem(roomItemId: string) {

@@ -11,6 +11,7 @@ import {
   RotateCw,
   Search,
   ShoppingBag,
+  Sparkles,
   Star,
   Store,
   Boxes,
@@ -101,6 +102,13 @@ interface Props {
   onPaintAllFloor: () => void;
   onCancelPainting: () => void;
   onCancelPlacement: () => void;
+  // Sala de diseño: todo se coloca gratis y arriba se ve cuánto costaría
+  // hacerlo real. canDesign = es una sala propia que se puede diseñar.
+  isDesign?: boolean;
+  canDesign?: boolean;
+  onOpenDesign?: (reset?: boolean) => void;
+  onLeaveDesign?: () => void;
+  onApplyDesign?: () => void;
 }
 
 export default function BuildModePanel({
@@ -119,6 +127,11 @@ export default function BuildModePanel({
   onPaintAllFloor,
   onCancelPainting,
   onCancelPlacement,
+  isDesign = false,
+  canDesign = false,
+  onOpenDesign,
+  onLeaveDesign,
+  onApplyDesign,
 }: Props) {
   const t = useTranslation();
   const socket =
@@ -143,6 +156,27 @@ export default function BuildModePanel({
       socket.off("shop:items", handleShop);
     };
   }, [socket]);
+
+  // Cuánto costaría hacer real el diseño; se recalcula cuando cambia la sala.
+  const [designTotal, setDesignTotal] = useState<number | null>(null);
+  useEffect(() => {
+    if (!socket || !isDesign) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const request = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => socket.emit("design:quote"), 400);
+    };
+    const handleQuote = (data: { total?: number }) => setDesignTotal(data?.total ?? 0);
+    const roomEvents = ["room:item:placed", "room:item:removed", "room:items:cleared", "room:surface:painted", "room:surfaces:painted-all"];
+    socket.on("design:quote", handleQuote);
+    roomEvents.forEach((name) => socket.on(name, request));
+    socket.emit("design:quote");
+    return () => {
+      if (timer) clearTimeout(timer);
+      socket.off("design:quote", handleQuote);
+      roomEvents.forEach((name) => socket.off(name, request));
+    };
+  }, [socket, isDesign]);
 
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [recentIds, setRecentIds] = useState<string[]>(() => loadRecentIds());
@@ -354,6 +388,17 @@ export default function BuildModePanel({
             : objects.filter((entry) => (splitName(entry.item.name).group ?? "__other") === group);
 
   const pickEntry = (entry: Entry) => {
+    // En la sala de diseño no se gasta nada: todo se coloca como si sobrara.
+    if (isDesign) {
+      if (mode === "textures") {
+        setActivePlacementItem(null);
+        setActivePaintItem(entry.item);
+        onPaintSurfaceTexture(entry.item, textureWidth, textureHeight);
+      } else {
+        startPlacement({ ...entry, amount: 999 });
+      }
+      return;
+    }
     if (entry.amount <= 0) {
       // Objetos: se prueban en el mapa y se compran al colocarlos. Texturas:
       // compra directa (pintar en modo prueba no tiene ghost que mover).
@@ -538,6 +583,16 @@ export default function BuildModePanel({
           <Redo2 size={16} />
         </button>
         <span className={styles.separator} />
+        {isDesign && (
+          <button type="button" className={styles.designPill} onClick={onApplyDesign} title={t("buildmode.designPillHint")}>
+            <Sparkles size={14} />
+            <span className={styles.designPillLabel}>{t("buildmode.designPillLabel")}</span>
+            <b>
+              <Coins size={12} /> {designTotal ?? "…"}
+            </b>
+            <span className={styles.designPillAction}>{t("buildmode.designMakeReal")}</span>
+          </button>
+        )}
         <button type="button" className={styles.iconButton} onClick={onOpenShop} title={t("buildmode.tabShop")} aria-label={t("buildmode.tabShop")}>
           <ShoppingBag size={16} />
         </button>
@@ -554,6 +609,21 @@ export default function BuildModePanel({
           </button>
           {showMore && (
             <div className={`${styles.glass} ${styles.moreMenu}`}>
+              {canDesign && !isDesign && (
+                <button type="button" onClick={() => { setShowMore(false); onOpenDesign?.(); }}>
+                  <Sparkles size={15} /> {t("buildmode.designOpen")}
+                </button>
+              )}
+              {isDesign && (
+                <>
+                  <button type="button" onClick={() => { setShowMore(false); onOpenDesign?.(true); }}>
+                    {t("buildmode.designReset")}
+                  </button>
+                  <button type="button" onClick={() => { setShowMore(false); onLeaveDesign?.(); }}>
+                    {t("buildmode.designLeave")}
+                  </button>
+                </>
+              )}
               <button type="button" onClick={() => { setShowMore(false); onOpenMarketplace(); }}>
                 <Store size={15} /> {t("buildmode.tabMarketplace")}
               </button>
@@ -579,7 +649,8 @@ export default function BuildModePanel({
             </span>
           ) : (
             <span className={styles.statusText}>
-              {t("buildmode.placingLabel")} <b>{splitName(activePlacementItem.name).short || t("buildmode.itemFallbackName")}</b> ×{placementRemaining}
+              {t("buildmode.placingLabel")} <b>{splitName(activePlacementItem.name).short || t("buildmode.itemFallbackName")}</b>
+              {!isDesign && <> ×{placementRemaining}</>}
             </span>
           )}
           <button type="button" className={styles.statusButton} onClick={() => window.dispatchEvent(new CustomEvent("build:item:rotate"))}>
@@ -759,7 +830,7 @@ export default function BuildModePanel({
                       {chip.label} <i>{chip.count}</i>
                     </button>
                   ))}
-                  <span className={styles.chipsHint}>{t("buildmode.catalogHint")}</span>
+                  <span className={styles.chipsHint}>{t(isDesign ? "buildmode.designCatalogHint" : "buildmode.catalogHint")}</span>
                 </div>
               )}
               {visible.length === 0 ? (

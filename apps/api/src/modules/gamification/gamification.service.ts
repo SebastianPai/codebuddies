@@ -675,7 +675,7 @@ export class GamificationService {
       case 'BUY_PET':
         return this.prisma.userItem.count({ where: { userId } });
       case 'CREATE_FIRST_ROOM':
-        return this.prisma.room.count({ where: { ownerId: userId } });
+        return this.prisma.room.count({ where: { ownerId: userId, isDesign: false } });
       case 'VISIT_ROOMS':
       case 'JOIN_ROOMS':
         return this.prisma.roomUser.count({ where: { userId } });
