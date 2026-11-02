@@ -23,8 +23,8 @@ desfasado de la base de datos.
 ### Ramas peligrosas (NO desplegar ni fusionar tal cual)
 
 Estado al 2026-11-02: las tres apps (`codebuddies-api`, `codebuddies-web` y
-`codebuddies-game`) corren `0d2bcb4` (sala de diseño, mascotas, punto de
-aparición, pantalla de carga, ajustes por pestañas y recompensas ÷10). Todo es la rama `feat/premium-colors-parallax` (`feat/codestudio-v2` + íconos + colores
+`codebuddies-game`) corren `3947a3e` (cursos para niños con Buddy, videos en
+R2, pestañas Niños / Jóvenes y adultos, más todo lo anterior). Todo es la rama `feat/premium-colors-parallax` (`feat/codestudio-v2` + íconos + colores
 premium + parallax). Es la rama base para todo trabajo nuevo. Lo que sigue en
 la tabla vale para cualquier rama que NO contenga `4edb91c`:
 
