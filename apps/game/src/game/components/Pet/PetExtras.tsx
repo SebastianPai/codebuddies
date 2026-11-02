@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Coins, Crown, Heart, Sparkles } from "lucide-react";
+import { ArrowUp, Coins, Crown, Heart, Music, RefreshCcw, RotateCw, Sparkles } from "lucide-react";
 import Button from "../shared/Button";
 import ItemPreview from "../UI/ItemPreview";
 import { audioManager } from "../../audio/AudioManager";
@@ -18,12 +18,17 @@ import {
 // Trucos y accesorio de la mascota. Los trucos se compran una vez y se le
 // piden cuando está sacada en la sala (lo ve todo el que esté ahí). El
 // accesorio es un ítem de la tienda de categoría "petAccessory".
-const TRICK_EMOJI: Record<PetTrick, string> = {
-  jump: "⤴",
-  spin: "↻",
-  love: "❤",
-  dance: "♪",
-  flip: "⟲",
+// Íconos SVG (lucide), nunca emojis.
+const TRICK_ICON: Record<PetTrick, typeof Heart> = {
+  jump: ArrowUp,
+  spin: RotateCw,
+  love: Heart,
+  dance: Music,
+  flip: RefreshCcw,
+};
+const TrickIcon = ({ trick }: { trick: PetTrick }) => {
+  const Icon = TRICK_ICON[trick];
+  return <Icon size={13} style={{ verticalAlign: -2 }} />;
 };
 
 interface Props {
@@ -100,7 +105,7 @@ export default function PetExtras({ pet, outHere, busy, run }: Props) {
           {(Object.keys(PET_TRICKS) as PetTrick[]).map((trick) =>
             known.includes(trick) ? (
               <Button key={trick} variant="primary" size="sm" disabled={!outHere} onClick={() => doTrick(trick)}>
-                {TRICK_EMOJI[trick]} {t(`hud.pet.trick_${trick}`)}
+                <TrickIcon trick={trick} /> {t(`hud.pet.trick_${trick}`)}
               </Button>
             ) : (
               <Button
@@ -111,7 +116,7 @@ export default function PetExtras({ pet, outHere, busy, run }: Props) {
                 onClick={() => run(() => buyPetTrick(trick), "coin")}
                 title={t("hud.pet.learnTrick")}
               >
-                {TRICK_EMOJI[trick]} {t(`hud.pet.trick_${trick}`)} · <Coins size={11} style={{ verticalAlign: -1 }} /> {PET_TRICKS[trick]}
+                <TrickIcon trick={trick} /> {t(`hud.pet.trick_${trick}`)} · <Coins size={11} style={{ verticalAlign: -1 }} /> {PET_TRICKS[trick]}
               </Button>
             ),
           )}

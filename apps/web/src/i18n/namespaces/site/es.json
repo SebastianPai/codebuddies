@@ -738,9 +738,9 @@
   "profileSummary": "Resumen",
   "profileCompanies": "Empresas",
   "buddyRun": "Ejecutar",
-  "buddyStageReady": "Escribe órdenes para Buddy y toca Ejecutar ▶",
+  "buddyStageReady": "Escribe órdenes para Buddy y toca Ejecutar",
   "buddyStageError": "Buddy no entendió:",
-  "buddyStagePassed": "¡Lo lograste! Buddy está feliz contigo 🎉",
+  "buddyStagePassed": "¡Lo lograste! Buddy está feliz contigo",
   "coursesAudienceLabel": "¿Para quién?",
   "coursesAudienceKids": "Niños",
   "coursesAudienceAdults": "Jóvenes y adultos",
@@ -749,6 +749,6 @@
   "mentorTitle": "Profe Buddy",
   "mentorOffer": "¿Te trabaste? ¡Te ayudo con una pista!",
   "mentorCount": "Pista {shown} de {total}",
-  "mentorFirstHint": "💡 Dame una pista",
-  "mentorNextHint": "💡 Otra pista"
+  "mentorFirstHint": "Dame una pista",
+  "mentorNextHint": "Otra pista"
 }

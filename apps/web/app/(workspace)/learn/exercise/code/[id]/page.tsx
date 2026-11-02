@@ -16,6 +16,7 @@ import {
   Eye,
   Sparkles,
   Play,
+  Lightbulb,
 } from "lucide-react";
 
 import { Group, Panel, Separator } from "react-resizable-panels";
@@ -717,16 +718,20 @@ try {
               </div>
             </div>
             {hints.slice(0, hintsShown).map((hint, index) => (
-              <div key={index} className="mt-3 rounded-xl bg-[rgb(var(--card))] p-3 text-[15px] leading-7 text-[rgb(var(--text))]">
-                <LessonContentRenderer doc={normalizeLessonContent({ markdown: `💡 ${hint}` })} />
+              <div key={index} className="mt-3 flex gap-2 rounded-xl bg-[rgb(var(--card))] p-3 text-[15px] leading-7 text-[rgb(var(--text))]">
+                <Lightbulb size={18} className="mt-1 shrink-0 text-amber-500" />
+                <div className="min-w-0">
+                  <LessonContentRenderer doc={normalizeLessonContent({ markdown: hint })} />
+                </div>
               </div>
             ))}
             {hintsShown < hints.length && (
               <button
                 type="button"
                 onClick={() => setHintsShown((n) => n + 1)}
-                className="mt-3 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-extrabold text-white hover:bg-emerald-500"
+                className="mt-3 inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-extrabold text-white hover:bg-emerald-600"
               >
+                <Lightbulb size={16} />
                 {hintsShown === 0 ? t("site.mentorFirstHint") : t("site.mentorNextHint")}
               </button>
             )}

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState, useMemo, useRef } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { X, Filter, Terminal, Zap, RotateCw } from "lucide-react";
+import { X, Filter, Terminal, Zap, RotateCw, Smile, Laptop } from "lucide-react";
 import { api } from "../../../../utils/api";
 import { useTranslation } from "../../../i18n/useTranslation";
 import { CachedImage, ErrorState } from "@/shared/ui";
@@ -332,7 +332,7 @@ export function CoursesCatalogClient({
                   : "border-[rgb(var(--border))] bg-[rgb(var(--card)/0.7)] text-[rgb(var(--text))] hover:-translate-y-0.5"
               }`}
             >
-              <span aria-hidden="true" className="text-2xl">{value === "KIDS" ? "🧒" : "👩‍💻"}</span>
+              {value === "KIDS" ? <Smile size={26} aria-hidden="true" /> : <Laptop size={26} aria-hidden="true" />}
               {value === "KIDS" ? t("site.coursesAudienceKids") : t("site.coursesAudienceAdults")}
             </button>
           ))}

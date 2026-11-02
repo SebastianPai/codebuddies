@@ -420,12 +420,13 @@ export default class PetSystem {
       case "love":
       default: {
         for (let i = 0; i < 4; i++) {
+          // Coraz\u00f3n dibujado (nada de emojis): dos c\u00edrculos y un tri\u00e1ngulo.
           const heart = this.scene.add
-            .text(sprite.x + (i - 1.5) * 9, sprite.y - sprite.displayHeight * 0.7, "\u2764", {
-              fontSize: "14px",
-              color: "#ff6fae",
-            })
-            .setOrigin(0.5)
+            .graphics({ x: sprite.x + (i - 1.5) * 9, y: sprite.y - sprite.displayHeight * 0.7 })
+            .fillStyle(0xff6fae, 1)
+            .fillCircle(-2.5, -1.5, 3)
+            .fillCircle(2.5, -1.5, 3)
+            .fillTriangle(-5.4, -0.5, 5.4, -0.5, 0, 5.5)
             .setDepth(sprite.depth + 1)
             .setAlpha(0);
           tweens.add({

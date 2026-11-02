@@ -817,7 +817,7 @@ export default function BuildModePanel({
                 <div className={styles.chips} role="group" aria-label={t("buildmode.categoriesLabel")}>
                   {[
                     { key: "all", label: t("buildmode.groupAll"), count: objects.length },
-                    { key: "favorites", label: `★ ${t("buildmode.tabFavorites")}`, count: favorites.length },
+                    { key: "favorites", label: t("buildmode.tabFavorites"), count: favorites.length },
                     { key: "recent", label: t("buildmode.tabRecent"), count: recents.length },
                     ...groups.map(([key, count]) => ({ key, label: groupLabel(key), count })),
                   ].map((chip) => (
@@ -828,6 +828,7 @@ export default function BuildModePanel({
                       className={`${styles.chip} ${group === chip.key ? styles.chipActive : ""}`}
                       onClick={() => setGroup(chip.key)}
                     >
+                      {chip.key === "favorites" && <Star size={12} style={{ verticalAlign: -1, marginRight: 4 }} />}
                       {chip.label} <i>{chip.count}</i>
                     </button>
                   ))}

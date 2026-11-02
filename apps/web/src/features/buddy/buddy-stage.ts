@@ -14,6 +14,15 @@ export type BuddyStageLabels = {
 
 const STEP_MS = 750;
 
+// Íconos del escenario en SVG (regla de CodeBuddies: nunca emojis).
+const ICONS = {
+  energy: '<svg viewBox="0 0 24 24" width="18" height="18" fill="#f59e0b" stroke="#1e2235" stroke-width="1.5" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>',
+  laugh: '<svg viewBox="0 0 24 24" width="18" height="18"><circle cx="12" cy="12" r="10" fill="#facc15" stroke="#1e2235" stroke-width="1.5"/><path d="M7 9.5q1.5-2 3 0M14 9.5q1.5-2 3 0" fill="none" stroke="#1e2235" stroke-width="1.6" stroke-linecap="round"/><path d="M6.5 13h11q-1 5-5.5 5t-5.5-5z" fill="#1e2235"/></svg>',
+  note: '<svg viewBox="0 0 24 24" width="34" height="34" fill="#7c3aed"><path d="M9 18.5a3 3 0 1 1-2-2.83V5l12-2v12.5a3 3 0 1 1-2-2.83V7.4L9 8.9z"/></svg>',
+  cake: '<svg viewBox="0 0 24 24" width="38" height="38" stroke="#1e2235" stroke-width="1.4" stroke-linejoin="round"><rect x="4" y="12" width="16" height="8" rx="2" fill="#f9a8d4"/><path d="M4 15q2 1.6 4 0t4 0 4 0 4 0" fill="none"/><rect x="11" y="6" width="2" height="6" fill="#fde68a"/><path d="M12 2.5q1.6 2 0 3.2-1.6-1.2 0-3.2z" fill="#f97316"/></svg>',
+};
+
+
 // El código del alumno viaja como texto JSON dentro de un <script> y se corre
 // con new Function: así un error de escritura se atrapa y se le explica, en
 // vez de impedir que el navegador lea el escenario. Un "</script>" escrito por
@@ -54,6 +63,7 @@ export function buildBuddyStageDoc(studentCode: string, assertions: string, labe
   .status.bad { background: #dc2626; }
   .meter { position: absolute; top: 12px; left: 12px; display: flex; gap: 8px; }
   ${BUDDY_CSS}
+  .meter span { display: inline-flex; align-items: center; gap: 6px; }
   .meter span { padding: 6px 10px; border-radius: 12px; background: rgba(255,255,255,.85); color: #1e2235; font-weight: 800; font-size: 13px; }
 </style>
 </head>
@@ -61,7 +71,7 @@ export function buildBuddyStageDoc(studentCode: string, assertions: string, labe
   <div class="sun"></div>
   <div class="cloud" style="top:40px;left:18%;width:90px"></div>
   <div class="cloud" style="top:70px;left:55%;width:120px"></div>
-  <div class="meter"><span id="energy">⚡ 5</span><span id="laughs">😂 0</span></div>
+  <div class="meter"><span>${ICONS.energy}<b id="energy">5</b></span><span>${ICONS.laugh}<b id="laughs">0</b></span></div>
   <div class="stage"><div class="buddy" id="buddy"><div class="bubble" id="bubble"></div><div id="face" class="buddy-idle"></div></div></div>
   <div class="status" id="status">${escapeHtml(labels.ready)}</div>
 <script>
@@ -92,9 +102,9 @@ function talk() {
   clearTimeout(talkTimer);
   talkTimer = setTimeout(function () { buddyEl.classList.remove("buddy-talking"); }, 600);
 }
-function fx(text, color) {
+function fx(text, color, html) {
   var el = document.createElement("div");
-  el.className = "fx"; el.textContent = text; el.style.color = color || "#1e2235";
+  el.className = "fx"; if (html) el.innerHTML = html; else el.textContent = text; el.style.color = color || "#1e2235";
   var rect = buddyEl.getBoundingClientRect();
   el.style.left = (rect.left + 40 + Math.random() * 60) + "px";
   el.style.top = (rect.top - 10) + "px";
@@ -143,23 +153,23 @@ function next() {
     case "decir": say(step.texto); talk(); break;
     case "chiste": laughs = step.risas; anim("laugh"); fx("¡JA!", "#d97706"); if (step.risas >= 3) fx("¡JAJAJA!", "#dc2626"); energy = Math.max(0, energy - 1); break;
     case "saltar": anim("jump"); energy = Math.max(0, energy - 1); break;
-    case "bailar": anim("dance"); fx("♪", "#7c3aed"); break;
+    case "bailar": anim("dance"); fx("", "", ${JSON.stringify(ICONS.note)}); break;
     case "dormir": fx("Zzz", "#475569"); energy = 5; break;
     case "despertar": fx("!", "#f59e0b"); break;
-    case "comer": anim("eat"); fx("🍰"); energy = Math.min(10, energy + 2); break;
+    case "comer": anim("eat"); fx("", "", ${JSON.stringify(ICONS.cake)}); energy = Math.min(10, energy + 2); break;
     case "avanzar": pos += step.pasos; place(pos); break;
     case "zzz": fx("Zzz", "#475569"); say("Zzz…"); break;
   }
-  energyEl.textContent = "⚡ " + energy;
-  laughsEl.textContent = "😂 " + laughs;
+  energyEl.textContent = String(energy);
+  laughsEl.textContent = String(laughs);
   setTimeout(next, ${STEP_MS});
 }
 function finish() {
   if (report.steps.length) mark(report.steps[report.steps.length - 1].linea, "ok");
   if (error) mark(errorLine, "bad");
   setFace(report.state.animo);
-  energyEl.textContent = "⚡ " + report.state.energia;
-  laughsEl.textContent = "😂 " + report.state.risas;
+  energyEl.textContent = String(report.state.energia);
+  laughsEl.textContent = String(report.state.risas);
   if (error) {
     setFace("sorprendido");
     say("¡Ups!");

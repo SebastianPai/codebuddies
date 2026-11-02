@@ -738,9 +738,9 @@
   "profileSummary": "Summary",
   "profileCompanies": "Companies",
   "buddyRun": "Run",
-  "buddyStageReady": "Write orders for Buddy and press Run ▶",
+  "buddyStageReady": "Write orders for Buddy and press Run",
   "buddyStageError": "Buddy didn't understand:",
-  "buddyStagePassed": "You did it! Buddy is happy with you 🎉",
+  "buddyStagePassed": "You did it! Buddy is happy with you",
   "coursesAudienceLabel": "Who is it for?",
   "coursesAudienceKids": "Kids",
   "coursesAudienceAdults": "Teens and adults",
@@ -749,6 +749,6 @@
   "mentorTitle": "Coach Buddy",
   "mentorOffer": "Stuck? I'll help you with a hint!",
   "mentorCount": "Hint {shown} of {total}",
-  "mentorFirstHint": "💡 Give me a hint",
-  "mentorNextHint": "💡 Another hint"
+  "mentorFirstHint": "Give me a hint",
+  "mentorNextHint": "Another hint"
 }
