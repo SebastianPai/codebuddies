@@ -129,3 +129,20 @@ export {
 } from './buddy';
 
 export { buddySvg, BUDDY_CSS } from './buddyArt';
+
+export {
+  NAVE_LANGUAGE,
+  NAVE_COLUMNS,
+  NAVE_ROWS,
+  NAVE_MAX_STEPS,
+  NAVE_KEYS,
+  NAVE_RUNTIME,
+  NAVE_FRIENDLY_ERRORS,
+  naveFriendlyError,
+  naveLevelFrom,
+  naveSvg,
+  alienSvg,
+  boomSvg,
+  type NaveLevel,
+  type NaveStep,
+} from './nave';

@@ -36,7 +36,9 @@ interface CodeExerciseFormProps {
 const CODE_LANGS = ["javascript", "python", "html", "css"] as const;
 // "buddy": ejercicios para niños donde el código mueve al robot Buddy (ver
 // world-objects/buddy.ts). Las verificaciones van con assert(buddy.animo ...).
-const EXERCISE_LANGS = [...CODE_LANGS, "buddy"] as const;
+// "nave": curso 2 "Crea tu juego" (world-objects/nave.ts); el nivel va como
+// comentario `// nivel: {...}` en las verificaciones.
+const EXERCISE_LANGS = [...CODE_LANGS, "buddy", "nave"] as const;
 
 const ELEMENT_META: Record<
   InstructionElement["type"],

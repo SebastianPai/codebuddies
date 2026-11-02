@@ -1,5 +1,5 @@
 import * as vm from 'node:vm';
-import { BUDDY_RUNTIME, buddyFriendlyError } from '@codebuddies/world-objects';
+import { BUDDY_RUNTIME, buddyFriendlyError, NAVE_RUNTIME, naveFriendlyError, naveLevelFrom } from '@codebuddies/world-objects';
 
 // Validación server-side de los ejercicios de código.
 //
@@ -14,7 +14,7 @@ import { BUDDY_RUNTIME, buddyFriendlyError } from '@codebuddies/world-objects';
 // mensaje que dice exactamente qué corregir.
 
 export type CodeResult = { description: string; passed: boolean; error?: string };
-export type CodeLang = 'html' | 'css' | 'js' | 'buddy';
+export type CodeLang = 'html' | 'css' | 'js' | 'buddy' | 'nave';
 type Msg = 'es' | 'en' | 'de';
 
 export function normalizeLang(language?: string | null): CodeLang {
@@ -22,6 +22,7 @@ export function normalizeLang(language?: string | null): CodeLang {
   if (value === 'html' || value === 'markup' || value === 'xml') return 'html';
   if (value === 'css') return 'css';
   if (value === 'buddy') return 'buddy';
+  if (value === 'nave') return 'nave';
   return 'js';
 }
 
@@ -312,6 +313,30 @@ export function runBuddy(studentCode: string, expectedCode: string): CodeResult[
   }
 }
 
+// ─── La nave (curso 2 "Crea tu juego") ───────────────────────────────────
+// Igual que Buddy, con NAVE_RUNTIME. El nivel (aliens y dónde arranca la
+// nave) sale del comentario `// nivel: {...}` de las verificaciones.
+
+export function runNave(studentCode: string, expectedCode: string): CodeResult[] {
+  try {
+    const context = vm.createContext({});
+    new vm.Script(`
+      var __NAVE_NIVEL = ${JSON.stringify(naveLevelFrom(expectedCode) ?? {})};
+      function assert(condition, message) {
+        if (!condition) throw new Error(message || 'La nave todavía no está como pide el ejercicio');
+      }
+      ${NAVE_RUNTIME}
+      ;(function () {
+        ${studentCode}
+      })();
+      ${expectedCode}
+    `).runInContext(context, { timeout: 2000 });
+    return [{ description: 'Nave', passed: true }];
+  } catch (error) {
+    return [{ description: 'Nave', passed: false, error: naveFriendlyError(describeSandboxError(error)) }];
+  }
+}
+
 // ─── Punto de entrada ─────────────────────────────────────────────────────
 
 export function validateCode(input: {
@@ -328,6 +353,11 @@ export function validateCode(input: {
   if (language === 'buddy') {
     return expectedCode
       ? runBuddy(input.studentCode, expectedCode)
+      : [{ description: 'Código enviado', passed: input.studentCode.trim().length > 0 }];
+  }
+  if (language === 'nave') {
+    return expectedCode
+      ? runNave(input.studentCode, expectedCode)
       : [{ description: 'Código enviado', passed: input.studentCode.trim().length > 0 }];
   }
   if (input.tests?.length && language === 'js') return runCodeTests(input.studentCode, input.tests);

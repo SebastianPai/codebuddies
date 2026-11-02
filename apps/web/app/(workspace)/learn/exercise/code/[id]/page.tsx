@@ -36,12 +36,14 @@ import { useApiLang } from "@/shared/hooks/use-api-lang";
 import { PracticeInCodeStudio } from "@/features/codestudio";
 import { useReward } from "../../../../../../contexts/RewardContext";
 import { useTrackToolUsed, trackToolAction, trackCodeStarted, trackCodeResult } from "../../../../../../components/analytics/tool-tracking";
-import { buildBuddyStageDoc } from "@/features/buddy";
+import { buildBuddyStageDoc, buildNaveStageDoc } from "@/features/buddy";
 import { buddySvg } from "@codebuddies/world-objects";
 
 // Ejercicios de Buddy (cursos para niños): solo JavaScript, y la vista previa
 // es el escenario con el robot en vez de una página.
-const isBuddyLang = (lang?: string) => (lang || "").toLowerCase() === "buddy";
+// La nave (curso 2 "Crea tu juego") funciona igual, con su propio escenario.
+const isNaveLang = (lang?: string) => (lang || "").toLowerCase() === "nave";
+const isBuddyLang = (lang?: string) => (lang || "").toLowerCase() === "buddy" || isNaveLang(lang);
 
 type CodeTab = "html" | "css" | "js";
 
@@ -463,6 +465,18 @@ export default function FullWidthConfidentialWorkspace() {
   useEffect(() => {
     if (!buddyMode) return;
     const solution = (exercise?.solutionCode || "").trim();
+    if (isNaveLang(exercise?.language)) {
+      setPreviewDoc(
+        buildNaveStageDoc(buddyRun > 0 ? jsCode : "", buddyRun > 0 && /\bassert\s*\(/.test(solution) ? solution : "", solution, {
+          ready: t("site.naveStageReady"),
+          error: t("site.naveStageError"),
+          passed: t("site.naveStagePassed"),
+          play: t("site.naveStagePlay"),
+          over: t("site.naveStageOver"),
+        }),
+      );
+      return;
+    }
     setPreviewDoc(
       buildBuddyStageDoc(buddyRun > 0 ? jsCode : "", buddyRun > 0 && /\bassert\s*\(/.test(solution) ? solution : "", {
         ready: t("site.buddyStageReady"),
@@ -472,7 +486,7 @@ export default function FullWidthConfidentialWorkspace() {
     );
     // Solo al ejecutar (o al cargar el ejercicio): no con cada tecla.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [buddyMode, buddyRun, exercise?.solutionCode]);
+  }, [buddyMode, buddyRun, exercise?.solutionCode, exercise?.language]);
 
   useEffect(() => {
     if (buddyMode) return;
