@@ -954,6 +954,12 @@ model Pet {
   // Sala donde está "sacada"; null = guardada.
   activeRoomId String?
 
+  // Trucos comprados (claves de PET_TRICKS) y accesorio puesto: un Item de
+  // categoría "petAccessory" que el dueño tiene en el inventario. Sin FK a
+  // propósito: si el ítem se borra, el accesorio simplemente no se dibuja.
+  tricks          String[] @default([])
+  accessoryItemId String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

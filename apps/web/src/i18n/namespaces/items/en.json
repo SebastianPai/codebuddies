@@ -521,7 +521,9 @@
     "accessory": "Accessories",
     "texturas": "Textures",
     "effect": "Effect",
-    "chatBubble": "Chat bubble"
+    "chatBubble": "Chat bubble",
+    "pet": "Pets (bed, bowl…)",
+    "petAccessory": "Pet accessory"
   },
   "bulkTitle": "Upload several at once",
   "bulkDescription": "Drop many PNGs: one object per image. The name comes from the file, the faces from the shape (128x64 = 2 faces), and if each face is 64x64 it becomes a stackable block at 1 coin. You can fine-tune each one afterwards.",
@@ -533,5 +535,13 @@
   "bulkCreate": "Create {count} objects",
   "bulkUploading": "Uploading...",
   "bulkDoneEdit": "Created · edit",
-  "bulkRemove": "Remove"
+  "bulkRemove": "Remove",
+  "petSpotLabel": "What the pet uses it for",
+  "petSpot": {
+    "bed": "Bed (sleeps)",
+    "food": "Food bowl (eats)",
+    "water": "Water bowl (drinks)",
+    "toy": "Toy (plays)"
+  },
+  "petAccessoryHint": "Worn on top of the pet's head (not placed in rooms). Draw it at the pet's scale, with its bottom edge resting on the head."
 }

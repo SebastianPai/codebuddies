@@ -77,6 +77,8 @@ import {
   OpenDesignDto,
 } from './ws/dto/room-items.dto';
 
+import { PetService } from './pets/pet.service';
+import { isPetTrick } from './pets/pet.constants';
 import { UseInterceptors } from '@nestjs/common';
 import { SocketEventLogInterceptor } from '../event-log/event-log.interceptors';
 
@@ -110,6 +112,7 @@ export class GameGateway
     private readonly inventoryHandler: InventoryHandler,
     private readonly shopHandler: ShopHandler,
     private readonly roomItemsHandler: RoomItemsHandler,
+    private readonly petService: PetService,
   ) {}
 
   afterInit() {
@@ -644,6 +647,29 @@ export class GameGateway
       socket.data.user?.userId,
       data,
     );
+  }
+
+  // ==================== MASCOTA: TRUCOS ====================
+  // El dueño pide un truco y lo ven todos los de la sala (incluido él).
+  // Solo si la mascota está sacada en esa sala y ya aprendió el truco.
+  @SubscribeMessage('pet:trick')
+  async handlePetTrick(
+    @MessageBody() data: { trick?: string },
+    @ConnectedSocket() socket: Socket,
+  ) {
+    const userId = socket.data.user?.userId;
+    if (!userId || !isPetTrick(data?.trick)) return;
+    const now = Date.now();
+    if (now - (socket.data.lastPetTrickAt ?? 0) < 1500) return;
+    socket.data.lastPetTrickAt = now;
+    const result = await this.petService
+      .performTrick(userId, data.trick, socket.data.currentRoom ?? null)
+      .catch(() => null);
+    if (result) {
+      this.server
+        .to(result.roomId)
+        .emit('pet:trick', { petId: result.petId, trick: result.trick });
+    }
   }
 
   // ==================== SALA DE DISEÑO ====================

@@ -15,7 +15,7 @@ import { useTranslation } from "../../../../src/i18n/useTranslation";
 // 2 caras; una cara de 64x64 es un bloque que se apila) y los mismos valores
 // por defecto que el formulario de un ítem. Después se ajusta cada uno en su
 // página si hace falta.
-const CATEGORY_OPTIONS = ["furniture", "decoration", "blocks", "roof", "castle", "spooky", "plants", "vehicles"];
+const CATEGORY_OPTIONS = ["furniture", "decoration", "blocks", "roof", "castle", "spooky", "plants", "vehicles", "pet", "petAccessory"];
 
 type Row = {
   file: File;

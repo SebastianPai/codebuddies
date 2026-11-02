@@ -6,6 +6,17 @@ import { apiDelete, apiGet, apiPost } from "./http";
 export type PetMood = "HAPPY" | "CONTENT" | "SAD" | "SICK" | "SLEEPING";
 export type PetAction = "feed" | "water" | "play";
 
+// Trucos que se compran una vez (mismas claves y precios que PET_TRICKS de
+// la API) y accesorio puesto (un ítem de categoría "petAccessory").
+export const PET_TRICKS = { jump: 10, spin: 15, love: 20, dance: 25, flip: 35 } as const;
+export type PetTrick = keyof typeof PET_TRICKS;
+export const PET_ACCESSORY_CATEGORY = "petAccessory";
+export interface PetAccessory {
+  id: string;
+  imageUrl: string | null;
+  name: string | null;
+}
+
 export interface Pet {
   id: string;
   species: string;
@@ -19,6 +30,8 @@ export interface Pet {
   mood: PetMood;
   activeRoomId: string | null;
   cooldowns: { feed: number; water: number; play: number };
+  tricks?: PetTrick[];
+  accessory?: PetAccessory | null;
 }
 
 export interface PetAnimClip {
@@ -54,6 +67,8 @@ export interface RoomPet {
   mood: PetMood;
   activeRoomId: string | null;
   ownerUsername: string;
+  tricks?: PetTrick[];
+  accessory?: PetAccessory | null;
 }
 export const getRoomPets = (roomId: string) => apiGet<RoomPet[]>(`/pets/room/${encodeURIComponent(roomId)}`);
 export const getPetSpeciesList = () => apiGet<PetSpecies[]>("/pet-species");
@@ -64,4 +79,8 @@ export const renamePet = (name: string) =>
   apiPost<Pet>("/pets/me/name", { name });
 export const setPetRoom = (roomId: string | null) =>
   apiPost<Pet>("/pets/me/room", { roomId });
+export const buyPetTrick = (trick: PetTrick) =>
+  apiPost<Pet>(`/pets/me/tricks/${trick}`);
+export const setPetAccessory = (itemId: string | null) =>
+  apiPost<Pet>("/pets/me/accessory", { itemId });
 export const releasePet = () => apiDelete<{ released: boolean }>("/pets/me");

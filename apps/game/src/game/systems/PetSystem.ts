@@ -1,6 +1,17 @@
 import Phaser from "phaser";
 import { loadTextureOnce } from "../utils/phaserAssetCache";
-import { getMyPet, getPetSpeciesList, type Pet, type PetSpecies, type PetAnimClip, type RoomPet } from "../network/pets";
+import {
+  doPetAction,
+  getMyPet,
+  getPetSpeciesList,
+  type Pet,
+  type PetAccessory,
+  type PetAction,
+  type PetSpecies,
+  type PetAnimClip,
+  type PetTrick,
+  type RoomPet,
+} from "../network/pets";
 import { resolveActorGroundPoint, syncActorDepth } from "../iso/IsoActorDepth";
 
 // Orden estándar de filas del spritesheet -> dirección. Debe coincidir con
@@ -24,7 +35,29 @@ const ROAM_TIMEOUT_MS = 5000;
 const REST_MIN_MS = 8000;
 const REST_MAX_MS = 13000;
 
-type Mode = "FOLLOW" | "ROAM" | "IDLE" | "REST";
+type Mode = "FOLLOW" | "ROAM" | "IDLE" | "REST" | "USE";
+
+// Cosas de la sala que la mascota usa sola: se marcan con una etiqueta en
+// el ítem (admin → tags): "pet:bed"/"cama", "pet:food"/"comida",
+// "pet:water"/"agua", "pet:toy"/"juguete".
+type SpotKind = "bed" | "food" | "water" | "toy";
+const SPOT_TAGS: Record<SpotKind, RegExp> = {
+  bed: /^(pet:bed|cama|bed|cucha)$/i,
+  food: /^(pet:food|comida|comedero|food)$/i,
+  water: /^(pet:water|agua|bebedero|water)$/i,
+  toy: /^(pet:toy|juguete|toy|pelota)$/i,
+};
+const SPOT_ACTION: Partial<Record<SpotKind, PetAction>> = { food: "feed", water: "water", toy: "play" };
+const SPOT_COOLDOWN_MS = 25_000;
+const USE_SPEED = 60;
+
+function spotKindOf(item: any): SpotKind | null {
+  const tags: string[] = Array.isArray(item?.tags) ? item.tags : [];
+  for (const kind of Object.keys(SPOT_TAGS) as SpotKind[]) {
+    if (tags.some((tag) => SPOT_TAGS[kind].test(String(tag).trim()))) return kind;
+  }
+  return null;
+}
 
 export default class PetSystem {
   private scene: Phaser.Scene;
@@ -59,13 +92,39 @@ export default class PetSystem {
   private homeX = 0;
   private homeY = 0;
 
+  // Usando una cosa de la sala (cama, comedero...).
+  private useKind: SpotKind | null = null;
+  private usePhase: "GO" | "DO" = "GO";
+  private useUntil = 0;
+  private lastUseAt = -SPOT_COOLDOWN_MS;
+
+  // Truco en curso (animación del juego, la ven todos los de la sala).
+  private tricking = false;
+
+  // Accesorio dibujado sobre la cabeza.
+  private accessory?: Phaser.GameObjects.Image;
+  private accessoryUrl: string | null = null;
+  private headCache = new Map<string, { top: number; cx: number }>();
+
   /**
    * Sin `record`: la mascota propia (lee /pets/me) y sigue al jugador local.
    * Con `record`: la mascota de otra persona en esta sala; sigue a su dueño
    * si está en la sala y si no, pasea sola.
    */
-  constructor(scene: Phaser.Scene, private readonly record?: RoomPet) {
+  constructor(scene: Phaser.Scene, private record?: RoomPet) {
     this.scene = scene;
+  }
+
+  /** Datos nuevos de la mascota de otra persona (p. ej. cambió el accesorio). */
+  updateRecord(record: RoomPet): void {
+    if (!this.record) return;
+    this.record = record;
+    void this.refreshAccessory();
+  }
+
+  /** Id de la mascota que dibuja este sistema (para los trucos por socket). */
+  get petId(): string | null {
+    return this.record?.id ?? this.pet?.id ?? null;
   }
 
   /** Lee /pets/me y decide si la mascota debe estar en esta sala. */
@@ -86,7 +145,10 @@ export default class PetSystem {
         this.despawn();
         return;
       }
-      if (this.sprite && this.species?.key === pet!.species) return; // ya está
+      if (this.sprite && this.species?.key === pet!.species) {
+        void this.refreshAccessory(); // ya está; quizá cambió el accesorio
+        return;
+      }
 
       const list = await getPetSpeciesList().catch(() => [] as PetSpecies[]);
       if (this.destroyed) return;
@@ -147,9 +209,244 @@ export default class PetSystem {
     this.decideAt = this.timer + 1500;
     this.animKey = "";
     this.setClipFrame(this.pickClip(false), 0);
+    void this.refreshAccessory();
+  }
+
+  private currentAccessory(): PetAccessory | null {
+    return (this.record ? this.record.accessory : this.pet?.accessory) ?? null;
+  }
+
+  private async refreshAccessory(): Promise<void> {
+    const url = this.currentAccessory()?.imageUrl ?? null;
+    if (url === this.accessoryUrl && (this.accessory || !url)) return;
+    this.accessoryUrl = url;
+    this.accessory?.destroy();
+    this.accessory = undefined;
+    if (!url || !this.sprite) return;
+    try {
+      const key = await loadTextureOnce(this.scene, url);
+      if (this.destroyed || !this.sprite || this.accessoryUrl !== url) return;
+      this.accessory = this.scene.add.image(this.sprite.x, this.sprite.y, key).setOrigin(0.5, 0.8);
+      this.placeAccessory();
+    } catch {
+      /* sin accesorio si la imagen no carga */
+    }
+  }
+
+  /**
+   * Punto más alto con color del cuadro actual (la cabeza), en píxeles del
+   * cuadro. Se calcula una vez por cuadro; si la imagen no se puede leer
+   * (CORS), se usa un cuarto de la altura.
+   */
+  private headOf(): { top: number; cx: number } | null {
+    const sprite = this.sprite;
+    if (!sprite) return null;
+    const frame = sprite.frame;
+    const key = `${sprite.texture.key}:${frame.name}`;
+    const cached = this.headCache.get(key);
+    if (cached) return cached;
+    const w = Math.max(1, Math.round(frame.cutWidth));
+    const h = Math.max(1, Math.round(frame.cutHeight));
+    let result = { top: Math.round(h * 0.25), cx: w / 2 };
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      const source = frame.source.image as CanvasImageSource;
+      if (ctx && source) {
+        ctx.drawImage(source, frame.cutX, frame.cutY, w, h, 0, 0, w, h);
+        const data = ctx.getImageData(0, 0, w, h).data;
+        let top = -1;
+        for (let y = 0; y < h && top < 0; y++) {
+          for (let x = 0; x < w; x++) {
+            if (data[(y * w + x) * 4 + 3] > 40) {
+              top = y;
+              break;
+            }
+          }
+        }
+        if (top >= 0) {
+          // Centro de lo que hay en las primeras filas de la cabeza.
+          let sum = 0;
+          let count = 0;
+          for (let y = top; y < Math.min(h, top + 4); y++) {
+            for (let x = 0; x < w; x++) {
+              if (data[(y * w + x) * 4 + 3] > 40) {
+                sum += x;
+                count++;
+              }
+            }
+          }
+          result = { top, cx: count ? sum / count : w / 2 };
+        }
+      }
+    } catch {
+      /* imagen sin CORS: queda la estimación */
+    }
+    this.headCache.set(key, result);
+    return result;
+  }
+
+  private placeAccessory(): void {
+    const sprite = this.sprite;
+    const accessory = this.accessory;
+    if (!sprite || !accessory) return;
+    const head = this.headOf();
+    if (!head) return;
+    const w = sprite.frame.cutWidth;
+    const left = sprite.x - sprite.displayWidth / 2;
+    const top = sprite.y - sprite.displayHeight;
+    const cx = sprite.flipX ? w - head.cx : head.cx;
+    accessory.setScale(sprite.scaleX, sprite.scaleY);
+    accessory.setPosition(left + cx * sprite.scaleX, top + head.top * sprite.scaleY + 2 * sprite.scaleY);
+    accessory.setAngle(sprite.angle);
+    accessory.setFlipX(sprite.flipX);
+    accessory.setDepth(sprite.depth + 0.01);
+    accessory.setVisible(sprite.visible);
+  }
+
+  // ====================== COSAS DE LA SALA ======================
+
+  /** Cosas para mascotas que hay en la sala, con dónde pararse para usarlas. */
+  private petSpots(): Array<{ kind: SpotKind; x: number; y: number }> {
+    const scene = this.scene as any;
+    const grid = scene.isoGrid;
+    const all: any[] = scene.roomItems?.getAll?.() ?? [];
+    if (!grid || !all.length) return [];
+    const spots: Array<{ kind: SpotKind; x: number; y: number }> = [];
+    for (const object of all) {
+      const kind = spotKindOf(object.item);
+      if (!kind) continue;
+      // Cama: encima. Lo demás: parada justo delante.
+      const point = kind === "bed" ? grid.groundCenter(object.tileX, object.tileY) : grid.groundAnchor(object.tileX, object.tileY);
+      if (point) spots.push({ kind, x: point.x, y: point.y + (kind === "bed" ? 2 : 6) });
+    }
+    return spots;
+  }
+
+  /** Va a usar algo si le hace falta (o a veces por gusto). */
+  private tryUseSpot(): boolean {
+    if (this.timer - this.lastUseAt < SPOT_COOLDOWN_MS) return false;
+    const spots = this.petSpots();
+    if (!spots.length) return false;
+    const pet = this.pet;
+    const needs: SpotKind[] = [];
+    if (!this.record && pet) {
+      if (pet.hunger < 55) needs.push("food");
+      if (pet.thirst < 55) needs.push("water");
+      if (pet.energy < 40) needs.push("bed");
+      if (pet.happiness < 60) needs.push("toy");
+    }
+    const wanted = spots.filter((spot) => needs.includes(spot.kind));
+    const pool = wanted.length ? wanted : Math.random() < 0.3 ? spots : [];
+    if (!pool.length) return false;
+    const spot = pool[Math.floor(Math.random() * pool.length)];
+    this.mode = "USE";
+    this.useKind = spot.kind;
+    this.usePhase = "GO";
+    this.targetX = spot.x;
+    this.targetY = spot.y;
+    this.modeStartedAt = this.timer;
+    this.lastUseAt = this.timer;
+    return true;
+  }
+
+  private startUsing(): void {
+    const kind = this.useKind;
+    this.usePhase = "DO";
+    this.useUntil =
+      this.timer + (kind === "bed" ? 15000 + Math.random() * 12000 : kind === "toy" ? 3000 : 4500);
+    if (kind === "toy") this.playTrick("jump");
+    // La propia: comer, beber o jugar cuenta de verdad (el servidor pone
+    // el límite de cada cuánto).
+    const action = kind ? SPOT_ACTION[kind] : undefined;
+    if (!this.record && action) {
+      void doPetAction(action)
+        .then((pet) => {
+          if (pet && !this.destroyed) this.pet = { ...pet, accessory: pet.accessory ?? this.pet?.accessory };
+        })
+        .catch(() => undefined);
+    }
+  }
+
+  // ====================== TRUCOS ======================
+
+  /** Hace un truco (lo mandó el servidor: lo ven todos los de la sala). */
+  playTrick(trick: PetTrick | string): void {
+    const sprite = this.sprite;
+    if (!sprite || this.tricking) return;
+    this.tricking = true;
+    if (this.mode !== "USE") {
+      this.mode = "IDLE";
+      this.decideAt = this.timer + 2600;
+    }
+    const tweens = this.scene.tweens;
+    const baseY = sprite.y;
+    const done = () => {
+      sprite.setAngle(0);
+      sprite.setY(baseY);
+      this.tricking = false;
+    };
+    switch (trick) {
+      case "jump":
+        tweens.add({ targets: sprite, y: baseY - 22, duration: 170, yoyo: true, repeat: 1, ease: "Quad.easeOut", onComplete: done });
+        break;
+      case "spin": {
+        let flips = 0;
+        this.scene.time.addEvent({
+          delay: 110,
+          repeat: 7,
+          callback: () => {
+            sprite.setFlipX(!sprite.flipX);
+            if (++flips >= 8) {
+              sprite.setFlipX(false);
+              done();
+            }
+          },
+        });
+        tweens.add({ targets: sprite, y: baseY - 8, duration: 220, yoyo: true, repeat: 1 });
+        break;
+      }
+      case "dance":
+        sprite.setAngle(-12);
+        tweens.add({ targets: sprite, angle: 12, duration: 200, yoyo: true, repeat: 4, ease: "Sine.easeInOut", onComplete: done });
+        tweens.add({ targets: sprite, y: baseY - 6, duration: 200, yoyo: true, repeat: 4 });
+        break;
+      case "flip":
+        tweens.add({ targets: sprite, y: baseY - 30, duration: 260, yoyo: true, ease: "Quad.easeOut" });
+        tweens.add({ targets: sprite, angle: 360, duration: 520, ease: "Sine.easeInOut", onComplete: done });
+        break;
+      case "love":
+      default: {
+        for (let i = 0; i < 4; i++) {
+          const heart = this.scene.add
+            .text(sprite.x + (i - 1.5) * 9, sprite.y - sprite.displayHeight * 0.7, "\u2764", {
+              fontSize: "14px",
+              color: "#ff6fae",
+            })
+            .setOrigin(0.5)
+            .setDepth(sprite.depth + 1)
+            .setAlpha(0);
+          tweens.add({
+            targets: heart,
+            y: heart.y - 34 - Math.random() * 14,
+            alpha: { from: 1, to: 0 },
+            delay: i * 140,
+            duration: 1100,
+            onComplete: () => heart.destroy(),
+          });
+        }
+        tweens.add({ targets: sprite, y: baseY - 10, duration: 160, yoyo: true, repeat: 1, onComplete: done });
+        break;
+      }
+    }
   }
 
   despawn(): void {
+    this.accessory?.destroy();
+    this.accessory = undefined;
+    this.accessoryUrl = null;
     this.sprite?.destroy();
     this.sprite = undefined;
     this.species = null;
@@ -282,6 +579,7 @@ export default class PetSystem {
 
   /** Elige qué hacer ahora: pasear, quedarse quieta, sentarse o dormir. */
   private decide(anchorX: number, anchorY: number, radius: number) {
+    if (this.tryUseSpot()) return;
     const roll = Math.random();
     this.modeStartedAt = this.timer;
     if (roll < 0.45) {
@@ -340,6 +638,23 @@ export default class PetSystem {
       this.homeX = this.sprite.x;
       this.homeY = this.sprite.y;
       this.decideAt = this.timer + 2000;
+    } else if (this.mode === "USE") {
+      if (this.usePhase === "GO") {
+        const dist = Math.hypot(this.targetX - this.sprite.x, this.targetY - this.sprite.y);
+        if (dist <= ARRIVE_DIST) {
+          this.startUsing();
+        } else if (this.timer - this.modeStartedAt > 15000) {
+          this.mode = "IDLE";
+          this.decideAt = this.timer + 1500;
+        } else {
+          moving = true;
+          speed = USE_SPEED;
+        }
+      } else if (this.timer >= this.useUntil) {
+        this.mode = "IDLE";
+        this.useKind = null;
+        this.decideAt = this.timer + 1500 + Math.random() * 2500;
+      }
     } else if (this.mode === "ROAM") {
       const dist = Math.hypot(this.targetX - this.sprite.x, this.targetY - this.sprite.y);
       if (dist <= ARRIVE_DIST || this.timer - this.modeStartedAt > ROAM_TIMEOUT_MS) {
@@ -350,7 +665,9 @@ export default class PetSystem {
       }
     }
 
-    if (!moving && this.timer >= this.decideAt) {
+    if (this.tricking) moving = false;
+
+    if (!moving && this.mode !== "USE" && this.timer >= this.decideAt) {
       const anchorX = ownerGround ? ownerGround.x : this.homeX;
       const anchorY = ownerGround ? ownerGround.y : this.homeY;
       this.decide(anchorX, anchorY, ownerGround ? ROAM_RADIUS_NEAR_OWNER : ROAM_RADIUS_ALONE);
@@ -366,7 +683,7 @@ export default class PetSystem {
       const nextY = this.sprite.y + dy * k;
       // Paseando nunca pisa fuera del piso (siguiendo al dueño sí puede
       // cortar camino: él ya está en un lugar válido).
-      if (this.mode === "FOLLOW" || this.walkable(nextX, nextY)) {
+      if (this.mode === "FOLLOW" || this.mode === "USE" || this.walkable(nextX, nextY)) {
         this.sprite.x = nextX;
         this.sprite.y = nextY;
       } else {
@@ -385,13 +702,21 @@ export default class PetSystem {
     this.lastY = this.sprite.y;
     syncActorDepth(this.scene, this.sprite);
 
-    const clip =
-      this.mode === "REST" && this.restChoice && !moving
+    this.placeAccessory();
+
+    const useClip =
+      this.mode === "USE" && this.usePhase === "DO" && this.useKind && this.useKind !== "toy"
+        ? this.useKind === "bed"
+          ? this.byTrigger("SLEEP") ?? this.byTrigger("SIT")
+          : this.byTrigger("EAT") ?? this.byTrigger("SIT")
+        : null;
+    const clip = useClip ??
+      (this.mode === "REST" && this.restChoice && !moving
         ? this.byTrigger(this.restChoice) ??
           this.byTrigger(this.restChoice === "SIT" ? "SLEEP" : "SIT") ??
           this.byTrigger("IDLE") ??
           this.staticIdleClip()
-        : this.pickClip(moving);
+        : this.pickClip(moving));
     if (!clip) return;
 
     const key = `${clip.key}:${this.dirIndex}`;

@@ -53,7 +53,11 @@ export default class RoomCompanions {
       const petIds = new Set<string>();
       for (const pet of others(pets)) {
         petIds.add(pet.id);
-        if (this.pets.has(pet.id)) continue;
+        const existing = this.pets.get(pet.id);
+        if (existing) {
+          existing.updateRecord(pet);
+          continue;
+        }
         const system = new PetSystem(this.scene, pet);
         this.pets.set(pet.id, system);
         void system.sync();
@@ -177,6 +181,10 @@ export default class RoomCompanions {
       );
     });
     this.talkTimers = this.talkTimers.filter((timer) => timer.getOverallProgress() < 1);
+  }
+
+  playPetTrick(petId: string, trick: string): void {
+    this.pets.get(petId)?.playTrick(trick);
   }
 
   destroy(): void {

@@ -52,6 +52,8 @@ export class InventoryHandler {
             // Los filtros por ambiente (room:*) del panel de construcción
             // salen de acá -- ver ITEM_ROOMS en apps/game.
             tags: item.tags ?? [],
+            // "petAccessory" = se le pone a la mascota, no va en la sala.
+            category: item.category ?? null,
             avatarData: item.avatarData,
             worldData: item.worldData,
           },

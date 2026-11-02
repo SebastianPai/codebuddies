@@ -139,7 +139,21 @@
     "mood_CONTENT": "Content",
     "mood_SAD": "Sad",
     "mood_SICK": "Sick",
-    "mood_SLEEPING": "Sleeping"
+    "mood_SLEEPING": "Sleeping",
+    "tricksTitle": "Tricks",
+    "trick_jump": "Jump",
+    "trick_spin": "Spin",
+    "trick_love": "Love",
+    "trick_dance": "Dance",
+    "trick_flip": "Flip",
+    "learnTrick": "Teach this trick",
+    "tricksHint": "Everyone in the room can see it.",
+    "tricksBringOut": "Bring your pet out in this room so it can do tricks.",
+    "accessoryTitle": "Accessory",
+    "noAccessory": "None",
+    "accessoryNone": "No accessories in the shop yet.",
+    "cornerTitle": "Its corner",
+    "cornerHint": "Put a pet bed, food bowl, water bowl or toy in your room: your pet goes on its own to sleep, eat, drink and play, and that really takes care of it."
   },
   "butler": {
     "title": "My butler",

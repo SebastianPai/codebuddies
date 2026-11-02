@@ -11,7 +11,12 @@ import {
 import { JwtAuthGuard } from '../../identity/guards/jwt.guard';
 import { CurrentUser } from '../../identity/decorators/current-user.decorator';
 import type { AuthUser } from '../../identity/decorators/current-user.decorator';
-import { PET_ACTIONS, PetAction } from './pet.constants';
+import {
+  PET_ACTIONS,
+  PET_TRICKS,
+  PetAction,
+  isPetTrick,
+} from './pet.constants';
 import { PetService } from './pet.service';
 
 const PET_ACTION_NAMES = Object.keys(PET_ACTIONS) as PetAction[];
@@ -52,6 +57,25 @@ export class PetController {
       );
     }
     return this.petService.doAction(user.userId, action as PetAction);
+  }
+
+  @Post('me/tricks/:trick')
+  buyTrick(@CurrentUser() user: AuthUser, @Param('trick') trick: string) {
+    if (!isPetTrick(trick)) {
+      throw new BadRequestException(
+        `Truco inválido. Válidos: ${Object.keys(PET_TRICKS).join(', ')}`,
+      );
+    }
+    return this.petService.buyTrick(user.userId, trick);
+  }
+
+  @Post('me/accessory')
+  setAccessory(
+    @CurrentUser() user: AuthUser,
+    @Body() body: { itemId?: string | null },
+  ) {
+    const itemId = typeof body?.itemId === 'string' && body.itemId ? body.itemId : null;
+    return this.petService.setAccessory(user.userId, itemId);
   }
 
   @Post('me/cure')

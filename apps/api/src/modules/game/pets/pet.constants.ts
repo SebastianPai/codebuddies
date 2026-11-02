@@ -50,6 +50,23 @@ export type PetAction = keyof typeof PET_ACTIONS;
 // más adelante puede costar un item "medicina" o coins.
 export const PET_CURE_HEALTH = PET_HEALED_HEALTH_THRESHOLD + 10;
 
+// Trucos: se compran una vez con monedas y la mascota los hace cuando el
+// dueño quiere (y a veces sola). Son animaciones del juego, valen para
+// cualquier especie sin dibujar nada nuevo. Clave -> precio en monedas.
+export const PET_TRICKS = {
+  jump: 10,
+  spin: 15,
+  love: 20,
+  dance: 25,
+  flip: 35,
+} as const;
+export type PetTrick = keyof typeof PET_TRICKS;
+export const isPetTrick = (value: unknown): value is PetTrick =>
+  typeof value === 'string' && value in PET_TRICKS;
+
+// Categoría de los ítems que se le ponen a la mascota (sombreros, moños...).
+export const PET_ACCESSORY_CATEGORY = 'petAccessory';
+
 // Especies válidas -> clave de spritesheet que resuelve el cliente.
 export const PET_SPECIES = ['cat', 'dog', 'bird', 'rabbit', 'slime'] as const;
 export type PetSpecies = (typeof PET_SPECIES)[number];

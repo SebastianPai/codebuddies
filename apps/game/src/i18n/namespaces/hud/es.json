@@ -139,7 +139,21 @@
     "mood_CONTENT": "Tranquila",
     "mood_SAD": "Triste",
     "mood_SICK": "Enferma",
-    "mood_SLEEPING": "Durmiendo"
+    "mood_SLEEPING": "Durmiendo",
+    "tricksTitle": "Trucos",
+    "trick_jump": "Saltar",
+    "trick_spin": "Girar",
+    "trick_love": "Cariño",
+    "trick_dance": "Bailar",
+    "trick_flip": "Voltereta",
+    "learnTrick": "Enséñale este truco",
+    "tricksHint": "Lo ven todos los que estén en la sala.",
+    "tricksBringOut": "Saca a tu mascota en esta sala para que haga los trucos.",
+    "accessoryTitle": "Accesorio",
+    "noAccessory": "Nada",
+    "accessoryNone": "Todavía no hay accesorios en la tienda.",
+    "cornerTitle": "Su rincón",
+    "cornerHint": "Pon en tu sala una cama, un comedero, un bebedero o un juguete para mascotas: tu mascota va sola a dormir, comer, beber y jugar, y eso la cuida de verdad."
   },
   "butler": {
     "title": "Mi mayordomo",

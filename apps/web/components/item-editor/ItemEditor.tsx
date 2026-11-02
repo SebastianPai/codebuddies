@@ -60,7 +60,7 @@ const ROOM_TAG_PREFIX = "room:";
 // libre; esta lista solo evita tipearla). La etiqueta sale de
 // items.categoryOption.<valor>; un valor viejo que no esté acá se sigue mostrando.
 const ITEM_CATEGORY_OPTIONS: Record<string, string[]> = {
-  world: ["furniture", "decoration", "blocks", "roof", "castle", "spooky", "plants", "vehicles"],
+  world: ["furniture", "decoration", "blocks", "roof", "castle", "spooky", "plants", "vehicles", "pet", "petAccessory"],
   avatar: ["clothing", "hair", "accessory"],
   texture: ["texturas"],
   effect: ["effect"],
@@ -68,6 +68,9 @@ const ITEM_CATEGORY_OPTIONS: Record<string, string[]> = {
 };
 const ITEM_ROOM_KEYS = ["living", "kitchen", "bedroom", "bathroom", "office", "outdoor"] as const;
 const OFFICE_TAG_KEYS = ["desk", "chair", "pc", "snacks", "water", "coffee", "basic"] as const;
+// Cosas para la mascota en la sala: la mascota las busca por este tag y las
+// usa sola (dormir, comer, beber, jugar). Ver PetSystem en apps/game.
+const PET_SPOT_KEYS = ["bed", "food", "water", "toy"] as const;
 // Ropa de avatar: para quién es (sin marca = unisex) y su estilo. Un grupo
 // es exclusivo: elegir uno quita el otro del mismo grupo.
 const WEAR_TAG_GROUPS = [
@@ -1147,6 +1150,33 @@ export default function ItemEditor({
               })}
             </div>
           </div>
+          )}
+          {category === "world" && itemCategory === "pet" && (
+          <div>
+            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-zinc-400">{t("items.petSpotLabel")}</p>
+            <div className="flex flex-wrap gap-2">
+              {PET_SPOT_KEYS.map((key) => {
+                const tag = `pet:${key}`;
+                const list = compactTags(tags);
+                const active = list.includes(tag);
+                const others = list.filter((entry) => !entry.startsWith("pet:"));
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => setTags((active ? others : [...others, tag]).join(", "))}
+                    className={`rounded-full border px-3 py-1 text-xs font-bold ${active ? "border-yellow-400 bg-yellow-400 text-black" : "border-zinc-700 text-zinc-300"}`}
+                  >
+                    {t(`items.petSpot.${key}`)}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          )}
+          {category === "world" && itemCategory === "petAccessory" && (
+            <p className="text-xs text-zinc-400">{t("items.petAccessoryHint")}</p>
           )}
           {/* Ropa de avatar: mujer/hombre (sin marca = unisex), estilo y si la
               pueden usar los empleados de CodeStudio. */}

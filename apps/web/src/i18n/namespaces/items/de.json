@@ -521,7 +521,9 @@
     "accessory": "Accessoires",
     "texturas": "Texturen",
     "effect": "Effekt",
-    "chatBubble": "Chatblase"
+    "chatBubble": "Chatblase",
+    "pet": "Haustiere (Bett, Napf…)",
+    "petAccessory": "Haustier-Accessoire"
   },
   "bulkTitle": "Mehrere auf einmal hochladen",
   "bulkDescription": "Viele PNGs hineinziehen: ein Objekt pro Bild. Der Name kommt aus der Datei, die Seiten aus der Form (128x64 = 2 Seiten), und wenn jede Seite 64x64 ist, wird es ein stapelbarer Block für 1 Coin. Danach kannst du jedes anpassen.",
@@ -533,5 +535,13 @@
   "bulkCreate": "{count} Objekte erstellen",
   "bulkUploading": "Wird hochgeladen...",
   "bulkDoneEdit": "Erstellt · bearbeiten",
-  "bulkRemove": "Entfernen"
+  "bulkRemove": "Entfernen",
+  "petSpotLabel": "Wofür das Haustier es nutzt",
+  "petSpot": {
+    "bed": "Bett (schläft)",
+    "food": "Futternapf (frisst)",
+    "water": "Wassernapf (trinkt)",
+    "toy": "Spielzeug (spielt)"
+  },
+  "petAccessoryHint": "Wird auf dem Kopf des Haustiers getragen (nicht im Raum platziert). Im Maßstab des Haustiers zeichnen, Unterkante auf dem Kopf."
 }

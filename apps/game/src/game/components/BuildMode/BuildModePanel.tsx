@@ -25,6 +25,7 @@ import {
   type BuildPlacementProgress,
 } from "../../systems/buildPlacementEvents";
 import ItemPreview from "../UI/ItemPreview";
+import { PET_ACCESSORY_CATEGORY } from "../../network/pets";
 import ColorSwatchPicker from "../shared/ColorSwatchPicker";
 import { COLOR_FREE_COLORS, COLOR_PREMIUM_COLORS } from "@codebuddies/world-objects";
 import { useIsPremium } from "../../hooks/useIsPremium";
@@ -336,12 +337,12 @@ export default function BuildModePanel({
     const owned = new Map<string, Entry>();
     for (const inv of inventory) {
       const item = inv.item;
-      if (item?.type !== "WORLD" || !item.id) continue;
+      if (item?.type !== "WORLD" || !item.id || item.category === PET_ACCESSORY_CATEGORY) continue;
       owned.set(item.id, { item, amount: inv.amount ?? inv.quantity ?? 1, price: item.coinsPrice ?? null, maxStack: item.maxStack ?? 1 });
     }
     const all: Entry[] = [...owned.values()];
     for (const item of shopItems) {
-      if (item?.type !== "WORLD" || !item.id || owned.has(item.id) || !(item.coinsPrice > 0)) continue;
+      if (item?.type !== "WORLD" || !item.id || owned.has(item.id) || !(item.coinsPrice > 0) || item.category === PET_ACCESSORY_CATEGORY) continue;
       all.push({ item, amount: 0, price: item.coinsPrice, maxStack: item.maxStack ?? 1 });
     }
     const term = search.trim().toLowerCase();

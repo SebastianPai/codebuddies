@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Modal from "../shared/Modal";
 import Button from "../shared/Button";
 import PetSpriteCell from "../shared/PetSpriteCell";
+import PetExtras from "./PetExtras";
 import { audioManager } from "../../audio/AudioManager";
 import { useTranslation } from "../../../i18n/useTranslation";
 import {
@@ -255,6 +256,8 @@ export default function PetPanel({ onClose }: Props) {
                 </p>
               )}
             </div>
+
+            <PetExtras pet={pet} outHere={outHere} busy={busy} run={run} />
           </>
         )}
       </div>

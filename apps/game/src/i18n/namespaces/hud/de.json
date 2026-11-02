@@ -139,7 +139,21 @@
     "mood_CONTENT": "Zufrieden",
     "mood_SAD": "Traurig",
     "mood_SICK": "Krank",
-    "mood_SLEEPING": "Schläft"
+    "mood_SLEEPING": "Schläft",
+    "tricksTitle": "Tricks",
+    "trick_jump": "Springen",
+    "trick_spin": "Drehen",
+    "trick_love": "Liebe",
+    "trick_dance": "Tanzen",
+    "trick_flip": "Salto",
+    "learnTrick": "Diesen Trick beibringen",
+    "tricksHint": "Alle im Raum sehen es.",
+    "tricksBringOut": "Hol dein Haustier in diesen Raum, damit es Tricks macht.",
+    "accessoryTitle": "Accessoire",
+    "noAccessory": "Nichts",
+    "accessoryNone": "Noch keine Accessoires im Shop.",
+    "cornerTitle": "Seine Ecke",
+    "cornerHint": "Stell ein Haustierbett, einen Futternapf, einen Wassernapf oder ein Spielzeug in deinen Raum: dein Haustier geht allein schlafen, fressen, trinken und spielen – und das pflegt es wirklich."
   },
   "butler": {
     "title": "Mein Butler",

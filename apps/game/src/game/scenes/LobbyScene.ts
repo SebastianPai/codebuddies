@@ -305,6 +305,14 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
       }
     });
 
+    // Truco de una mascota (la propia o la de otro): lo manda el servidor a
+    // toda la sala y cada uno lo anima en su pantalla.
+    socket.on("pet:trick", (data: { petId?: string; trick?: string }) => {
+      if (!data?.petId || !data.trick) return;
+      if (this.petSystem?.petId === data.petId) this.petSystem.playTrick(data.trick);
+      else this.roomCompanions?.playPetTrick(data.petId, data.trick);
+    });
+
     socket.on("room:backgroundChanged", (data: any) => {
       this.backgroundManager.setBackground(data.background, {
         layoutAnchor: this.getCompositionCenter(),

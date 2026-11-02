@@ -521,7 +521,9 @@
     "accessory": "Accesorios",
     "texturas": "Texturas",
     "effect": "Efecto",
-    "chatBubble": "Burbuja de chat"
+    "chatBubble": "Burbuja de chat",
+    "pet": "Mascotas (cama, comedero…)",
+    "petAccessory": "Accesorio de mascota"
   },
   "bulkTitle": "Subir varios a la vez",
   "bulkDescription": "Arrastra muchos PNG: se crea un objeto por imagen. El nombre sale del archivo, las caras de la forma (128x64 = 2 caras) y si cada cara es de 64x64 queda como bloque apilable a 1 coin. Después puedes ajustar cada uno.",
@@ -533,5 +535,13 @@
   "bulkCreate": "Crear {count} objetos",
   "bulkUploading": "Subiendo...",
   "bulkDoneEdit": "Creado · editar",
-  "bulkRemove": "Quitar"
+  "bulkRemove": "Quitar",
+  "petSpotLabel": "Para qué lo usa la mascota",
+  "petSpot": {
+    "bed": "Cama (duerme)",
+    "food": "Comedero (come)",
+    "water": "Bebedero (bebe)",
+    "toy": "Juguete (juega)"
+  },
+  "petAccessoryHint": "Se le pone a la mascota encima de la cabeza (no se coloca en la sala). Dibújalo al tamaño de la mascota, con el borde de abajo apoyado en la cabeza."
 }

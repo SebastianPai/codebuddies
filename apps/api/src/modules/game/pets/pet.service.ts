@@ -7,8 +7,11 @@ import type { Pet } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import {
   DEFAULT_PET_SPECIES,
+  PET_ACCESSORY_CATEGORY,
   PET_CURE_HEALTH,
+  PET_TRICKS,
   PetAction,
+  PetTrick,
   normalizePetSpecies,
 } from './pet.constants';
 import {
@@ -19,6 +22,8 @@ import {
   deriveMood,
 } from './pet.logic';
 
+type AccessoryView = { id: string; imageUrl: string | null; name: string | null };
+
 // MVP: una mascota por usuario. El sprite/look lo resuelve el cliente a
 // partir de `species`. El decaimiento de stats se calcula perezosamente en
 // cada lectura (persistDecay) — no hay job de fondo.
@@ -26,10 +31,11 @@ import {
 export class PetService {
   constructor(private prisma: PrismaService) {}
 
-  private serialize(pet: Pet) {
+  private serialize(pet: Pet, accessory: AccessoryView | null = null) {
     const { userId: _userId, ...safe } = pet;
     return {
       ...safe,
+      accessory,
       mood: deriveMood(pet),
       cooldowns: {
         feed: actionCooldownRemaining(pet, 'feed'),
@@ -75,6 +81,9 @@ export class PetService {
       take: 20,
       include: { user: { select: { username: true } } },
     });
+    const accessories = await this.loadAccessories(
+      pets.map((pet) => pet.accessoryItemId),
+    );
     return pets.map((pet) => ({
       id: pet.id,
       species: pet.species,
@@ -82,6 +91,10 @@ export class PetService {
       mood: deriveMood(pet),
       activeRoomId: pet.activeRoomId,
       ownerUsername: pet.user.username,
+      tricks: pet.tricks,
+      accessory: pet.accessoryItemId
+        ? (accessories.get(pet.accessoryItemId) ?? null)
+        : null,
     }));
   }
 
@@ -91,7 +104,105 @@ export class PetService {
       orderBy: { createdAt: 'asc' },
     });
     if (!pet) return null;
-    return this.serialize(await this.persistDecay(pet));
+    return this.serializeWithAccessory(await this.persistDecay(pet));
+  }
+
+  private async loadAccessories(ids: Array<string | null>) {
+    const wanted = [...new Set(ids.filter((id): id is string => !!id))];
+    const map = new Map<string, AccessoryView>();
+    if (!wanted.length) return map;
+    const items = await this.prisma.item.findMany({
+      where: { id: { in: wanted } },
+      select: {
+        id: true,
+        imageUrl: true,
+        translations: { select: { name: true }, take: 1 },
+      },
+    });
+    for (const item of items) {
+      map.set(item.id, {
+        id: item.id,
+        imageUrl: item.imageUrl,
+        name: item.translations[0]?.name ?? null,
+      });
+    }
+    return map;
+  }
+
+  private async serializeWithAccessory(pet: Pet) {
+    const accessories = await this.loadAccessories([pet.accessoryItemId]);
+    return this.serialize(
+      pet,
+      pet.accessoryItemId ? (accessories.get(pet.accessoryItemId) ?? null) : null,
+    );
+  }
+
+  // ====================== TRUCOS ======================
+
+  /** Compra un truco con monedas (una sola vez por mascota). */
+  async buyTrick(userId: string, trick: PetTrick) {
+    const pet = await this.loadOwnedPet(userId);
+    if (pet.tricks.includes(trick)) {
+      throw new BadRequestException('Tu mascota ya sabe ese truco');
+    }
+    const price = PET_TRICKS[trick];
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const debited = await tx.user.updateMany({
+        where: { id: userId, coins: { gte: price } },
+        data: { coins: { decrement: price } },
+      });
+      if (debited.count === 0) {
+        throw new BadRequestException('No tenés monedas suficientes');
+      }
+      await tx.coinTransaction.create({
+        data: { userId, amount: -price, reason: `pet-trick:${trick}` },
+      });
+      return tx.pet.update({
+        where: { id: pet.id },
+        data: { tricks: { push: trick } },
+      });
+    });
+    return this.serializeWithAccessory(await this.persistDecay(updated));
+  }
+
+  /**
+   * Hacer un truco en la sala donde está la mascota: devuelve a quién
+   * avisar (la sala) o null si no corresponde. No cambia nada guardado.
+   */
+  async performTrick(userId: string, trick: PetTrick, roomId: string | null) {
+    const pet = await this.prisma.pet.findFirst({
+      where: { userId },
+      orderBy: { createdAt: 'asc' },
+    });
+    if (!pet || !roomId || pet.activeRoomId !== roomId) return null;
+    if (!pet.tricks.includes(trick)) return null;
+    return { petId: pet.id, trick, roomId };
+  }
+
+  // ====================== ACCESORIO ======================
+
+  /** Poner (o sacar, con null) un accesorio que el dueño tenga. */
+  async setAccessory(userId: string, itemId: string | null) {
+    const pet = await this.loadOwnedPet(userId);
+    if (itemId) {
+      const [owned, item] = await Promise.all([
+        this.prisma.userItem.findUnique({
+          where: { userId_itemId: { userId, itemId } },
+        }),
+        this.prisma.item.findUnique({ where: { id: itemId } }),
+      ]);
+      if (!owned || owned.amount <= 0) {
+        throw new BadRequestException('No tenés ese accesorio');
+      }
+      if (item?.category !== PET_ACCESSORY_CATEGORY) {
+        throw new BadRequestException('Eso no es un accesorio de mascota');
+      }
+    }
+    const updated = await this.prisma.pet.update({
+      where: { id: pet.id },
+      data: { accessoryItemId: itemId },
+    });
+    return this.serializeWithAccessory(await this.persistDecay(updated));
   }
 
   async adopt(
@@ -180,7 +291,7 @@ export class PetService {
       where: { id: pet.id },
       data: { name: (name ?? '').trim().slice(0, 24) },
     });
-    return this.serialize(await this.persistDecay(updated));
+    return this.serializeWithAccessory(await this.persistDecay(updated));
   }
 
   async doAction(userId: string, action: PetAction) {
@@ -210,7 +321,7 @@ export class PetService {
         lastPlayedAt: next.lastPlayedAt as Date,
       },
     });
-    return this.serialize(updated);
+    return this.serializeWithAccessory(updated);
   }
 
   async cure(userId: string) {
@@ -222,7 +333,7 @@ export class PetService {
       where: { id: pet.id },
       data: { sick: false, health: PET_CURE_HEALTH },
     });
-    return this.serialize(updated);
+    return this.serializeWithAccessory(updated);
   }
 
   /** Sacar/guardar la mascota de una sala. `roomId = null` = guardarla. */
@@ -232,7 +343,7 @@ export class PetService {
       where: { id: pet.id },
       data: { activeRoomId: roomId },
     });
-    return this.serialize(await this.persistDecay(updated));
+    return this.serializeWithAccessory(await this.persistDecay(updated));
   }
 
   async release(userId: string) {
