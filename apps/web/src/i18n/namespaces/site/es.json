@@ -745,5 +745,10 @@
   "coursesAudienceKids": "Niños",
   "coursesAudienceAdults": "Jóvenes y adultos",
   "coursesKidsTitle": "¡Aprende a programar con Buddy!",
-  "coursesKidsSubtitle": "Cursos para niños y niñas de 8 a 12 años: das órdenes, Buddy las cumple y tú aprendes jugando."
+  "coursesKidsSubtitle": "Cursos para niños y niñas de 8 a 12 años: das órdenes, Buddy las cumple y tú aprendes jugando.",
+  "mentorTitle": "Profe Buddy",
+  "mentorOffer": "¿Te trabaste? ¡Te ayudo con una pista!",
+  "mentorCount": "Pista {shown} de {total}",
+  "mentorFirstHint": "💡 Dame una pista",
+  "mentorNextHint": "💡 Otra pista"
 }

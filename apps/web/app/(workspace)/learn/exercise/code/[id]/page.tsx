@@ -36,6 +36,7 @@ import { PracticeInCodeStudio } from "@/features/codestudio";
 import { useReward } from "../../../../../../contexts/RewardContext";
 import { useTrackToolUsed, trackToolAction, trackCodeStarted, trackCodeResult } from "../../../../../../components/analytics/tool-tracking";
 import { buildBuddyStageDoc } from "@/features/buddy";
+import { buddySvg } from "@codebuddies/world-objects";
 
 // Ejercicios de Buddy (cursos para niños): solo JavaScript, y la vista previa
 // es el escenario con el robot en vez de una página.
@@ -302,6 +303,10 @@ export default function FullWidthConfidentialWorkspace() {
 
   const [previewDoc, setPreviewDoc] = useState("");
 
+  // Profe Buddy: pistas escritas a mano, una a la vez, cuando el código falla.
+  const [hints, setHints] = useState<string[]>([]);
+  const [hintsShown, setHintsShown] = useState(0);
+
   // Buddy: la animación corre al tocar "Ejecutar" (con cada tecla sería un lío).
   const buddyMode = isBuddyLang(exercise?.language);
 
@@ -403,6 +408,11 @@ export default function FullWidthConfidentialWorkspace() {
         }
 
         setInstructionDoc(normalizeLessonContent(rawContent));
+        // Pistas del mentor (Profe Buddy): las escribe quien arma el ejercicio
+        // en content.hints, de la más suave a la más clara.
+        const rawHints = (rawContent as { hints?: unknown } | null)?.hints;
+        setHints(Array.isArray(rawHints) ? rawHints.filter((h): h is string => typeof h === "string" && h.trim().length > 0) : []);
+        setHintsShown(0);
 
         // Pestaña inicial = lenguaje del ejercicio (HTML/CSS/JS), no siempre JS.
         const tab = langToTab(data.language);
@@ -694,6 +704,33 @@ try {
           <p className="text-sm italic text-[rgb(var(--secondary-text))]">
             {t("site.academyLesson.noContentYet")}
           </p>
+        )}
+        {hints.length > 0 && !completed && (checkResult === "fail" || hintsShown > 0) && (
+          <div className="mt-6 rounded-2xl border-2 border-emerald-400/60 bg-emerald-400/10 p-4">
+            <div className="flex items-center gap-3">
+              <div className="shrink-0" dangerouslySetInnerHTML={{ __html: buddySvg(hintsShown > 0 ? "feliz" : "normal", 52) }} />
+              <div>
+                <p className="font-extrabold text-[rgb(var(--text))]">{t("site.mentorTitle")}</p>
+                <p className="text-sm text-[rgb(var(--secondary-text))]">
+                  {hintsShown === 0 ? t("site.mentorOffer") : t("site.mentorCount", { shown: hintsShown, total: hints.length })}
+                </p>
+              </div>
+            </div>
+            {hints.slice(0, hintsShown).map((hint, index) => (
+              <div key={index} className="mt-3 rounded-xl bg-[rgb(var(--card))] p-3 text-[15px] leading-7 text-[rgb(var(--text))]">
+                <LessonContentRenderer doc={normalizeLessonContent({ markdown: `💡 ${hint}` })} />
+              </div>
+            ))}
+            {hintsShown < hints.length && (
+              <button
+                type="button"
+                onClick={() => setHintsShown((n) => n + 1)}
+                className="mt-3 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-extrabold text-white hover:bg-emerald-500"
+              >
+                {hintsShown === 0 ? t("site.mentorFirstHint") : t("site.mentorNextHint")}
+              </button>
+            )}
+          </div>
         )}
         {completed && <PracticeInCodeStudio className="mt-6" />}
       </div>

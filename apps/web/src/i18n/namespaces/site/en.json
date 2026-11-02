@@ -745,5 +745,10 @@
   "coursesAudienceKids": "Kids",
   "coursesAudienceAdults": "Teens and adults",
   "coursesKidsTitle": "Learn to code with Buddy!",
-  "coursesKidsSubtitle": "Courses for kids aged 8 to 12: you give orders, Buddy follows them, and you learn by playing."
+  "coursesKidsSubtitle": "Courses for kids aged 8 to 12: you give orders, Buddy follows them, and you learn by playing.",
+  "mentorTitle": "Coach Buddy",
+  "mentorOffer": "Stuck? I'll help you with a hint!",
+  "mentorCount": "Hint {shown} of {total}",
+  "mentorFirstHint": "💡 Give me a hint",
+  "mentorNextHint": "💡 Another hint"
 }

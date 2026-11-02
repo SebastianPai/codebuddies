@@ -745,5 +745,10 @@
   "coursesAudienceKids": "Kinder",
   "coursesAudienceAdults": "Jugendliche und Erwachsene",
   "coursesKidsTitle": "Lerne programmieren mit Buddy!",
-  "coursesKidsSubtitle": "Kurse für Kinder von 8 bis 12: Du gibst Befehle, Buddy führt sie aus und du lernst spielend."
+  "coursesKidsSubtitle": "Kurse für Kinder von 8 bis 12: Du gibst Befehle, Buddy führt sie aus und du lernst spielend.",
+  "mentorTitle": "Coach Buddy",
+  "mentorOffer": "Festgesteckt? Ich helfe dir mit einem Tipp!",
+  "mentorCount": "Tipp {shown} von {total}",
+  "mentorFirstHint": "💡 Gib mir einen Tipp",
+  "mentorNextHint": "💡 Noch ein Tipp"
 }
