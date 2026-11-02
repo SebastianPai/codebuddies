@@ -87,6 +87,16 @@ export class ExerciseController {
     );
   }
 
+  // Visitante sin cuenta probando la primera lección: corrige y no guarda.
+  @Post(':id/quiz/preview')
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  async previewQuizAnswer(
+    @Param('id') id: string,
+    @Body() dto: SubmitQuizAnswerDto,
+  ) {
+    return this.exerciseService.previewQuizAnswer(id, dto);
+  }
+
   @Post(':id/quiz/answer')
   @UseGuards(JwtAuthGuard)
   async submitQuizAnswer(

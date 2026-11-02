@@ -750,5 +750,11 @@
   "mentorOffer": "¿Te trabaste? ¡Te ayudo con una pista!",
   "mentorCount": "Pista {shown} de {total}",
   "mentorFirstHint": "Dame una pista",
-  "mentorNextHint": "Otra pista"
+  "mentorNextHint": "Otra pista",
+  "guestSaveTitle": "¡Muy bien! Guarda tu progreso",
+  "guestSaveBody": "Sin cuenta no se guarda lo que hiciste ni ganas XP ni monedas. Crea tu cuenta gratis, vuelve a tocar Comprobar y listo: tu código queda guardado en este navegador.",
+  "guestContinueTitle": "Crea tu cuenta para seguir",
+  "guestContinueBody": "La primera lección se puede probar sin cuenta. Para seguir con el curso, guardar tu progreso y ganar recompensas, crea tu cuenta gratis.",
+  "guestRegister": "Crear cuenta gratis",
+  "guestLogin": "Ya tengo cuenta"
 }

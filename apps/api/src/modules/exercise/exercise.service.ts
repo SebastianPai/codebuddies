@@ -432,6 +432,73 @@ export class ExerciseService {
   // Corrige una respuesta de quiz server-side: la respuesta correcta nunca
   // se envía al cliente antes de este punto (ver buildQuizQuestions), así
   // que la comparación tiene que resolverse acá, no en el navegador.
+  /**
+   * Corrección de una pregunta para un visitante sin cuenta (solo la primera
+   * lección de un curso, que se puede probar sin entrar). No guarda intentos,
+   * no completa nada y no da recompensas: eso solo pasa con cuenta, por
+   * submitQuizAnswer, así no hay nada que se pueda duplicar.
+   */
+  async previewQuizAnswer(exerciseId: string, dto: SubmitQuizAnswerDto) {
+    const exercise = await this.prisma.exercise.findUnique({
+      where: { id: exerciseId },
+      include: {
+        translations: { include: { language: true } },
+        lesson: { select: { order: true, courseId: true, status: true } },
+      },
+    });
+    if (
+      !exercise ||
+      exercise.status !== 'PUBLISHED' ||
+      exercise.lesson.status !== 'PUBLISHED'
+    ) {
+      throw new NotFoundException('Ejercicio no encontrado');
+    }
+    if (exercise.type !== ExerciseType.QUIZ) {
+      throw new BadRequestException('Este ejercicio no es un quiz');
+    }
+    if (
+      await this.premiumAccessService.isLessonProgressionLocked({
+        courseId: exercise.lesson.courseId,
+        lessonId: exercise.lessonId,
+        lessonOrder: exercise.lesson.order,
+      })
+    ) {
+      throw new ForbiddenException('Crea tu cuenta para seguir con el curso');
+    }
+
+    const lang = dto.lang || 'es';
+    const translation =
+      exercise.translations.find((t) => t.language.code === lang) ||
+      exercise.translations.find((t) => t.language.code === 'es') ||
+      exercise.translations[0];
+    let quizBlocks = this.extractQuizBlocks(translation?.content || exercise.content || {});
+    if (!quizBlocks[dto.questionIndex]) {
+      for (const source of [...exercise.translations.map((t) => t.content), exercise.content]) {
+        const blocks = this.extractQuizBlocks(source || {});
+        if (blocks[dto.questionIndex]) {
+          quizBlocks = blocks;
+          break;
+        }
+      }
+    }
+    const question = quizBlocks[dto.questionIndex];
+    if (!question) throw new NotFoundException('Pregunta no encontrada');
+
+    const correctOptions: number[] = Array.isArray(question.correct) ? question.correct : [];
+    const submitted = [...new Set(dto.selectedOptions)].sort((a, b) => a - b);
+    const expected = [...correctOptions].sort((a, b) => a - b);
+    const correct =
+      submitted.length === expected.length &&
+      submitted.every((value, index) => value === expected[index]);
+    return {
+      correct,
+      correctOptions,
+      explanation: question.explanation || '',
+      completed: false,
+      preview: true,
+    };
+  }
+
   async submitQuizAnswer(
     userId: string,
     exerciseId: string,

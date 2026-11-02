@@ -27,6 +27,7 @@ import {
   CalloutBlock,
   LessonContentRenderer,
   normalizeLessonContent,
+  SignupToSave,
 } from "@/features/academy";
 import { useAuth } from "@/shared/hooks/use-auth";
 import { useReward } from "../../../../../../contexts/RewardContext";
@@ -526,7 +527,11 @@ export default function LessonTheoryPage() {
           )}
         </div>
 
-        {lesson.locked && lesson.lockedReason === "progression" ? (
+        {lesson.locked && !isAuthenticated ? (
+          <div className="mt-8">
+            <SignupToSave variant="continue" />
+          </div>
+        ) : lesson.locked && lesson.lockedReason === "progression" ? (
           <div className="mt-8 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] p-8 text-center">
             <Lock
               size={28}

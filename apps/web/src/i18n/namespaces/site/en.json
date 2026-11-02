@@ -750,5 +750,11 @@
   "mentorOffer": "Stuck? I'll help you with a hint!",
   "mentorCount": "Hint {shown} of {total}",
   "mentorFirstHint": "Give me a hint",
-  "mentorNextHint": "Another hint"
+  "mentorNextHint": "Another hint",
+  "guestSaveTitle": "Great job! Save your progress",
+  "guestSaveBody": "Without an account your work isn't saved and you don't earn XP or coins. Create your free account, press Check again and you're done: your code stays saved in this browser.",
+  "guestContinueTitle": "Create your account to continue",
+  "guestContinueBody": "You can try the first lesson without an account. To continue the course, save your progress and earn rewards, create your free account.",
+  "guestRegister": "Create free account",
+  "guestLogin": "I already have an account"
 }

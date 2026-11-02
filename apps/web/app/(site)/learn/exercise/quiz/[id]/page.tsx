@@ -10,7 +10,7 @@ import { useReward } from "../../../../../../contexts/RewardContext";
 import { QuizExercise } from "../../../../../../src/types/exercise";
 import { useTranslation } from "../../../../../../src/i18n/useTranslation";
 import { ContentDiscussion } from "@/features/courses/components/content-discussion";
-import { CalloutBlock, ExerciseLockedState } from "@/features/academy";
+import { CalloutBlock, ExerciseLockedState, SignupToSave } from "@/features/academy";
 import { classNames } from "@/shared/utils/class-names";
 import { exercisePath, nextStepPath } from "@/shared/utils/exercise-path";
 import { trackEvent } from "../../../../../../components/analytics/events";
@@ -50,6 +50,10 @@ export default function QuizExercisePage() {
   const [authChecked, setAuthChecked] = useState(false);
   const [saved, setSaved] = useState(false);
   const [solved, setSolved] = useState<Set<number>>(() => new Set());
+  // Visitante sin cuenta probando la primera lección: el quiz se corrige
+  // (quiz/preview) pero no se guarda ni da recompensas.
+  const [guest, setGuest] = useState(false);
+  const [guestDone, setGuestDone] = useState(false);
   const startedAtRef = useRef<number>(0);
 
   useEffect(() => {
@@ -59,19 +63,15 @@ export default function QuizExercisePage() {
     const token = localStorage.getItem("token")?.trim();
     const userId = localStorage.getItem("userId")?.trim();
 
-    if (!token || !userId || userId === "null" || userId === "") {
-      setErrorMessage(t("site.sessionCompromisedRedirect"));
-      setTimeout(() => router.replace("/login"), 1200);
-      return;
-    }
-
+    const isGuest = !token || !userId || userId === "null" || userId === "";
+    setGuest(isGuest);
     setAuthChecked(true);
 
     const loadExercise = async () => {
       try {
         setErrorMessage(null);
         const data = await fetcher(
-          `/exercises/${id}?lang=${apiLang}&userId=${userId}`,
+          `/exercises/${id}?lang=${apiLang}${isGuest ? "" : `&userId=${userId}`}`,
         );
 
         if (data.type !== "QUIZ") {
@@ -140,6 +140,14 @@ export default function QuizExercisePage() {
   const currentQuestion = questions[currentQuestionIndex];
   const total = questions.length;
 
+  if (exercise.locked && guest) {
+    return (
+      <div className="mx-auto max-w-lg py-16">
+        <SignupToSave variant="continue" />
+      </div>
+    );
+  }
+
   if (exercise.locked) {
     return (
       <ExerciseLockedState
@@ -205,7 +213,7 @@ export default function QuizExercisePage() {
       const timeSpentSeconds = Math.round(
         (Date.now() - startedAtRef.current) / 1000,
       );
-      const res = await fetcher(`/exercises/${exercise.id}/quiz/answer`, {
+      const res = await fetcher(`/exercises/${exercise.id}/quiz/${guest ? "preview" : "answer"}`, {
         method: "POST",
         body: JSON.stringify({
           questionIndex: currentQuestionIndex,
@@ -227,6 +235,15 @@ export default function QuizExercisePage() {
 
       if (res.correct) {
         setSolved((prev) => new Set(prev).add(currentQuestionIndex));
+      }
+
+      // Sin cuenta no hay nada que completar: al acertar todo, se invita a
+      // crear la cuenta para guardar el progreso.
+      if (guest) {
+        const solvedNow = new Set(solved);
+        if (res.correct) solvedNow.add(currentQuestionIndex);
+        if (solvedNow.size >= total) setGuestDone(true);
+        return;
       }
 
       // El servidor solo marca el ejercicio completo cuando TODAS las
@@ -627,6 +644,11 @@ export default function QuizExercisePage() {
                   </Link>
                 )}
 
+                {guestDone && (
+                  <div className="w-full">
+                    <SignupToSave />
+                  </div>
+                )}
                 {showCompletionCta && (
                   <Link
                     href={nextHref}

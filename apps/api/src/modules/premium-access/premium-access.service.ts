@@ -116,7 +116,18 @@ export class PremiumAccessService {
     const lockedExercises = new Set<string>();
     const theoryDone = new Set<string>();
     const exerciseDone = new Set<string>();
-    if (!userId || lessons.length === 0) {
+    if (lessons.length === 0) {
+      return { lockedLessons, lockedExercises, theoryDone, exerciseDone };
+    }
+    // Sin cuenta solo se puede probar la primera lección (y sus ejercicios);
+    // el resto pide entrar. Antes un visitante veía el curso entero. Las
+    // recompensas igual exigen cuenta: los envíos tienen JwtAuthGuard.
+    if (!userId) {
+      lessons.forEach((lesson, i) => {
+        if (i === 0) return;
+        lockedLessons.add(lesson.id);
+        for (const ex of lesson.exercises) lockedExercises.add(ex.id);
+      });
       return { lockedLessons, lockedExercises, theoryDone, exerciseDone };
     }
 
@@ -191,7 +202,13 @@ export class PremiumAccessService {
     bypass?: boolean;
   }): Promise<boolean> {
     const { courseId, lessonId, lessonOrder, userId, role, bypass } = params;
-    if (!userId) return false;
+    if (!userId) {
+      // Sin cuenta: abierta solo si es la primera lección publicada del curso.
+      const earlier = await this.prisma.lesson.count({
+        where: { courseId, status: 'PUBLISHED', order: { lt: lessonOrder } },
+      });
+      return earlier > 0;
+    }
     if (role === Role.ADMIN && bypass) return false;
 
     const own = await this.prisma.completion.count({

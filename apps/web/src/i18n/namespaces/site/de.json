@@ -750,5 +750,11 @@
   "mentorOffer": "Festgesteckt? Ich helfe dir mit einem Tipp!",
   "mentorCount": "Tipp {shown} von {total}",
   "mentorFirstHint": "Gib mir einen Tipp",
-  "mentorNextHint": "Noch ein Tipp"
+  "mentorNextHint": "Noch ein Tipp",
+  "guestSaveTitle": "Super! Speichere deinen Fortschritt",
+  "guestSaveBody": "Ohne Konto wird nichts gespeichert und du bekommst keine XP oder Münzen. Erstelle dein kostenloses Konto, drück nochmal Prüfen und fertig: dein Code bleibt in diesem Browser gespeichert.",
+  "guestContinueTitle": "Erstelle dein Konto, um weiterzumachen",
+  "guestContinueBody": "Die erste Lektion kannst du ohne Konto ausprobieren. Um weiterzumachen, deinen Fortschritt zu speichern und Belohnungen zu bekommen, erstelle dein kostenloses Konto.",
+  "guestRegister": "Kostenloses Konto erstellen",
+  "guestLogin": "Ich habe schon ein Konto"
 }

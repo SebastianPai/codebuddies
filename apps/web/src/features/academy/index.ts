@@ -29,3 +29,4 @@ export { CodeBlock } from "./components/code-block";
 export { LessonContentRenderer } from "./components/lesson-content-renderer";
 export { Markdown } from "./components/markdown";
 export { ExerciseLockedState } from "./components/exercise-locked-state";
+export { SignupToSave } from "./components/signup-to-save";

@@ -30,7 +30,7 @@ import {
 } from "@/features/academy";
 import { useTranslation } from "../../../../../../src/i18n/useTranslation";
 import { exercisePath, lessonPath, nextStepPath } from "@/shared/utils/exercise-path";
-import { ExerciseLockedState } from "@/features/academy";
+import { ExerciseLockedState, SignupToSave } from "@/features/academy";
 import { trackEvent } from "../../../../../../components/analytics/events";
 import { useApiLang } from "@/shared/hooks/use-api-lang";
 import { PracticeInCodeStudio } from "@/features/codestudio";
@@ -307,6 +307,9 @@ export default function FullWidthConfidentialWorkspace() {
   // Profe Buddy: pistas escritas a mano, una a la vez, cuando el código falla.
   const [hints, setHints] = useState<string[]>([]);
   const [hintsShown, setHintsShown] = useState(0);
+  // Visitante sin cuenta (primera lección): puede hacer el ejercicio, pero
+  // Comprobar no guarda ni da recompensas; se le invita a crear la cuenta.
+  const [showGuestSave, setShowGuestSave] = useState(false);
 
   // Buddy: la animación corre al tocar "Ejecutar" (con cada tecla sería un lío).
   const buddyMode = isBuddyLang(exercise?.language);
@@ -578,7 +581,12 @@ try {
   }, [exercise?.id]);
 
   const submitCompletion = async () => {
-    if (!exercise || completed || submitting || !user?.userId) return;
+    if (!exercise || completed || submitting) return;
+    if (!user?.userId) {
+      setShowGuestSave(true);
+      if (isMobile) setMobileView("instructions");
+      return;
+    }
 
     setSubmitting(true);
 
@@ -666,6 +674,16 @@ try {
     );
   }
 
+  if (exercise.locked && !user?.userId) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[rgb(var(--background))] p-4">
+        <div className="w-full max-w-lg">
+          <SignupToSave variant="continue" />
+        </div>
+      </div>
+    );
+  }
+
   if (exercise.locked) {
     return (
       <div className="min-h-screen bg-[rgb(var(--background))]">
@@ -705,6 +723,11 @@ try {
           <p className="text-sm italic text-[rgb(var(--secondary-text))]">
             {t("site.academyLesson.noContentYet")}
           </p>
+        )}
+        {showGuestSave && !user?.userId && (
+          <div className="mb-6">
+            <SignupToSave />
+          </div>
         )}
         {hints.length > 0 && !completed && (checkResult === "fail" || hintsShown > 0) && (
           <div className="mt-6 rounded-2xl border-2 border-emerald-400/60 bg-emerald-400/10 p-4">
