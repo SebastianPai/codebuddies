@@ -825,8 +825,5 @@
   "wardrobeHint": "Marca los items de avatar que pueden usar los empleados. Cada uno se viste al azar con lo marcado (siempre igual para la misma persona) y con su propio tono de piel y color de pelo. En los slots sin nada marcado usa el item por defecto.",
   "wardrobeEmpty": "Todavía no hay items de avatar. Créalos en Items (tipo Avatar, con su slot).",
   "wardrobeDefault": "Por defecto",
-  "loading": "Cargando...",
-  "courseAudience": "¿Para quién es?",
-  "courseAudienceAdults": "Jóvenes y adultos",
-  "courseAudienceKids": "Niños (8 a 12)"
+  "loading": "Cargando..."
 }

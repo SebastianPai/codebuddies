@@ -2,8 +2,6 @@ import type { Translation } from "@/shared/ui";
 
 export type CourseDifficulty = "EASY" | "MEDIUM" | "HARD";
 export type ContentStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
-// Para quién es: el catálogo los separa en pestañas Niños / Jóvenes y adultos.
-export type CourseAudience = "KIDS" | "ADULTS";
 
 export interface ModuleOption {
   id: string;
@@ -28,7 +26,6 @@ export interface CourseDetails {
   id: string;
   moduleId: string;
   difficulty: CourseDifficulty;
-  audience?: CourseAudience;
   freeLimit: number;
   imageUrl?: string | null;
   status?: ContentStatus;
@@ -46,7 +43,6 @@ export interface CourseCategoryOption {
 export interface CourseFormValues {
   moduleId: string;
   difficulty: CourseDifficulty;
-  audience: CourseAudience;
   freeLimit: number;
   status: ContentStatus;
   translations: Translation[];
