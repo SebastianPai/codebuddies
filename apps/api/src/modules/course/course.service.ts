@@ -31,6 +31,7 @@ export class CourseService {
     const course = await this.prisma.course.create({
       data: {
         difficulty: dto.difficulty as Difficulty,
+        audience: dto.audience,
         freeLimit: dto.freeLimit,
         imageUrl,
         status: dto.status,
@@ -202,6 +203,7 @@ export class CourseService {
         title: translation?.title ?? null,
         description: translation?.description ?? null,
         difficulty: course.difficulty,
+        audience: course.audience,
         freeLimit: course.freeLimit,
         imageUrl: course.imageUrl,
         status: course.status,
@@ -321,6 +323,7 @@ export class CourseService {
       title: translation?.title ?? null,
       description: translation?.description ?? null,
       difficulty: course.difficulty,
+      audience: course.audience,
       freeLimit: course.freeLimit,
       imageUrl: course.imageUrl,
       status: course.status,
@@ -470,6 +473,7 @@ export class CourseService {
       where: { id },
       data: {
         difficulty: data.difficulty,
+        audience: data.audience,
         freeLimit: data.freeLimit,
         imageUrl: data.imageUrl,
         status: data.status,
@@ -558,6 +562,7 @@ export class CourseService {
       id: course.id,
       moduleId: course.moduleId,
       difficulty: course.difficulty,
+      audience: course.audience,
       freeLimit: course.freeLimit,
       imageUrl: course.imageUrl,
       status: course.status,

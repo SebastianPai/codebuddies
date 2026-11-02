@@ -15,34 +15,35 @@ const stroke = (d: string, width = 7) =>
   `<path d="${d}" fill="none" stroke="${MINT}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round"/>`;
 const dot = (x: number, y: number, r = 6.5) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${MINT}"/>`;
 
-const FACES: Record<BuddyMood, string> = {
-  normal: dot(80, 108) + dot(120, 108) + stroke('M86 128 Q100 138 114 128'),
-  feliz: stroke('M70 113 Q80 99 90 113') + stroke('M110 113 Q120 99 130 113') + stroke('M83 126 Q100 143 117 126'),
-  riendo:
-    stroke('M70 111 Q80 98 90 111') +
-    stroke('M110 111 Q120 98 130 111') +
-    `<path d="M80 123 H120 Q118 148 100 148 Q82 148 80 123 Z" fill="${MINT}"/>` +
-    `<path d="M88 140 Q100 134 112 140 Q106 147 100 147 Q94 147 88 140 Z" fill="#2f9e78"/>`,
-  triste:
-    dot(80, 112, 6) +
-    dot(120, 112, 6) +
-    stroke('M70 100 L88 96', 5) +
-    stroke('M130 100 L112 96', 5) +
-    stroke('M86 138 Q100 127 114 138'),
-  dormido:
-    stroke('M71 112 Q80 117 89 112', 6) +
-    stroke('M111 112 Q120 117 129 112', 6) +
-    `<circle cx="100" cy="134" r="5" fill="none" stroke="${MINT}" stroke-width="5"/>`,
-  sorprendido:
-    `<circle cx="80" cy="106" r="9" fill="none" stroke="${MINT}" stroke-width="6"/>` +
-    `<circle cx="120" cy="106" r="9" fill="none" stroke="${MINT}" stroke-width="6"/>` +
-    `<circle cx="100" cy="134" r="8" fill="${MINT}"/>`,
-  cansado:
-    stroke('M70 108 H90', 6) +
-    dot(80, 114, 5) +
-    stroke('M110 108 H130', 6) +
-    dot(120, 114, 5) +
-    stroke('M86 135 Q93 130 100 135 Q107 140 114 135', 6),
+// Cada cara en dos partes (ojos y boca) para poder animarlas por separado:
+// parpadear (.buddy-eyes) y mover la boca al hablar (.buddy-mouth).
+const FACES: Record<BuddyMood, { eyes: string; mouth: string }> = {
+  normal: { eyes: dot(80, 108) + dot(120, 108), mouth: stroke('M86 128 Q100 138 114 128') },
+  feliz: { eyes: stroke('M70 113 Q80 99 90 113') + stroke('M110 113 Q120 99 130 113'), mouth: stroke('M83 126 Q100 143 117 126') },
+  riendo: {
+    eyes: stroke('M70 111 Q80 98 90 111') + stroke('M110 111 Q120 98 130 111'),
+    mouth:
+      `<path d="M80 123 H120 Q118 148 100 148 Q82 148 80 123 Z" fill="${MINT}"/>` +
+      `<path d="M88 140 Q100 134 112 140 Q106 147 100 147 Q94 147 88 140 Z" fill="#2f9e78"/>`,
+  },
+  triste: {
+    eyes: dot(80, 112, 6) + dot(120, 112, 6) + stroke('M70 100 L88 96', 5) + stroke('M130 100 L112 96', 5),
+    mouth: stroke('M86 138 Q100 127 114 138'),
+  },
+  dormido: {
+    eyes: stroke('M71 112 Q80 117 89 112', 6) + stroke('M111 112 Q120 117 129 112', 6),
+    mouth: `<circle cx="100" cy="134" r="5" fill="none" stroke="${MINT}" stroke-width="5"/>`,
+  },
+  sorprendido: {
+    eyes:
+      `<circle cx="80" cy="106" r="9" fill="none" stroke="${MINT}" stroke-width="6"/>` +
+      `<circle cx="120" cy="106" r="9" fill="none" stroke="${MINT}" stroke-width="6"/>`,
+    mouth: `<circle cx="100" cy="134" r="8" fill="${MINT}"/>`,
+  },
+  cansado: {
+    eyes: stroke('M70 108 H90', 6) + dot(80, 114, 5) + stroke('M110 108 H130', 6) + dot(120, 114, 5),
+    mouth: stroke('M86 135 Q93 130 100 135 Q107 140 114 135', 6),
+  },
 };
 
 const ANTENNA: Record<BuddyMood, string> = {
@@ -58,7 +59,7 @@ const ANTENNA: Record<BuddyMood, string> = {
 /** SVG de Buddy. `size` en px; el viewBox es 200x200. */
 export function buddySvg(mood: BuddyMood = 'normal', size = 200, className = ''): string {
   const face = FACES[mood] ?? FACES.normal;
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="${size}" height="${size}"${className ? ` class="${className}"` : ''} role="img" aria-label="Buddy">
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="${size}" height="${size}" class="buddy buddy-${mood}${className ? ` ${className}` : ''}" role="img" aria-label="Buddy">
   <g class="buddy-antenna">
     <path d="M100 42 V60" stroke="${INK}" stroke-width="10" stroke-linecap="round"/>
     <path d="M100 44 V58" stroke="${BLUE}" stroke-width="4" stroke-linecap="round"/>
@@ -69,6 +70,30 @@ export function buddySvg(mood: BuddyMood = 'normal', size = 200, className = '')
   <rect x="32" y="58" width="136" height="114" rx="42" fill="${SHELL}" stroke="${INK}" stroke-width="7"/>
   <path d="M44 92 Q40 140 64 162 Q46 160 40 140 Q36 110 44 92 Z" fill="${SHADE}"/>
   <rect x="52" y="78" width="96" height="76" rx="26" fill="${SCREEN}" stroke="${INK}" stroke-width="4"/>
-  <g class="buddy-face">${face}</g>
+  <g class="buddy-face"><g class="buddy-eyes">${face.eyes}</g><g class="buddy-mouth">${face.mouth}</g></g>
 </svg>`;
 }
+
+/**
+ * Animaciones de Buddy en CSS (para pegar en un <style>): respira, parpadea,
+ * mueve la antena, mueve la boca cuando habla (.buddy-talking en un ancestro)
+ * y tiembla de risa. Respetan prefers-reduced-motion.
+ */
+export const BUDDY_CSS = `
+.buddy { overflow: visible; }
+.buddy .buddy-eyes { transform-box: fill-box; transform-origin: center; animation: buddy-blink 4.2s infinite; }
+.buddy .buddy-antenna { transform-box: view-box; transform-origin: 100px 60px; animation: buddy-antenna 3s ease-in-out infinite; }
+.buddy-idle { animation: buddy-breathe 2.8s ease-in-out infinite; transform-origin: 50% 90%; }
+.buddy-talking .buddy-mouth { transform-box: fill-box; transform-origin: center; animation: buddy-talk .16s ease-in-out infinite alternate; }
+.buddy.buddy-riendo .buddy-face { animation: buddy-laugh .22s ease-in-out infinite alternate; }
+.buddy.buddy-dormido .buddy-eyes { animation: none; }
+.buddy.buddy-dormido .buddy-antenna { animation-duration: 6s; }
+@keyframes buddy-blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(.1); } }
+@keyframes buddy-antenna { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
+@keyframes buddy-breathe { 0%, 100% { transform: translateY(0) scale(1, 1); } 50% { transform: translateY(-3px) scale(1.015, .985); } }
+@keyframes buddy-talk { from { transform: scaleY(1); } to { transform: scaleY(.45); } }
+@keyframes buddy-laugh { from { transform: translateY(-1.5px); } to { transform: translateY(1.5px); } }
+@media (prefers-reduced-motion: reduce) {
+  .buddy .buddy-eyes, .buddy .buddy-antenna, .buddy-idle, .buddy-talking .buddy-mouth, .buddy.buddy-riendo .buddy-face { animation: none; }
+}
+`;

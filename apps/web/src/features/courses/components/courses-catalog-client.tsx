@@ -7,6 +7,12 @@ import { X, Filter, Terminal, Zap, RotateCw } from "lucide-react";
 import { api } from "../../../../utils/api";
 import { useTranslation } from "../../../i18n/useTranslation";
 import { CachedImage, ErrorState } from "@/shared/ui";
+import { BUDDY_CSS, buddySvg } from "@codebuddies/world-objects";
+
+// Dos públicos en el mismo catálogo: niños (8 a 12, con Buddy) y jóvenes y
+// adultos. Se recuerda la última pestaña elegida; ?para=ninos abre la de niños.
+type Audience = "KIDS" | "ADULTS";
+const AUDIENCE_STORAGE_KEY = "codebuddies:courses:audience";
 
 const difficultyKeyMap: Record<string, string> = {
   Todas: "site.difficultyAll",
@@ -34,6 +40,7 @@ export interface Course {
   isNew?: boolean;
   isPopular?: boolean;
   categories?: CourseCategory[];
+  audience?: Audience;
 }
 
 function DifficultyBadge({ difficulty }: { difficulty: string }) {
@@ -168,6 +175,20 @@ export function CoursesCatalogClient({
   const [difficulty, setDifficulty] = useState("Todas");
   const [categoryFilter, setCategoryFilter] = useState("Todas");
   const [categories, setCategories] = useState<CourseCategory[]>(initialCategories);
+  const [audience, setAudienceState] = useState<Audience>("ADULTS");
+
+  useEffect(() => {
+    const fromUrl = new URLSearchParams(window.location.search).get("para");
+    const saved = window.localStorage.getItem(AUDIENCE_STORAGE_KEY);
+    if (fromUrl === "ninos" || fromUrl === "kids") setAudienceState("KIDS");
+    else if (fromUrl === "adultos" || fromUrl === "adults") setAudienceState("ADULTS");
+    else if (saved === "KIDS" || saved === "ADULTS") setAudienceState(saved);
+  }, []);
+
+  const setAudience = (value: Audience) => {
+    setAudienceState(value);
+    window.localStorage.setItem(AUDIENCE_STORAGE_KEY, value);
+  };
 
   const searchRef = useRef<HTMLInputElement>(null);
   const difficulties = ["Todas", "Principiante", "Intermedio", "Avanzado"];
@@ -224,6 +245,7 @@ export function CoursesCatalogClient({
     const text = searchTerm.toLowerCase();
     return courses.filter(
       (c) =>
+        (c.audience ?? "ADULTS") === audience &&
         (!text ||
           c.title.toLowerCase().includes(text) ||
           c.description.toLowerCase().includes(text)) &&
@@ -232,7 +254,7 @@ export function CoursesCatalogClient({
         (categoryFilter === "Todas" ||
           c.categories?.some((category) => category.id === categoryFilter)),
     );
-  }, [courses, searchTerm, difficulty, categoryFilter]);
+  }, [courses, searchTerm, difficulty, categoryFilter, audience]);
 
   if (loading && courses.length === 0) {
     return (
@@ -292,8 +314,43 @@ export function CoursesCatalogClient({
         </div>
       </header>
 
+      {/* Para quién: niños o jóvenes y adultos */}
+      <div className="max-w-5xl mx-auto px-6 mt-10 relative z-20" role="tablist" aria-label={t("site.coursesAudienceLabel")}>
+        <div className="grid grid-cols-2 gap-4">
+          {(["KIDS", "ADULTS"] as const).map((value) => (
+            <button
+              key={value}
+              type="button"
+              role="tab"
+              aria-selected={audience === value}
+              onClick={() => setAudience(value)}
+              className={`flex items-center justify-center gap-3 border-4 px-4 py-5 font-black uppercase tracking-wide text-lg transition-all ${
+                audience === value
+                  ? value === "KIDS"
+                    ? "border-emerald-400 bg-emerald-400 text-emerald-950 shadow-[8px_8px_0_0_rgba(0,0,0,0.6)] -translate-y-1"
+                    : "border-[rgb(var(--border))] bg-[rgb(var(--button))] text-[rgb(var(--button-text))] shadow-[8px_8px_0_0_rgba(0,0,0,0.6)] -translate-y-1"
+                  : "border-[rgb(var(--border))] bg-[rgb(var(--card)/0.7)] text-[rgb(var(--text))] hover:-translate-y-0.5"
+              }`}
+            >
+              <span aria-hidden="true" className="text-2xl">{value === "KIDS" ? "🧒" : "👩‍💻"}</span>
+              {value === "KIDS" ? t("site.coursesAudienceKids") : t("site.coursesAudienceAdults")}
+            </button>
+          ))}
+        </div>
+        {audience === "KIDS" && (
+          <div className="mt-6 flex items-center gap-5 rounded-3xl border-4 border-emerald-400/60 bg-emerald-400/10 p-5">
+            <style>{BUDDY_CSS}</style>
+            <div className="shrink-0 buddy-idle" dangerouslySetInnerHTML={{ __html: buddySvg("feliz", 84) }} />
+            <div>
+              <p className="text-xl font-black text-[rgb(var(--text))]">{t("site.coursesKidsTitle")}</p>
+              <p className="mt-1 text-[rgb(var(--secondary-text))]">{t("site.coursesKidsSubtitle")}</p>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Buscador estilo terminal dark */}
-      <div className="max-w-5xl mx-auto px-6 -mt-14 relative z-20">
+      <div className="max-w-5xl mx-auto px-6 mt-8 relative z-20">
         {!searchExpanded ? (
           <button
             onClick={() => setSearchExpanded(true)}

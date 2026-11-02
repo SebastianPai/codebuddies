@@ -9,7 +9,7 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
-import { ContentStatus, Difficulty } from '@prisma/client';
+import { ContentStatus, CourseAudience, Difficulty } from '@prisma/client';
 
 export class CreateCourseTranslationDto {
   @IsString()
@@ -42,6 +42,11 @@ export class CreateCourseDto {
   @IsOptional()
   @IsEnum(Difficulty)
   difficulty?: Difficulty;
+
+  // Niños o jóvenes y adultos (pestañas del catálogo).
+  @IsOptional()
+  @IsEnum(CourseAudience)
+  audience?: CourseAudience;
 
   @IsOptional()
   @IsEnum(ContentStatus)

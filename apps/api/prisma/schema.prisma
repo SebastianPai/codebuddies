@@ -1810,11 +1810,20 @@ model ModuleTranslation {
   @@unique([moduleId, languageId])
 }
 
+// Para quién es un curso: el catálogo los separa en dos pestañas.
+enum CourseAudience {
+  KIDS
+  ADULTS
+}
+
 model Course {
   id         String        @id @default(uuid())
   moduleId   String?
   imageUrl   String?
   difficulty Difficulty    @default(EASY)
+  // Niños (8 a 12, con Buddy) o jóvenes y adultos. Los cursos de antes son
+  // de adultos.
+  audience   CourseAudience @default(ADULTS)
   freeLimit  Int           @default(5)
   // PUBLISHED por defecto: el contenido existente antes de este campo no
   // debe desaparecer del catálogo público al aplicar la migración.

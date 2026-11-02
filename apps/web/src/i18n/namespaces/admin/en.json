@@ -825,5 +825,8 @@
   "wardrobeHint": "Check the avatar items employees can wear. Each one is dressed at random from what is checked (always the same for the same person), with their own skin tone and hair color. Slots with nothing checked use the default item.",
   "wardrobeEmpty": "There are no avatar items yet. Create them in Items (Avatar type, with a slot).",
   "wardrobeDefault": "Default",
-  "loading": "Loading..."
+  "loading": "Loading...",
+  "courseAudience": "Who is it for?",
+  "courseAudienceAdults": "Teens and adults",
+  "courseAudienceKids": "Kids (8 to 12)"
 }

@@ -740,5 +740,10 @@
   "buddyRun": "Ejecutar",
   "buddyStageReady": "Escribe órdenes para Buddy y toca Ejecutar ▶",
   "buddyStageError": "Buddy no entendió:",
-  "buddyStagePassed": "¡Lo lograste! Buddy está feliz contigo 🎉"
+  "buddyStagePassed": "¡Lo lograste! Buddy está feliz contigo 🎉",
+  "coursesAudienceLabel": "¿Para quién?",
+  "coursesAudienceKids": "Niños",
+  "coursesAudienceAdults": "Jóvenes y adultos",
+  "coursesKidsTitle": "¡Aprende a programar con Buddy!",
+  "coursesKidsSubtitle": "Cursos para niños y niñas de 8 a 12 años: das órdenes, Buddy las cumple y tú aprendes jugando."
 }

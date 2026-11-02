@@ -1,4 +1,4 @@
-import { BUDDY_FRIENDLY_ERRORS, BUDDY_MOODS, BUDDY_RUNTIME, buddySvg } from "@codebuddies/world-objects";
+import { BUDDY_CSS, BUDDY_FRIENDLY_ERRORS, BUDDY_MOODS, BUDDY_RUNTIME, buddySvg } from "@codebuddies/world-objects";
 
 // Documento del iframe de vista previa para los ejercicios de Buddy: corre el
 // código del alumno con el mismo motor que usa la API para corregir y después
@@ -53,6 +53,7 @@ export function buildBuddyStageDoc(studentCode: string, assertions: string, labe
   .status.ok { background: #16a34a; }
   .status.bad { background: #dc2626; }
   .meter { position: absolute; top: 12px; left: 12px; display: flex; gap: 8px; }
+  ${BUDDY_CSS}
   .meter span { padding: 6px 10px; border-radius: 12px; background: rgba(255,255,255,.85); color: #1e2235; font-weight: 800; font-size: 13px; }
 </style>
 </head>
@@ -61,7 +62,7 @@ export function buildBuddyStageDoc(studentCode: string, assertions: string, labe
   <div class="cloud" style="top:40px;left:18%;width:90px"></div>
   <div class="cloud" style="top:70px;left:55%;width:120px"></div>
   <div class="meter"><span id="energy">⚡ 5</span><span id="laughs">😂 0</span></div>
-  <div class="stage"><div class="buddy" id="buddy"><div class="bubble" id="bubble"></div><div id="face"></div></div></div>
+  <div class="stage"><div class="buddy" id="buddy"><div class="bubble" id="bubble"></div><div id="face" class="buddy-idle"></div></div></div>
   <div class="status" id="status">${escapeHtml(labels.ready)}</div>
 <script>
 ${BUDDY_RUNTIME}
@@ -85,6 +86,12 @@ var laughsEl = document.getElementById("laughs");
 function setFace(mood) { faceEl.innerHTML = FACES[mood] || FACES.normal; }
 function say(text) { bubbleEl.textContent = text; bubbleEl.classList.add("show"); }
 function quiet() { bubbleEl.classList.remove("show"); }
+var talkTimer = null;
+function talk() {
+  buddyEl.classList.add("buddy-talking");
+  clearTimeout(talkTimer);
+  talkTimer = setTimeout(function () { buddyEl.classList.remove("buddy-talking"); }, 600);
+}
 function fx(text, color) {
   var el = document.createElement("div");
   el.className = "fx"; el.textContent = text; el.style.color = color || "#1e2235";
@@ -122,7 +129,7 @@ function next() {
   quiet();
   setFace(step.animo);
   switch (step.accion) {
-    case "decir": say(step.texto); break;
+    case "decir": say(step.texto); talk(); break;
     case "chiste": laughs = step.risas; anim("laugh"); fx("¡JA!", "#d97706"); if (step.risas >= 3) fx("¡JAJAJA!", "#dc2626"); energy = Math.max(0, energy - 1); break;
     case "saltar": anim("jump"); energy = Math.max(0, energy - 1); break;
     case "bailar": anim("dance"); fx("♪", "#7c3aed"); break;

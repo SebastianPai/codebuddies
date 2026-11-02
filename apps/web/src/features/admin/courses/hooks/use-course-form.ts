@@ -76,6 +76,7 @@ export function useCourseForm({ mode, courseId }: UseCourseFormOptions) {
         setValues({
           moduleId: loadedCourse.moduleId,
           difficulty: loadedCourse.difficulty,
+          audience: loadedCourse.audience ?? "ADULTS",
           freeLimit: loadedCourse.freeLimit,
           status: loadedCourse.status ?? "PUBLISHED",
           translations: loadedCourse.translations,

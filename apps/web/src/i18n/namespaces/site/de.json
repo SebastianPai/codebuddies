@@ -740,5 +740,10 @@
   "buddyRun": "Ausführen",
   "buddyStageReady": "Schreib Befehle für Buddy und drück Ausführen ▶",
   "buddyStageError": "Buddy hat nicht verstanden:",
-  "buddyStagePassed": "Geschafft! Buddy freut sich mit dir 🎉"
+  "buddyStagePassed": "Geschafft! Buddy freut sich mit dir 🎉",
+  "coursesAudienceLabel": "Für wen?",
+  "coursesAudienceKids": "Kinder",
+  "coursesAudienceAdults": "Jugendliche und Erwachsene",
+  "coursesKidsTitle": "Lerne programmieren mit Buddy!",
+  "coursesKidsSubtitle": "Kurse für Kinder von 8 bis 12: Du gibst Befehle, Buddy führt sie aus und du lernst spielend."
 }

@@ -128,4 +128,4 @@ export {
   type BuddyStep,
 } from './buddy';
 
-export { buddySvg } from './buddyArt';
+export { buddySvg, BUDDY_CSS } from './buddyArt';

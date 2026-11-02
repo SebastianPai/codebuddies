@@ -825,5 +825,8 @@
   "wardrobeHint": "Markiere die Avatar-Items, die Angestellte tragen dürfen. Jeder wird zufällig damit eingekleidet (immer gleich für dieselbe Person), mit eigenem Hautton und Haarfarbe. Slots ohne Markierung nutzen das Standard-Item.",
   "wardrobeEmpty": "Noch keine Avatar-Items. Erstelle sie unter Items (Typ Avatar, mit Slot).",
   "wardrobeDefault": "Standard",
-  "loading": "Lädt..."
+  "loading": "Lädt...",
+  "courseAudience": "Für wen ist er?",
+  "courseAudienceAdults": "Jugendliche und Erwachsene",
+  "courseAudienceKids": "Kinder (8 bis 12)"
 }
