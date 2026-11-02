@@ -99,6 +99,7 @@ const EditorContent = memo(
     onUserEdit,
     buddyMode,
     onRun,
+    onEditorMount,
   }: any) => {
     const t = useTranslation();
     const { resolvedTheme } = useTheme();
@@ -194,6 +195,7 @@ const EditorContent = memo(
                   : jsCode
             }
             onChange={handleChange}
+            onMount={onEditorMount}
             options={{
               minimap: { enabled: false },
               fontSize: isMobile ? 13 : 15,
@@ -302,6 +304,44 @@ export default function FullWidthConfidentialWorkspace() {
 
   // Buddy: la animación corre al tocar "Ejecutar" (con cada tecla sería un lío).
   const buddyMode = isBuddyLang(exercise?.language);
+
+  // Buddy pinta las líneas del editor mientras corre: amarilla la que está
+  // haciendo, verde las hechas, roja la que falló (mensajes "buddy-line" del
+  // iframe). Se borra al volver a escribir.
+  const editorRef = useRef<any>(null);
+  const lineMarks = useRef<Map<number, "run" | "ok" | "bad">>(new Map());
+  const decorationIds = useRef<string[]>([]);
+  const paintLines = useCallback(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    const decorations = [...lineMarks.current.entries()].map(([line, state]) => ({
+      range: { startLineNumber: line, startColumn: 1, endLineNumber: line, endColumn: 1 },
+      options: { isWholeLine: true, className: `buddy-line-${state}`, linesDecorationsClassName: `buddy-gutter-${state}` },
+    }));
+    decorationIds.current = editor.deltaDecorations(decorationIds.current, decorations);
+  }, []);
+  const clearLines = useCallback(() => {
+    lineMarks.current.clear();
+    paintLines();
+  }, [paintLines]);
+  useEffect(() => {
+    if (!buddyMode) return;
+    const handleLine = (event: MessageEvent) => {
+      if (event.data?.type !== "buddy-line") return;
+      if (event.data.state === "reset") {
+        lineMarks.current.clear();
+      } else if (typeof event.data.line === "number") {
+        // Una sola línea "corriendo" a la vez.
+        if (event.data.state === "run") {
+          for (const [line, state] of lineMarks.current) if (state === "run") lineMarks.current.set(line, "ok");
+        }
+        lineMarks.current.set(event.data.line, event.data.state);
+      }
+      paintLines();
+    };
+    window.addEventListener("message", handleLine);
+    return () => window.removeEventListener("message", handleLine);
+  }, [buddyMode, paintLines]);
   const [buddyRun, setBuddyRun] = useState(0);
 
   const [isMobile, setIsMobile] = useState(false);
@@ -713,6 +753,10 @@ try {
                   isMobile={isMobile}
                   onUserEdit={handleUserEdit}
                   buddyMode={buddyMode}
+                  onEditorMount={(editor: any) => {
+                    editorRef.current = editor;
+                    editor.onDidChangeModelContent(() => clearLines());
+                  }}
                   onRun={() => {
                     setBuddyRun((n) => n + 1);
                     if (isMobile) setMobileView("preview");
@@ -745,6 +789,10 @@ try {
                   isMobile={isMobile}
                   onUserEdit={handleUserEdit}
                   buddyMode={buddyMode}
+                  onEditorMount={(editor: any) => {
+                    editorRef.current = editor;
+                    editor.onDidChangeModelContent(() => clearLines());
+                  }}
                   onRun={() => {
                     setBuddyRun((n) => n + 1);
                     if (isMobile) setMobileView("preview");

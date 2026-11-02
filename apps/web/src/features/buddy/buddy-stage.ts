@@ -105,10 +105,19 @@ function anim(name) { buddyEl.classList.remove(name); void buddyEl.offsetWidth; 
 function place(pos) { buddyEl.style.left = "calc(12% + " + Math.max(-2, Math.min(8, pos)) * 7 + "%)"; }
 setFace("normal");
 
-var error = null;
+// El editor pinta cada línea: amarilla la que Buddy está haciendo, verde las
+// hechas, roja la que falló (mensajes "buddy-line" al padre).
+function mark(line, state) { if (line) window.parent.postMessage({ type: "buddy-line", line: line, state: state }, "*"); }
+window.parent.postMessage({ type: "buddy-line", state: "reset" }, "*");
+
+var error = null, errorLine = null;
 try {
-  new Function(${asScriptString(studentCode)})();
-} catch (e) { error = friendly(e && e.message ? e.message : String(e)); }
+  new Function(${asScriptString(`${studentCode}\n//# sourceURL=alumno.js`)})();
+} catch (e) {
+  error = friendly(e && e.message ? e.message : String(e));
+  var where = String((e && e.stack) || "").match(/alumno\\.js:(\\d+)/);
+  if (where) errorLine = Math.max(1, Number(where[1]) - 2);
+}
 var report = __buddyReport();
 var result = null;
 ${
@@ -126,6 +135,8 @@ var pos = 0, laughs = 0, energy = 5, i = 0;
 function next() {
   if (i >= report.steps.length) return finish();
   var step = report.steps[i++];
+  if (i > 1) mark(report.steps[i - 2].linea, "ok");
+  mark(step.linea, "run");
   quiet();
   setFace(step.animo);
   switch (step.accion) {
@@ -144,6 +155,8 @@ function next() {
   setTimeout(next, ${STEP_MS});
 }
 function finish() {
+  if (report.steps.length) mark(report.steps[report.steps.length - 1].linea, "ok");
+  if (error) mark(errorLine, "bad");
   setFace(report.state.animo);
   energyEl.textContent = "⚡ " + report.state.energia;
   laughsEl.textContent = "😂 " + report.state.risas;

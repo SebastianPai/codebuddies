@@ -549,3 +549,12 @@ body {
   background: rgb(250 204 21 / 0.22);
   color: #a16207;
 }
+
+/* Ejercicios de Buddy: líneas del editor (Monaco) mientras Buddy corre el código.
+   Amarilla = la que está haciendo, verde = hecha, roja = la que falló. */
+.monaco-editor .buddy-line-run { background: rgba(250, 204, 21, 0.22); }
+.monaco-editor .buddy-line-ok { background: rgba(16, 185, 129, 0.16); }
+.monaco-editor .buddy-line-bad { background: rgba(239, 68, 68, 0.24); }
+.monaco-editor .buddy-gutter-run { border-left: 5px solid #facc15; margin-left: 3px; }
+.monaco-editor .buddy-gutter-ok { border-left: 5px solid #10b981; margin-left: 3px; }
+.monaco-editor .buddy-gutter-bad { border-left: 5px solid #ef4444; margin-left: 3px; }

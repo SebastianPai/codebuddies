@@ -55,7 +55,17 @@ export const BUDDY_RUNTIME = String.raw`
   function __buddyPush(step) {
     if (__buddySteps.length >= ${BUDDY_MAX_STEPS}) throw new Error("Buddy está mareado: ¡demasiadas órdenes! Revisa que tu bucle termine.");
     step.animo = step.animo || __buddyState.animo;
+    var line = __buddyLine();
+    if (line) step.linea = line;
     __buddySteps.push(step);
+  }
+  // Línea del código del alumno que dio la orden (para pintarla en el editor).
+  // Solo existe en la vista previa, donde el código corre con
+  // "//# sourceURL=alumno.js"; new Function le suma 2 líneas de cabecera.
+  function __buddyLine() {
+    var stack = String(new Error().stack || "");
+    var match = stack.match(/alumno\.js:(\d+)/);
+    return match ? Math.max(1, Number(match[1]) - 2) : null;
   }
   function __buddyTired() {
     if (__buddyState.energia <= 0) { __buddyState.energia = 0; __buddyState.animo = "cansado"; return true; }
