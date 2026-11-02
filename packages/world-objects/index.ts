@@ -115,3 +115,15 @@ export {
   lockedStatesFor,
   applyLockedStates,
 } from './upgrades';
+
+export {
+  BUDDY_LANGUAGE,
+  BUDDY_MOODS,
+  BUDDY_MAX_STEPS,
+  BUDDY_RUNTIME,
+  type BuddyMood,
+  type BuddyState,
+  type BuddyStep,
+} from './buddy';
+
+export { buddySvg } from './buddyArt';

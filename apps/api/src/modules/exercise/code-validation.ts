@@ -1,4 +1,5 @@
 import * as vm from 'node:vm';
+import { BUDDY_RUNTIME } from '@codebuddies/world-objects';
 
 // Validación server-side de los ejercicios de código.
 //
@@ -13,13 +14,14 @@ import * as vm from 'node:vm';
 // mensaje que dice exactamente qué corregir.
 
 export type CodeResult = { description: string; passed: boolean; error?: string };
-export type CodeLang = 'html' | 'css' | 'js';
+export type CodeLang = 'html' | 'css' | 'js' | 'buddy';
 type Msg = 'es' | 'en' | 'de';
 
 export function normalizeLang(language?: string | null): CodeLang {
   const value = (language ?? '').toLowerCase();
   if (value === 'html' || value === 'markup' || value === 'xml') return 'html';
   if (value === 'css') return 'css';
+  if (value === 'buddy') return 'buddy';
   return 'js';
 }
 
@@ -286,6 +288,30 @@ export function compareJsOutput(studentCode: string, expectedCode: string, lang:
   return [{ description: 'JS', passed: true }];
 }
 
+// ─── Buddy (cursos para niños) ────────────────────────────────────────────
+// El código del alumno le da órdenes a `buddy` (ver BUDDY_RUNTIME en
+// @codebuddies/world-objects, el mismo motor que anima la vista previa) y
+// las verificaciones miran cómo quedó: assert(buddy.animo === "riendo", "...").
+
+export function runBuddy(studentCode: string, expectedCode: string): CodeResult[] {
+  try {
+    const context = vm.createContext({});
+    new vm.Script(`
+      function assert(condition, message) {
+        if (!condition) throw new Error(message || 'Buddy todavía no está como pide el ejercicio');
+      }
+      ${BUDDY_RUNTIME}
+      ;(function () {
+        ${studentCode}
+      })();
+      ${expectedCode}
+    `).runInContext(context, { timeout: 2000 });
+    return [{ description: 'Buddy', passed: true }];
+  } catch (error) {
+    return [{ description: 'Buddy', passed: false, error: describeSandboxError(error) }];
+  }
+}
+
 // ─── Punto de entrada ─────────────────────────────────────────────────────
 
 export function validateCode(input: {
@@ -299,6 +325,11 @@ export function validateCode(input: {
   const lang = messageLang(input.lang);
   const expectedCode = input.expectedCode?.trim() ?? '';
 
+  if (language === 'buddy') {
+    return expectedCode
+      ? runBuddy(input.studentCode, expectedCode)
+      : [{ description: 'Código enviado', passed: input.studentCode.trim().length > 0 }];
+  }
   if (input.tests?.length && language === 'js') return runCodeTests(input.studentCode, input.tests);
   if (!expectedCode) return [{ description: 'Código enviado', passed: input.studentCode.trim().length > 0 }];
   if (looksLikeAssertions(expectedCode)) {

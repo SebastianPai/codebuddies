@@ -15,6 +15,7 @@ import {
   CheckCircle,
   Eye,
   Sparkles,
+  Play,
 } from "lucide-react";
 
 import { Group, Panel, Separator } from "react-resizable-panels";
@@ -34,6 +35,11 @@ import { useApiLang } from "@/shared/hooks/use-api-lang";
 import { PracticeInCodeStudio } from "@/features/codestudio";
 import { useReward } from "../../../../../../contexts/RewardContext";
 import { useTrackToolUsed, trackToolAction, trackCodeStarted, trackCodeResult } from "../../../../../../components/analytics/tool-tracking";
+import { buildBuddyStageDoc } from "@/features/buddy";
+
+// Ejercicios de Buddy (cursos para niños): solo JavaScript, y la vista previa
+// es el escenario con el robot en vez de una página.
+const isBuddyLang = (lang?: string) => (lang || "").toLowerCase() === "buddy";
 
 type CodeTab = "html" | "css" | "js";
 
@@ -91,6 +97,8 @@ const EditorContent = memo(
     starterTab,
     isMobile,
     onUserEdit,
+    buddyMode,
+    onRun,
   }: any) => {
     const t = useTranslation();
     const { resolvedTheme } = useTheme();
@@ -138,7 +146,16 @@ const EditorContent = memo(
           </div>
 
           <div className="flex items-center gap-2">
-            {(["html", "css", "js"] as const).map((tab) => (
+            {buddyMode && (
+              <button
+                type="button"
+                onClick={onRun}
+                className="h-10 px-5 rounded-xl bg-emerald-500 text-sm font-extrabold text-white hover:bg-emerald-400 flex items-center gap-2"
+              >
+                <Play size={15} /> {t("site.buddyRun")}
+              </button>
+            )}
+            {!buddyMode && (["html", "css", "js"] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -283,6 +300,10 @@ export default function FullWidthConfidentialWorkspace() {
 
   const [previewDoc, setPreviewDoc] = useState("");
 
+  // Buddy: la animación corre al tocar "Ejecutar" (con cada tecla sería un lío).
+  const buddyMode = isBuddyLang(exercise?.language);
+  const [buddyRun, setBuddyRun] = useState(0);
+
   const [isMobile, setIsMobile] = useState(false);
 
   const startedAtRef = useRef<number>(Date.now());
@@ -386,6 +407,21 @@ export default function FullWidthConfidentialWorkspace() {
   }, [htmlCode, cssCode, jsCode]);
 
   useEffect(() => {
+    if (!buddyMode) return;
+    const solution = (exercise?.solutionCode || "").trim();
+    setPreviewDoc(
+      buildBuddyStageDoc(buddyRun > 0 ? jsCode : "", buddyRun > 0 && /\bassert\s*\(/.test(solution) ? solution : "", {
+        ready: t("site.buddyStageReady"),
+        error: t("site.buddyStageError"),
+        passed: t("site.buddyStagePassed"),
+      }),
+    );
+    // Solo al ejecutar (o al cargar el ejercicio): no con cada tecla.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [buddyMode, buddyRun, exercise?.solutionCode]);
+
+  useEffect(() => {
+    if (buddyMode) return;
     const timeout = setTimeout(() => {
       const solution = (exercise?.solutionCode || "").trim();
       // solutionCode puede ser verificaciones assert(...) o la respuesta
@@ -464,7 +500,7 @@ try {
     }, 500);
 
     return () => clearTimeout(timeout);
-  }, [htmlCode, cssCode, jsCode, exercise?.solutionCode]);
+  }, [htmlCode, cssCode, jsCode, exercise?.solutionCode, buddyMode]);
 
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
@@ -676,6 +712,11 @@ try {
                   starterTab={langToTab(exercise?.language)}
                   isMobile={isMobile}
                   onUserEdit={handleUserEdit}
+                  buddyMode={buddyMode}
+                  onRun={() => {
+                    setBuddyRun((n) => n + 1);
+                    if (isMobile) setMobileView("preview");
+                  }}
                 />
               )}
 
@@ -703,6 +744,11 @@ try {
                   starterTab={langToTab(exercise?.language)}
                   isMobile={isMobile}
                   onUserEdit={handleUserEdit}
+                  buddyMode={buddyMode}
+                  onRun={() => {
+                    setBuddyRun((n) => n + 1);
+                    if (isMobile) setMobileView("preview");
+                  }}
                 />
               </Panel>
 
