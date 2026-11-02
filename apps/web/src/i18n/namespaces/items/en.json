@@ -522,5 +522,16 @@
     "texturas": "Textures",
     "effect": "Effect",
     "chatBubble": "Chat bubble"
-  }
+  },
+  "bulkTitle": "Upload several at once",
+  "bulkDescription": "Drop many PNGs: one object per image. The name comes from the file, the faces from the shape (128x64 = 2 faces), and if each face is 64x64 it becomes a stackable block at 1 coin. You can fine-tune each one afterwards.",
+  "bulkPrefixLabel": "Name prefix (optional)",
+  "bulkPrefixPlaceholder": "E.g.: Roof, Spooky, Block",
+  "bulkDrop": "Drop several PNGs here or click to pick them",
+  "bulkFaces": "{count} face(s)",
+  "bulkBlock": "stackable block",
+  "bulkCreate": "Create {count} objects",
+  "bulkUploading": "Uploading...",
+  "bulkDoneEdit": "Created · edit",
+  "bulkRemove": "Remove"
 }

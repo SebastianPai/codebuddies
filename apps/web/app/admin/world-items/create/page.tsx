@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
+import BulkWorldUpload from "./BulkWorldUpload";
 
 export default function CreateWorldItemPage() {
   const t = useTranslation();
@@ -30,6 +31,8 @@ export default function CreateWorldItemPage() {
           {t("items.backToWorldItems")}
         </Link>
       </div>
+
+      <BulkWorldUpload />
     </div>
   );
 }

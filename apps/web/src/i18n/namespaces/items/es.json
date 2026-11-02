@@ -522,5 +522,16 @@
     "texturas": "Texturas",
     "effect": "Efecto",
     "chatBubble": "Burbuja de chat"
-  }
+  },
+  "bulkTitle": "Subir varios a la vez",
+  "bulkDescription": "Arrastra muchos PNG: se crea un objeto por imagen. El nombre sale del archivo, las caras de la forma (128x64 = 2 caras) y si cada cara es de 64x64 queda como bloque apilable a 1 coin. Después puedes ajustar cada uno.",
+  "bulkPrefixLabel": "Prefijo del nombre (opcional)",
+  "bulkPrefixPlaceholder": "Ej.: Techo, Terror, Bloque",
+  "bulkDrop": "Arrastra aquí varios PNG o haz clic para elegirlos",
+  "bulkFaces": "{count} cara(s)",
+  "bulkBlock": "bloque apilable",
+  "bulkCreate": "Crear {count} objetos",
+  "bulkUploading": "Subiendo...",
+  "bulkDoneEdit": "Creado · editar",
+  "bulkRemove": "Quitar"
 }

@@ -669,6 +669,17 @@ export default function ItemEditor({
     img.onload = () => {
       setWidth(img.naturalWidth);
       setHeight(img.naturalHeight);
+      // Ítem nuevo: se deduce lo demás de la imagen. Las caras van una al
+      // lado de la otra (128x64 = 2 caras, 256x64 = 4) y una cara de 64x64
+      // es un bloque que se apila.
+      if (initial) return;
+      const ratio = img.naturalWidth / img.naturalHeight;
+      const faces = Math.abs(ratio - 4) < 0.2 ? 4 : Math.abs(ratio - 2) < 0.2 ? 2 : 1;
+      setDirections(faces);
+      if (img.naturalWidth / faces === 64 && img.naturalHeight === 64) {
+        setCanBeStacked(true);
+        setAllowsStacking(true);
+      }
     };
     img.src = objectUrl;
     return () => URL.revokeObjectURL(objectUrl);
@@ -1019,6 +1030,14 @@ export default function ItemEditor({
       return;
     }
     setMirrorSource(selectedFile);
+    // Ítem nuevo sin nombre: se usa el del archivo ("esquina-gorgola castillo.png"
+    // -> "Esquina gorgola castillo") y la descripción arranca igual.
+    if (!initial && !name.trim()) {
+      const fromFile = selectedFile.name.replace(/.[^.]+$/, "").replace(/[-_]+/g, " ").replace(/s+/g, " ").trim();
+      const pretty = fromFile.charAt(0).toUpperCase() + fromFile.slice(1);
+      setName(pretty);
+      if (!description.trim()) setDescription(pretty);
+    }
     if (autoMirror && category === "world") {
       void applyMirror(selectedFile, selectedFile.name);
       return;
