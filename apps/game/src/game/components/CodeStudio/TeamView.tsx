@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ClipboardList, UserPlus, Wrench } from "lucide-react";
+import { Bot, ClipboardList, UserPlus, Wrench } from "lucide-react";
 import Modal from "../shared/Modal";
 import type { Catalog, CompanyView } from "./types";
 import { Stat, money, pct } from "./ui";
@@ -16,9 +16,14 @@ type Props = {
   busy: boolean;
   onHire: (roleId: string, candidateIndex?: number) => void;
   onFire: (employeeId: string) => void;
+  onToggleSeat: (employeeId: string, pinned: boolean) => void;
+  onDepartment: (roleSlug: string, auto: boolean) => void;
 };
 
-export default function TeamView({ company, catalog, busy, onHire, onFire }: Props) {
+// Departamentos que contratan solos cuando hace falta gente.
+const AUTO_DEPARTMENTS = ["support", "qa", "devops"] as const;
+
+export default function TeamView({ company, catalog, busy, onHire, onFire, onToggleSeat, onDepartment }: Props) {
   const t = useTranslation();
   const [firing, setFiring] = useState<CompanyView["employees"][number] | null>(null);
   const [choosing, setChoosing] = useState<{ id: string; name: string } | null>(null);
@@ -46,6 +51,30 @@ export default function TeamView({ company, catalog, busy, onHire, onFire }: Pro
 
       <SquadBoard company={company} catalog={catalog} onHire={setChoosing} />
 
+      <section className="cs2-card">
+        <h3>
+          <Bot size={16} style={{ verticalAlign: -2, marginRight: 6 }} />
+          {t("codestudio.team.departmentsTitle")}
+        </h3>
+        <p className="cs2-muted">{t("codestudio.team.departmentsHint")}</p>
+        <div className="cs2-cards">
+          {AUTO_DEPARTMENTS.map((slug) => {
+            const role = catalog.roles.find((entry) => entry.slug === slug);
+            if (!role) return null;
+            const on = company.departments?.[slug] === true;
+            return (
+              <label key={slug} className="cs2-mini" style={{ cursor: "pointer" }}>
+                <div className="cs2-mini-head">
+                  <b>{role.name}</b>
+                  <input type="checkbox" checked={on} disabled={busy} onChange={(event) => onDepartment(slug, event.target.checked)} />
+                </div>
+                <p>{t(`codestudio.team.department_${slug}`)}</p>
+              </label>
+            );
+          })}
+        </div>
+      </section>
+
       <section className={`cs2-card cs2-pm-note ${hasPm ? "on" : ""}`}>
         <ClipboardList size={18} />
         <p>{hasPm ? t("codestudio.team.pmOn") : t("codestudio.team.pmOff")}</p>
@@ -58,7 +87,13 @@ export default function TeamView({ company, catalog, busy, onHire, onFire }: Pro
         ) : (
           <div className="cs2-fut-grid">
             {company.employees.map((employee) => (
-              <EmployeeCard key={employee.id} employee={employee} busy={busy} onFire={() => setFiring(employee)} />
+              <EmployeeCard
+                key={employee.id}
+                employee={employee}
+                busy={busy}
+                onFire={() => setFiring(employee)}
+                onToggleSeat={() => onToggleSeat(employee.id, !employee.seatPinned)}
+              />
             ))}
           </div>
         )}

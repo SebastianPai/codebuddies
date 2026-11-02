@@ -8,6 +8,8 @@ import {
   chooseCodeStudioDecision,
   createCodeStudioCompany,
   fireCodeStudioEmployee,
+  setCodeStudioDepartment,
+  setCodeStudioSeat,
   fixCodeStudioBug,
   getCodeStudio,
   getCodeStudioCompany,
@@ -438,6 +440,8 @@ export default function CodeStudio({ initialView }: { initialView?: string }) {
                 busy={busy}
                 onHire={(roleId, candidateIndex) => void act(() => hireCodeStudioEmployee(company.id, roleId, candidateIndex))}
                 onFire={(employeeId) => void act(() => fireCodeStudioEmployee(company.id, employeeId))}
+                onToggleSeat={(employeeId, pinned) => void act(() => setCodeStudioSeat(company.id, employeeId, pinned))}
+                onDepartment={(roleSlug, auto) => void act(() => setCodeStudioDepartment(company.id, roleSlug, auto))}
               />
             )}
             {view === "office" && <OfficeView company={company} onChange={reloadOffice} />}

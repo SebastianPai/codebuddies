@@ -115,6 +115,12 @@ export type Candidate = {
 export const getCodeStudioCandidates = (companyId: string, roleId: string) =>
   request<{ refreshInMinutes: number; candidates: Candidate[] }>(`/codestudio/companies/${companyId}/candidates/${roleId}`);
 
+export const setCodeStudioDepartment = (companyId: string, roleSlug: string, auto: boolean) =>
+  post<CompanyView>(`/codestudio/companies/${companyId}/departments`, { roleSlug, auto });
+
+export const setCodeStudioSeat = (companyId: string, employeeId: string, pinned: boolean) =>
+  post<CompanyView>(`/codestudio/companies/${companyId}/employees/${employeeId}/seat`, { pinned });
+
 export const fireCodeStudioEmployee = (companyId: string, employeeId: string) =>
   request<CompanyView>(`/codestudio/companies/${companyId}/employees/${employeeId}`, { method: "DELETE" });
 

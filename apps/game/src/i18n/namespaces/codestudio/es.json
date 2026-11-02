@@ -217,7 +217,14 @@
     "performanceHint": "De 0 a 100: según su rasgo y lo que hizo (features y bugs arreglados suman, bugs causados restan).",
     "statShipped": "Features que ayudó a publicar",
     "statFixed": "Bugs que arregló",
-    "statCaused": "Bugs que causó al publicar"
+    "statCaused": "Bugs que causó al publicar",
+    "departmentsTitle": "Departamentos que contratan solos",
+    "departmentsHint": "Actívalos y contratan cuando hace falta gente, sin que tengas que estar pendiente. Nunca te dejan con menos de una semana de gastos en caja y esperan unos días entre contratación y contratación.",
+    "department_support": "Contrata soporte cuando los usuarios crecen y faltan agentes.",
+    "department_qa": "Contrata QA cuando se juntan muchos bugs abiertos.",
+    "department_devops": "Contrata DevOps cuando el servidor no da más.",
+    "seatPin": "Fijar su puesto en la oficina",
+    "seatUnpin": "Quitar el puesto fijo"
   },
   "infra": {
     "title": "Servidores",

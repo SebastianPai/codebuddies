@@ -269,6 +269,8 @@ export type CompanyView = {
   }>;
   legacyFeatures: Array<{ name: string; category: string }>;
   development: Array<{ id: string; slug: string; name: string; progress: number; queued: boolean; remainingSeconds: number | null; refund: number }>;
+  /** Departamentos que contratan solos (support, qa, devops). */
+  departments?: Record<string, boolean>;
   employees: Array<{
     id: string;
     name: string;
@@ -276,6 +278,8 @@ export type CompanyView = {
     roleName: string;
     salary: number;
     severance: number;
+    /** Puesto fijo: se sienta siempre, antes que los demás. */
+    seatPinned?: boolean;
     canFixBugs: boolean;
     busy: boolean;
     // Rasgo, estadísticas y rendimiento (opcionales: API anterior).

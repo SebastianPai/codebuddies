@@ -217,7 +217,14 @@
     "performanceHint": "Von 0 bis 100: nach Eigenschaft und dem, was die Person getan hat (Features und behobene Bugs zählen positiv, verursachte Bugs negativ).",
     "statShipped": "Mitveröffentlichte Features",
     "statFixed": "Behobene Bugs",
-    "statCaused": "Beim Veröffentlichen verursachte Bugs"
+    "statCaused": "Beim Veröffentlichen verursachte Bugs",
+    "departmentsTitle": "Abteilungen, die selbst einstellen",
+    "departmentsHint": "Schalte sie ein und sie stellen ein, wenn Leute fehlen, ohne dass du aufpassen musst. Sie lassen nie weniger als eine Woche Ausgaben in der Kasse und warten ein paar Tage zwischen Einstellungen.",
+    "department_support": "Stellt Support ein, wenn die Nutzer wachsen und Agenten fehlen.",
+    "department_qa": "Stellt QA ein, wenn sich offene Bugs stapeln.",
+    "department_devops": "Stellt DevOps ein, wenn der Server nicht mehr mitkommt.",
+    "seatPin": "Festen Arbeitsplatz im Büro geben",
+    "seatUnpin": "Festen Arbeitsplatz entfernen"
   },
   "infra": {
     "title": "Server",

@@ -217,7 +217,14 @@
     "performanceHint": "From 0 to 100: based on their trait and what they did (features and fixed bugs add, caused bugs subtract).",
     "statShipped": "Features they helped ship",
     "statFixed": "Bugs they fixed",
-    "statCaused": "Bugs they caused when shipping"
+    "statCaused": "Bugs they caused when shipping",
+    "departmentsTitle": "Departments that hire on their own",
+    "departmentsHint": "Turn them on and they hire when people are needed, so you don't have to keep watching. They never leave you with less than a week of expenses in cash and wait a few days between hires.",
+    "department_support": "Hires support when users grow and agents are missing.",
+    "department_qa": "Hires QA when open bugs pile up.",
+    "department_devops": "Hires DevOps when the server can't keep up.",
+    "seatPin": "Give them a fixed desk in the office",
+    "seatUnpin": "Remove the fixed desk"
   },
   "infra": {
     "title": "Servers",

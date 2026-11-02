@@ -4,7 +4,7 @@
 // quejan cuando la empresa va mal.
 
 import { L, Localized } from './i18n/localized';
-import type { OfficeContext } from './office';
+import { unseatedLine, type OfficeContext } from './office';
 
 export type Mood = 'happy' | 'normal' | 'tired' | 'angry';
 
@@ -167,9 +167,7 @@ export function employeeLines(employee: EmployeeLineInput, ctx: EmployeeLineCont
   if (employee.fixingBug) {
     lines.push(L(`Estoy con «${employee.fixingBug}», denme un rato.`, `I'm on "${employee.fixingBug}", give me a moment.`, `Ich sitze an „${employee.fixingBug}“, gebt mir etwas Zeit.`));
   }
-  if (!employee.seated) {
-    lines.push(L('No tengo escritorio... así no se puede trabajar.', "I don't have a desk... I can't work like this.", 'Ich habe keinen Schreibtisch... so kann ich nicht arbeiten.'));
-  }
+  if (!employee.seated) lines.push(unseatedLine(ctx.missing));
   if (employee.minutesInTeam < 3) {
     lines.push(L('Es mi primer día, ¿dónde queda el baño?', "It's my first day, where's the restroom?", 'Es ist mein erster Tag, wo ist die Toilette?'));
   }

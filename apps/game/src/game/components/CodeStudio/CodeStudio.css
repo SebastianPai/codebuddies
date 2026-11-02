@@ -4484,3 +4484,6 @@ div.cs2-modal.cs2-candidates-modal {
     display: none;
   }
 }
+
+/* Puesto fijo activado (botón de la silla en la carta del empleado). */
+.cs2-icon-btn.on { color: #047857; background: rgba(16, 185, 129, 0.16); border-color: rgba(16, 185, 129, 0.55); }

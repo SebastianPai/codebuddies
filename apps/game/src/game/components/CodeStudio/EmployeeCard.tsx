@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Bug, CheckCircle2, Rocket, UserMinus } from "lucide-react";
+import { Armchair, Bug, CheckCircle2, Rocket, UserMinus } from "lucide-react";
 import type { CompanyView } from "./types";
 import { money } from "./ui";
 import { useTranslation } from "../../../i18n/useTranslation";
 
 type Employee = Pick<CompanyView["employees"][number], "name" | "roleSlug" | "roleName" | "trait" | "skin" | "card" | "performance" | "stats" | "avatar" | "style" | "away"> &
-  Partial<Pick<CompanyView["employees"][number], "busy" | "salary" | "seniority">>;
+  Partial<Pick<CompanyView["employees"][number], "busy" | "salary" | "seniority" | "seatPinned">>;
 
 // Carta de empleado estilo "carta de fútbol": media grande, rol, retrato
 // (primer cuadro de su skin), seis estadísticas y el color según la media
@@ -141,7 +141,18 @@ export function SkinPortrait({ skin, label }: { skin: Employee["skin"]; label: s
 }
 
 // Sin onFire (visitas en la oficina): sin sueldo ni botón de despedir.
-export default function EmployeeCard({ employee, busy = false, onFire }: { employee: Employee; busy?: boolean; onFire?: () => void }) {
+export default function EmployeeCard({
+  employee,
+  busy = false,
+  onFire,
+  onToggleSeat,
+}: {
+  employee: Employee;
+  busy?: boolean;
+  onFire?: () => void;
+  /** Fijar su puesto en la oficina (se sienta antes que los demás). */
+  onToggleSeat?: () => void;
+}) {
   const t = useTranslation();
   const card = employee.card;
   const overall = card?.overall ?? employee.performance ?? 60;
@@ -222,6 +233,19 @@ export default function EmployeeCard({ employee, busy = false, onFire }: { emplo
         {onFire && employee.salary !== undefined && (
           <>
             <span className="cs2-fut-salary">{t("codestudio.team.salary", { amount: money(employee.salary) })}</span>
+            {onToggleSeat && (
+              <button
+                type="button"
+                className={`cs2-icon-btn ${employee.seatPinned ? "on" : ""}`}
+                disabled={busy}
+                onClick={onToggleSeat}
+                aria-pressed={employee.seatPinned === true}
+                aria-label={employee.seatPinned ? t("codestudio.team.seatUnpin") : t("codestudio.team.seatPin")}
+                title={employee.seatPinned ? t("codestudio.team.seatUnpin") : t("codestudio.team.seatPin")}
+              >
+                <Armchair size={15} />
+              </button>
+            )}
             <button type="button" className="cs2-icon-btn" disabled={busy} onClick={onFire} aria-label={t("codestudio.team.fire")} title={t("codestudio.team.fire")}>
               <UserMinus size={15} />
             </button>

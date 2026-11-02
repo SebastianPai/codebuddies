@@ -13,6 +13,7 @@ import { ChooseDecisionDto } from './dto/choose-decision.dto';
 import { SetPricingDto } from './dto/set-pricing.dto';
 import { CreateOfficeDto } from './dto/create-office.dto';
 import { langFromHeader } from './content/i18n';
+import { SetDepartmentDto, SetSeatDto } from './dto/team-settings.dto';
 
 @UseGuards(JwtAuthGuard)
 // ?lang=es|en-us|de: el idioma del contenido (features, bugs, eventos) y de
@@ -115,6 +116,16 @@ export class CodeStudioController {
   @Delete('companies/:id/employees/:employeeId')
   fireEmployee(@CurrentUser() user: AuthUser, @Param('id') id: string, @Param('employeeId') employeeId: string, @Query('lang') lang?: string) {
     return this.codeStudio.fireEmployee(user.userId, id, employeeId, langFromHeader(lang));
+  }
+
+  @Post('companies/:id/departments')
+  setDepartment(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() dto: SetDepartmentDto, @Query('lang') lang?: string) {
+    return this.codeStudio.setDepartment(user.userId, id, dto.roleSlug, dto.auto, langFromHeader(lang));
+  }
+
+  @Post('companies/:id/employees/:employeeId/seat')
+  setSeat(@CurrentUser() user: AuthUser, @Param('id') id: string, @Param('employeeId') employeeId: string, @Body() dto: SetSeatDto, @Query('lang') lang?: string) {
+    return this.codeStudio.setSeatPinned(user.userId, id, employeeId, dto.pinned, langFromHeader(lang));
   }
 
   @Post('companies/:id/infrastructure')

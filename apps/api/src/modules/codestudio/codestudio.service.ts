@@ -21,7 +21,7 @@ import { CodeStudioRewardsService } from './codestudio-rewards.service';
 import { campaignQuote, evaluateStage, fundingOffer, stageProgress } from './codestudio-rules';
 import { TRAITS, bumpStats, performanceOf, readMeta, rollTrait, statsOf, traitOf } from './content/traits';
 import { cardStats, employeeName, genderOf, resolveSkin, rollGender } from './content/employee-card';
-import { OFFICE_TAGS, OfficeCounts, countOffice, officeFactors, officeLines, officePrice, officeSummary } from './content/office';
+import { OFFICE_TAGS, OfficeCounts, countOffice, crossedMilestone, missingPiece, officeFactors, officeLines, officePrice, officeSummary } from './content/office';
 import { employeeLines } from './content/office-lines';
 import { chemistryFactor, chemistryScore } from './content/chemistry';
 
@@ -36,7 +36,7 @@ const VACATION_PER_DAY = 0.012;
 const SICK_PER_DAY = 0.006;
 const QUIT_PER_DAY = 0.004; // solo los desmotivados
 import { PROVIDERS, PROVIDER_KEYS, providerOf } from './content/providers';
-import { officeConversations } from './content/office-talk';
+import { officeConversations, type TalkEvent } from './content/office-talk';
 import { EMPLOYEE_WEAR_TAG, employeeAvatar, employeeStyle, isCheerful, prefersSkin, type WardrobeItem } from './content/employee-look';
 import { applyDeal, marketingDeal } from './content/marketing-deal';
 
@@ -116,6 +116,20 @@ type LoadedCompany = Prisma.CodeStudioCompanyGetPayload<{ include: typeof compan
 // empresas para farmear logros.
 const MAX_ALIVE_COMPANIES = 3;
 const MAX_EMPLOYEES = 40;
+
+// Departamentos que contratan solos cuando hace falta gente (el jugador los
+// activa): soporte cuando faltan agentes, QA cuando se juntan bugs, DevOps
+// cuando el servidor no da más. Nunca dejan la caja con menos de una semana
+// de gastos y esperan unos días entre contratación y contratación.
+const AUTO_HIRE_ROLES = ['support', 'qa', 'devops'] as const;
+type AutoHireRole = (typeof AUTO_HIRE_ROLES)[number];
+const AUTO_HIRE_COOLDOWN_DAYS = 3;
+
+/** Orden de los puestos: primero los fijados por el jugador, después por rendimiento. */
+function seatOrder<T extends { metadata: unknown }>(employees: T[], performance: (employee: NoInfer<T>) => number): T[] {
+  const pinned = (employee: T) => ((employee.metadata ?? {}) as { seatPinned?: boolean }).seatPinned === true;
+  return [...employees].sort((a, b) => Number(pinned(b)) - Number(pinned(a)) || performance(b) - performance(a));
+}
 // Features en desarrollo + en cola a la vez.
 const MAX_DEVELOPMENT_QUEUE = 6;
 const BANKRUPTCY_DEBT_DAYS = 7;
@@ -381,6 +395,25 @@ export class CodeStudioService {
     if (candidate && company.employees.some((entry) => readMeta(entry.metadata).candidateKey === candidate.key)) {
       throw new BadRequestException(pick(L('Esa persona ya trabaja contigo.', 'That person already works for you.', 'Diese Person arbeitet schon für dich.'), lang));
     }
+    const skins = await this.skinNpcs();
+    await this.prisma.$transaction(async (tx) => {
+      await this.createHire(tx, userId, company, type, candidate, skins, lang);
+    });
+    return this.getCompany(userId, companyId, lang);
+  }
+
+  /** Contrata (la usa el jugador y los departamentos automáticos). */
+  private async createHire(
+    tx: Tx,
+    userId: string,
+    company: { id: string; employees: unknown[] },
+    type: { id: string; slug: string; name: string; salary: number; baseStats: unknown },
+    candidate: ReturnType<typeof candidatesFor>[number] | null,
+    skins: Awaited<ReturnType<CodeStudioService['skinNpcs']>>,
+    lang: Lang,
+    auto = false,
+  ) {
+    const stats = (type.baseStats ?? {}) as Record<string, number>;
     const salary = candidate?.salary ?? type.salary;
     const bonus = candidate?.hireCost ?? Math.round(type.salary * HIRE_BONUS_FACTOR);
     // Género, nombre y skin (NPC EMPLOYEE del admin de ese género; si no
@@ -388,9 +421,8 @@ export class CodeStudioService {
     const gender = candidate?.gender ?? rollGender();
     const name = candidate?.name ?? employeeName(gender);
     const tempEmployee = { id: `${company.id}:${Date.now()}`, name, avatar: null, metadata: { gender } };
-    const skin = resolveSkin(tempEmployee, await this.skinNpcs());
-
-    await this.prisma.$transaction(async (tx) => {
+    const skin = resolveSkin(tempEmployee, skins);
+    {
       await this.spend(tx, company.id, bonus, lang);
       const employee = await tx.codeStudioEmployee.create({
         data: {
@@ -414,14 +446,86 @@ export class CodeStudioService {
           },
         },
       });
-      await this.log(tx, company.id, MSG.hiredTitle(employee.name, this.roleName(type.slug, type.name, lang)), MSG.hiredText(bonus, salary), 'team', 'neutral', lang);
+      await this.log(
+        tx,
+        company.id,
+        auto
+          ? L(`Tu departamento contrató a ${employee.name} (${this.roleName(type.slug, type.name, lang)})`, `Your department hired ${employee.name} (${this.roleName(type.slug, type.name, lang)})`, `Deine Abteilung hat ${employee.name} eingestellt (${this.roleName(type.slug, type.name, lang)})`)
+          : MSG.hiredTitle(employee.name, this.roleName(type.slug, type.name, lang)),
+        MSG.hiredText(bonus, salary),
+        'team',
+        'neutral',
+        lang,
+        { event: 'hire', employeeId: employee.id, name: employee.name, auto },
+      );
       await this.rewards.grantMilestone(tx, userId, 'first-hire', company.id, lang);
       const teamSize = company.employees.length + 1;
       if (teamSize >= 5) await this.rewards.grantMilestone(tx, userId, 'team-5', company.id, lang);
       if (teamSize >= 15) await this.rewards.grantMilestone(tx, userId, 'team-15', company.id, lang);
       await this.rewards.bumpDaily(tx, userId, { hires: 1 }, company.id, lang);
-    });
+    }
+  }
+
+  // ─── Departamentos y puestos ─────────────────────────────────────────────
+
+  /** Activa o apaga que un departamento contrate solo. */
+  async setDepartment(userId: string, companyId: string, roleSlug: string, auto: boolean, lang: Lang = 'es') {
+    const company = await this.requireAlive(userId, companyId, lang);
+    if (!(AUTO_HIRE_ROLES as readonly string[]).includes(roleSlug)) throw new BadRequestException(pick(MSG.roleUnavailable(), lang));
+    const meta = (company.metadata ?? {}) as Record<string, any>;
+    const departments = { ...(meta.departments ?? {}), [roleSlug]: { ...(meta.departments?.[roleSlug] ?? {}), auto } };
+    await this.prisma.codeStudioCompany.update({ where: { id: company.id }, data: { metadata: { ...meta, departments } as Prisma.InputJsonValue } });
     return this.getCompany(userId, companyId, lang);
+  }
+
+  /** Fija (o suelta) el puesto de un empleado: los fijados se sientan primero. */
+  async setSeatPinned(userId: string, companyId: string, employeeId: string, pinned: boolean, lang: Lang = 'es') {
+    const company = await this.requireAlive(userId, companyId, lang);
+    const employee = company.employees.find((entry) => entry.id === employeeId);
+    if (!employee) throw new NotFoundException(pick(MSG.employeeNotFound(), lang));
+    const meta = (employee.metadata ?? {}) as Record<string, unknown>;
+    await this.prisma.codeStudioEmployee.update({ where: { id: employee.id }, data: { metadata: { ...meta, seatPinned: pinned } as Prisma.InputJsonValue } });
+    return this.getCompany(userId, companyId, lang);
+  }
+
+  /** Cuánta gente le falta a cada departamento automático (0 = cubierto). */
+  private departmentNeed(role: AutoHireRole, company: LoadedCompany, metrics: Record<string, number>, openBugs: number) {
+    const count = company.employees.filter((employee) => employee.employeeType.slug === role).length;
+    if (role === 'support') return Number(metrics.supportGap ?? 0) >= 1 ? 1 : 0;
+    if (role === 'qa') return openBugs >= 4 * (count + 1) ? 1 : 0;
+    return Number(metrics.utilization ?? 0) > 0.9 && count < 3 ? 1 : 0;
+  }
+
+  /** Contrataciones de los departamentos automáticos (dentro de la simulación). */
+  private async runDepartments(tx: Tx, userId: string, company: LoadedCompany, metrics: Record<string, number>, openBugs: number, gameDays: number, lang: Lang) {
+    const meta = (company.metadata ?? {}) as Record<string, any>;
+    const departments = (meta.departments ?? {}) as Record<string, { auto?: boolean; lastHireDay?: number }>;
+    let changed = false;
+    let cash = company.cash;
+    let team = company.employees.length;
+    for (const role of AUTO_HIRE_ROLES) {
+      const department = departments[role];
+      if (!department?.auto || team >= MAX_EMPLOYEES) continue;
+      if (gameDays - Number(department.lastHireDay ?? -999) < AUTO_HIRE_COOLDOWN_DAYS) continue;
+      if (this.departmentNeed(role, company, metrics, openBugs) <= 0) continue;
+      const type = await tx.codeStudioEmployeeType.findUnique({ where: { slug: role } });
+      if (!type || !type.active) continue;
+      const hired = new Set(company.employees.map((employee) => readMeta(employee.metadata).candidateKey));
+      const options = candidatesFor(company.id, type, HIRE_BONUS_FACTOR).filter((candidate) => !hired.has(candidate.key));
+      // Semi-senior si hay; si no, el primero libre.
+      const candidate = options.find((option) => option.seniority.key === 'mid') ?? options[0];
+      if (!candidate) continue;
+      const reserve = Number(metrics.dailyCosts ?? 0) * 7 + candidate.salary;
+      if (cash - candidate.hireCost < reserve) continue;
+      await this.createHire(tx, userId, company, type, candidate, await this.skinNpcs(), lang, true);
+      cash -= candidate.hireCost;
+      team += 1;
+      departments[role] = { ...department, lastHireDay: gameDays };
+      changed = true;
+    }
+    if (changed) {
+      await tx.codeStudioCompany.update({ where: { id: company.id }, data: { metadata: { ...meta, departments } as Prisma.InputJsonValue } });
+    }
   }
 
   /** Amigos invitados y lo que ganas cuando avanzan en CodeStudio. */
@@ -503,7 +607,11 @@ export class CodeStudioService {
         where: { id: company.id },
         data: { cash: { decrement: severance }, expenses: { increment: severance } },
       });
-      await this.log(tx, company.id, MSG.firedTitle(employee.name), MSG.firedText(severance, employee.salary), 'team', 'neutral', lang);
+      await this.log(tx, company.id, MSG.firedTitle(employee.name), MSG.firedText(severance, employee.salary), 'team', 'neutral', lang, {
+        event: 'fire',
+        name: employee.name,
+        trait: traitOf(employee).key,
+      });
       await this.rewards.grantMilestone(tx, userId, 'tough-call', company.id, lang);
     });
     return this.getCompany(userId, companyId, lang);
@@ -878,7 +986,7 @@ export class CodeStudioService {
       const lesson = contentFor(lang)?.features[task.module.slug]?.lesson ?? (task.module.metadata as { lesson?: string } | null)?.lesson ?? '';
       const xp = (await this.rewards.addXp(tx, userId, task.module.difficulty ** 2 * 4, company.id, {}, lang)).xp;
       const releasedName = this.featureName(task.module.slug, lang, task.module.name) + (wasInstalled ? ` v${wasInstalled.level}` : '');
-      await this.log(tx, company.id, MSG.releaseTitle(releasedName), MSG.releaseText(lesson, xp), 'release', 'good', lang);
+      await this.log(tx, company.id, MSG.releaseTitle(releasedName), MSG.releaseText(lesson, xp), 'release', 'good', lang, { event: 'release', name: releasedName });
       await this.rewards.grantMilestone(tx, userId, 'first-feature', company.id, lang);
       const builders = this.builders(company, openBugs);
       for (const builder of builders) await this.bumpEmployee(tx, builder, { featuresShipped: 1 }, lang);
@@ -1067,6 +1175,25 @@ export class CodeStudioService {
         ...(failed ? { failedAt: now, failureReason: postMortem } : {}),
       },
     });
+
+    if (!failed) {
+      // Récord de usuarios: se anota para que el equipo lo festeje un rato.
+      const usersAfter = company.activeUsers + Math.max(-company.activeUsers, next.users);
+      const milestone = crossedMilestone(company.activeUsers, usersAfter);
+      if (milestone) {
+        await this.log(
+          tx,
+          company.id,
+          L(`¡Pasaste los ${milestone.toLocaleString('es')} usuarios!`, `You passed ${milestone.toLocaleString('en')} users!`, `Du hast ${milestone.toLocaleString('de')} Nutzer geknackt!`),
+          '',
+          'milestone',
+          'good',
+          lang,
+          { event: 'milestone', value: milestone },
+        );
+      }
+      await this.runDepartments(tx, userId, company, metrics as unknown as Record<string, number>, openBugs.length, gameDays, lang);
+    }
 
     if (failed) {
       await tx.codeStudioEventLog.create({
@@ -1264,6 +1391,10 @@ export class CodeStudioService {
             : null,
         refund: Math.round(task.module.cost * 0.5),
       })),
+      // Departamentos que contratan solos (los activa el jugador).
+      departments: Object.fromEntries(
+        AUTO_HIRE_ROLES.map((role) => [role, Boolean(((company.metadata ?? {}) as Record<string, any>).departments?.[role]?.auto)]),
+      ),
       employees: company.employees.map((employee) => ({
         id: employee.id,
         name: employee.name,
@@ -1271,6 +1402,7 @@ export class CodeStudioService {
         roleName: this.roleName(employee.employeeType.slug, employee.employeeType.name, lang),
         salary: employee.salary,
         severance: Math.round(employee.salary * SEVERANCE_FACTOR),
+        seatPinned: ((employee.metadata ?? {}) as { seatPinned?: boolean }).seatPinned === true,
         canFixBugs: BUG_CAPABLE_ROLES.has(employee.employeeType.slug),
         busy: busyEmployeeIds.has(employee.id),
         trait: (() => {
@@ -1465,7 +1597,7 @@ export class CodeStudioService {
 
   /** Factor por empleado: los de mejor rendimiento tienen puesto primero. */
   private officeFactorsOf(company: LoadedCompany) {
-    const order = [...company.employees].sort((a, b) => performanceOf(b) - performanceOf(a)).map((employee) => employee.id);
+    const order = seatOrder(company.employees, performanceOf).map((employee) => employee.id);
     return officeFactors(this.officeSummaryOf(company), order);
   }
 
@@ -1608,6 +1740,21 @@ export class CodeStudioService {
       orderBy: { createdAt: 'desc' },
       select: { id: true },
     });
+    // Lo que pasó en la última media hora (lanzamientos, contrataciones,
+    // despidos, récords): de eso hablan, en vez de repetir siempre lo mismo.
+    const recentLogs = await this.prisma.codeStudioEventLog.findMany({
+      where: { companyId: company.id, createdAt: { gte: new Date(Date.now() - 30 * 60_000) } },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+      select: { effects: true },
+    });
+    const recentEvents: TalkEvent[] = [];
+    let recentMilestone: number | null = null;
+    for (const entry of recentLogs) {
+      const effects = (entry.effects ?? {}) as Record<string, any>;
+      if (effects.event === 'milestone' && recentMilestone === null) recentMilestone = Number(effects.value) || null;
+      else if (effects.event === 'release' || effects.event === 'hire' || effects.event === 'fire') recentEvents.push(effects as TalkEvent);
+    }
     const context = {
       activeUsers: company.activeUsers,
       openBugs: company.bugReports.length,
@@ -1620,6 +1767,10 @@ export class CodeStudioService {
       stageName: lastStage ? stageText(company.stage, lang).name : null,
       fundingRaised: Boolean(stats.fundingRounds),
       unseated: summary.unseated,
+      missing: missingPiece(this.officeCache.get(company.id)?.counts ?? null, company.employees.length),
+      recentMilestone,
+      amenities: summary.amenities,
+      hasOffice: summary.hasOffice,
     };
     // Lo de la empresa (sin la queja del escritorio: esa la dice cada uno).
     const lines = officeLines({ ...context, unseated: 0 }).map((line) => pick(line, lang));
@@ -1644,7 +1795,10 @@ export class CodeStudioService {
       hasCoffee: summary.amenities.includes('coffee'),
       deal: deal ? { name: CHANNELS.find((channel) => channel.slug === deal.slug)?.name ?? deal.slug, discount: Math.round(deal.discount * 100) } : null,
     };
-    const ordered = company.employees.filter((employee) => !this.awayOf(employee, company.gameDays)).sort((a, b) => performanceOf(b) - performanceOf(a));
+    const ordered = seatOrder(
+      company.employees.filter((employee) => !this.awayOf(employee, company.gameDays)),
+      performanceOf,
+    );
     // Charlas entre ellos (el PM pasa un bug, QA avisa, celebran un arreglo...).
     const conversations = officeConversations({
       employees: ordered.map((employee) => ({ id: employee.id, name: employee.name, roleSlug: employee.employeeType.slug, traitKey: traitOf(employee).key })),
@@ -1652,6 +1806,7 @@ export class CodeStudioService {
       recentFixes: recentFixes.map((bug) => ({ title: bugTitle(bug), assignedEmployeeId: bug.assignedEmployeeId })),
       deal: lineContext.deal,
       unseatedIds: summary.hasOffice ? ordered.slice(summary.stations).map((employee) => employee.id) : [],
+      events: recentEvents,
     }).map((conversation) => conversation.map((line) => ({ employeeId: line.employeeId, text: pick(line.text, lang) })));
     return {
       company: { id: company.id, name: company.name },
@@ -2347,8 +2502,12 @@ export class CodeStudioService {
   }
 
   // Acepta texto ya armado o un Localized (se elige el idioma del jugador).
-  private log(tx: Tx, companyId: string, title: Localized | string, description: Localized | string, kind: string, tone: string, lang: Lang) {
-    return tx.codeStudioEventLog.create({ data: { companyId, title: pick(title, lang), description: pick(description, lang), effects: { kind, tone } } });
+  // `data`: lo que pasó con detalle (lanzamiento, contratación, despido,
+  // récord) para que los empleados lo comenten en la oficina.
+  private log(tx: Tx, companyId: string, title: Localized | string, description: Localized | string, kind: string, tone: string, lang: Lang, data?: Record<string, unknown>) {
+    return tx.codeStudioEventLog.create({
+      data: { companyId, title: pick(title, lang), description: pick(description, lang), effects: { kind, tone, ...(data ?? {}) } as Prisma.InputJsonValue },
+    });
   }
 
   private async requireOwned(userId: string, companyId: string, lang: Lang) {

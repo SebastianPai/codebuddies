@@ -31,7 +31,7 @@ describe('oficina de CodeStudio', () => {
   });
 
   it('los empleados comentan lo que pasa y dan consejos', () => {
-    const base = { activeUsers: 1200, openBugs: 4, queued: 2, maxParallel: 1, utilization: 0.95, campaigns: 0, cash: 10, dailyCosts: 100, stageName: 'Tracción', fundingRaised: true, unseated: 1 };
+    const base = { activeUsers: 1200, openBugs: 4, queued: 2, maxParallel: 1, utilization: 0.95, campaigns: 0, cash: 10, dailyCosts: 100, stageName: 'Tracción', fundingRaised: true, unseated: 1, recentMilestone: 1000 };
     const text = officeLines(base).map((line) => line.es).join(' | ');
     expect(text).toContain('1.000 usuarios');
     expect(text).toContain('Tracción');
