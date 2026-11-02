@@ -223,5 +223,19 @@
     "fullscreen": "Pantalla completa",
     "stayPortrait": "Seguir en vertical",
     "iosTip": "En iPhone: toca Compartir y luego \"Agregar a inicio\" para jugar a pantalla completa."
+  },
+  "loading": {
+    "starting": "Preparando el juego…",
+    "enteringRoom": "Entrando a la sala…",
+    "enteringRoomHint": "Cargando muebles, jugadores y mascotas",
+    "tipLabel": "Consejo:",
+    "tip1": "En modo construcción, Shift + arrastrar coloca una fila entera.",
+    "tip2": "Toca algo de la tienda en el modo construcción para probarlo en tu sala antes de comprarlo.",
+    "tip3": "Con la sala de diseño pones lo que quieras gratis y pagas solo al hacerlo real.",
+    "tip4": "Pon una cama o un comedero en tu sala: tu mascota los usa sola.",
+    "tip5": "Enséñale trucos a tu mascota: todos en la sala los ven.",
+    "tip6": "Mueve el punto de aparición para elegir dónde llegan tus visitas.",
+    "tip7": "Las teclas 1 a 9 eligen lo último que usaste al construir.",
+    "tip8": "Clic derecho en una ficha del catálogo la guarda en favoritos."
   }
 }

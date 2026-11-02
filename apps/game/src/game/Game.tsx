@@ -34,6 +34,8 @@ import FurnitureContextMenu from "./components/Furniture/FurnitureContextMenu";
 import ItemUpgradesModal, { type UpgradesTarget } from "./components/Furniture/ItemUpgradesModal";
 import PlayerQuickMenu from "./components/PlayerQuickMenu/PlayerQuickMenu";
 import BuildModePanel from "./components/BuildMode/BuildModePanel";
+import LoadingScreen from "./components/UI/LoadingScreen";
+import { roomJoinErrorMessage } from "./utils/roomJoinError";
 import DesignApplyDialog from "./components/BuildMode/DesignApplyDialog";
 import DesignBanner from "./components/BuildMode/DesignBanner";
 import GameDialog from "./components/GameDialog/GameDialog";
@@ -104,8 +106,14 @@ export default function Game() {
   const [currentUser, setCurrentUser] = useState<any>(null);
 
   const [inGame, setInGame] = useState(false);
+  const inGameRef = useRef(false);
+  inGameRef.current = inGame;
+  // Pantalla de carga al entrar a una sala (ver handleEnterRoom).
+  const [loadingRoom, setLoadingRoom] = useState(false);
   // Sala a la que se está entrando (joinRoom enviado, sin respuesta aún).
   const [joiningRoomId, setJoiningRoomId] = useState<string | null>(null);
+  const joiningRef = useRef<string | null>(null);
+  joiningRef.current = joiningRoomId;
   const joinTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [selectedFurniture, setSelectedFurniture] = useState<any>(null);
@@ -341,13 +349,38 @@ export default function Game() {
       }
       setJoiningRoomId(null);
     };
-    socket.on("room:joined", release);
-    socket.on("room:join:error", release);
-    socket.on("room:error", release);
+    // La sala tarda un momento en armarse después de room:joined (texturas,
+    // muebles): la pantalla de carga se quita un poco después.
+    let hideTimer: ReturnType<typeof setTimeout> | undefined;
+    const joined = () => {
+      release();
+      if (hideTimer) clearTimeout(hideTimer);
+      hideTimer = setTimeout(() => setLoadingRoom(false), 700);
+    };
+    // Si no se pudo entrar, se avisa por qué. Fuera del juego ya lo muestra
+    // la lista de salas; dentro (cambiando de sala) no había ningún aviso.
+    const failed = (data: { reason?: string; message?: string }) => {
+      // room:error también llega por otras cosas (p. ej. listar salas): solo
+      // cuenta si se estaba entrando a una.
+      if (!joiningRef.current) return;
+      release();
+      setLoadingRoom(false);
+      if (!inGameRef.current) return;
+      void showGameAlert({
+        title: t("rooms.listJoinErrorTitle"),
+        message: roomJoinErrorMessage(t, data?.reason ?? data?.message),
+        confirmLabel: t("common.understood"),
+        tone: "danger",
+      });
+    };
+    socket.on("room:joined", joined);
+    socket.on("room:join:error", failed);
+    socket.on("room:error", failed);
     return () => {
-      socket.off("room:joined", release);
-      socket.off("room:join:error", release);
-      socket.off("room:error", release);
+      if (hideTimer) clearTimeout(hideTimer);
+      socket.off("room:joined", joined);
+      socket.off("room:join:error", failed);
+      socket.off("room:error", failed);
     };
   }, [socket]);
 
@@ -441,8 +474,19 @@ export default function Game() {
     // room:error, o a los 15s por si la respuesta nunca llega.
     if (joiningRoomId) return;
     setJoiningRoomId(roomId);
+    setLoadingRoom(true);
     if (joinTimeoutRef.current) clearTimeout(joinTimeoutRef.current);
-    joinTimeoutRef.current = setTimeout(() => setJoiningRoomId(null), 15000);
+    // Sin respuesta en 15s: se avisa en vez de quedarse esperando callado.
+    joinTimeoutRef.current = setTimeout(() => {
+      setJoiningRoomId(null);
+      setLoadingRoom(false);
+      void showGameAlert({
+        title: t("rooms.listJoinErrorTitle"),
+        message: roomJoinErrorMessage(t, "TIMEOUT"),
+        confirmLabel: t("common.understood"),
+        tone: "danger",
+      });
+    }, 15000);
 
     console.log("ROOM GUARDADO", roomId);
 
@@ -690,11 +734,11 @@ export default function Game() {
       {/* Antes esto era una pantalla negra pura mientras se resuelve el auth
           inicial y Phaser termina de bootear — sin logo, spinner ni texto de
           progreso. Es lo primero que ve todo jugador nuevo. */}
-      {!currentUser && (
-        <div className="boot-loading">
-          <div className="boot-spinner" aria-hidden="true" />
-          <span className="boot-title">CodeBuddies</span>
-        </div>
+      {!currentUser && <LoadingScreen title={t("hud.loading.starting")} />}
+
+      {/* Entrando a una sala: tapa el cambio hasta que la sala está armada. */}
+      {currentUser && loadingRoom && (
+        <LoadingScreen overlay title={t("hud.loading.enteringRoom")} subtitle={t("hud.loading.enteringRoomHint")} />
       )}
 
       {/* ================= GAME ================= */}

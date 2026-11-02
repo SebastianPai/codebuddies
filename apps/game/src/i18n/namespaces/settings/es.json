@@ -32,5 +32,15 @@
   "languageSectionHint": "Elige el idioma de la interfaz. Se aplica en la web y en el juego.",
   "languageEs": "Español",
   "languageEnUs": "English",
-  "languageDe": "Deutsch"
+  "languageDe": "Deutsch",
+  "tabProfile": "Perfil",
+  "tabStyle": "Estilo",
+  "tabSound": "Sonido",
+  "tabLanguage": "Idioma",
+  "tabHelp": "Ayuda",
+  "soundSectionTitle": "Volumen de los efectos",
+  "soundSectionHint": "Clics, monedas, colocar objetos y avisos. Se guarda en este navegador.",
+  "soundMute": "Silenciar",
+  "soundUnmute": "Activar sonido",
+  "soundTest": "Probar sonido"
 }

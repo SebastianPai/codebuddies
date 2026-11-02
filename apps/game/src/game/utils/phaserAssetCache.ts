@@ -32,8 +32,40 @@ export function canonicalAssetKey(url?: string | null) {
   }
 }
 
-const LOAD_RETRIES = 3;
+// Dos intentos directos (un tropiezo de red se recupera) y después, solo si
+// el archivo existe, el proxy de la API. Antes eran 3 + proxy por imagen y,
+// con imágenes rotas, cada una terminaba pegándole a la API: una sala con
+// varias rotas llenaba la consola y cargaba el servidor.
+const LOAD_RETRIES = 2;
 const LOAD_RETRY_DELAY_MS = 800;
+
+// Lo que ya falló no se vuelve a pedir en esta sesión (cada sala que se
+// abría repetía todas las peticiones de las imágenes rotas).
+const failedUrls = new Set<string>();
+
+/**
+ * URL con la que Phaser pide la imagen. Las fichas de React la cargan como
+ * <img> o fondo CSS (sin CORS) y el navegador guarda esa respuesta sin el
+ * header Access-Control-Allow-Origin; cuando Phaser pedía la MISMA URL con
+ * CORS, el navegador reusaba la guardada y la bloqueaba ("blocked by CORS
+ * policy"). Con un parámetro propio es otra entrada de caché, siempre CORS.
+ */
+function corsSafeUrl(sourceUrl: string): string {
+  const assetsBase = getAssetsUrl();
+  if (!assetsBase || !sourceUrl.startsWith(assetsBase)) return sourceUrl;
+  return `${sourceUrl}${sourceUrl.includes("?") ? "&" : "?"}cors=1`;
+}
+
+/** ¿El archivo existe? Para no mandar al proxy de la API lo que es un 404. */
+async function assetExists(url: string): Promise<boolean> {
+  try {
+    const response = await fetch(url, { method: "HEAD", mode: "cors" });
+    return response.ok;
+  } catch {
+    // Sin respuesta legible (red/CORS): puede existir, que lo intente el proxy.
+    return true;
+  }
+}
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -74,6 +106,9 @@ export function loadTextureOnce(
   const key = options.key ?? sourceUrl;
   if (!sourceUrl || !key) return Promise.resolve("");
   if (scene.textures.exists(key)) return Promise.resolve(key);
+  if (failedUrls.has(sourceUrl)) {
+    return Promise.reject(new Error(`Asset no disponible: ${sourceUrl}`));
+  }
 
   const pendingKey = `${scene.game.registry.get("asset-cache-id") ?? "game"}:${key}`;
   const pending = pendingTextures.get(pendingKey);
@@ -89,27 +124,20 @@ export function loadTextureOnce(
     // oportunidad de recuperarse.
     for (let attempt = 1; attempt <= LOAD_RETRIES; attempt++) {
       try {
-        await loadImageOnce(scene, key, sourceUrl);
+        await loadImageOnce(scene, key, corsSafeUrl(sourceUrl));
         if (options.pixelArt !== false && scene.textures.exists(key)) {
           scene.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
         }
         return key;
       } catch (err) {
         lastError = err;
-        if (attempt < LOAD_RETRIES) {
-          console.warn(
-            `Reintentando carga de asset (${attempt}/${LOAD_RETRIES}):`,
-            sourceUrl,
-          );
-          await delay(LOAD_RETRY_DELAY_MS * attempt);
-        }
+        if (attempt < LOAD_RETRIES) await delay(LOAD_RETRY_DELAY_MS * attempt);
       }
     }
 
     const proxyUrl = toProxyUrl(sourceUrl);
-    if (proxyUrl) {
+    if (proxyUrl && (await assetExists(corsSafeUrl(sourceUrl)))) {
       try {
-        console.warn(`Carga directa falló, probando vía proxy propio:`, sourceUrl);
         await loadImageOnce(scene, key, proxyUrl);
         if (options.pixelArt !== false && scene.textures.exists(key)) {
           scene.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
@@ -120,6 +148,8 @@ export function loadTextureOnce(
       }
     }
 
+    failedUrls.add(sourceUrl);
+    console.warn("Imagen no disponible (no se vuelve a pedir en esta sesión):", sourceUrl);
     throw lastError instanceof Error
       ? lastError
       : new Error(`No se pudo cargar asset: ${sourceUrl}`);

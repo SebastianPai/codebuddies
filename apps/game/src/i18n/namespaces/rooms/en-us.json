@@ -55,5 +55,11 @@
   "clearRoomTitle": "Clear room",
   "clearRoomMessage": "All furniture in the room will be removed and returned to your inventory. This action cannot be undone.",
   "clearRoomKeepLabel": "Keep room",
-  "cardJoiningButton": "Joining..."
+  "cardJoiningButton": "Joining...",
+  "joinError_ROOM_FULL": "The room is full. Try again later.",
+  "joinError_INVITE_ONLY": "This room is private: only invited players can enter.",
+  "joinError_REQUEST": "This room is private: ask the owner for access from their profile.",
+  "joinError_ROOM_NOT_FOUND": "This room no longer exists.",
+  "joinError_DESIGN_PRIVATE": "That's someone else's design room: only its owner can enter.",
+  "joinError_TIMEOUT": "The room took too long to respond. Check your connection and try again."
 }

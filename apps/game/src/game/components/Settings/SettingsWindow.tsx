@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BadgeCheck, Check, CircleHelp, Globe, Lock, MessageSquare, Sparkles, User } from "lucide-react";
+import { BadgeCheck, Check, CircleHelp, Globe, Lock, MessageSquare, Palette, Sparkles, User, Volume2, VolumeX } from "lucide-react";
+import { audioManager } from "../../audio/AudioManager";
 import { START_GAME_ONBOARDING } from "../Onboarding/GameOnboarding";
 import { getNameEffectCatalog } from "@codebuddies/visual-effects";
 
@@ -28,6 +29,8 @@ import styles from "./SettingsWindow.module.css";
 const CHAT_THEME_LIST = Object.values(CHAT_BUBBLE_THEMES);
 const NAME_EFFECT_LIST = getNameEffectCatalog();
 
+type SettingsTab = "profile" | "style" | "sound" | "language" | "help";
+
 interface Props {
   username: string;
   onClose: () => void;
@@ -43,6 +46,18 @@ const LANGUAGE_OPTIONS: { value: Lang; labelKey: string }[] = [
 export default function SettingsWindow({ username, onClose, onUsernameChanged }: Props) {
   const t = useTranslation();
   const { lang, changeLanguage } = useLanguage();
+
+  const [tab, setTab] = useState<SettingsTab>("profile");
+
+  // Volumen de los sonidos del juego (se guarda en este navegador).
+  const [volume, setVolume] = useState(() => audioManager.getMasterVolume());
+  const [lastVolume, setLastVolume] = useState(volume);
+  const changeVolume = (value: number) => {
+    const next = Math.min(1, Math.max(0, value));
+    if (next > 0) setLastVolume(next);
+    setVolume(next);
+    audioManager.setMasterVolume(next);
+  };
 
   const [usernameInput, setUsernameInput] = useState(username);
   const [savingUsername, setSavingUsername] = useState(false);
@@ -146,38 +161,48 @@ export default function SettingsWindow({ username, onClose, onUsernameChanged }:
     (draftSelection.length !== badgeSettings.selected.length ||
       draftSelection.some((type) => !badgeSettings.selected.includes(type)));
 
+  // Menú por pestañas: a la izquierda las categorías, a la derecha lo de
+  // cada una. Antes era una sola columna larga con todo apilado.
+  const tabs: Array<{ id: SettingsTab; label: string; icon: typeof User }> = [
+    { id: "profile", label: t("settings.tabProfile"), icon: User },
+    { id: "style", label: t("settings.tabStyle"), icon: Palette },
+    { id: "sound", label: t("settings.tabSound"), icon: Volume2 },
+    { id: "language", label: t("settings.tabLanguage"), icon: Globe },
+    { id: "help", label: t("settings.tabHelp"), icon: CircleHelp },
+  ];
+
   return (
     <Modal
       variant="floating"
       title={t("settings.title")}
       onClose={onClose}
-      style={{ width: "min(720px, calc(100vw - 24px))" }}
+      style={{ width: "min(860px, calc(100vw - 24px))" }}
     >
-      <div className={styles.sections}>
-        <section className={styles.section}>
-          <header className={styles.sectionHeader}>
-            <span className={styles.sectionIcon}>
-              <CircleHelp size={15} />
+      <div className={styles.layout}>
+        <nav className={styles.nav} aria-label={t("settings.title")}>
+          <div className={styles.navProfile}>
+            <span className={styles.navAvatar}>{username.slice(0, 1).toUpperCase()}</span>
+            <span className={styles.navName}>
+              <RarityText effect={nameEffectId ?? undefined}>{username}</RarityText>
             </span>
-            <div>
-              <h3 className={styles.sectionTitle}>{t("hud.onboarding.replayTitle")}</h3>
-              <p className={styles.sectionHint}>{t("hud.onboarding.replayHint")}</p>
-            </div>
-          </header>
-          <div className={styles.sectionBody}>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => {
-                onClose();
-                window.dispatchEvent(new Event(START_GAME_ONBOARDING));
-              }}
-            >
-              {t("hud.onboarding.replay")}
-            </Button>
           </div>
-        </section>
+          {tabs.map((entry) => (
+            <button
+              key={entry.id}
+              type="button"
+              aria-current={tab === entry.id ? "page" : undefined}
+              className={`${styles.navButton} ${tab === entry.id ? styles.navButtonActive : ""}`}
+              onClick={() => setTab(entry.id)}
+            >
+              <entry.icon size={16} />
+              <span>{entry.label}</span>
+            </button>
+          ))}
+        </nav>
 
+        <div className={styles.content}>
+          {tab === "profile" && (
+            <div className={styles.sections}>
         <section className={styles.section}>
           <header className={styles.sectionHeader}>
             <span className={styles.sectionIcon}>
@@ -219,7 +244,6 @@ export default function SettingsWindow({ username, onClose, onUsernameChanged }:
             )}
           </div>
         </section>
-
         <section className={styles.section}>
           <header className={styles.sectionHeader}>
             <span className={styles.sectionIcon}>
@@ -304,7 +328,11 @@ export default function SettingsWindow({ username, onClose, onUsernameChanged }:
             )}
           </div>
         </section>
+            </div>
+          )}
 
+          {tab === "style" && (
+            <div className={styles.sections}>
         <section className={styles.section}>
           <header className={styles.sectionHeader}>
             <span className={styles.sectionIcon}>
@@ -342,7 +370,6 @@ export default function SettingsWindow({ username, onClose, onUsernameChanged }:
             {themeError && <p className={styles.error}>{themeError}</p>}
           </div>
         </section>
-
         <section className={styles.section}>
           <header className={styles.sectionHeader}>
             <span className={styles.sectionIcon}>
@@ -389,7 +416,56 @@ export default function SettingsWindow({ username, onClose, onUsernameChanged }:
             {nameEffectError && <p className={styles.error}>{nameEffectError}</p>}
           </div>
         </section>
+            </div>
+          )}
 
+          {tab === "sound" && (
+            <div className={styles.sections}>
+        <section className={styles.section}>
+          <header className={styles.sectionHeader}>
+            <span className={styles.sectionIcon}>
+              {volume === 0 ? <VolumeX size={15} /> : <Volume2 size={15} />}
+            </span>
+            <div>
+              <h3 className={styles.sectionTitle}>{t("settings.soundSectionTitle")}</h3>
+              <p className={styles.sectionHint}>{t("settings.soundSectionHint")}</p>
+            </div>
+          </header>
+          <div className={styles.sectionBody}>
+            <div className={styles.volumeRow}>
+              <button
+                type="button"
+                className={styles.muteButton}
+                aria-pressed={volume === 0}
+                onClick={() => changeVolume(volume === 0 ? lastVolume || 0.6 : 0)}
+                title={volume === 0 ? t("settings.soundUnmute") : t("settings.soundMute")}
+              >
+                {volume === 0 ? <VolumeX size={18} /> : <Volume2 size={18} />}
+              </button>
+              <input
+                className={styles.volumeSlider}
+                type="range"
+                min={0}
+                max={100}
+                value={Math.round(volume * 100)}
+                onChange={(event) => changeVolume(Number(event.target.value) / 100)}
+                onPointerUp={() => audioManager.play("coin")}
+                aria-label={t("settings.soundSectionTitle")}
+                style={{ "--fill": `${Math.round(volume * 100)}%` } as React.CSSProperties}
+              />
+              <b className={styles.volumeValue}>{Math.round(volume * 100)}%</b>
+            </div>
+            <div className={styles.row}>
+              <Button variant="secondary" size="sm" onClick={() => audioManager.play("levelUp")}>
+                {t("settings.soundTest")}
+              </Button>
+            </div>
+          </div>
+        </section>
+            </div>
+          )}
+
+          {tab === "language" && <div className={styles.sections}>
         <section className={styles.section}>
           <header className={styles.sectionHeader}>
             <span className={styles.sectionIcon}>
@@ -420,6 +496,34 @@ export default function SettingsWindow({ username, onClose, onUsernameChanged }:
             </div>
           </div>
         </section>
+          </div>}
+
+          {tab === "help" && <div className={styles.sections}>
+        <section className={styles.section}>
+          <header className={styles.sectionHeader}>
+            <span className={styles.sectionIcon}>
+              <CircleHelp size={15} />
+            </span>
+            <div>
+              <h3 className={styles.sectionTitle}>{t("hud.onboarding.replayTitle")}</h3>
+              <p className={styles.sectionHint}>{t("hud.onboarding.replayHint")}</p>
+            </div>
+          </header>
+          <div className={styles.sectionBody}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                onClose();
+                window.dispatchEvent(new Event(START_GAME_ONBOARDING));
+              }}
+            >
+              {t("hud.onboarding.replay")}
+            </Button>
+          </div>
+        </section>
+          </div>}
+        </div>
       </div>
     </Modal>
   );

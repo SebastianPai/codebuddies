@@ -55,5 +55,11 @@
   "clearRoomTitle": "Raum leeren",
   "clearRoomMessage": "Alle Möbel im Raum werden entfernt und in dein Inventar zurückgelegt. Diese Aktion kann nicht rückgängig gemacht werden.",
   "clearRoomKeepLabel": "Raum behalten",
-  "cardJoiningButton": "Betrete..."
+  "cardJoiningButton": "Betrete...",
+  "joinError_ROOM_FULL": "Der Raum ist voll. Versuch es später.",
+  "joinError_INVITE_ONLY": "Dieser Raum ist privat: nur Eingeladene kommen rein.",
+  "joinError_REQUEST": "Dieser Raum ist privat: bitte den Besitzer über sein Profil um Zugang.",
+  "joinError_ROOM_NOT_FOUND": "Diesen Raum gibt es nicht mehr.",
+  "joinError_DESIGN_PRIVATE": "Das ist der Entwurfsraum von jemand anderem: nur der Besitzer kommt rein.",
+  "joinError_TIMEOUT": "Der Raum hat zu lange gebraucht. Prüf deine Verbindung und versuch es nochmal."
 }

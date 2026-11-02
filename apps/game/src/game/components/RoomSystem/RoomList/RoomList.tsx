@@ -19,6 +19,7 @@ import { useTranslation } from "../../../../i18n/useTranslation";
 import { useWindowChrome } from "../../shared/useWindowChrome";
 import tabsOverflow from "../../shared/tabsOverflow.module.css";
 import chromeStyles from "../../shared/windowChrome.module.css";
+import { roomJoinErrorMessage } from "../../../utils/roomJoinError";
 
 interface Props {
   onJoinRoom?: (roomId: string) => void;
@@ -75,7 +76,7 @@ export default function RoomList({
     const handleJoinError = (data: any) => {
       void showGameAlert({
         title: t("rooms.listJoinErrorTitle"),
-        message: data.reason || t("rooms.listJoinErrorMessage"),
+        message: roomJoinErrorMessage(t, data?.reason),
         confirmLabel: t("common.understood"),
         tone: "danger",
       });

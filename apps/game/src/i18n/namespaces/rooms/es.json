@@ -55,5 +55,11 @@
   "clearRoomTitle": "Limpiar casa",
   "clearRoomMessage": "Se retiraran todos los muebles de la habitacion y volveran al inventario. Esta accion no se puede deshacer.",
   "clearRoomKeepLabel": "Conservar sala",
-  "cardJoiningButton": "Entrando..."
+  "cardJoiningButton": "Entrando...",
+  "joinError_ROOM_FULL": "La sala está llena. Prueba más tarde.",
+  "joinError_INVITE_ONLY": "Esta sala es privada: solo entran sus invitados.",
+  "joinError_REQUEST": "Esta sala es privada: pide acceso al dueño desde su perfil.",
+  "joinError_ROOM_NOT_FOUND": "Esta sala ya no existe.",
+  "joinError_DESIGN_PRIVATE": "Es la sala de diseño de otra persona: solo entra su dueño.",
+  "joinError_TIMEOUT": "La sala tardó demasiado en responder. Revisa tu conexión e inténtalo de nuevo."
 }

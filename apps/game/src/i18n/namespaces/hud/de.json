@@ -223,5 +223,19 @@
     "fullscreen": "Vollbild",
     "stayPortrait": "Im Hochformat bleiben",
     "iosTip": "Auf dem iPhone: Tippe auf Teilen und dann auf \"Zum Home-Bildschirm\", um im Vollbild zu spielen."
+  },
+  "loading": {
+    "starting": "Das Spiel wird vorbereitet…",
+    "enteringRoom": "Raum wird betreten…",
+    "enteringRoomHint": "Möbel, Spieler und Haustiere werden geladen",
+    "tipLabel": "Tipp:",
+    "tip1": "Im Baumodus platziert Shift + Ziehen eine ganze Reihe.",
+    "tip2": "Tippe im Baumodus etwas aus dem Shop an, um es vor dem Kauf in deinem Raum auszuprobieren.",
+    "tip3": "Im Entwurfsraum platzierst du alles kostenlos und zahlst erst beim Echtmachen.",
+    "tip4": "Stell ein Bett oder einen Napf in deinen Raum: dein Haustier nutzt sie selbst.",
+    "tip5": "Bring deinem Haustier Tricks bei: alle im Raum sehen sie.",
+    "tip6": "Verschiebe den Startpunkt, um festzulegen, wo deine Besucher ankommen.",
+    "tip7": "Die Tasten 1 bis 9 wählen, was du zuletzt beim Bauen benutzt hast.",
+    "tip8": "Rechtsklick auf eine Katalogkachel speichert sie als Favorit."
   }
 }

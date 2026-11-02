@@ -32,5 +32,15 @@
   "languageSectionHint": "Wähle die Sprache der Oberfläche. Gilt sowohl für die Website als auch für das Spiel.",
   "languageEs": "Español",
   "languageEnUs": "English",
-  "languageDe": "Deutsch"
+  "languageDe": "Deutsch",
+  "tabProfile": "Profil",
+  "tabStyle": "Stil",
+  "tabSound": "Ton",
+  "tabLanguage": "Sprache",
+  "tabHelp": "Hilfe",
+  "soundSectionTitle": "Lautstärke der Effekte",
+  "soundSectionHint": "Klicks, Münzen, Objekte platzieren und Hinweise. Wird in diesem Browser gespeichert.",
+  "soundMute": "Stumm",
+  "soundUnmute": "Ton an",
+  "soundTest": "Ton testen"
 }

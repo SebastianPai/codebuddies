@@ -1,0 +1,182 @@
+.screen {
+  position: fixed;
+  inset: 0;
+  z-index: 14000;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: #f8fafc;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(250, 204, 21, 0.08), transparent 55%),
+    linear-gradient(180deg, #07090f 0%, #0b0f19 100%);
+  animation: fade-in 220ms ease;
+}
+
+.overlay {
+  background: rgba(5, 7, 12, 0.82);
+  backdrop-filter: blur(6px);
+}
+
+.glow {
+  position: absolute;
+  width: 520px;
+  height: 520px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(250, 204, 21, 0.14), transparent 65%);
+  animation: breathe 3.2s ease-in-out infinite;
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: min(420px, calc(100vw - 48px));
+  text-align: center;
+}
+
+.logoWrap {
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 96px;
+  border: 1px solid rgba(250, 204, 21, 0.35);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: 0 0 40px rgba(250, 204, 21, 0.15);
+  animation: bob 2.4s ease-in-out infinite;
+}
+
+.logoWrap {
+  position: relative;
+}
+
+.logo {
+  position: relative;
+  image-rendering: pixelated;
+}
+
+.logoFallback {
+  position: absolute;
+  color: #facc15;
+  font-family: "Press Start 2P", "Inter", system-ui, sans-serif;
+  font-size: 22px;
+}
+
+.brand {
+  display: flex;
+  gap: 6px;
+  font-family: "Press Start 2P", "Inter", system-ui, sans-serif;
+  font-size: 18px;
+  letter-spacing: 0.04em;
+}
+
+.brandCode {
+  color: #f8fafc;
+}
+
+.brandBuddies {
+  color: #facc15;
+}
+
+.title {
+  margin: 8px 0 0;
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.subtitle {
+  margin: -4px 0 0;
+  color: #9aa3b5;
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 13px;
+}
+
+.bar {
+  position: relative;
+  width: 100%;
+  height: 8px;
+  margin-top: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Avanza rápido al principio y se frena cerca del final: nunca llega al
+   100% por su cuenta (eso lo marca que la carga termine). */
+.barFill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 92%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #facc15, #fde68a, #facc15);
+  background-size: 200% 100%;
+  transform-origin: left;
+  animation:
+    grow 9s cubic-bezier(0.1, 0.8, 0.2, 1) forwards,
+    shine 1.4s linear infinite;
+}
+
+.tip {
+  min-height: 38px;
+  margin: 6px 0 0;
+  color: #c3cad6;
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
+  animation: fade-in 400ms ease;
+}
+
+.tip b {
+  color: #facc15;
+}
+
+@keyframes grow {
+  from {
+    transform: scaleX(0.04);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes shine {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes bob {
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes breathe {
+  50% {
+    transform: scale(1.12);
+    opacity: 0.7;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screen,
+  .glow,
+  .logoWrap,
+  .barFill,
+  .tip {
+    animation: none;
+  }
+
+  .barFill {
+    transform: scaleX(0.6);
+  }
+}

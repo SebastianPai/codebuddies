@@ -223,5 +223,19 @@
     "fullscreen": "Full screen",
     "stayPortrait": "Stay in portrait",
     "iosTip": "On iPhone: tap Share and then \"Add to Home Screen\" to play full screen."
+  },
+  "loading": {
+    "starting": "Getting the game ready…",
+    "enteringRoom": "Entering the room…",
+    "enteringRoomHint": "Loading furniture, players and pets",
+    "tipLabel": "Tip:",
+    "tip1": "In build mode, Shift + drag places a whole row.",
+    "tip2": "Tap a shop item in build mode to try it in your room before buying.",
+    "tip3": "In the design room you place anything for free and pay only when you make it real.",
+    "tip4": "Put a bed or a food bowl in your room: your pet uses them on its own.",
+    "tip5": "Teach your pet tricks: everyone in the room sees them.",
+    "tip6": "Move the spawn point to choose where your visitors arrive.",
+    "tip7": "Keys 1 to 9 pick what you used last while building.",
+    "tip8": "Right-click a catalog tile to add it to your favorites."
   }
 }

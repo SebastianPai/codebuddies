@@ -32,5 +32,15 @@
   "languageSectionHint": "Choose the interface language. Applies to both the website and the game.",
   "languageEs": "Español",
   "languageEnUs": "English",
-  "languageDe": "Deutsch"
+  "languageDe": "Deutsch",
+  "tabProfile": "Profile",
+  "tabStyle": "Style",
+  "tabSound": "Sound",
+  "tabLanguage": "Language",
+  "tabHelp": "Help",
+  "soundSectionTitle": "Sound effects volume",
+  "soundSectionHint": "Clicks, coins, placing objects and alerts. Saved in this browser.",
+  "soundMute": "Mute",
+  "soundUnmute": "Unmute",
+  "soundTest": "Test sound"
 }
