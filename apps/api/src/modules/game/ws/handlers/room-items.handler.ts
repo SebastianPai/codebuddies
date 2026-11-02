@@ -175,12 +175,20 @@ export class RoomItemsHandler {
         });
       }
 
-      await this.roomItemsService.removeItem(userId, data.roomItemId);
+      const result: any = await this.roomItemsService.removeItem(
+        userId,
+        data.roomItemId,
+      );
 
       server.to(item.roomId).emit('room:item:removed', {
         roomItemId: data.roomItemId,
         itemId: item.itemId,
       });
+
+      // Punto de aparición comprado: en su lugar vuelve el predeterminado.
+      if (result?.replacement) {
+        server.to(item.roomId).emit('room:item:placed', result.replacement);
+      }
 
       socket.emit('inventory:refresh');
       this.logger.log(`Item ${data.roomItemId} eliminado de la sala`);

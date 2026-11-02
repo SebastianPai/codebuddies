@@ -50,6 +50,15 @@ function isDesignable(item: {
   );
 }
 
+// Punto de aparición: categoría "spawn". Cada sala tiene uno; el diseño
+// predeterminado (tag spawn:default, lo elige el admin) no se compra ni se
+// guarda en inventario. Otros diseños sí: se compran y reemplazan al actual.
+export const SPAWN_CATEGORY = 'spawn';
+export const SPAWN_DEFAULT_TAG = 'spawn:default';
+const isSpawnItem = (item: any) => item?.category === SPAWN_CATEGORY;
+const isDefaultSpawn = (item: any) =>
+  isSpawnItem(item) && Array.isArray(item?.tags) && item.tags.includes(SPAWN_DEFAULT_TAG);
+
 type DesignQuoteLine = {
   itemId: string;
   needed: number;
@@ -356,6 +365,26 @@ export class RoomItemsService {
 
       if (color !== null && !item.colorable) {
         throw new BadRequestException('Este objeto no se puede colorear');
+      }
+
+      // Otro diseño de punto de aparición: reemplaza al que había (que vuelve
+      // al inventario si no era el predeterminado y no es la sala de diseño).
+      if (isSpawnItem(item)) {
+        const previous = await tx.roomItem.findMany({
+          where: { roomId, item: { category: SPAWN_CATEGORY } },
+          include: { item: true },
+        });
+        await tx.roomItem.deleteMany({
+          where: { id: { in: previous.map((roomItem) => roomItem.id) } },
+        });
+        for (const old of previous) {
+          if (design || isDefaultSpawn(old.item)) continue;
+          await tx.userItem.upsert({
+            where: { userId_itemId: { userId, itemId: old.itemId } },
+            update: { amount: { increment: 1 } },
+            create: { userId, itemId: old.itemId, amount: 1 },
+          });
+        }
       }
 
       const isWallItem =
@@ -1058,6 +1087,47 @@ export class RoomItemsService {
     // devuelve nada (si no, sería una fábrica de objetos gratis).
     const design = await this.isDesignRoom(roomItem.roomId);
 
+    // El punto de aparición no se quita: se mueve. Si era un diseño comprado,
+    // "quitarlo" lo devuelve al inventario y vuelve el predeterminado ahí mismo.
+    const removedItem = await this.prisma.item.findUnique({
+      where: { id: roomItem.itemId },
+    });
+    if (isSpawnItem(removedItem)) {
+      if (isDefaultSpawn(removedItem)) {
+        throw new BadRequestException(
+          'El punto de aparición no se puede quitar: muévelo a donde quieras',
+        );
+      }
+      const fallback = await this.findDefaultSpawnItem();
+      if (!fallback) {
+        throw new BadRequestException('El punto de aparición no se puede quitar');
+      }
+      return this.prisma.$transaction(async (tx) => {
+        await tx.roomItem.delete({ where: { id: roomItemId } });
+        if (!design) {
+          await tx.userItem.upsert({
+            where: { userId_itemId: { userId, itemId: roomItem.itemId } },
+            update: { amount: { increment: 1 } },
+            create: { userId, itemId: roomItem.itemId, amount: 1 },
+          });
+        }
+        const replacement = await tx.roomItem.create({
+          data: {
+            roomId: roomItem.roomId,
+            userId: roomItem.userId,
+            itemId: fallback.id,
+            x: roomItem.x,
+            y: roomItem.y,
+            rotation: 0,
+            elevation: 0,
+            zIndex: 0,
+          },
+          include: { item: { include: { worldData: true } } },
+        });
+        return { success: true, itemId: roomItem.itemId, replacement };
+      });
+    }
+
     return this.prisma.$transaction(async (tx) => {
       await tx.roomItem.delete({
         where: {
@@ -1124,8 +1194,10 @@ export class RoomItemsService {
       const counts = new Map<string, number>();
       const design = await this.isDesignRoom(roomId);
 
+      const keep = roomItems.filter((roomItem) => isSpawnItem(roomItem.item));
+
       roomItems.forEach((roomItem) => {
-        if (design || this.isSurfaceRoomItem(roomItem)) return;
+        if (design || this.isSurfaceRoomItem(roomItem) || isSpawnItem(roomItem.item)) return;
 
         counts.set(roomItem.itemId, (counts.get(roomItem.itemId) ?? 0) + 1);
       });
@@ -1154,12 +1226,15 @@ export class RoomItemsService {
       await tx.roomItem.deleteMany({
         where: {
           roomId,
+          id: { notIn: keep.map((roomItem) => roomItem.id) },
         },
       });
 
       return {
         success: true,
-        removedCount: roomItems.length,
+        removedCount: roomItems.length - keep.length,
+        // El cliente vacía todo al recibir esto: le devolvemos lo que quedó.
+        kept: keep,
       };
     });
   }
@@ -1386,6 +1461,96 @@ export class RoomItemsService {
     return false;
   }
 
+  // ====================== PUNTO DE APARICIÓN ======================
+
+  private findDefaultSpawnItem() {
+    return this.prisma.item.findFirst({
+      where: { category: SPAWN_CATEGORY, tags: { has: SPAWN_DEFAULT_TAG } },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /**
+   * Si la sala no tiene punto de aparición, pone el predeterminado en la
+   * casilla de piso libre más cercana al centro. Se llama al entrar a una
+   * sala, así las salas viejas también lo reciben.
+   */
+  async ensureSpawnPoint(roomId: string) {
+    const [existing, spawnItem] = await Promise.all([
+      this.prisma.roomItem.findFirst({
+        where: { roomId, item: { category: SPAWN_CATEGORY } },
+        include: { item: true },
+      }),
+      this.findDefaultSpawnItem(),
+    ]);
+    if (existing) {
+      // El admin eligió otro diseño predeterminado: las salas que tenían el
+      // anterior pasan al nuevo, en el mismo lugar. Los comprados se quedan.
+      if (spawnItem && isDefaultSpawn(existing.item) && existing.itemId !== spawnItem.id) {
+        await this.prisma.roomItem.update({
+          where: { id: existing.id },
+          data: { itemId: spawnItem.id },
+        });
+      }
+      return null;
+    }
+    if (!spawnItem) return null;
+    const room = await this.prisma.room.findUnique({
+      where: { id: roomId },
+      select: { ownerId: true },
+    });
+    if (!room) return null;
+
+    const grid = await this.getRoomGridSize(roomId);
+    const floor = await this.getGroundFloorMask(roomId);
+    const items = await this.prisma.roomItem.findMany({
+      where: { roomId },
+      include: { item: { include: { worldData: true } } },
+    });
+    const taken = new Set<string>();
+    for (const roomItem of items) {
+      if (this.isSurfaceRoomItem(roomItem) || roomItem.wallSide) continue;
+      const footprint = this.getFootprint(
+        roomItem.item.worldData,
+        roomItem.rotation,
+        roomItem.state,
+      );
+      for (const tile of this.toWorldTiles(roomItem.x, roomItem.y, footprint)) {
+        taken.add(`${tile.x},${tile.y}`);
+      }
+    }
+
+    const cx = Math.floor(grid.width / 2);
+    const cy = Math.floor(grid.height / 2);
+    let best: { x: number; y: number } | null = null;
+    let bestDistance = Infinity;
+    for (let y = 0; y < grid.height; y++) {
+      for (let x = 0; x < grid.width; x++) {
+        const key = `${x},${y}`;
+        if (taken.has(key) || (floor && !floor.has(key))) continue;
+        const distance = (x - cx) ** 2 + (y - cy) ** 2;
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          best = { x, y };
+        }
+      }
+    }
+    if (!best) return null;
+
+    return this.prisma.roomItem.create({
+      data: {
+        roomId,
+        userId: room.ownerId,
+        itemId: spawnItem.id,
+        x: best.x,
+        y: best.y,
+        rotation: 0,
+        elevation: 0,
+        zIndex: 0,
+      },
+    });
+  }
+
   // ====================== SALA DE DISEÑO ======================
 
   private async isDesignRoom(roomId: string) {
@@ -1550,6 +1715,7 @@ export class RoomItemsService {
       { count: number; item: any; texture: boolean }
     >();
     for (const roomItem of designItems) {
+      if (isDefaultSpawn(roomItem.item)) continue;
       const texture = !!this.isSurfaceRoomItem(roomItem);
       const entry = needed.get(roomItem.itemId) ?? {
         count: 0,
@@ -1563,7 +1729,7 @@ export class RoomItemsService {
     const have = new Map<string, number>();
     for (const inv of inventory) have.set(inv.itemId, inv.amount);
     for (const roomItem of sourceItems) {
-      if (this.isSurfaceRoomItem(roomItem)) continue;
+      if (this.isSurfaceRoomItem(roomItem) || isDefaultSpawn(roomItem.item)) continue;
       have.set(roomItem.itemId, (have.get(roomItem.itemId) ?? 0) + 1);
     }
 
@@ -1689,7 +1855,13 @@ export class RoomItemsService {
         const designIds = new Set(quote.lines.map((line) => line.itemId));
         const leftovers = new Map<string, number>();
         for (const roomItem of quote.sourceItems) {
-          if (isSurface(roomItem) || designIds.has(roomItem.itemId)) continue;
+          if (
+            isSurface(roomItem) ||
+            designIds.has(roomItem.itemId) ||
+            isDefaultSpawn(roomItem.item)
+          ) {
+            continue;
+          }
           leftovers.set(
             roomItem.itemId,
             (leftovers.get(roomItem.itemId) ?? 0) + 1,

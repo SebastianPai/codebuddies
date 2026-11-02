@@ -523,7 +523,8 @@
     "effect": "Effect",
     "chatBubble": "Chat bubble",
     "pet": "Pets (bed, bowl…)",
-    "petAccessory": "Pet accessory"
+    "petAccessory": "Pet accessory",
+    "spawn": "Spawn point"
   },
   "bulkTitle": "Upload several at once",
   "bulkDescription": "Drop many PNGs: one object per image. The name comes from the file, the faces from the shape (128x64 = 2 faces), and if each face is 64x64 it becomes a stackable block at 1 coin. You can fine-tune each one afterwards.",
@@ -543,5 +544,7 @@
     "water": "Water bowl (drinks)",
     "toy": "Toy (plays)"
   },
-  "petAccessoryHint": "Worn on top of the pet's head (not placed in rooms). Draw it at the pet's scale, with its bottom edge resting on the head."
+  "petAccessoryHint": "Worn on top of the pet's head (not placed in rooms). Draw it at the pet's scale, with its bottom edge resting on the head.",
+  "spawnHint": "Flat 64x32 tile where players appear when they enter a room. Every room has one: it can be moved but not removed. If you sell it, players can swap theirs for this design.",
+  "spawnDefaultToggle": "Use as default (the one every room gets)"
 }

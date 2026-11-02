@@ -129,5 +129,6 @@
   "designApplyFree": "Entwurf anwenden",
   "designApplying": "Wird angewendet…",
   "designErrorTitle": "Entwurfsraum",
-  "designGenericError": "Das hat nicht geklappt. Bitte versuch es nochmal."
+  "designGenericError": "Das hat nicht geklappt. Bitte versuch es nochmal.",
+  "spawnPointHint": "Startpunkt: hier erscheinen die Spieler. Verschieb ihn, wohin du willst."
 }

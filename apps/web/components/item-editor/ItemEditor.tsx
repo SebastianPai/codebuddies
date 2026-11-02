@@ -60,7 +60,7 @@ const ROOM_TAG_PREFIX = "room:";
 // libre; esta lista solo evita tipearla). La etiqueta sale de
 // items.categoryOption.<valor>; un valor viejo que no esté acá se sigue mostrando.
 const ITEM_CATEGORY_OPTIONS: Record<string, string[]> = {
-  world: ["furniture", "decoration", "blocks", "roof", "castle", "spooky", "plants", "vehicles", "pet", "petAccessory"],
+  world: ["furniture", "decoration", "blocks", "roof", "castle", "spooky", "plants", "vehicles", "pet", "petAccessory", "spawn"],
   avatar: ["clothing", "hair", "accessory"],
   texture: ["texturas"],
   effect: ["effect"],
@@ -642,6 +642,17 @@ export default function ItemEditor({
     setMaxStack(category === "world" || category === "texture" ? 999 : 1);
   }, [category, initial]);
 
+  // Punto de aparición nuevo: se pisa, no choca, no se apila, una cara.
+  useEffect(() => {
+    if (initial || itemCategory !== "spawn") return;
+    setWalkable(true);
+    setIsCollidable(false);
+    setAllowsStacking(false);
+    setCanBeStacked(false);
+    setDirections(1);
+    setMaxStack(1);
+  }, [itemCategory, initial]);
+
   useEffect(() => {
     if (priceTouched) return;
     const isBlock = category === "world" && canBeStacked && Number(footprintWidth) === 1 && Number(footprintHeight) === 1;
@@ -1175,6 +1186,23 @@ export default function ItemEditor({
             </div>
           </div>
           )}
+          {category === "world" && itemCategory === "spawn" && (() => {
+            const list = compactTags(tags);
+            const active = list.includes("spawn:default");
+            return (
+              <div className="space-y-2">
+                <p className="text-xs text-zinc-400">{t("items.spawnHint")}</p>
+                <button
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => setTags((active ? list.filter((entry) => entry !== "spawn:default") : [...list, "spawn:default"]).join(", "))}
+                  className={`rounded-full border px-3 py-1 text-xs font-bold ${active ? "border-yellow-400 bg-yellow-400 text-black" : "border-zinc-700 text-zinc-300"}`}
+                >
+                  {t("items.spawnDefaultToggle")}
+                </button>
+              </div>
+            );
+          })()}
           {category === "world" && itemCategory === "petAccessory" && (
             <p className="text-xs text-zinc-400">{t("items.petAccessoryHint")}</p>
           )}

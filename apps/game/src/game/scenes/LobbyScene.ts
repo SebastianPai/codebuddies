@@ -8,6 +8,7 @@ import { AvatarSlot } from "../types/avatar";
 
 import BuildSystem from "../systems/BuildSystem";
 import RoomCompanions from "../systems/RoomCompanions";
+import { isSpawnItem } from "../utils/spawnPoint";
 import PetSystem from "../systems/PetSystem";
 import ButlerSystem from "../systems/ButlerSystem";
 import BuildCommandStack from "../systems/BuildCommandStack";
@@ -1031,8 +1032,16 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
    * se busca en anillos el suelo más cercano, que siempre existe salvo que
    * la sala esté completamente vacía.
    */
-  private resolveSpawnPosition(): [number, number] | null {
+  private resolveSpawnPosition(items: any[] = []): [number, number] | null {
     if (!this.isoGrid) return null;
+
+    // Punto de aparición de la sala (lo elige el dueño moviéndolo): se
+    // aparece encima, nunca dentro de un bloque.
+    const spawnPoint = items.find((entry) => isSpawnItem(entry?.item));
+    if (spawnPoint && this.isoGrid.isFloorTile(spawnPoint.x, spawnPoint.y)) {
+      const anchor = this.isoGrid.groundAnchor(spawnPoint.x, spawnPoint.y);
+      if (anchor) return [anchor.x, anchor.y];
+    }
 
     const cx = Math.floor(this.isoGrid.width / 2);
     const cy = Math.floor(this.isoGrid.height / 2);
@@ -1106,6 +1115,8 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     if (hudContainer?.setVisible) {
       hudContainer.setVisible(!active);
     }
+
+    this.roomItems?.setSpawnVisible(active);
   }
 
   private createWorld(user: any, socket: any, players: Player[], items: any[]) {
@@ -1125,7 +1136,7 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
 
     // El constructor recibe el PUNTO DE APOYO (dónde pisa), no el origen
     // del Container: ModularPlayer deriva ese origen midiendo el avatar.
-    const spawn = this.resolveSpawnPosition();
+    const spawn = this.resolveSpawnPosition(items);
     if (!spawn) {
       console.error("La sala no tiene ninguna casilla de suelo donde aparecer");
       return;
@@ -1168,6 +1179,7 @@ export default class LobbyScene extends Phaser.Scene implements LobbySceneType {
     this.cameras.main.setZoom(1);
 
     this.roomItems = new RoomItemsManager(this, this.isoGrid);
+    this.roomItems.setSpawnVisible(this.buildModeActive);
 
     // S1: la colisión se mantiene al día por SUSCRIPCIÓN, no porque alguien
     // se acuerde de avisar. Cualquier alta/baja/movimiento/rotación pasa por

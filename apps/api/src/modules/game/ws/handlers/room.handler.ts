@@ -174,6 +174,12 @@ export class RoomHandler {
         (p: any) => p.room === roomId,
       );
 
+      // Toda sala tiene su punto de aparición (las viejas lo reciben acá).
+      // Si algo falla, se entra igual: aparece en el centro como antes.
+      await this.roomItemsService.ensureSpawnPoint(roomId).catch((err) =>
+        this.logger.warn(`Sin punto de aparición en ${roomId}: ${err?.message}`),
+      );
+
       // Obtener items de la sala
       const roomItems = await this.roomItemsService.getRoomItems(roomId);
 

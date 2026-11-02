@@ -10,6 +10,7 @@ import styles from "./FurnitureContextMenu.module.css";
 import Button from "../shared/Button";
 import { useTranslation } from "../../../i18n/useTranslation";
 import { EffectivePermissions, NO_PERMISSIONS } from "../../types/permissions";
+import { isSpawnItem } from "../../utils/spawnPoint";
 import {
   emitRoomItemInteraction,
   type RoomItemInteraction,
@@ -83,6 +84,10 @@ export default function FurnitureContextMenu({
   // Colorear: solo objetos marcados "Coloreable" en el admin y con el mismo
   // permiso que rotar (el server valida ambas cosas y la paleta premium).
   const canColor = !!furniture?.item?.colorable && permissions.canRotateObjects;
+  // Punto de aparición: se mueve, no se quita ni se duplica. Un diseño
+  // comprado sí se puede "recoger" (vuelve el predeterminado en su lugar).
+  const spawnPoint = isSpawnItem(furniture?.item);
+  const defaultSpawn = spawnPoint && (furniture?.item?.tags ?? []).includes("spawn:default");
   const [showColors, setShowColors] = useState(false);
   const isPremium = useIsPremium();
   const setColor = (color: number | null) => {
@@ -214,19 +219,22 @@ export default function FurnitureContextMenu({
             className={styles.colorPicker}
           />
         )}
-        {permissions.canDeleteObjects && (
+        {spawnPoint && <span className={styles.noPermissions}>{t("buildmode.spawnPointHint")}</span>}
+        {permissions.canDeleteObjects && !defaultSpawn && (
           <Button variant="danger" size="sm" fullWidth onClick={pickUp}>
             <Trash2 size={13} /> {t("buildmode.pickUpButton")}
           </Button>
         )}
-        {permissions.canPlaceObjects && (
+        {permissions.canPlaceObjects && !spawnPoint && (
           <Button variant="secondary" size="sm" fullWidth onClick={duplicate}>
             <CopyPlus size={13} /> {t("buildmode.duplicateButton")}
           </Button>
         )}
-        <Button variant="secondary" size="sm" fullWidth onClick={copy}>
-          <Copy size={13} /> {t("buildmode.copyButton")}
-        </Button>
+        {!spawnPoint && (
+          <Button variant="secondary" size="sm" fullWidth onClick={copy}>
+            <Copy size={13} /> {t("buildmode.copyButton")}
+          </Button>
+        )}
         {!permissions.canMoveObjects &&
           !permissions.canRotateObjects &&
           !permissions.canDeleteObjects &&

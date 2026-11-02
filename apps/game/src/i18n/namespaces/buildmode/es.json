@@ -129,5 +129,6 @@
   "designApplyFree": "Aplicar diseño",
   "designApplying": "Aplicando…",
   "designErrorTitle": "Sala de diseño",
-  "designGenericError": "No se pudo completar. Inténtalo de nuevo."
+  "designGenericError": "No se pudo completar. Inténtalo de nuevo.",
+  "spawnPointHint": "Punto de aparición: aquí aparecen los jugadores. Muévelo a donde quieras."
 }

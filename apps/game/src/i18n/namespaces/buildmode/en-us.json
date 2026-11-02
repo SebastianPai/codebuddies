@@ -129,5 +129,6 @@
   "designApplyFree": "Apply design",
   "designApplying": "Applying…",
   "designErrorTitle": "Design room",
-  "designGenericError": "Couldn't finish that. Please try again."
+  "designGenericError": "Couldn't finish that. Please try again.",
+  "spawnPointHint": "Spawn point: players appear here. Move it wherever you like."
 }

@@ -15,6 +15,7 @@ import IsoGrid from "../iso/IsoGrid";
 import { depthFromGroundPoint } from "../iso/IsoDepth";
 import { FLOOR_SURFACE_DEPTH, WALL_SURFACE_DEPTH } from "../utils/depth";
 import { loadTextureOnce } from "../utils/phaserAssetCache";
+import { isSpawnItem } from "../utils/spawnPoint";
 import WorldObjectAnimator from "./WorldObjectAnimator";
 import { emitRoomItemInteraction } from "../network/roomItemInteractions";
 import type { RemoteStateUpdate } from "@codebuddies/world-objects";
@@ -75,6 +76,9 @@ export default class RoomItemsManager {
   private grid: IsoGrid;
 
   private items = new Map<string, WorldObject>();
+
+  // El punto de aparición solo se ve en modo construcción.
+  private spawnVisible = false;
 
   // Modo "Ver interior" (ver interiorView.ts): paredes de adelante en
   // fantasma. Solo visual, se recalcula en cada invalidateOccupancy().
@@ -237,6 +241,7 @@ export default class RoomItemsManager {
 
     this.items.set(id, worldObject);
     this.invalidateOccupancy();
+    if (isSpawnItem(itemData)) sprite.setVisible(this.spawnVisible);
 
     if (!isSurface) {
       this.applyColor(worldObject);
@@ -565,6 +570,21 @@ export default class RoomItemsManager {
     if (this.selectedId === id) this.selectedId = null;
   }
 
+  setSpawnVisible(visible: boolean) {
+    this.spawnVisible = visible;
+    this.items.forEach((worldObject) => {
+      if (isSpawnItem(worldObject.item)) worldObject.sprite.setVisible(visible);
+    });
+  }
+
+  /** Casilla del punto de aparición, si la sala tiene uno. */
+  getSpawnTile(): { x: number; y: number } | null {
+    for (const worldObject of this.items.values()) {
+      if (isSpawnItem(worldObject.item)) return { x: worldObject.tileX, y: worldObject.tileY };
+    }
+    return null;
+  }
+
   getItem(id: string) {
     return this.items.get(id);
   }
@@ -765,6 +785,12 @@ export default class RoomItemsManager {
       worldData?.kind === "WALL";
 
     if (isSurface || worldObject.wallSide) return;
+
+    // Plano en el piso: siempre debajo de quien esté parado encima.
+    if (isSpawnItem(worldObject.item)) {
+      worldObject.sprite.setDepth(FLOOR_SURFACE_DEPTH + 0.5);
+      return;
+    }
 
     const anchor = this.getDepthAnchor(worldObject);
 

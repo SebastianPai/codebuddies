@@ -523,7 +523,8 @@
     "effect": "Effekt",
     "chatBubble": "Chatblase",
     "pet": "Haustiere (Bett, Napf…)",
-    "petAccessory": "Haustier-Accessoire"
+    "petAccessory": "Haustier-Accessoire",
+    "spawn": "Startpunkt"
   },
   "bulkTitle": "Mehrere auf einmal hochladen",
   "bulkDescription": "Viele PNGs hineinziehen: ein Objekt pro Bild. Der Name kommt aus der Datei, die Seiten aus der Form (128x64 = 2 Seiten), und wenn jede Seite 64x64 ist, wird es ein stapelbarer Block für 1 Coin. Danach kannst du jedes anpassen.",
@@ -543,5 +544,7 @@
     "water": "Wassernapf (trinkt)",
     "toy": "Spielzeug (spielt)"
   },
-  "petAccessoryHint": "Wird auf dem Kopf des Haustiers getragen (nicht im Raum platziert). Im Maßstab des Haustiers zeichnen, Unterkante auf dem Kopf."
+  "petAccessoryHint": "Wird auf dem Kopf des Haustiers getragen (nicht im Raum platziert). Im Maßstab des Haustiers zeichnen, Unterkante auf dem Kopf.",
+  "spawnHint": "Flache 64x32-Kachel, auf der Spieler beim Betreten eines Raums erscheinen. Jeder Raum hat eine: verschiebbar, aber nicht entfernbar. Im Verkauf können Spieler ihre gegen dieses Design tauschen.",
+  "spawnDefaultToggle": "Als Standard verwenden (bekommt jeder Raum)"
 }

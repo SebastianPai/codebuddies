@@ -523,7 +523,8 @@
     "effect": "Efecto",
     "chatBubble": "Burbuja de chat",
     "pet": "Mascotas (cama, comedero…)",
-    "petAccessory": "Accesorio de mascota"
+    "petAccessory": "Accesorio de mascota",
+    "spawn": "Punto de aparición"
   },
   "bulkTitle": "Subir varios a la vez",
   "bulkDescription": "Arrastra muchos PNG: se crea un objeto por imagen. El nombre sale del archivo, las caras de la forma (128x64 = 2 caras) y si cada cara es de 64x64 queda como bloque apilable a 1 coin. Después puedes ajustar cada uno.",
@@ -543,5 +544,7 @@
     "water": "Bebedero (bebe)",
     "toy": "Juguete (juega)"
   },
-  "petAccessoryHint": "Se le pone a la mascota encima de la cabeza (no se coloca en la sala). Dibújalo al tamaño de la mascota, con el borde de abajo apoyado en la cabeza."
+  "petAccessoryHint": "Se le pone a la mascota encima de la cabeza (no se coloca en la sala). Dibújalo al tamaño de la mascota, con el borde de abajo apoyado en la cabeza.",
+  "spawnHint": "Baldosa plana de 64x32 donde aparecen los jugadores al entrar a una sala. Cada sala tiene uno: se mueve pero no se quita. Si lo pones a la venta, los jugadores pueden cambiar el suyo por este diseño.",
+  "spawnDefaultToggle": "Usar como predeterminado (el que reciben todas las salas)"
 }

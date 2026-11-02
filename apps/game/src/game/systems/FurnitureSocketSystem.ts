@@ -93,8 +93,12 @@ export default class FurnitureSocketSystem {
     audioManager.play("click");
   };
 
-  private handleItemsCleared = () => {
+  private handleItemsCleared = (data?: any) => {
     this.roomItems.clear();
+    // Lo que el servidor no borra (el punto de aparición) se vuelve a dibujar.
+    for (const item of data?.kept ?? []) {
+      if (item?.item?.imageUrl) this.spawn(item, item.item.imageUrl);
+    }
     this.scene.refreshPathfinding?.();
   };
 
