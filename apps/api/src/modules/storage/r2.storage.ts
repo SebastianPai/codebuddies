@@ -1,5 +1,9 @@
 import { Logger } from '@nestjs/common';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  ListObjectsV2Command,
+} from '@aws-sdk/client-s3';
 
 export class R2Storage {
   private readonly logger = new Logger(R2Storage.name);
@@ -22,6 +26,24 @@ export class R2Storage {
         secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
       },
     });
+  }
+
+  /** Bytes guardados bajo un prefijo (p. ej. "videos/"), para no pasarse del plan. */
+  async usedBytes(prefix: string): Promise<number> {
+    let total = 0;
+    let token: string | undefined;
+    do {
+      const page = await this.client.send(
+        new ListObjectsV2Command({
+          Bucket: process.env.R2_BUCKET,
+          Prefix: prefix,
+          ContinuationToken: token,
+        }),
+      );
+      for (const object of page.Contents ?? []) total += object.Size ?? 0;
+      token = page.IsTruncated ? page.NextContinuationToken : undefined;
+    } while (token);
+    return total;
   }
 
   async upload(buffer: Buffer, path: string, mimetype: string) {

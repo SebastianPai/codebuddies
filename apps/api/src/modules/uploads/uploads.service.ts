@@ -27,9 +27,58 @@ export type FrameAtlasUpload = Omit<FrameAtlasResult, 'buffer'> & {
   url: string;
 };
 
+// Videos de los cursos: el plan gratis de R2 da 10 GB en total, así que los
+// videos tienen su propio tope (por defecto 5 GB, el resto queda para las
+// imágenes). Se puede cambiar con VIDEO_STORAGE_LIMIT_MB.
+const VIDEO_PREFIX = 'videos/';
+const videoLimitBytes = () =>
+  (Number(process.env.VIDEO_STORAGE_LIMIT_MB) || 5000) * 1024 * 1024;
+
+function detectVideo(buffer: Buffer): { ext: string; mimetype: string } | null {
+  // MP4/MOV: "ftyp" en el byte 4. WebM/MKV: firma EBML 1A 45 DF A3.
+  if (buffer.length > 12 && buffer.toString('ascii', 4, 8) === 'ftyp') {
+    return { ext: 'mp4', mimetype: 'video/mp4' };
+  }
+  if (buffer.length > 4 && buffer.readUInt32BE(0) === 0x1a45dfa3) {
+    return { ext: 'webm', mimetype: 'video/webm' };
+  }
+  return null;
+}
+
 @Injectable()
 export class UploadsService {
   private storage = new R2Storage();
+
+  async videoUsage() {
+    const used = await this.storage.usedBytes(VIDEO_PREFIX);
+    const limit = videoLimitBytes();
+    return {
+      usedMB: Math.round((used / 1024 / 1024) * 10) / 10,
+      limitMB: Math.round(limit / 1024 / 1024),
+    };
+  }
+
+  async uploadVideo(file: Express.Multer.File) {
+    const detected = detectVideo(file.buffer);
+    if (!detected) {
+      throw new BadRequestException('El video tiene que ser MP4 o WebM');
+    }
+    const used = await this.storage.usedBytes(VIDEO_PREFIX);
+    if (used + file.size > videoLimitBytes()) {
+      throw new BadRequestException(
+        'Se llenó el espacio gratis para videos: súbelo a YouTube (no listado) y pega el enlace',
+      );
+    }
+    const base = (file.originalname || 'video')
+      .replace(/\.[^.]+$/, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40) || 'video';
+    const path = `${VIDEO_PREFIX}${Date.now()}-${base}.${detected.ext}`;
+    const url = await this.storage.upload(file.buffer, path, detected.mimetype);
+    return { url, ...(await this.videoUsage()) };
+  }
 
   async upload(file: Express.Multer.File, folder: string) {
     if (!SAFE_FOLDER.test(folder)) {

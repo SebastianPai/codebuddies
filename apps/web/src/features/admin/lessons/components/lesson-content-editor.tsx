@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 
 import { useTranslation } from "@/i18n/useTranslation";
+import VideoUploadButton from "./video-upload-button";
+import { isDirectVideoUrl } from "@/features/academy/content/video";
 import {
   Button,
   Card,
@@ -655,12 +657,16 @@ function BlockFields({
             onChange={(event) => p({ url: event.target.value })}
             placeholder={t("admin.lessonContent.field.videoUrl")}
           />
+          <VideoUploadButton onUploaded={(url) => p({ url })} />
           <Input
             value={block.caption ?? ""}
             onChange={(event) => p({ caption: event.target.value })}
             placeholder={t("admin.lessonContent.field.captionOptional")}
           />
-          {block.url && (
+          {block.url && isDirectVideoUrl(block.url) && (
+            <video src={block.url} controls preload="metadata" className="aspect-video w-full rounded-lg border border-[rgb(var(--border))] bg-black" />
+          )}
+          {block.url && !isDirectVideoUrl(block.url) && (
             <iframe
               src={block.url}
               title={t("admin.previewTitle")}

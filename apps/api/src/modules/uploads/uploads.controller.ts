@@ -15,6 +15,11 @@ import { WORLD_OBJECT_LIMITS as L } from '@codebuddies/world-objects';
 import { UploadsService } from './uploads.service';
 import { UploadFramesDto } from './dto/upload-frames.dto';
 import { JwtAuthGuard } from '../identity/guards/jwt.guard';
+import { RolesGuard } from '../identity/guards/roles.guard';
+import { Roles } from '../identity/decorators/roles.decorator';
+import { Get } from '@nestjs/common';
+
+const MAX_VIDEO_SIZE = 40 * 1024 * 1024;
 
 const ALLOWED_MIME_TYPES = new Set([
   'image/png',
@@ -64,6 +69,29 @@ export class UploadsController {
     const url = await this.uploadsService.upload(file, folder);
 
     return { url };
+  }
+
+  /** Video de un curso (solo admin): MP4/WebM a R2, sin pasarse del plan gratis. */
+  @Post('video')
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: MAX_VIDEO_SIZE },
+    }),
+  )
+  async uploadVideo(@UploadedFile() file: Express.Multer.File) {
+    if (!file) throw new BadRequestException('File required');
+    return this.uploadsService.uploadVideo(file);
+  }
+
+  /** Cuánto espacio de videos se usó de lo gratis. */
+  @Get('video/usage')
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
+  videoUsage() {
+    return this.uploadsService.videoUsage();
   }
 
   /**

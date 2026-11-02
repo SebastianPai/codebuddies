@@ -5,6 +5,7 @@ import type { LessonBlock, LessonContentDoc } from "../content/types";
 import { CalloutBlock } from "./callout-block";
 import { CodeBlock } from "./code-block";
 import { Markdown } from "./markdown";
+import { isDirectVideoUrl } from "../content/video";
 
 interface LessonContentRendererProps {
   doc: LessonContentDoc;
@@ -74,6 +75,10 @@ function BlockView({ block }: { block: LessonBlock }) {
     case "video":
       return block.url ? (
         <figure className="cb-figure cb-video">
+          {isDirectVideoUrl(block.url) ? (
+            // Video propio (R2): reproductor nativo, sin iframe.
+            <video src={block.url} controls playsInline preload="metadata" className="w-full rounded-xl bg-black" />
+          ) : (
           <iframe
             src={block.url}
             title={block.caption?.trim() || "Video"}
@@ -81,6 +86,7 @@ function BlockView({ block }: { block: LessonBlock }) {
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
           />
+          )}
           {block.caption?.trim() && <figcaption>{block.caption}</figcaption>}
         </figure>
       ) : null;
