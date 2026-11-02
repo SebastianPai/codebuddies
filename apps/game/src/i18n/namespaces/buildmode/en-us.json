@@ -130,5 +130,7 @@
   "designApplying": "Applying…",
   "designErrorTitle": "Design room",
   "designGenericError": "Couldn't finish that. Please try again.",
-  "spawnPointHint": "Spawn point: players appear here. Move it wherever you like."
+  "spawnPointHint": "Spawn point: players appear here. Move it wherever you like.",
+  "notYourRoomTitle": "This isn't your room",
+  "notYourRoomMessage": "You can only build in your own rooms or where the owner gave you permission to edit."
 }

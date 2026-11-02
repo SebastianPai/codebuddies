@@ -130,5 +130,7 @@
   "designApplying": "Wird angewendet…",
   "designErrorTitle": "Entwurfsraum",
   "designGenericError": "Das hat nicht geklappt. Bitte versuch es nochmal.",
-  "spawnPointHint": "Startpunkt: hier erscheinen die Spieler. Verschieb ihn, wohin du willst."
+  "spawnPointHint": "Startpunkt: hier erscheinen die Spieler. Verschieb ihn, wohin du willst.",
+  "notYourRoomTitle": "Das ist nicht dein Raum",
+  "notYourRoomMessage": "Du kannst nur in deinen Räumen bauen oder wo der Besitzer dir Bearbeitungsrechte gegeben hat."
 }

@@ -639,7 +639,37 @@ export default function Game() {
   }, []);
   const handleOpenShop = useCallback(() => openMajorPanel("shop"), [openMajorPanel]);
   const handleOpenMarketplace = useCallback(() => openMajorPanel("marketplace"), [openMajorPanel]);
+  // Construir solo donde se tiene algún permiso de edición (la sala propia o
+  // una donde el dueño te dio rol). En salas ajenas ni se abre.
+  const canBuildHere =
+    myPermissions.canPlaceObjects ||
+    myPermissions.canMoveObjects ||
+    myPermissions.canRotateObjects ||
+    myPermissions.canDeleteObjects ||
+    myPermissions.canChangeFloor ||
+    myPermissions.canChangeWalls ||
+    myPermissions.canChangeBackground ||
+    myPermissions.canModifyLighting;
+  const canBuildRef = useRef(canBuildHere);
+  canBuildRef.current = canBuildHere;
+
+  // Si se cambia a una sala ajena con el modo construcción abierto, se cierra.
+  useEffect(() => {
+    if (canBuildHere || !buildMode) return;
+    setBuildMode(false);
+    window.dispatchEvent(new CustomEvent("build:item:cancel"));
+    window.dispatchEvent(new CustomEvent("build:surface:cancel"));
+  }, [canBuildHere, buildMode]);
+
   const handleOpenBuildMode = useCallback(() => {
+    if (!canBuildRef.current) {
+      void showGameAlert({
+        title: t("buildmode.notYourRoomTitle"),
+        message: t("buildmode.notYourRoomMessage"),
+        confirmLabel: t("common.understood"),
+      });
+      return;
+    }
     setShowPC(false);
     setShowAvatarStudio(false);
     setShowMarketplace(false);

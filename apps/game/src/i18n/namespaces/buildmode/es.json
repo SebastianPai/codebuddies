@@ -130,5 +130,7 @@
   "designApplying": "Aplicando…",
   "designErrorTitle": "Sala de diseño",
   "designGenericError": "No se pudo completar. Inténtalo de nuevo.",
-  "spawnPointHint": "Punto de aparición: aquí aparecen los jugadores. Muévelo a donde quieras."
+  "spawnPointHint": "Punto de aparición: aquí aparecen los jugadores. Muévelo a donde quieras.",
+  "notYourRoomTitle": "Esta sala no es tuya",
+  "notYourRoomMessage": "Solo puedes construir en tus salas o donde el dueño te dio permiso para editar."
 }
