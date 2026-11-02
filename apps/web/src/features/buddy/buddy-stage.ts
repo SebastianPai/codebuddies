@@ -1,4 +1,4 @@
-import { BUDDY_MOODS, BUDDY_RUNTIME, buddySvg } from "@codebuddies/world-objects";
+import { BUDDY_FRIENDLY_ERRORS, BUDDY_MOODS, BUDDY_RUNTIME, buddySvg } from "@codebuddies/world-objects";
 
 // Documento del iframe de vista previa para los ejercicios de Buddy: corre el
 // código del alumno con el mismo motor que usa la API para corregir y después
@@ -14,13 +14,13 @@ export type BuddyStageLabels = {
 
 const STEP_MS = 750;
 
-// El código va dentro de un <script>: un "</script>" escrito por el alumno
-// cerraría la etiqueta antes de tiempo.
-const safeScript = (code: string) => code.replace(/<\/(script)/gi, "<\\/$1");
+// El código del alumno viaja como texto JSON dentro de un <script> y se corre
+// con new Function: así un error de escritura se atrapa y se le explica, en
+// vez de impedir que el navegador lea el escenario. Un "</script>" escrito por
+// el alumno cerraría la etiqueta antes de tiempo: se escapa la barra.
+const asScriptString = (code: string) => JSON.stringify(code).replace(/<\/(script)/gi, "<\\/$1");
 
-export function buildBuddyStageDoc(rawStudentCode: string, rawAssertions: string, labels: BuddyStageLabels) {
-  const studentCode = safeScript(rawStudentCode);
-  const assertions = safeScript(rawAssertions);
+export function buildBuddyStageDoc(studentCode: string, assertions: string, labels: BuddyStageLabels) {
   // Una cara por ánimo, ya dibujadas: la reproducción solo cambia cuál se ve.
   const faces = Object.fromEntries(BUDDY_MOODS.map((mood) => [mood, buddySvg(mood, 150)]));
   return `<!DOCTYPE html>
@@ -68,6 +68,14 @@ ${BUDDY_RUNTIME}
 </script>
 <script>
 var FACES = ${JSON.stringify(faces)};
+var FRIENDLY = ${JSON.stringify(BUDDY_FRIENDLY_ERRORS)};
+function friendly(message) {
+  for (var k = 0; k < FRIENDLY.length; k++) {
+    var m = message.match(new RegExp(FRIENDLY[k].pattern, "i"));
+    if (m) return FRIENDLY[k].message.replace("$1", m[1] || "");
+  }
+  return message;
+}
 var buddyEl = document.getElementById("buddy");
 var faceEl = document.getElementById("face");
 var bubbleEl = document.getElementById("bubble");
@@ -92,19 +100,15 @@ setFace("normal");
 
 var error = null;
 try {
-  (function () {
-${studentCode}
-  })();
-} catch (e) { error = e && e.message ? e.message : String(e); }
+  new Function(${asScriptString(studentCode)})();
+} catch (e) { error = friendly(e && e.message ? e.message : String(e)); }
 var report = __buddyReport();
 var result = null;
 ${
   assertions.trim()
     ? `if (!error) {
   try {
-    (function () { function assert(c, m) { if (!c) throw new Error(m || "Buddy todavía no está como pide el ejercicio"); }
-${assertions}
-    })();
+    new Function("assert", ${asScriptString(assertions)})(function (c, m) { if (!c) throw new Error(m || "Buddy todavía no está como pide el ejercicio"); });
     result = { passed: true };
   } catch (e) { result = { passed: false, message: e && e.message ? e.message : String(e) }; }
 } else { result = { passed: false, message: error }; }`

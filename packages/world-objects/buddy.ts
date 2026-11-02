@@ -150,3 +150,25 @@ export const BUDDY_RUNTIME = String.raw`
   Object.defineProperty(root, "__buddyReport", { value: report, writable: false, configurable: false });
 })(typeof globalThis !== "undefined" ? globalThis : this);
 `;
+
+// Errores de JavaScript en palabras para niños. Los mensajes del motor (en
+// inglés y técnicos) se traducen; lo que ya está en español pasa igual. Son
+// datos (no funciones) para poder mandarlos al iframe de la vista previa.
+// En el mensaje, $1 es lo que capturó el paréntesis de la expresión.
+export const BUDDY_FRIENDLY_ERRORS: Array<{ pattern: string; message: string }> = [
+  { pattern: 'Invalid or unexpected token|Unterminated string', message: 'Hay algo raro en tu código: ¿te falta cerrar una comilla "?' },
+  { pattern: 'missing \\) after argument list', message: 'Falta cerrar un paréntesis ). Cada ( necesita su ).' },
+  { pattern: 'Unexpected end of input', message: 'El código se termina antes de tiempo: ¿falta cerrar un paréntesis ) o una llave }?' },
+  { pattern: "Unexpected token '?([^'\\s]+)'?", message: 'Hay un «$1» que sobra o está en un lugar raro. Revisa los paréntesis y las comillas.' },
+  { pattern: 'buddy\\.(\\w+) is not a function', message: 'Buddy no sabe hacer «$1». Revisa cómo se escribe la orden.' },
+  { pattern: '(\\w+) is not defined', message: 'No conozco «$1». ¿Lo escribiste bien? Las órdenes empiezan con buddy.' },
+  { pattern: 'Cannot read propert(?:y|ies) of (?:undefined|null)', message: 'Estás usando algo que no existe. Revisa que esté bien escrito.' },
+];
+
+export function buddyFriendlyError(message: string): string {
+  for (const rule of BUDDY_FRIENDLY_ERRORS) {
+    const match = message.match(new RegExp(rule.pattern, 'i'));
+    if (match) return rule.message.replace('$1', match[1] ?? '');
+  }
+  return message;
+}

@@ -121,6 +121,8 @@ export {
   BUDDY_MOODS,
   BUDDY_MAX_STEPS,
   BUDDY_RUNTIME,
+  buddyFriendlyError,
+  BUDDY_FRIENDLY_ERRORS,
   type BuddyMood,
   type BuddyState,
   type BuddyStep,

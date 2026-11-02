@@ -34,6 +34,9 @@ interface CodeExerciseFormProps {
 }
 
 const CODE_LANGS = ["javascript", "python", "html", "css"] as const;
+// "buddy": ejercicios para niños donde el código mueve al robot Buddy (ver
+// world-objects/buddy.ts). Las verificaciones van con assert(buddy.animo ...).
+const EXERCISE_LANGS = [...CODE_LANGS, "buddy"] as const;
 
 const ELEMENT_META: Record<
   InstructionElement["type"],
@@ -412,7 +415,7 @@ export default function CodeExerciseForm({
                   onChange={(e) => updateCode(idx, "language", e.target.value)}
                   className="w-full md:w-56"
                 >
-                  {CODE_LANGS.map((lang) => (
+                  {EXERCISE_LANGS.map((lang) => (
                     <option key={lang} value={lang}>
                       {lang}
                     </option>

@@ -1,5 +1,5 @@
 import * as vm from 'node:vm';
-import { BUDDY_RUNTIME } from '@codebuddies/world-objects';
+import { BUDDY_RUNTIME, buddyFriendlyError } from '@codebuddies/world-objects';
 
 // Validación server-side de los ejercicios de código.
 //
@@ -308,7 +308,7 @@ export function runBuddy(studentCode: string, expectedCode: string): CodeResult[
     `).runInContext(context, { timeout: 2000 });
     return [{ description: 'Buddy', passed: true }];
   } catch (error) {
-    return [{ description: 'Buddy', passed: false, error: describeSandboxError(error) }];
+    return [{ description: 'Buddy', passed: false, error: buddyFriendlyError(describeSandboxError(error)) }];
   }
 }
 
