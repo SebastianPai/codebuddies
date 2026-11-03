@@ -15,7 +15,6 @@ import {
   CheckCircle,
   Eye,
   Sparkles,
-  Play,
   Lightbulb,
 } from "lucide-react";
 
@@ -36,7 +35,7 @@ import { useApiLang } from "@/shared/hooks/use-api-lang";
 import { PracticeInCodeStudio } from "@/features/codestudio";
 import { useReward } from "../../../../../../contexts/RewardContext";
 import { useTrackToolUsed, trackToolAction, trackCodeStarted, trackCodeResult } from "../../../../../../components/analytics/tool-tracking";
-import { buildBuddyStageDoc, buildNaveStageDoc } from "@/features/buddy";
+import { MissionPanel, buildBuddyStageDoc, buildNaveStageDoc } from "@/features/buddy";
 import { buddySvg } from "@codebuddies/world-objects";
 
 // Ejercicios de Buddy (cursos para niños): solo JavaScript, y la vista previa
@@ -102,7 +101,6 @@ const EditorContent = memo(
     isMobile,
     onUserEdit,
     buddyMode,
-    onRun,
     onEditorMount,
   }: any) => {
     const t = useTranslation();
@@ -152,13 +150,13 @@ const EditorContent = memo(
 
           <div className="flex items-center gap-2">
             {buddyMode && (
-              <button
-                type="button"
-                onClick={onRun}
-                className="h-10 px-5 rounded-xl bg-emerald-500 text-sm font-extrabold text-white hover:bg-emerald-400 flex items-center gap-2"
-              >
-                <Play size={15} /> {t("site.buddyRun")}
-              </button>
+              // Un solo botón (Comprobar, abajo). Acá se enseña el atajo que
+              // usan los programadores para correr el código sin el mouse.
+              <span className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-[rgb(var(--secondary-text))]" title={t("site.codeShortcutHint")}>
+                <kbd className="rounded-md border border-[rgb(var(--border))] bg-[rgb(var(--background))] px-1.5 py-0.5 font-mono">Ctrl</kbd>+
+                <kbd className="rounded-md border border-[rgb(var(--border))] bg-[rgb(var(--background))] px-1.5 py-0.5 font-mono">Enter</kbd>
+                <span className="ml-1">{t("site.codeShortcutLabel")}</span>
+              </span>
             )}
             {!buddyMode && (["html", "css", "js"] as const).map((tab) => (
               <button
@@ -605,14 +603,13 @@ try {
   const submitCompletion = async () => {
     if (!exercise || completed || submitting) return;
     if (!user?.userId) {
-      if (checkResult === "pass") {
+      if (!buddyMode && checkResult === "pass") {
         markGuestDone(exercise.id);
         setShowGuestSave(true);
         if (isMobile) setMobileView("instructions");
       } else {
-        // Vuelve a correr la vista previa; si aprueba, se muestra el aviso.
+        // La vista previa vuelve a correr; si aprueba, se muestra el aviso.
         guestPendingRef.current = exercise.id;
-        if (buddyMode) setBuddyRun((n) => n + 1);
       }
       return;
     }
@@ -682,9 +679,30 @@ try {
   // El servidor es la autoridad: re-corre las assertions (o acepta código no
   // vacío si el ejercicio no tiene). El check del iframe queda como feedback
   // en vivo, no como candado del botón.
+  // En Buddy y la nave, Comprobar también anima la vista previa (antes había
+  // un botón Ejecutar aparte: dos botones para lo mismo). Ya completado, solo
+  // vuelve a mostrar la animación.
   const handleCheckSolution = () => {
+    if (buddyMode) {
+      setBuddyRun((n) => n + 1);
+      if (isMobile) setMobileView("preview");
+    }
+    if (completed) return;
     void submitCompletion();
   };
+  // Ctrl/Cmd + Enter comprueba (también con el foco dentro del editor).
+  const checkRef = useRef(handleCheckSolution);
+  checkRef.current = handleCheckSolution;
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+        event.preventDefault();
+        checkRef.current();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   if (loading) {
     return (
@@ -746,7 +764,9 @@ try {
 
         {/* Mismo renderer que la teoría de una lección: encabezados, callouts
             con iconos, bloques de código con "copiar", listas, etc. */}
-        {instructionDoc.blocks.length > 0 ? (
+        {instructionDoc.blocks.length > 0 && buddyMode ? (
+          <MissionPanel doc={instructionDoc} />
+        ) : instructionDoc.blocks.length > 0 ? (
           <LessonContentRenderer doc={instructionDoc} />
         ) : (
           <p className="text-sm italic text-[rgb(var(--secondary-text))]">
@@ -858,10 +878,8 @@ try {
                   onEditorMount={(editor: any) => {
                     editorRef.current = editor;
                     editor.onDidChangeModelContent(() => clearLines());
-                  }}
-                  onRun={() => {
-                    setBuddyRun((n) => n + 1);
-                    if (isMobile) setMobileView("preview");
+                    // Monaco usa Ctrl+Enter para "insertar línea": acá es Comprobar.
+                    editor.addCommand(2048 | 3, () => checkRef.current());
                   }}
                 />
               )}
@@ -894,10 +912,8 @@ try {
                   onEditorMount={(editor: any) => {
                     editorRef.current = editor;
                     editor.onDidChangeModelContent(() => clearLines());
-                  }}
-                  onRun={() => {
-                    setBuddyRun((n) => n + 1);
-                    if (isMobile) setMobileView("preview");
+                    // Monaco usa Ctrl+Enter para "insertar línea": acá es Comprobar.
+                    editor.addCommand(2048 | 3, () => checkRef.current());
                   }}
                 />
               </Panel>
@@ -973,7 +989,8 @@ try {
 
             <button
               onClick={handleCheckSolution}
-              disabled={completed || submitting || !dirty}
+              disabled={submitting || (!buddyMode && (completed || !dirty))}
+              title={t("site.codeShortcutHint")}
               className="
                 h-12
                 px-8
@@ -992,7 +1009,9 @@ try {
             >
               <CheckCircle size={18} />
               {completed
-                ? t("site.exerciseCompletedMessage")
+                ? buddyMode
+                  ? t("site.buddyRunAgain")
+                  : t("site.exerciseCompletedMessage")
                 : t("site.codeExerciseCheckButton")}
             </button>
 
