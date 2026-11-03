@@ -13,6 +13,15 @@ export function markGuestDone(exerciseId: string) {
   }
 }
 
+/** La teoría de la lección se leyó hasta el final en este navegador. */
+export function isLessonReadLocally(lessonId: string): boolean {
+  try {
+    return localStorage.getItem(`cb:lesson-read:${lessonId}`) === "1";
+  } catch {
+    return false;
+  }
+}
+
 export function isGuestDone(exerciseId: string): boolean {
   try {
     return localStorage.getItem(key(exerciseId)) === "1";

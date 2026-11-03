@@ -29,6 +29,7 @@ import {
   normalizeLessonContent,
   SignupToSave,
   isGuestDone,
+  isLessonReadLocally,
 } from "@/features/academy";
 import { useAuth } from "@/shared/hooks/use-auth";
 import { useReward } from "../../../../../../contexts/RewardContext";
@@ -137,6 +138,7 @@ export default function LessonTheoryPage() {
       if (isAuthenticated) return sorted;
       return sorted.map((item) => ({
         ...item,
+        theoryCompleted: item.theoryCompleted || isLessonReadLocally(item.id),
         exercises: item.exercises?.map((ex) => ({ ...ex, completed: ex.completed || isGuestDone(ex.id) })),
       }));
     }
@@ -216,8 +218,8 @@ export default function LessonTheoryPage() {
   // Sin cuenta no se registra la teoría en el servidor: leerla hasta el final
   // alcanza para abrir los ejercicios de la primera lección.
   useEffect(() => {
-    if (!isAuthenticated && reachedEnd) setTheoryJustDone(true);
-  }, [isAuthenticated, reachedEnd]);
+    if (!isAuthenticated && reachedEnd && lesson && !lesson.locked && doc.blocks.length > 0) setTheoryJustDone(true);
+  }, [isAuthenticated, reachedEnd, lesson, doc.blocks.length]);
 
   const xp = lesson?.experience ?? lesson?.course?.experience ?? 50;
   const coins = lesson?.coins ?? lesson?.course?.coins ?? 1;
@@ -677,6 +679,7 @@ export default function LessonTheoryPage() {
             markdown={t("site.academyLesson.quickTipBody")}
           />
 
+          {!lesson.locked && (
           <button
             onClick={() => void handleContinue()}
             disabled={completing || !reachedEnd}
@@ -686,6 +689,7 @@ export default function LessonTheoryPage() {
             <Gift size={15} />
             {continueLabel}
           </button>
+          )}
         </div>
       </aside>
     </div>

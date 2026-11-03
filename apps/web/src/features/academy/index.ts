@@ -30,4 +30,4 @@ export { LessonContentRenderer } from "./components/lesson-content-renderer";
 export { Markdown } from "./components/markdown";
 export { ExerciseLockedState } from "./components/exercise-locked-state";
 export { SignupToSave } from "./components/signup-to-save";
-export { isGuestDone, markGuestDone } from "./guest-progress";
+export { isGuestDone, isLessonReadLocally, markGuestDone } from "./guest-progress";
