@@ -10,7 +10,7 @@ import { useReward } from "../../../../../../contexts/RewardContext";
 import { QuizExercise } from "../../../../../../src/types/exercise";
 import { useTranslation } from "../../../../../../src/i18n/useTranslation";
 import { ContentDiscussion } from "@/features/courses/components/content-discussion";
-import { CalloutBlock, ExerciseLockedState, SignupToSave } from "@/features/academy";
+import { CalloutBlock, ExerciseLockedState, SignupToSave, markGuestDone } from "@/features/academy";
 import { classNames } from "@/shared/utils/class-names";
 import { exercisePath, nextStepPath } from "@/shared/utils/exercise-path";
 import { trackEvent } from "../../../../../../components/analytics/events";
@@ -242,7 +242,10 @@ export default function QuizExercisePage() {
       if (guest) {
         const solvedNow = new Set(solved);
         if (res.correct) solvedNow.add(currentQuestionIndex);
-        if (solvedNow.size >= total) setGuestDone(true);
+        if (solvedNow.size >= total) {
+          markGuestDone(exercise.id);
+          setGuestDone(true);
+        }
         return;
       }
 
@@ -646,7 +649,15 @@ export default function QuizExercisePage() {
 
                 {guestDone && (
                   <div className="w-full">
-                    <SignupToSave />
+                    <SignupToSave
+                      next={
+                        exercise.nextExerciseId && exercise.nextExerciseType
+                          ? { href: exercisePath(exercise.nextExerciseId, exercise.nextExerciseType), kind: "exercise" }
+                          : exercise.courseId && exercise.nextLessonId
+                            ? { href: `/courses/${exercise.courseId}/lessons/${exercise.nextLessonId}`, kind: "lesson" }
+                            : null
+                      }
+                    />
                   </div>
                 )}
                 {showCompletionCta && (

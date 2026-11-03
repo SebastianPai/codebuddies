@@ -756,5 +756,9 @@
   "guestContinueTitle": "Create your account to continue",
   "guestContinueBody": "You can try the first lesson without an account. To continue the course, save your progress and earn rewards, create your free account.",
   "guestRegister": "Create free account",
-  "guestLogin": "I already have an account"
+  "guestLogin": "I already have an account",
+  "guestDoneTitle": "Great job! On to the next one",
+  "guestDoneBody": "You can do the whole first lesson without an account. To save your progress, earn XP and coins and continue with lesson 2, create your free account.",
+  "guestNextExercise": "Next exercise",
+  "guestNextLesson": "Next lesson"
 }

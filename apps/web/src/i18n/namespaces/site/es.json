@@ -756,5 +756,9 @@
   "guestContinueTitle": "Crea tu cuenta para seguir",
   "guestContinueBody": "La primera lección se puede probar sin cuenta. Para seguir con el curso, guardar tu progreso y ganar recompensas, crea tu cuenta gratis.",
   "guestRegister": "Crear cuenta gratis",
-  "guestLogin": "Ya tengo cuenta"
+  "guestLogin": "Ya tengo cuenta",
+  "guestDoneTitle": "¡Muy bien! Sigue con el siguiente",
+  "guestDoneBody": "Puedes hacer toda la primera lección sin cuenta. Para guardar tu progreso, ganar XP y monedas y seguir con la lección 2, crea tu cuenta gratis.",
+  "guestNextExercise": "Siguiente ejercicio",
+  "guestNextLesson": "Siguiente lección"
 }

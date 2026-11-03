@@ -28,6 +28,7 @@ import {
   LessonContentRenderer,
   normalizeLessonContent,
   SignupToSave,
+  isGuestDone,
 } from "@/features/academy";
 import { useAuth } from "@/shared/hooks/use-auth";
 import { useReward } from "../../../../../../contexts/RewardContext";
@@ -131,7 +132,13 @@ export default function LessonTheoryPage() {
 
   const sidebarLessons = useMemo<SidebarLesson[]>(() => {
     if (course?.lessons?.length) {
-      return [...course.lessons].sort((a, b) => a.order - b.order);
+      const sorted = [...course.lessons].sort((a, b) => a.order - b.order);
+      // Sin cuenta (primera lección): lo resuelto vive en este navegador.
+      if (isAuthenticated) return sorted;
+      return sorted.map((item) => ({
+        ...item,
+        exercises: item.exercises?.map((ex) => ({ ...ex, completed: ex.completed || isGuestDone(ex.id) })),
+      }));
     }
     if (lesson) {
       return [
@@ -139,7 +146,7 @@ export default function LessonTheoryPage() {
       ];
     }
     return [];
-  }, [course?.lessons, lesson]);
+  }, [course?.lessons, lesson, isAuthenticated]);
 
   // Una lección está completa con la teoría leída + todos sus ejercicios
   // calificables (LIVE es placeholder y no cuenta) — mismo criterio que el
@@ -205,6 +212,12 @@ export default function LessonTheoryPage() {
     observer.observe(el);
     return () => observer.disconnect();
   }, [reachedEnd, lessonId, doc.blocks.length]);
+
+  // Sin cuenta no se registra la teoría en el servidor: leerla hasta el final
+  // alcanza para abrir los ejercicios de la primera lección.
+  useEffect(() => {
+    if (!isAuthenticated && reachedEnd) setTheoryJustDone(true);
+  }, [isAuthenticated, reachedEnd]);
 
   const xp = lesson?.experience ?? lesson?.course?.experience ?? 50;
   const coins = lesson?.coins ?? lesson?.course?.coins ?? 1;

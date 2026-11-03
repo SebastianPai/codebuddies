@@ -30,7 +30,7 @@ import {
 } from "@/features/academy";
 import { useTranslation } from "../../../../../../src/i18n/useTranslation";
 import { exercisePath, lessonPath, nextStepPath } from "@/shared/utils/exercise-path";
-import { ExerciseLockedState, SignupToSave } from "@/features/academy";
+import { ExerciseLockedState, SignupToSave, markGuestDone } from "@/features/academy";
 import { trackEvent } from "../../../../../../components/analytics/events";
 import { useApiLang } from "@/shared/hooks/use-api-lang";
 import { PracticeInCodeStudio } from "@/features/codestudio";
@@ -312,6 +312,9 @@ export default function FullWidthConfidentialWorkspace() {
   // Visitante sin cuenta (primera lección): puede hacer el ejercicio, pero
   // Comprobar no guarda ni da recompensas; se le invita a crear la cuenta.
   const [showGuestSave, setShowGuestSave] = useState(false);
+  // Sin cuenta, Comprobar espera el resultado de la vista previa: solo se
+  // avanza si el código de verdad está bien.
+  const guestPendingRef = useRef<string | null>(null);
 
   // Buddy: la animación corre al tocar "Ejecutar" (con cada tecla sería un lío).
   const buddyMode = isBuddyLang(exercise?.language);
@@ -577,6 +580,11 @@ try {
       if (event.data.passed) {
         setCheckResult("pass");
         setCheckMessage(null);
+        if (guestPendingRef.current) {
+          markGuestDone(guestPendingRef.current);
+          guestPendingRef.current = null;
+          setShowGuestSave(true);
+        }
       } else {
         setCheckResult("fail");
         setCheckMessage(event.data.message || null);
@@ -597,8 +605,15 @@ try {
   const submitCompletion = async () => {
     if (!exercise || completed || submitting) return;
     if (!user?.userId) {
-      setShowGuestSave(true);
-      if (isMobile) setMobileView("instructions");
+      if (checkResult === "pass") {
+        markGuestDone(exercise.id);
+        setShowGuestSave(true);
+        if (isMobile) setMobileView("instructions");
+      } else {
+        // Vuelve a correr la vista previa; si aprueba, se muestra el aviso.
+        guestPendingRef.current = exercise.id;
+        if (buddyMode) setBuddyRun((n) => n + 1);
+      }
       return;
     }
 
@@ -740,7 +755,15 @@ try {
         )}
         {showGuestSave && !user?.userId && (
           <div className="mb-6">
-            <SignupToSave />
+            <SignupToSave
+              next={
+                exercise.nextExerciseId && exercise.nextExerciseType
+                  ? { href: exercisePath(exercise.nextExerciseId, exercise.nextExerciseType), kind: "exercise" }
+                  : exercise.courseId && exercise.nextLessonId
+                    ? { href: lessonPath(exercise.courseId, exercise.nextLessonId), kind: "lesson" }
+                    : null
+              }
+            />
           </div>
         )}
         {hints.length > 0 && !completed && (checkResult === "fail" || hintsShown > 0) && (
