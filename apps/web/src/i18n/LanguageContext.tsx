@@ -14,7 +14,12 @@ export type Lang = "es" | "en-us" | "de";
 function migrateLegacyLang(value: string | null | undefined): Lang | null {
   if (!value) return null;
   if (value === "zh-Hans" || value === "zh" || value.startsWith("zh")) return "de";
-  return value as Lang;
+  // "en" o "en-GB" (de otra app o de una versión vieja) es inglés. Un valor
+  // desconocido se ignora: con él la página entera mostraba claves sin traducir.
+  if (value.toLowerCase().startsWith("en")) return "en-us";
+  if (value.toLowerCase().startsWith("de")) return "de";
+  if (value.toLowerCase().startsWith("es")) return "es";
+  return null;
 }
 
 type TranslationParams = Record<string, string | number>;

@@ -491,22 +491,24 @@ export default function FullWidthConfidentialWorkspace() {
   }, []);
   // Se calcula en el mismo render en que se sabe que es Python: el iframe nace
   // ya con la consola (si llegaba un render después, Chrome podía ignorarlo).
+  // La consola se vuelve a armar si cambian los textos (el usuario cambia de idioma).
+  const pythonLabels = {
+    ready: t("site.pythonStageReady"),
+    loading: t("site.pythonStageLoading"),
+    running: t("site.pythonStageRunning"),
+    error: t("site.pythonStageError"),
+    passed: t("site.pythonStagePassed"),
+    console: t("site.pythonStageConsole"),
+    inputs: t("site.pythonStageInputs"),
+    empty: t("site.pythonStageEmpty"),
+    offline: t("site.pythonStageOffline"),
+  };
+  const pythonLabelsKey = JSON.stringify(pythonLabels);
   const pythonDoc = useMemo(() => {
     if (!pythonMode) return "";
     pythonRunRef.current = null;
-    return buildPythonStageDoc((exercise?.solutionCode || "").trim(), {
-        ready: t("site.pythonStageReady"),
-        loading: t("site.pythonStageLoading"),
-        running: t("site.pythonStageRunning"),
-        error: t("site.pythonStageError"),
-        passed: t("site.pythonStagePassed"),
-        console: t("site.pythonStageConsole"),
-        inputs: t("site.pythonStageInputs"),
-        empty: t("site.pythonStageEmpty"),
-        offline: t("site.pythonStageOffline"),
-      }, apiLang);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pythonMode, exercise?.id, exercise?.solutionCode, apiLang]);
+    return buildPythonStageDoc((exercise?.solutionCode || "").trim(), JSON.parse(pythonLabelsKey), apiLang);
+  }, [pythonMode, exercise?.id, exercise?.solutionCode, apiLang, pythonLabelsKey]);
   useEffect(() => {
     if (!pythonMode || buddyRun === 0) return;
     pythonRunRef.current = { id: `${Date.now()}-${buddyRun}`, code: jsCode };
