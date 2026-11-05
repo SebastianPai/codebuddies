@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useState, useMemo, useRef } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { X, Filter, Terminal, Zap, RotateCw } from "lucide-react";
+import { X, Filter, Terminal, Zap, RotateCw, BookOpen, ArrowRight, Search } from "lucide-react";
 import { api } from "../../../../utils/api";
 import { useTranslation } from "../../../i18n/useTranslation";
 import { CachedImage, ErrorState } from "@/shared/ui";
+import { useApiLang } from "@/shared/hooks/use-api-lang";
 
 const difficultyKeyMap: Record<string, string> = {
   Todas: "site.difficultyAll",
@@ -33,34 +34,38 @@ export interface Course {
   imageUrl?: string;
   isNew?: boolean;
   isPopular?: boolean;
+  freeLimit?: number | null;
+  xpTotal?: number | null;
+  lessons?: unknown[];
   categories?: CourseCategory[];
+}
+
+// La API manda la dificultad como enum (EASY/MEDIUM/HARD); el filtro y la
+// etiqueta usan los nombres en español. Sin esta conversión el filtro por
+// dificultad nunca coincidía con ningún curso.
+const DIFFICULTY_FROM_API: Record<string, string> = {
+  EASY: "Principiante",
+  MEDIUM: "Intermedio",
+  HARD: "Avanzado",
+};
+export function normalizeDifficulty(value: string) {
+  return DIFFICULTY_FROM_API[String(value).toUpperCase()] ?? value;
 }
 
 function DifficultyBadge({ difficulty }: { difficulty: string }) {
   const t = useTranslation();
-  // bg-*-800/700 (not the lighter 600s): at text-xs, green-600 and red-600 land at
-  // ~3.1:1 and ~4:1 against their own -100 text, both under the 4.5:1 AA minimum.
-  const map = {
-    Principiante: "bg-green-800/90 border-green-400/50 text-green-100",
-    Intermedio: "bg-yellow-500/90 border-yellow-400/50 text-yellow-950",
-    Avanzado: "bg-red-700/90 border-red-400/50 text-red-100",
-  };
-
-  const colorClass =
-    map[difficulty as keyof typeof map] ||
-    "bg-gray-700/90 border-gray-500/50 text-gray-200";
-
+  const level = normalizeDifficulty(difficulty);
+  // Texto claro sobre fondo oscuro translúcido: legible sobre cualquier portada.
+  const dot = {
+    Principiante: "bg-emerald-400",
+    Intermedio: "bg-amber-400",
+    Avanzado: "bg-rose-400",
+  }[level] ?? "bg-slate-300";
   return (
-    <div
-      className={`
-        absolute -top-5 -right-5 -rotate-6 z-20
-        border-4 ${colorClass}
-        px-5 py-1.5 font-black uppercase text-xs tracking-widest
-        shadow-[4px_4px_0_0_rgba(0,0,0,0.6)]
-      `}
-    >
-      {t(difficultyLabelKey(difficulty))}
-    </div>
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-black/70 px-3 py-1 text-xs font-bold text-white backdrop-blur-sm">
+      <span className={`h-2 w-2 rounded-full ${dot}`} aria-hidden />
+      {t(difficultyLabelKey(level))}
+    </span>
   );
 }
 
@@ -68,27 +73,26 @@ const MotionLink = motion.create(Link);
 
 function CourseCard({ course }: { course: Course }) {
   const t = useTranslation();
+  const lessons = Array.isArray(course.lessons) ? course.lessons.length : 0;
+  const free = lessons > 0 && typeof course.freeLimit === "number" && course.freeLimit >= lessons;
   return (
     <MotionLink
       href={`/courses/${course.id}`}
-      initial={{ y: 20, opacity: 0.85 }}
+      initial={{ y: 16, opacity: 0.85 }}
       whileInView={{ y: 0, opacity: 1 }}
-      whileHover={{ y: -12, scale: 1.03 }}
-      viewport={{ once: true, margin: "-100px" }}
-      transition={{ type: "spring", stiffness: 250, damping: 20 }}
-      className={`
-        group relative block
-        bg-[rgb(var(--card))] border-4 border-white/10 p-6
-        shadow-[10px_10px_0_0_rgba(0,0,0,0.7)]
-        hover:shadow-[14px_14px_0_0_rgb(var(--primary)/0.5)]
-        hover:border-[rgb(var(--primary))/0.4]
+      whileHover={{ y: -6 }}
+      viewport={{ once: true, margin: "-80px" }}
+      transition={{ type: "spring", stiffness: 260, damping: 22 }}
+      className="
+        group flex h-full flex-col overflow-hidden rounded-3xl
+        border border-[rgb(var(--border))] bg-[rgb(var(--card))]
+        shadow-[0_10px_30px_-12px_rgba(0,0,0,0.6)]
+        transition-[border-color,box-shadow] duration-300
+        hover:border-[rgb(var(--primary)/0.6)] hover:shadow-[0_18px_40px_-14px_rgb(var(--primary)/0.35)]
         focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[rgb(var(--primary)/0.5)]
-        transition-all duration-300
-      `}
+      "
     >
-      <DifficultyBadge difficulty={course.difficulty} />
-
-      <div className="aspect-4/3 mb-6 border-4 border-white/10 overflow-hidden bg-black relative">
+      <div className="relative aspect-video overflow-hidden bg-black">
         <CachedImage
           src={
             course.imageUrl
@@ -96,50 +100,75 @@ function CourseCard({ course }: { course: Course }) {
               : "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=800"
           }
           alt={course.title}
-          className="w-full h-full object-cover grayscale-[0.6] contrast-125 group-hover:grayscale-0 group-hover:contrast-100 group-hover:scale-105 transition-all duration-500"
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
-        <div className="absolute inset-0 bg-black/60 group-hover:bg-black/30 transition-colors duration-500 flex items-center justify-center">
-          <Zap
-            className="text-[rgb(var(--primary))] opacity-50 group-hover:opacity-90 scale-90 group-hover:scale-125 transition-all duration-500"
-            size={64}
-          />
+        <div className="absolute inset-x-3 top-3 flex items-start justify-between gap-2">
+          <DifficultyBadge difficulty={course.difficulty} />
+          <div className="flex flex-wrap justify-end gap-1.5">
+            {free && (
+              <span className="rounded-full bg-emerald-600 px-3 py-1 text-xs font-bold text-white shadow">
+                {t("site.courseCardFree")}
+              </span>
+            )}
+            {course.isNew && (
+              <span className="rounded-full bg-rose-600 px-3 py-1 text-xs font-bold text-white shadow">
+                {t("site.newBadge")}
+              </span>
+            )}
+            {course.isPopular && (
+              <span className="rounded-full bg-violet-600 px-3 py-1 text-xs font-bold text-white shadow">
+                {t("site.popularBadge")}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
-      <h3 className="font-black text-2xl uppercase leading-tight mb-4 tracking-tight text-[rgb(var(--text))] group-hover:text-[rgb(var(--primary-text))] transition-colors">
-        {course.title}
-        {course.isNew && (
-          <span className="ml-3 text-xs bg-red-700/90 text-white px-3 py-1 font-mono uppercase -rotate-4 inline-block shadow-[3px_3px_0_#000]">
-            {t("site.newBadge")}
-          </span>
-        )}
-        {course.isPopular && (
-          <span className="ml-3 text-xs bg-purple-700/90 text-white px-3 py-1 font-mono uppercase rotate-5 inline-block shadow-[3px_3px_0_#000]">
-            {t("site.popularBadge")}
-          </span>
-        )}
-      </h3>
+      <div className="flex flex-1 flex-col p-6">
+        <h3 className="line-clamp-2 md:min-h-[3.5rem] text-xl font-extrabold leading-7 text-[rgb(var(--text))] transition-colors group-hover:text-[rgb(var(--primary-text))]">
+          {course.title}
+        </h3>
 
-      <p className="font-mono text-sm text-[rgb(var(--secondary-text))] line-clamp-3 mb-6 border-l-4 border-[rgb(var(--primary))/0.4] pl-4 italic">
-        {course.description}
-      </p>
+        <p className="mt-3 line-clamp-3 text-sm leading-relaxed text-[rgb(var(--secondary-text))]">
+          {course.description}
+        </p>
 
-      {course.categories && course.categories.length > 0 && (
-        <div className="mb-6 flex flex-wrap gap-2">
-          {course.categories.map((category) => (
-            <span
-              key={category.id}
-              className="border-2 border-[rgb(var(--border))] px-2 py-1 font-mono text-[10px] uppercase tracking-wide text-[rgb(var(--secondary-text))]"
-            >
-              {category.name}
-            </span>
-          ))}
+        {course.categories && course.categories.length > 0 && (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {course.categories.map((category) => (
+              <span
+                key={category.id}
+                className="rounded-full border border-[rgb(var(--border))] px-2.5 py-0.5 text-xs font-semibold text-[rgb(var(--secondary-text))]"
+              >
+                {category.name}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Lo de abajo queda siempre en el mismo lugar, aunque cambie el largo del texto. */}
+        <div className="mt-auto pt-6">
+          <div className="mb-4 flex items-center gap-4 text-sm font-semibold text-[rgb(var(--secondary-text))]">
+            {lessons > 0 && (
+              <span className="inline-flex items-center gap-1.5">
+                <BookOpen size={16} aria-hidden />
+                {lessons === 1 ? t("site.courseCardLesson") : t("site.courseCardLessons", { count: lessons })}
+              </span>
+            )}
+            {typeof course.xpTotal === "number" && course.xpTotal > 0 && (
+              <span className="inline-flex items-center gap-1.5">
+                <Zap size={16} className="text-[rgb(var(--primary))]" aria-hidden />
+                {/* Sin toLocaleString: el servidor y el navegador formatean distinto y rompía la hidratación. */}
+                {course.xpTotal} XP
+              </span>
+            )}
+          </div>
+          <span className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[rgb(var(--button))] px-6 py-3.5 text-base font-extrabold text-[rgb(var(--button-text))] transition-transform duration-150 group-hover:-translate-y-0.5">
+            {t("site.courseCardStart")}
+            <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" aria-hidden />
+          </span>
         </div>
-      )}
-
-      <span className="flex w-full items-center justify-center gap-2 px-7 py-4 font-black uppercase tracking-wider text-base bg-[rgb(var(--button))] text-[rgb(var(--button-text))] border-4 border-white/20 shadow-[8px_8px_0_0_rgba(255,255,255,0.08)] group-hover:shadow-[12px_12px_0_0_rgb(var(--primary)/0.4)] group-hover:-translate-y-1 group-hover:-translate-x-1 transition-all duration-150">
-        {t("site.startMissionButton")}
-      </span>
+      </div>
     </MotionLink>
   );
 }
@@ -172,11 +201,12 @@ export function CoursesCatalogClient({
   const searchRef = useRef<HTMLInputElement>(null);
   const difficulties = ["Todas", "Principiante", "Intermedio", "Avanzado"];
 
+  const apiLang = useApiLang();
   const fetchCourses = useCallback(async () => {
     setLoading(true);
     setLoadError(false);
     try {
-      const data = await api.get<Course[]>("/courses");
+      const data = await api.get<Course[]>(`/courses?lang=${apiLang}`);
       setCourses(data);
     } catch (err) {
       console.error(err);
@@ -184,15 +214,16 @@ export function CoursesCatalogClient({
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [apiLang]);
 
-  // El catálogo ya llega server-rendered (ver page.tsx) — solo se vuelve a
-  // pedir acá si ese fetch server-side no trajo nada (API caída durante el
-  // build/ISR) o cuando el usuario presiona "reintentar".
+  // El catálogo ya llega server-rendered en español (ver page.tsx). Se vuelve a
+  // pedir si ese fetch no trajo nada (API caída durante el build/ISR), si el
+  // usuario usa otro idioma (títulos y descripciones traducidos) o al
+  // presionar "reintentar".
   useEffect(() => {
-    if (initialCourses.length === 0) fetchCourses();
+    if (initialCourses.length === 0 || apiLang !== "es") fetchCourses();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [apiLang]);
 
   useEffect(() => {
     if (initialCategories.length === 0) {
@@ -228,7 +259,7 @@ export function CoursesCatalogClient({
           c.title.toLowerCase().includes(text) ||
           c.description.toLowerCase().includes(text)) &&
         (difficulty === "Todas" ||
-          c.difficulty.toLowerCase() === difficulty.toLowerCase()) &&
+          normalizeDifficulty(c.difficulty).toLowerCase() === difficulty.toLowerCase()) &&
         (categoryFilter === "Todas" ||
           c.categories?.some((category) => category.id === categoryFilter)),
     );
@@ -299,15 +330,19 @@ export function CoursesCatalogClient({
             onClick={() => setSearchExpanded(true)}
             className={`
               w-full bg-[rgb(var(--card)/0.9)] text-[rgb(var(--primary-text))]
-              border-4 border-[rgb(var(--border))] p-8
+              border-4 border-[rgb(var(--border))] p-5 sm:p-8
               shadow-[10px_10px_0_0_rgba(0,0,0,0.7)]
               hover:shadow-[14px_14px_0_rgb(var(--primary)/0.4)]
               hover:-translate-y-2 transition-all duration-200
-              font-mono font-black uppercase text-2xl flex items-center justify-between
+              font-mono font-black uppercase text-lg sm:text-2xl flex items-center justify-between gap-4
             `}
           >
-            <span>{t("site.startSearchButton")}</span>
-            <div className="flex gap-5 opacity-70">
+            <span className="flex min-w-0 items-center gap-3 truncate">
+              <Search size={22} className="shrink-0" aria-hidden />
+              <span className="truncate">{t("site.startSearchButton")}</span>
+            </span>
+            {/* El atajo de teclado no sirve en celular: solo se muestra con pantalla ancha. */}
+            <div className="hidden shrink-0 gap-5 opacity-70 md:flex">
               <kbd className="px-5 py-2 bg-[rgb(var(--background)/0.8)] border-2 border-[rgb(var(--border))] text-[rgb(var(--text))]">
                 CTRL
               </kbd>
@@ -413,7 +448,7 @@ export function CoursesCatalogClient({
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
+          <div className="grid grid-cols-1 items-stretch gap-8 md:grid-cols-2 lg:grid-cols-3">
             {filtered.map((course) => (
               <CourseCard key={course.id} course={course} />
             ))}
