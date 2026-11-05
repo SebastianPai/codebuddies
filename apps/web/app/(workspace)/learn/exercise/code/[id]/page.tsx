@@ -76,10 +76,21 @@ before:border-[rgb(var(--border)/0.4)]
 before:pointer-events-none
 `;
 
+// Un iframe nuevo por cada documento distinto (key = huella del documento):
+// Chrome a veces ignora el cambio de srcdoc de un iframe que todavía está
+// cargando el anterior, y la vista previa quedaba en blanco o vieja. La consola
+// de Python tiene un documento fijo por ejercicio, así que no se recarga.
+function docKey(doc: string) {
+  let h = 5381;
+  for (let i = 0; i < doc.length; i++) h = ((h << 5) + h + doc.charCodeAt(i)) | 0;
+  return `${doc.length}-${h}`;
+}
+
 const PreviewFrame = memo(({ srcDoc, stage }: { srcDoc: string; stage?: string }) => {
   const t = useTranslation();
   return (
     <iframe
+      key={docKey(srcDoc)}
       srcDoc={srcDoc}
       data-stage={stage}
       sandbox="allow-scripts"
