@@ -49,7 +49,7 @@ function spawnWorker(): Worker {
   const args = permissionArgs(script, pyodideDir);
   const child = fork(script, [pyodideDir + path.sep, pyodideMain], {
     env: {}, // sin variables de entorno: ninguna clave de la API llega acá
-    execArgv: ['--max-old-space-size=256', ...args],
+    execArgv: ['--max-old-space-size=160', ...args],
     stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
     serialization: 'json',
   });
@@ -163,6 +163,10 @@ export function runPython(studentCode: string, expectedCode: string): Promise<Py
   const job = async (): Promise<PythonRun> => {
     try {
       if (PYTHON_SUSPICIOUS.test(codigo)) {
+        // Nunca dos procesos de Python a la vez (cada uno usa ~120 MB y el
+        // dyno tiene 512 MB): se cierra el habitual antes del descartable.
+        kill(warm);
+        warm = null;
         const once = spawnWorker();
         try {
           return await runIn(once, codigo, pruebas, entradas);
