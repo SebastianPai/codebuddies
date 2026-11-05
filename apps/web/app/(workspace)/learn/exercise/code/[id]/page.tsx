@@ -1064,13 +1064,19 @@ try {
               onClick={handleCheckSolution}
               disabled={submitting || (!buddyMode && (completed || !dirty))}
               title={t("site.codeShortcutHint")}
-              className="
+              aria-label={
+                completed
+                  ? buddyMode
+                    ? t("site.buddyRunAgain")
+                    : t("site.exerciseCompletedMessage")
+                  : t("site.codeExerciseCheckButton")
+              }
+              className={`
+                ${completed ? "shrink-0" : "flex-1 min-w-0"}
+                md:flex-none
                 h-12
                 px-4
                 md:px-8
-                flex-1
-                md:flex-none
-                min-w-0
                 rounded-2xl
                 bg-yellow-400
                 text-black
@@ -1083,10 +1089,12 @@ try {
                 transition-all
                 disabled:opacity-40
                 disabled:hover:scale-100
-              "
+              `}
             >
               <CheckCircle size={18} className="shrink-0" />
-              <span className="truncate">
+              {/* En celular entra un solo texto largo: antes de resolver se ve
+                  "Comprobar"; después, "Siguiente" (acá queda solo el ícono). */}
+              <span className={completed ? "hidden sm:inline truncate" : "truncate"}>
                 {completed
                   ? buddyMode
                     ? t("site.buddyRunAgain")
@@ -1104,11 +1112,19 @@ try {
                 );
               }}
               disabled={!completed}
-              className="
+              aria-label={
+                completed && !exercise.nextExerciseId
+                  ? exercise.nextLessonId
+                    ? t("site.academyLesson.nextLesson")
+                    : t("site.courseCompleteButton")
+                  : t("common.next")
+              }
+              className={`
+                ${completed ? "flex-1 min-w-0" : "shrink-0"}
+                md:flex-none
                 h-12
                 px-4
                 md:px-6
-                shrink-0
                 rounded-2xl
                 bg-yellow-400
                 text-black
@@ -1123,14 +1139,16 @@ try {
                 disabled:bg-[rgb(var(--background))]
                 disabled:text-[rgb(var(--secondary-text))]
                 disabled:hover:scale-100
-              "
+              `}
             >
-              {completed && !exercise.nextExerciseId
-                ? exercise.nextLessonId
-                  ? t("site.academyLesson.nextLesson")
-                  : t("site.courseCompleteButton")
-                : t("common.next")}
-              <ChevronRight size={16} />
+              <span className={completed ? "truncate" : "hidden sm:inline"}>
+                {completed && !exercise.nextExerciseId
+                  ? exercise.nextLessonId
+                    ? t("site.academyLesson.nextLesson")
+                    : t("site.courseCompleteButton")
+                  : t("common.next")}
+              </span>
+              <ChevronRight size={16} className="shrink-0" />
             </button>
           </div>
         </footer>
