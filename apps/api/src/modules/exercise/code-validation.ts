@@ -1,5 +1,6 @@
 import * as vm from 'node:vm';
-import { BUDDY_RUNTIME, buddyFriendlyError, NAVE_RUNTIME, naveFriendlyError, naveLevelFrom } from '@codebuddies/world-objects';
+import { BUDDY_RUNTIME, buddyFriendlyError, NAVE_RUNTIME, naveFriendlyError, naveLevelFrom, pythonResultMessage } from '@codebuddies/world-objects';
+import { runPython } from './python-runner';
 
 // Validación server-side de los ejercicios de código.
 //
@@ -14,7 +15,7 @@ import { BUDDY_RUNTIME, buddyFriendlyError, NAVE_RUNTIME, naveFriendlyError, nav
 // mensaje que dice exactamente qué corregir.
 
 export type CodeResult = { description: string; passed: boolean; error?: string };
-export type CodeLang = 'html' | 'css' | 'js' | 'buddy' | 'nave';
+export type CodeLang = 'html' | 'css' | 'js' | 'buddy' | 'nave' | 'python';
 type Msg = 'es' | 'en' | 'de';
 
 export function normalizeLang(language?: string | null): CodeLang {
@@ -23,6 +24,7 @@ export function normalizeLang(language?: string | null): CodeLang {
   if (value === 'css') return 'css';
   if (value === 'buddy') return 'buddy';
   if (value === 'nave') return 'nave';
+  if (value === 'python' || value === 'py') return 'python';
   return 'js';
 }
 
@@ -360,6 +362,9 @@ export function validateCode(input: {
       ? runNave(input.studentCode, expectedCode)
       : [{ description: 'Código enviado', passed: input.studentCode.trim().length > 0 }];
   }
+  if (language === 'python') {
+    return [{ description: 'Programa en Python', passed: false, error: 'Python se corrige con validateCodeAsync' }];
+  }
   if (input.tests?.length && language === 'js') return runCodeTests(input.studentCode, input.tests);
   if (!expectedCode) return [{ description: 'Código enviado', passed: input.studentCode.trim().length > 0 }];
   if (looksLikeAssertions(expectedCode)) {
@@ -371,4 +376,25 @@ export function validateCode(input: {
   if (language === 'html') return compareHtml(input.studentCode, expectedCode, lang);
   if (language === 'css') return compareCss(input.studentCode, expectedCode, lang);
   return compareJsOutput(input.studentCode, expectedCode, lang);
+}
+
+// ─── Python (asíncrono: corre en un proceso aislado, ver python-runner.ts) ──
+
+export async function runPythonExercise(studentCode: string, expectedCode: string): Promise<CodeResult[]> {
+  if (!studentCode.trim()) return [{ description: 'Programa en Python', passed: false, error: 'Escribe tu programa primero.' }];
+  const run = await runPython(studentCode, expectedCode);
+  const message = pythonResultMessage(run);
+  if (!expectedCode.trim()) {
+    return [{ description: 'Programa en Python', passed: run.ok, ...(run.ok ? {} : { error: message ?? undefined }) }];
+  }
+  const passed = run.ok && run.paso === true;
+  return [{ description: 'Programa en Python', passed, ...(passed ? {} : { error: message ?? 'Todavía no es lo que pide el ejercicio.' }) }];
+}
+
+/** Igual que validateCode, pero también corrige Python (que es asíncrono). */
+export async function validateCodeAsync(input: Parameters<typeof validateCode>[0]): Promise<CodeResult[]> {
+  if (normalizeLang(input.language) === 'python') {
+    return runPythonExercise(input.studentCode ?? '', input.expectedCode?.trim() ?? '');
+  }
+  return validateCode(input);
 }

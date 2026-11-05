@@ -765,5 +765,14 @@
   "guestDoneTitle": "Super! Weiter zur nächsten",
   "guestDoneBody": "Die erste Lektion kannst du komplett ohne Konto machen. Um deinen Fortschritt zu speichern, XP und Münzen zu sammeln und mit Lektion 2 weiterzumachen, erstelle ein kostenloses Konto.",
   "guestNextExercise": "Nächste Übung",
-  "guestNextLesson": "Nächste Lektion"
+  "guestNextLesson": "Nächste Lektion",
+  "pythonStageReady": "Schreib dein Programm und drück Prüfen",
+  "pythonStageLoading": "Python wird vorbereitet",
+  "pythonStageError": "Es gibt einen Fehler.",
+  "pythonStagePassed": "Richtig! Dein Programm macht, was die Aufgabe verlangt.",
+  "pythonStageConsole": "Python-Konsole",
+  "pythonStageInputs": "Daten, die der Benutzer eingibt",
+  "pythonStageEmpty": "(dein Programm hat nichts angezeigt)",
+  "pythonStageRunning": "Dein Programm läuft",
+  "pythonStageOffline": "Python konnte nicht geladen werden. Prüfe deine Internetverbindung und versuche es noch einmal."
 }

@@ -22,7 +22,7 @@ import {
   QuizExercise,
   QuizQuestion,
 } from './types/exercise.interface';
-import { validateCode } from './code-validation';
+import { validateCodeAsync } from './code-validation';
 
 type AdminExercisePayload = Prisma.ExerciseGetPayload<{
   include: {
@@ -757,7 +757,7 @@ export class ExerciseService {
 
     // Ver code-validation.ts: detecta si expectedCode son verificaciones
     // (assert) o una respuesta modelo, y compara según el lenguaje.
-    const results = validateCode({
+    const results = await validateCodeAsync({
       language: codeEntry?.language,
       studentCode: dto.code,
       expectedCode: codeEntry?.expectedCode,

@@ -765,5 +765,14 @@
   "guestDoneTitle": "Great job! On to the next one",
   "guestDoneBody": "You can do the whole first lesson without an account. To save your progress, earn XP and coins and continue with lesson 2, create your free account.",
   "guestNextExercise": "Next exercise",
-  "guestNextLesson": "Next lesson"
+  "guestNextLesson": "Next lesson",
+  "pythonStageReady": "Write your program and press Check",
+  "pythonStageLoading": "Getting Python ready",
+  "pythonStageError": "There is an error.",
+  "pythonStagePassed": "Correct! Your program does what the exercise asks.",
+  "pythonStageConsole": "Python console",
+  "pythonStageInputs": "Data the user types",
+  "pythonStageEmpty": "(your program didn't show anything)",
+  "pythonStageRunning": "Running your program",
+  "pythonStageOffline": "Python could not load. Check your internet connection and try again."
 }

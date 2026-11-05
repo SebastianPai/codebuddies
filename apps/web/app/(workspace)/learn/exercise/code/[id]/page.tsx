@@ -35,14 +35,18 @@ import { useApiLang } from "@/shared/hooks/use-api-lang";
 import { PracticeInCodeStudio } from "@/features/codestudio";
 import { useReward } from "../../../../../../contexts/RewardContext";
 import { useTrackToolUsed, trackToolAction, trackCodeStarted, trackCodeResult } from "../../../../../../components/analytics/tool-tracking";
-import { MissionPanel, buildBuddyStageDoc, buildNaveStageDoc } from "@/features/buddy";
+import { MissionPanel, buildBuddyStageDoc, buildNaveStageDoc, buildPythonStageDoc } from "@/features/buddy";
 import { buddySvg } from "@codebuddies/world-objects";
 
 // Ejercicios de Buddy (cursos para niños): solo JavaScript, y la vista previa
 // es el escenario con el robot en vez de una página.
 // La nave (curso 2 "Crea tu juego") funciona igual, con su propio escenario.
 const isNaveLang = (lang?: string) => (lang || "").toLowerCase() === "nave";
-const isBuddyLang = (lang?: string) => (lang || "").toLowerCase() === "buddy" || isNaveLang(lang);
+// Python (curso "Python con Buddy"): consola con Buddy, Python de verdad (Pyodide).
+const isPythonLang = (lang?: string) => ["python", "py"].includes((lang || "").toLowerCase());
+// "buddyMode" = ejercicio con escenario propio (Buddy, la nave o la consola de
+// Python): un solo editor, sin pestañas HTML/CSS/JS, Comprobar corre la vista previa.
+const isBuddyLang = (lang?: string) => (lang || "").toLowerCase() === "buddy" || isNaveLang(lang) || isPythonLang(lang);
 
 type CodeTab = "html" | "css" | "js";
 
@@ -72,11 +76,12 @@ before:border-[rgb(var(--border)/0.4)]
 before:pointer-events-none
 `;
 
-const PreviewFrame = memo(({ srcDoc }: { srcDoc: string }) => {
+const PreviewFrame = memo(({ srcDoc, stage }: { srcDoc: string; stage?: string }) => {
   const t = useTranslation();
   return (
     <iframe
       srcDoc={srcDoc}
+      data-stage={stage}
       sandbox="allow-scripts"
       className="w-full h-full bg-white"
       title={t("admin.previewTitle")}
@@ -101,6 +106,7 @@ const EditorContent = memo(
     isMobile,
     onUserEdit,
     buddyMode,
+    editorLanguage,
     onEditorMount,
   }: any) => {
     const t = useTranslation();
@@ -188,7 +194,7 @@ const EditorContent = memo(
           <Editor
             height="100%"
             theme={editorTheme}
-            language={activeTab === "js" ? "javascript" : activeTab}
+            language={editorLanguage || (activeTab === "js" ? "javascript" : activeTab)}
             value={
               activeTab === "html"
                 ? htmlCode
@@ -463,8 +469,52 @@ export default function FullWidthConfidentialWorkspace() {
     }
   }, [htmlCode, cssCode, jsCode]);
 
+  // Python: la consola se arma UNA vez por ejercicio (Python empieza a cargarse
+  // mientras el alumno lee) y cada Comprobar le manda el código por mensaje.
+  const pythonMode = isPythonLang(exercise?.language);
+  const pythonRunRef = useRef<{ id: string; code: string } | null>(null);
+  const postPythonRun = useCallback(() => {
+    const run = pythonRunRef.current;
+    const frame = document.querySelector<HTMLIFrameElement>('iframe[data-stage="python"]');
+    if (run && frame?.contentWindow) frame.contentWindow.postMessage({ type: "python-run", ...run }, "*");
+  }, []);
   useEffect(() => {
-    if (!buddyMode) return;
+    if (!pythonMode) return;
+    pythonRunRef.current = null;
+    setPreviewDoc(
+      buildPythonStageDoc((exercise?.solutionCode || "").trim(), {
+        ready: t("site.pythonStageReady"),
+        loading: t("site.pythonStageLoading"),
+        running: t("site.pythonStageRunning"),
+        error: t("site.pythonStageError"),
+        passed: t("site.pythonStagePassed"),
+        console: t("site.pythonStageConsole"),
+        inputs: t("site.pythonStageInputs"),
+        empty: t("site.pythonStageEmpty"),
+        offline: t("site.pythonStageOffline"),
+      }),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pythonMode, exercise?.id, exercise?.solutionCode]);
+  useEffect(() => {
+    if (!pythonMode || buddyRun === 0) return;
+    pythonRunRef.current = { id: `${Date.now()}-${buddyRun}`, code: jsCode };
+    postPythonRun();
+    // Solo al comprobar: no con cada tecla.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pythonMode, buddyRun]);
+  useEffect(() => {
+    if (!pythonMode) return;
+    // Si la consola recién arrancó (o se volvió a montar), se le reenvía la última orden.
+    const onHello = (event: MessageEvent) => {
+      if (event.data?.type === "python-stage-hello") postPythonRun();
+    };
+    window.addEventListener("message", onHello);
+    return () => window.removeEventListener("message", onHello);
+  }, [pythonMode, postPythonRun]);
+
+  useEffect(() => {
+    if (!buddyMode || pythonMode) return;
     const solution = (exercise?.solutionCode || "").trim();
     if (isNaveLang(exercise?.language)) {
       setPreviewDoc(
@@ -487,7 +537,7 @@ export default function FullWidthConfidentialWorkspace() {
     );
     // Solo al ejecutar (o al cargar el ejercicio): no con cada tecla.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [buddyMode, buddyRun, exercise?.solutionCode, exercise?.language]);
+  }, [buddyMode, pythonMode, buddyRun, exercise?.solutionCode, exercise?.language]);
 
   useEffect(() => {
     if (buddyMode) return;
@@ -831,7 +881,7 @@ try {
       </div>
 
       <div className="flex-1 overflow-hidden rounded-b-[28px] bg-white">
-        <PreviewFrame srcDoc={previewDoc} />
+        <PreviewFrame srcDoc={previewDoc} stage={pythonMode ? "python" : undefined} />
       </div>
     </div>
   );
@@ -875,6 +925,7 @@ try {
                   isMobile={isMobile}
                   onUserEdit={handleUserEdit}
                   buddyMode={buddyMode}
+                  editorLanguage={isPythonLang(exercise?.language) ? "python" : undefined}
                   onEditorMount={(editor: any) => {
                     editorRef.current = editor;
                     editor.onDidChangeModelContent(() => clearLines());
@@ -884,7 +935,7 @@ try {
                 />
               )}
 
-              {mobileView === "preview" && <PreviewContent />}
+              {mobileView === "preview" && PreviewContent()}
             </div>
           ) : (
             <Group orientation="horizontal" className="h-full min-h-0 gap-5">
@@ -909,6 +960,7 @@ try {
                   isMobile={isMobile}
                   onUserEdit={handleUserEdit}
                   buddyMode={buddyMode}
+                  editorLanguage={isPythonLang(exercise?.language) ? "python" : undefined}
                   onEditorMount={(editor: any) => {
                     editorRef.current = editor;
                     editor.onDidChangeModelContent(() => clearLines());
@@ -921,7 +973,7 @@ try {
               <Separator className="w-[1px] bg-[rgb(var(--border))]" />
 
               <Panel defaultSize={30} minSize={20}>
-                <PreviewContent />
+                {PreviewContent()}
               </Panel>
             </Group>
           )}

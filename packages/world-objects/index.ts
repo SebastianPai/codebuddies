@@ -146,3 +146,17 @@ export {
   type NaveLevel,
   type NaveStep,
 } from './nave';
+export {
+  PYTHON_LANGUAGE,
+  PYODIDE_VERSION,
+  PYODIDE_CDN,
+  PYTHON_TIMEOUT_MS,
+  PYTHON_HARNESS,
+  PYTHON_FRIENDLY_ERRORS,
+  PYTHON_SUSPICIOUS,
+  parsePythonChecks,
+  pythonFriendlyError,
+  pythonResultMessage,
+  pythonTimeoutRun,
+  type PythonRun,
+} from './python';

@@ -765,5 +765,14 @@
   "guestDoneTitle": "¡Muy bien! Sigue con el siguiente",
   "guestDoneBody": "Puedes hacer toda la primera lección sin cuenta. Para guardar tu progreso, ganar XP y monedas y seguir con la lección 2, crea tu cuenta gratis.",
   "guestNextExercise": "Siguiente ejercicio",
-  "guestNextLesson": "Siguiente lección"
+  "guestNextLesson": "Siguiente lección",
+  "pythonStageReady": "Escribe tu programa y toca Comprobar",
+  "pythonStageLoading": "Preparando Python",
+  "pythonStageError": "Hay un error.",
+  "pythonStagePassed": "¡Correcto! Tu programa hace lo que pide el ejercicio.",
+  "pythonStageConsole": "Consola de Python",
+  "pythonStageInputs": "Datos que escribe el usuario",
+  "pythonStageEmpty": "(tu programa no mostró nada)",
+  "pythonStageRunning": "Corriendo tu programa",
+  "pythonStageOffline": "No se pudo cargar Python. Revisa tu conexión a internet y vuelve a intentar."
 }
