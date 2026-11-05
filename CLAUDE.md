@@ -25,7 +25,7 @@ desfasado de la base de datos.
 Estado al 2026-11-05: las tres apps (`codebuddies-api`, `codebuddies-web` y
 `codebuddies-game`) corren `df70a9c` (curso "Python con Buddy": Python de verdad con Pyodide, corregido en la API en un proceso aislado sin variables de entorno y con permisos de Node cerrados; consola de Python con Buddy en la web). Todo es la rama `feat/curso-python`, que sale de `feat/premium-colors-parallax` (`feat/codestudio-v2` + íconos + colores
 premium + parallax). Es la rama base para todo trabajo nuevo. Lo que sigue en
-la tabla vale para cualquier rama que NO contenga `4edb91c`:
+la tabla vale para cualquier rama que NO contenga `df70a9c`:
 
 | Rama | Por qué es peligrosa |
 |---|---|
