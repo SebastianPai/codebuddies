@@ -85,6 +85,7 @@ export const de = {
         "// Lernprotokoll aktiviert.\n// Wir hacken die Zukunft von der Kante aus.",
       status: "Status",
       online: "Online",
+      languages: "Verfügbar auf",
     },
 
     directory: {

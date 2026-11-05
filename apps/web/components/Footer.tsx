@@ -38,6 +38,11 @@ export default function Footer() {
                 {t.footer.brand.online}
               </span>
             </div>
+            {/* Cada idioma con su propio nombre: así se lee igual en las tres versiones. */}
+            <p className="font-mono text-xs opacity-70">
+              {t.footer.brand.languages}: <span lang="es">Español</span> ·{" "}
+              <span lang="en">English</span> · <span lang="de">Deutsch</span>
+            </p>
           </div>
 
           {/* Columna 2 - Navegación */}

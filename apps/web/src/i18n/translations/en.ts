@@ -85,6 +85,7 @@ export const en = {
         "// Learning protocol activated.\n// Hacking the future from the edge.",
       status: "Status",
       online: "Online",
+      languages: "Available in",
     },
 
     directory: {

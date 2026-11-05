@@ -85,6 +85,7 @@ export const es = {
         "// Protocolo de aprendizaje activado.\n// Hackeando el futuro desde la periferia.",
       status: "Estado",
       online: "En línea",
+      languages: "Disponible en",
     },
 
     directory: {

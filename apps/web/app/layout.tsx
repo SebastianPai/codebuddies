@@ -2,7 +2,7 @@ import "./globals.css";
 import "react-toastify/dist/ReactToastify.css";
 
 import type { Metadata, Viewport } from "next";
-import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from "../src/config/site";
+import { SITE_DESCRIPTION, SITE_LANGUAGES, SITE_NAME, SITE_URL } from "../src/config/site";
 import { ThemeProvider } from "next-themes";
 import { BoostBanner } from "@/features/boosts/BoostBanner";
 import { WebOnboarding } from "@/features/onboarding/WebOnboarding";
@@ -41,6 +41,8 @@ export const metadata: Metadata = {
     "Python",
     "certificados",
     "ejercicios de código",
+    "learn to code",
+    "programmieren lernen",
   ],
   // Verificación de sitio de Google AdSense (método alternativo al script,
   // que Google no pudo detectar) -- vía la Metadata API de Next.js para que
@@ -65,6 +67,34 @@ export const metadata: Metadata = {
   },
 };
 
+// Datos estructurados para Google: quién es CodeBuddies (codebuddies.tech, no
+// otras marcas con nombre parecido) y que la plataforma está en tres idiomas.
+const SITE_JSON_LD = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "EducationalOrganization",
+      "@id": `${SITE_URL}/#organization`,
+      name: SITE_NAME,
+      alternateName: "CodeBuddies.tech",
+      url: SITE_URL,
+      logo: `${SITE_URL}/icons/icon-512.png`,
+      description: SITE_DESCRIPTION,
+      knowsLanguage: SITE_LANGUAGES,
+      knowsAbout: ["Python", "HTML", "CSS", "JavaScript", "programación para principiantes"],
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
+      name: SITE_NAME,
+      url: SITE_URL,
+      description: SITE_DESCRIPTION,
+      inLanguage: SITE_LANGUAGES,
+      publisher: { "@id": `${SITE_URL}/#organization` },
+    },
+  ],
+};
+
 export const viewport: Viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: dark)", color: "#0c0e12" },
@@ -82,6 +112,11 @@ export default function RootLayout({
       <ConsentDefaults />
       <GoogleTagManagerHead />
       <body>
+        <script
+          type="application/ld+json"
+          // Contenido fijo nuestro (no viene del usuario); "<" escapado por las dudas.
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(SITE_JSON_LD).replace(/</g, "\\u003c") }}
+        />
         <GoogleTagManagerBody />
         <GtmRouteTracker />
         <AdSenseLoader />

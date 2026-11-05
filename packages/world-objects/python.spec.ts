@@ -12,6 +12,9 @@ describe('python: errores en palabras simples', () => {
     expect(pythonFriendlyError('KeyError', "'edad'")).toContain('«edad»');
     expect(pythonFriendlyError('ZeroDivisionError', 'division by zero')).toContain('cero');
   });
+  it('una regla del curso (código bloqueado) se muestra tal cual, sin prefijo', () => {
+    expect(pythonFriendlyError('Regla', '__cb_regla:En este curso no se usan clases (class).')).toBe('En este curso no se usan clases (class).');
+  });
   it('un error desconocido se muestra tal cual', () => {
     expect(pythonFriendlyError('RareError', 'algo raro')).toBe('RareError: algo raro');
   });

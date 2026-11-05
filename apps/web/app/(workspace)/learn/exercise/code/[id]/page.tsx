@@ -995,7 +995,9 @@ try {
         </main>
 
         {/* FOOTER */}
-        <footer className="h-24 rounded-[28px] border border-[rgb(var(--border))] bg-[rgb(var(--card)/0.85)] backdrop-blur-xl flex items-center justify-between px-8 gap-6">
+        {/* En celular: el mensaje arriba y los botones abajo, a todo el ancho
+            (en una sola fila no entran y se salían por la derecha). */}
+        <footer className="shrink-0 rounded-[28px] border border-[rgb(var(--border))] bg-[rgb(var(--card)/0.85)] backdrop-blur-xl flex flex-col items-stretch gap-3 px-4 py-3 md:h-24 md:flex-row md:items-center md:justify-between md:px-8 md:py-0 md:gap-6">
           <div className="min-w-0 text-sm font-medium truncate">
             {completed ? (
               <span className="text-emerald-500 flex items-center gap-2">
@@ -1019,8 +1021,9 @@ try {
             )}
           </div>
 
-          <div className="flex items-center gap-5 shrink-0">
+          <div className="flex w-full items-center gap-2 shrink-0 md:w-auto md:gap-5">
             <button
+              aria-label={t("common.previous")}
               onClick={() => {
                 if (exercise.prevExerciseId && exercise.prevExerciseType) {
                   router.push(
@@ -1034,7 +1037,9 @@ try {
               disabled={!exercise.prevExerciseId && !exercise.courseId}
               className="
                 h-12
-                px-6
+                px-4
+                md:px-6
+                shrink-0
                 rounded-2xl
                 bg-[rgb(var(--background))]
                 border
@@ -1042,6 +1047,7 @@ try {
                 text-[rgb(var(--text))]
                 flex
                 items-center
+                justify-center
                 gap-2
                 hover:bg-[rgb(var(--border)/0.5)]
                 transition-all
@@ -1051,7 +1057,7 @@ try {
               "
             >
               <ChevronLeft size={16} />
-              {t("common.previous")}
+              <span className="hidden sm:inline">{t("common.previous")}</span>
             </button>
 
             <button
@@ -1060,13 +1066,18 @@ try {
               title={t("site.codeShortcutHint")}
               className="
                 h-12
-                px-8
+                px-4
+                md:px-8
+                flex-1
+                md:flex-none
+                min-w-0
                 rounded-2xl
                 bg-yellow-400
                 text-black
                 font-semibold
                 flex
                 items-center
+                justify-center
                 gap-2
                 hover:scale-[1.02]
                 transition-all
@@ -1074,12 +1085,14 @@ try {
                 disabled:hover:scale-100
               "
             >
-              <CheckCircle size={18} />
-              {completed
-                ? buddyMode
-                  ? t("site.buddyRunAgain")
-                  : t("site.exerciseCompletedMessage")
-                : t("site.codeExerciseCheckButton")}
+              <CheckCircle size={18} className="shrink-0" />
+              <span className="truncate">
+                {completed
+                  ? buddyMode
+                    ? t("site.buddyRunAgain")
+                    : t("site.exerciseCompletedMessage")
+                  : t("site.codeExerciseCheckButton")}
+              </span>
             </button>
 
             <button
@@ -1093,13 +1106,16 @@ try {
               disabled={!completed}
               className="
                 h-12
-                px-6
+                px-4
+                md:px-6
+                shrink-0
                 rounded-2xl
                 bg-yellow-400
                 text-black
                 font-semibold
                 flex
                 items-center
+                justify-center
                 gap-2
                 hover:scale-[1.02]
                 transition-all

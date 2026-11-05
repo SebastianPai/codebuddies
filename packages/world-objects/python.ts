@@ -56,6 +56,60 @@ _cb_exec = exec
 _cb_B = dict(builtins.__dict__)
 _CB_MAX = 20000
 
+# Antes de correr, se revisa el programa: el curso no usa clases, ni atributos
+# internos (__x__, gi_frame, f_back, ...), ni getattr/eval/..., y solo importa
+# módulos simples. Con eso el alumno no puede llegar al corrector para hacer
+# trampa (por ejemplo, cambiar cómo se comparan los valores en las pruebas).
+import ast as _cb_ast
+_cb_parse = _cb_ast.parse
+_cb_walk = _cb_ast.walk
+_CB_AST = {k: getattr(_cb_ast, k) for k in ("ClassDef", "Attribute", "Name", "Import", "ImportFrom", "Call", "Global", "Nonlocal", "arg", "keyword", "FunctionDef")}
+_CB_MODULOS_OK = ("random", "math", "time", "string")
+_CB_NOMBRES_NO = frozenset(("getattr", "setattr", "delattr", "hasattr", "globals", "locals", "vars", "eval", "exec", "compile", "open", "breakpoint", "memoryview", "super", "classmethod", "staticmethod", "property", "object", "help", "exit", "quit", "copyright", "credits", "license"))
+_CB_PREFIJOS_NO = ("_", "f_", "gi_", "cr_", "ag_", "tb_", "co_")
+
+def _cb_revisar(codigo):
+    """None si el programa se puede correr; si no, (mensaje, línea)."""
+    try:
+        arbol = _cb_parse(codigo, "alumno.py")
+    except _cb_B["BaseException"]:
+        return None  # el error de sintaxis lo muestra compile, como siempre
+    tipo_ok = _cb_B["set"]()
+    for n in _cb_walk(arbol):
+        # type(x) con un solo dato está bien (muestra el tipo); con 3 crea clases.
+        if _cb_B["isinstance"](n, _CB_AST["Call"]) and _cb_B["isinstance"](n.func, _CB_AST["Name"]) and n.func.id == "type" and _cb_B["len"](n.args) == 1 and not n.keywords:
+            tipo_ok.add(_cb_B["id"](n.func))
+    for n in _cb_walk(arbol):
+        linea = _cb_B["getattr"](n, "lineno", None)
+        if _cb_B["isinstance"](n, _CB_AST["ClassDef"]):
+            return ("En este curso no se usan clases (class).", linea)
+        if _cb_B["isinstance"](n, (_CB_AST["Global"], _CB_AST["Nonlocal"])):
+            return ("En este curso no se usa global ni nonlocal: usa return para devolver valores.", linea)
+        if _cb_B["isinstance"](n, _CB_AST["Attribute"]) and n.attr.startswith(_CB_PREFIJOS_NO):
+            return ("En este curso no se usa «." + n.attr + "».", linea)
+        if _cb_B["isinstance"](n, _CB_AST["Name"]):
+            if n.id.startswith("__") or n.id in _CB_NOMBRES_NO:
+                return ("En este curso no se usa «" + n.id + "».", linea)
+            if n.id == "type" and _cb_B["id"](n) not in tipo_ok:
+                return ("type se usa así: type(valor).", linea)
+        if _cb_B["isinstance"](n, (_CB_AST["arg"], _CB_AST["FunctionDef"])):
+            nombre = n.arg if _cb_B["isinstance"](n, _CB_AST["arg"]) else n.name
+            if nombre.startswith("__"):
+                return ("Los nombres no pueden empezar con __.", linea)
+        if _cb_B["isinstance"](n, _CB_AST["keyword"]) and n.arg and n.arg.startswith("__"):
+            return ("Los nombres no pueden empezar con __.", linea)
+        if _cb_B["isinstance"](n, _CB_AST["Import"]):
+            for a in n.names:
+                if a.name.split(".")[0] not in _CB_MODULOS_OK:
+                    return ("En este curso solo se puede importar: " + ", ".join(_CB_MODULOS_OK) + ".", linea)
+        if _cb_B["isinstance"](n, _CB_AST["ImportFrom"]):
+            if n.level or (n.module or "").split(".")[0] not in _CB_MODULOS_OK:
+                return ("En este curso solo se puede importar: " + ", ".join(_CB_MODULOS_OK) + ".", linea)
+            for a in n.names:
+                if a.name == "*" or a.name.startswith("_"):
+                    return ("Importa solo lo que vas a usar, por ejemplo: from random import randint.", linea)
+    return None
+
 def _cb_limpiar_builtins():
     builtins.__dict__.clear()
     builtins.__dict__.update(_cb_B)
@@ -76,6 +130,12 @@ class _CbSalida:
         return "".join(self.partes)
 
 def __cb_correr(codigo, pruebas, entradas):
+    regla = _cb_revisar(codigo)
+    if regla is not None:
+        res = {"ok": False, "tipo": "Regla", "mensaje": "__cb_regla:" + regla[0], "linea": regla[1], "salida": ""}
+        if pruebas.strip():
+            res["paso"] = False
+        return _cb_dumps(res)
     salida = _CbSalida()
     cola = _cb_B["list"](entradas)
 
@@ -147,6 +207,7 @@ def __cb_correr(codigo, pruebas, entradas):
 
 // Errores de Python explicados en palabras simples. "$1" es lo que capturó el patrón.
 export const PYTHON_FRIENDLY_ERRORS: Array<{ tipo?: string; pattern: string; message: string }> = [
+  { pattern: "^__cb_regla:(.*)$", message: "$1" },
   { pattern: "__cb_sin_datos", message: "El programa pidió un dato con input(), pero ya no quedan datos para escribir." },
   { pattern: "__cb_tiempo", message: "Tu programa no termina nunca. ¿Hay un while cuya condición nunca se vuelve falsa?" },
   { pattern: "was never closed", message: "Abriste un paréntesis (o corchete) y no lo cerraste." },
