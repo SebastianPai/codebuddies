@@ -207,6 +207,7 @@ export default function AdminExerciseNew({
           setCodes(
             ex.codes.map((c) => ({
               language: c.language,
+              ...(c.lang ? { lang: c.lang } : {}),
               initialCode: c.initialCode,
               expectedCode: c.expectedCode ?? "",
             })),
@@ -293,11 +294,13 @@ export default function AdminExerciseNew({
       if (order !== "") payload.order = Number(order);
 
       if (type === "CODE") {
-        const validCodes = codes.filter((c) => c.initialCode.trim());
+        // Un ejercicio de Python puede empezar con el editor vacío: alcanza con que tenga pruebas.
+        const validCodes = codes.filter((c) => c.initialCode.trim() || c.expectedCode?.trim());
         if (validCodes.length === 0) throw new Error(t("admin.missingInitialCode"));
 
         payload.codes = validCodes.map((c) => ({
           language: c.language,
+          ...(c.lang ? { lang: c.lang } : {}),
           initialCode: c.initialCode,
           expectedCode: c.expectedCode?.trim() || undefined,
         }));

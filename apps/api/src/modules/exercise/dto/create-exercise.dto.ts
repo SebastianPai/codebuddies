@@ -2,6 +2,7 @@ import { Type } from 'class-transformer';
 import {
   IsArray,
   IsEnum,
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -53,6 +54,12 @@ export class ExerciseCodeDto {
   @IsString()
   @MaxLength(50)
   language: string;
+
+  // Idioma de esta versión del código (ver pickCodeEntry). Sin esto, es la
+  // versión original (español).
+  @IsOptional()
+  @IsIn(['es', 'en', 'de'])
+  lang?: string;
 
   @IsString()
   @MaxLength(MAX_CODE_LENGTH)

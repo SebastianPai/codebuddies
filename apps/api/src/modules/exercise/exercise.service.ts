@@ -22,7 +22,7 @@ import {
   QuizExercise,
   QuizQuestion,
 } from './types/exercise.interface';
-import { validateCodeAsync } from './code-validation';
+import { pickCodeEntry, validateCodeAsync } from './code-validation';
 
 type AdminExercisePayload = Prisma.ExerciseGetPayload<{
   include: {
@@ -186,9 +186,9 @@ export class ExerciseService {
           const code: CodingExercise = {
             ...base,
             type: 'CODE',
-            starterCode: locked ? '' : (ex.codes?.[0]?.initialCode ?? ''),
-            solutionCode: locked ? '' : (ex.codes?.[0]?.expectedCode ?? ''),
-            language: ex.codes?.[0]?.language ?? 'js',
+            starterCode: locked ? '' : (pickCodeEntry(ex.codes, lang)?.initialCode ?? ''),
+            solutionCode: locked ? '' : (pickCodeEntry(ex.codes, lang)?.expectedCode ?? ''),
+            language: pickCodeEntry(ex.codes, lang)?.language ?? 'js',
           };
           return code;
 
@@ -348,11 +348,11 @@ export class ExerciseService {
         return {
           ...base,
           type: 'CODE',
-          starterCode: locked ? '' : (exercise.codes?.[0]?.initialCode ?? ''),
+          starterCode: locked ? '' : (pickCodeEntry(exercise.codes, lang)?.initialCode ?? ''),
           solutionCode: locked
             ? ''
-            : (exercise.codes?.[0]?.expectedCode ?? ''),
-          language: exercise.codes?.[0]?.language ?? 'js',
+            : (pickCodeEntry(exercise.codes, lang)?.expectedCode ?? ''),
+          language: pickCodeEntry(exercise.codes, lang)?.language ?? 'js',
           translations: locked ? [] : exercise.translations,
         } as CodingExercise & { translations: any[] };
 
@@ -747,7 +747,7 @@ export class ExerciseService {
       );
     }
 
-    const codeEntry = (exercise.codes as any)?.[0] as
+    const codeEntry = pickCodeEntry(exercise.codes, dto.lang) as
       | {
           language?: string;
           tests?: Array<{ description: string; assertCode: string }>;

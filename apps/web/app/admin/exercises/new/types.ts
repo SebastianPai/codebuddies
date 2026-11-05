@@ -1,5 +1,7 @@
 export interface Code {
   language: string;
+  // Idioma de esta versión del código (es/en/de); sin esto, es la original.
+  lang?: string;
   initialCode: string;
   expectedCode?: string;
 }
@@ -34,6 +36,7 @@ export interface AdminExerciseResponse {
   order: number;
   codes?: Array<{
     language: string;
+    lang?: string;
     initialCode: string;
     expectedCode?: string | null;
   }>;

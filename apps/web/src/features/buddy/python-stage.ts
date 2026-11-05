@@ -1,6 +1,8 @@
 import {
   PYODIDE_CDN,
-  PYTHON_FRIENDLY_ERRORS,
+  PYTHON_FRIENDLY_ERRORS_BY_LANG,
+  PYTHON_TEXTS,
+  pythonMsgLang,
   PYTHON_HARNESS,
   PYTHON_TIMEOUT_MS,
   buddySvg,
@@ -33,7 +35,8 @@ export type PythonStageLabels = {
   offline: string; // no se pudo cargar Python
 };
 
-export function buildPythonStageDoc(checks: string, labels: PythonStageLabels) {
+export function buildPythonStageDoc(checks: string, labels: PythonStageLabels, lang?: string | null) {
+  const msgLang = pythonMsgLang(lang);
   const { entradas } = parsePythonChecks(checks);
   const faces = { normal: buddySvg("normal", 64), feliz: buddySvg("feliz", 64), sorprendido: buddySvg("sorprendido", 64) };
   const inputsHtml = entradas.length
@@ -77,7 +80,8 @@ export function buildPythonStageDoc(checks: string, labels: PythonStageLabels) {
 <script>
 var L = ${js(labels)};
 var FACES = ${js(faces)};
-var FRIENDLY = ${js(PYTHON_FRIENDLY_ERRORS)};
+var FRIENDLY = ${js(PYTHON_FRIENDLY_ERRORS_BY_LANG[msgLang])};
+var TEXTS = ${js(PYTHON_TEXTS[msgLang])};
 var CHECKS = ${js(checks)};
 var INPUTS = ${js(entradas)};
 var HAS_CHECKS = ${checks.trim() ? "true" : "false"};
@@ -114,7 +118,7 @@ function report(res) {
   else { var e = document.createElement("span"); e.className = "muted"; e.textContent = L.empty; outEl.appendChild(e); }
   var message = null, passed = false;
   if (!res.ok) {
-    message = (res.linea ? "Línea " + res.linea + ": " : "") + friendly(res.tipo, res.mensaje);
+    message = (res.linea ? TEXTS.line + " " + res.linea + ": " : "") + friendly(res.tipo, res.mensaje);
     if (res.linea) toParent({ type: "buddy-line", line: res.linea, state: "bad" });
     setFace("sorprendido");
     setStatus("bad", L.error + " " + message);
@@ -123,7 +127,7 @@ function report(res) {
     if (motivo.indexOf("__cb_error_prueba:") === 0) {
       var rest = motivo.slice(18).split(": ");
       message = friendly(rest[0], rest.slice(1).join(": "));
-    } else message = motivo || "Todavía no es lo que pide el ejercicio.";
+    } else message = motivo || TEXTS.notYet;
     setFace("normal");
     setStatus("bad", message);
   } else {

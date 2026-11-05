@@ -13,7 +13,10 @@ describe('python: errores en palabras simples', () => {
     expect(pythonFriendlyError('ZeroDivisionError', 'division by zero')).toContain('cero');
   });
   it('una regla del curso (código bloqueado) se muestra tal cual, sin prefijo', () => {
-    expect(pythonFriendlyError('Regla', '__cb_regla:En este curso no se usan clases (class).')).toBe('En este curso no se usan clases (class).');
+    expect(pythonFriendlyError('Regla', '__cb_regla:clases')).toBe('En este curso no se usan clases (class).');
+    expect(pythonFriendlyError('Regla', '__cb_regla:nombre:eval', 'en')).toBe('This course doesn’t use “eval”.'.replace('’', "'"));
+    expect(pythonResultMessage({ ok: false, salida: '', tipo: 'ZeroDivisionError', mensaje: 'division by zero', linea: 2 }, 'de')).toBe('Zeile 2: Man kann nicht durch null teilen.');
+    expect(pythonResultMessage({ ok: true, salida: '', paso: false, motivo: '' }, 'en')).toBe("That's not what the exercise asks for yet.");
   });
   it('un error desconocido se muestra tal cual', () => {
     expect(pythonFriendlyError('RareError', 'algo raro')).toBe('RareError: algo raro');

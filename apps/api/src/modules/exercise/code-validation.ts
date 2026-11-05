@@ -1,5 +1,5 @@
 import * as vm from 'node:vm';
-import { BUDDY_RUNTIME, buddyFriendlyError, NAVE_RUNTIME, naveFriendlyError, naveLevelFrom, pythonResultMessage } from '@codebuddies/world-objects';
+import { BUDDY_RUNTIME, buddyFriendlyError, NAVE_RUNTIME, naveFriendlyError, naveLevelFrom, PYTHON_TEXTS, pythonMsgLang, pythonResultMessage } from '@codebuddies/world-objects';
 import { runPython } from './python-runner';
 
 // Validación server-side de los ejercicios de código.
@@ -339,6 +339,21 @@ export function runNave(studentCode: string, expectedCode: string): CodeResult[]
   }
 }
 
+// ─── Código por idioma ────────────────────────────────────────────────────
+
+/**
+ * Un ejercicio puede tener su código (inicial y pruebas) en cada idioma:
+ * codes = [{ language: "python", ... }, { language: "python", lang: "en", ... }].
+ * La entrada sin `lang` es la original (español). Se elige la del idioma del
+ * alumno y, si no hay, la original.
+ */
+export function pickCodeEntry<T extends { lang?: string | null }>(codes: unknown, lang?: string | null): (T & Record<string, any>) | undefined {
+  if (!Array.isArray(codes) || codes.length === 0) return undefined;
+  const list = codes as Array<T & Record<string, any>>;
+  const want = String(lang ?? '').toLowerCase().slice(0, 2);
+  return (want && list.find((c) => c?.lang === want)) || list.find((c) => !c?.lang) || list[0];
+}
+
 // ─── Punto de entrada ─────────────────────────────────────────────────────
 
 export function validateCode(input: {
@@ -380,21 +395,22 @@ export function validateCode(input: {
 
 // ─── Python (asíncrono: corre en un proceso aislado, ver python-runner.ts) ──
 
-export async function runPythonExercise(studentCode: string, expectedCode: string): Promise<CodeResult[]> {
-  if (!studentCode.trim()) return [{ description: 'Programa en Python', passed: false, error: 'Escribe tu programa primero.' }];
+export async function runPythonExercise(studentCode: string, expectedCode: string, lang?: string | null): Promise<CodeResult[]> {
+  const T = PYTHON_TEXTS[pythonMsgLang(lang)];
+  if (!studentCode.trim()) return [{ description: 'Python', passed: false, error: T.writeFirst }];
   const run = await runPython(studentCode, expectedCode);
-  const message = pythonResultMessage(run);
+  const message = pythonResultMessage(run, lang);
   if (!expectedCode.trim()) {
-    return [{ description: 'Programa en Python', passed: run.ok, ...(run.ok ? {} : { error: message ?? undefined }) }];
+    return [{ description: 'Python', passed: run.ok, ...(run.ok ? {} : { error: message ?? undefined }) }];
   }
   const passed = run.ok && run.paso === true;
-  return [{ description: 'Programa en Python', passed, ...(passed ? {} : { error: message ?? 'Todavía no es lo que pide el ejercicio.' }) }];
+  return [{ description: 'Python', passed, ...(passed ? {} : { error: message ?? T.notYet }) }];
 }
 
 /** Igual que validateCode, pero también corrige Python (que es asíncrono). */
 export async function validateCodeAsync(input: Parameters<typeof validateCode>[0]): Promise<CodeResult[]> {
   if (normalizeLang(input.language) === 'python') {
-    return runPythonExercise(input.studentCode ?? '', input.expectedCode?.trim() ?? '');
+    return runPythonExercise(input.studentCode ?? '', input.expectedCode?.trim() ?? '', input.lang);
   }
   return validateCode(input);
 }

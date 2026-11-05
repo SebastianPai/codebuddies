@@ -504,9 +504,9 @@ export default function FullWidthConfidentialWorkspace() {
         inputs: t("site.pythonStageInputs"),
         empty: t("site.pythonStageEmpty"),
         offline: t("site.pythonStageOffline"),
-      });
+      }, apiLang);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pythonMode, exercise?.id, exercise?.solutionCode]);
+  }, [pythonMode, exercise?.id, exercise?.solutionCode, apiLang]);
   useEffect(() => {
     if (!pythonMode || buddyRun === 0) return;
     pythonRunRef.current = { id: `${Date.now()}-${buddyRun}`, code: jsCode };

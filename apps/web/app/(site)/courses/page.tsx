@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { getApiUrl } from "@/config/env";
+import { SITE_URL } from "@/config/site";
 import {
   CoursesCatalogClient,
   type Course,
@@ -66,7 +67,7 @@ export default async function CoursesPage() {
           itemListElement: courses.map((course, index) => ({
             "@type": "ListItem",
             position: index + 1,
-            url: `/courses/${course.id}`,
+            url: `${SITE_URL}/courses/${course.id}`,
             name: course.title,
           })),
         }
@@ -78,7 +79,7 @@ export default async function CoursesPage() {
         <script
           type="application/ld+json"
           // eslint-disable-next-line react/no-danger -- JSON.stringify de datos propios del backend, no HTML de usuario
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
         />
       )}
       <CoursesCatalogClient

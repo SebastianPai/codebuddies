@@ -399,6 +399,10 @@ export default function CodeExerciseForm({
                 <span className="text-xs font-bold uppercase tracking-wide text-[rgb(var(--secondary-text))]">
                   {t("admin.codeNumberLabel", { index: idx + 1 })}
                 </span>
+                {/* Versión del código para un idioma (la usan los alumnos de ese idioma). */}
+                <span className="rounded-md border border-[rgb(var(--border))] px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase text-[rgb(var(--secondary-text))]">
+                  {code.lang ?? "es"}
+                </span>
                 <div className="ml-auto">
                   <IconButton
                     label={t("common.delete")}
