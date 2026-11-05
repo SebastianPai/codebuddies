@@ -22,14 +22,15 @@ desfasado de la base de datos.
 
 ### Ramas peligrosas (NO desplegar ni fusionar tal cual)
 
-Estado al 2026-11-02: las tres apps (`codebuddies-api`, `codebuddies-web` y
-`codebuddies-game`) corren `7f1e4b0` (un solo botón Comprobar con Ctrl+Enter y misión con imagen, primera lección entera sin cuenta, curso de Buddy unido en uno solo con la nave de Buddy, cursos con Buddy para todo público, primera lección sin cuenta, Profe Buddy, CodeStudio con departamentos automáticos y puestos fijos). Todo es la rama `feat/premium-colors-parallax` (`feat/codestudio-v2` + íconos + colores
+Estado al 2026-11-05: las tres apps (`codebuddies-api`, `codebuddies-web` y
+`codebuddies-game`) corren `df70a9c` (curso "Python con Buddy": Python de verdad con Pyodide, corregido en la API en un proceso aislado sin variables de entorno y con permisos de Node cerrados; consola de Python con Buddy en la web). Todo es la rama `feat/curso-python`, que sale de `feat/premium-colors-parallax` (`feat/codestudio-v2` + íconos + colores
 premium + parallax). Es la rama base para todo trabajo nuevo. Lo que sigue en
 la tabla vale para cualquier rama que NO contenga `4edb91c`:
 
 | Rama | Por qué es peligrosa |
 |---|---|
-| `main` | Está 83 commits atrás de producción. |
+| `main` | Está más de 85 commits atrás de producción. |
+| `feat/premium-colors-parallax` | Le falta el curso de Python (motor de Python en la API y en la web) que ya está en producción. |
 | `feat/codestudio-v2` y `deploy/icons-on-codestudio-v2` | Les faltan los commits de colores y parallax que ya están en producción (y sus migraciones). |
 | `feat/academy-content-prefill` | "Snapshot antes de formatear el equipo" sobre una base vieja: desplegarla revierte muchos commits. Ya se revisó (2026-10-20): no trae trabajo que falte en producción, solo 2 scripts `scratch-*.mjs`. Se puede archivar. |
 | `feat/admin-configurable-icons` | Reemplazada por `deploy/icons-on-codestudio-v2`. Se basa en `main`, así que también está atrás. |
