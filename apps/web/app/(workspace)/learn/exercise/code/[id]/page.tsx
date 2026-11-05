@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, memo, useCallback } from "react";
+import { useState, useEffect, useRef, memo, useCallback, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Editor from "@monaco-editor/react";
@@ -478,11 +478,12 @@ export default function FullWidthConfidentialWorkspace() {
     const frame = document.querySelector<HTMLIFrameElement>('iframe[data-stage="python"]');
     if (run && frame?.contentWindow) frame.contentWindow.postMessage({ type: "python-run", ...run }, "*");
   }, []);
-  useEffect(() => {
-    if (!pythonMode) return;
+  // Se calcula en el mismo render en que se sabe que es Python: el iframe nace
+  // ya con la consola (si llegaba un render después, Chrome podía ignorarlo).
+  const pythonDoc = useMemo(() => {
+    if (!pythonMode) return "";
     pythonRunRef.current = null;
-    setPreviewDoc(
-      buildPythonStageDoc((exercise?.solutionCode || "").trim(), {
+    return buildPythonStageDoc((exercise?.solutionCode || "").trim(), {
         ready: t("site.pythonStageReady"),
         loading: t("site.pythonStageLoading"),
         running: t("site.pythonStageRunning"),
@@ -492,8 +493,7 @@ export default function FullWidthConfidentialWorkspace() {
         inputs: t("site.pythonStageInputs"),
         empty: t("site.pythonStageEmpty"),
         offline: t("site.pythonStageOffline"),
-      }),
-    );
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pythonMode, exercise?.id, exercise?.solutionCode]);
   useEffect(() => {
@@ -540,7 +540,10 @@ export default function FullWidthConfidentialWorkspace() {
   }, [buddyMode, pythonMode, buddyRun, exercise?.solutionCode, exercise?.language]);
 
   useEffect(() => {
-    if (buddyMode) return;
+    // Hasta saber el lenguaje del ejercicio no se arma nada: si se cargaba la
+    // vista previa de HTML y enseguida llegaba otro documento (Python), Chrome
+    // podía quedarse mostrando el primero.
+    if (!exercise || buddyMode) return;
     const timeout = setTimeout(() => {
       const solution = (exercise?.solutionCode || "").trim();
       // solutionCode puede ser verificaciones assert(...) o la respuesta
@@ -619,7 +622,7 @@ try {
     }, 500);
 
     return () => clearTimeout(timeout);
-  }, [htmlCode, cssCode, jsCode, exercise?.solutionCode, buddyMode]);
+  }, [htmlCode, cssCode, jsCode, exercise?.id, exercise?.solutionCode, buddyMode]);
 
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
@@ -881,7 +884,8 @@ try {
       </div>
 
       <div className="flex-1 overflow-hidden rounded-b-[28px] bg-white">
-        <PreviewFrame srcDoc={previewDoc} stage={pythonMode ? "python" : undefined} />
+        {/* La consola de Python es un iframe propio por ejercicio (key): nunca reusa uno que esté cargando otro documento. */}
+        <PreviewFrame key={pythonMode ? `python-${exercise?.id}` : "preview"} srcDoc={pythonMode ? pythonDoc : previewDoc} stage={pythonMode ? "python" : undefined} />
       </div>
     </div>
   );
