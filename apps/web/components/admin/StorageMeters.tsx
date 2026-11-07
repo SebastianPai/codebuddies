@@ -138,12 +138,12 @@ export default function StorageMeters() {
             {data.folders.map((f) => {
               const share = data.totalBytes > 0 ? (f.bytes / data.totalBytes) * 100 : 0;
               return (
-                <li key={f.name} className="grid grid-cols-[minmax(0,9rem)_1fr_auto] items-center gap-3 text-sm">
+                <li key={f.name} className="grid grid-cols-[minmax(0,9rem)_1fr_8.5rem] items-center gap-3 text-sm">
                   <span className="truncate font-mono text-zinc-300" title={f.name}>{f.name}</span>
                   <span className="h-2 overflow-hidden rounded-full bg-zinc-800">
                     <span className="block h-full rounded-full bg-yellow-400/80" style={{ width: `${Math.max(share, 0.5)}%` }} />
                   </span>
-                  <span className="whitespace-nowrap text-xs text-zinc-400">
+                  <span className="whitespace-nowrap text-right text-xs text-zinc-400">
                     {formatBytes(f.bytes)} · {f.objects.toLocaleString()}
                   </span>
                 </li>

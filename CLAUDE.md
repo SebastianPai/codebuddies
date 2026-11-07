@@ -22,7 +22,7 @@ desfasado de la base de datos.
 
 ### Ramas peligrosas (NO desplegar ni fusionar tal cual)
 
-Estado al 2026-11-07 (noche): `codebuddies-web` corre `0529306` (navbar más simple: Cursos, menú de cuenta corto) y `codebuddies-api` y `codebuddies-game` corren `cc5ea30`, todo en la rama `feat/curso-fullstack` (sale de `feat/curso-python`). Trae: el JavaScript de los alumnos (ejercicios JS, Buddy y nave) corre en un proceso aislado sin variables de entorno, con permisos de Node y sin generación de código (antes con node:vm se podían leer las claves de producción); lenguaje de ejercicio `web` (HTML+CSS+JS verificado con DOM real en el servidor y en el navegador); pruebas JS async con `// @pruebas`; consola de JavaScript en la vista previa; preguntas de quiz con código. Es la rama base para todo trabajo nuevo. Lo que sigue en
+Estado al 2026-11-07 (noche): las 3 apps corren `9101f37` (más el ajuste de los medidores en web), todo en la rama `feat/curso-fullstack` (sale de `feat/curso-python`). Trae: el JavaScript de los alumnos (ejercicios JS, Buddy y nave) corre en un proceso aislado sin variables de entorno, con permisos de Node y sin generación de código (antes con node:vm se podían leer las claves de producción); lenguaje de ejercicio `web` (HTML+CSS+JS verificado con DOM real en el servidor y en el navegador); pruebas JS async con `// @pruebas`; consola de JavaScript en la vista previa; preguntas de quiz con código; navbar más simple; ícono de XP configurable en toda la web; medidores de R2 en /admin. Es la rama base para todo trabajo nuevo. Lo que sigue en
 la tabla vale para cualquier rama que NO contenga `cc5ea30`:
 
 | Rama | Por qué es peligrosa |
