@@ -45,9 +45,50 @@ function detectVideo(buffer: Buffer): { ext: string; mimetype: string } | null {
   return null;
 }
 
+// Plan gratis de R2: 10 GB guardados. Se puede cambiar con R2_STORAGE_LIMIT_MB
+// si se pasa a un plan pago.
+const totalLimitBytes = () =>
+  (Number(process.env.R2_STORAGE_LIMIT_MB) || 10240) * 1024 * 1024;
+const USAGE_CACHE_MS = 10 * 60 * 1000;
+
+export type StorageUsage = {
+  totalBytes: number;
+  totalLimitBytes: number;
+  objects: number;
+  videoBytes: number;
+  videoLimitBytes: number;
+  folders: { name: string; bytes: number; objects: number }[];
+  checkedAt: string;
+};
+
 @Injectable()
 export class UploadsService {
   private storage = new R2Storage();
+  private usageCache: { at: number; data: StorageUsage } | null = null;
+
+  /**
+   * Medidores del panel de admin. Recorrer el bucket gasta operaciones de
+   * R2, así que se guarda 10 minutos (refresh=true lo fuerza, con un mínimo
+   * de 30 s entre recorridos para que el botón no se pueda abusar).
+   */
+  async storageUsage(refresh = false): Promise<StorageUsage> {
+    const age = this.usageCache ? Date.now() - this.usageCache.at : Infinity;
+    if (this.usageCache && (age < 30_000 || (!refresh && age < USAGE_CACHE_MS))) {
+      return this.usageCache.data;
+    }
+    const usage = await this.storage.bucketUsage();
+    const data: StorageUsage = {
+      totalBytes: usage.totalBytes,
+      totalLimitBytes: totalLimitBytes(),
+      objects: usage.objects,
+      videoBytes: usage.folders.find((f) => f.name === VIDEO_PREFIX.slice(0, -1))?.bytes ?? 0,
+      videoLimitBytes: videoLimitBytes(),
+      folders: usage.folders.slice(0, 12),
+      checkedAt: new Date().toISOString(),
+    };
+    this.usageCache = { at: Date.now(), data };
+    return data;
+  }
 
   async videoUsage() {
     const used = await this.storage.usedBytes(VIDEO_PREFIX);
@@ -77,6 +118,7 @@ export class UploadsService {
       .slice(0, 40) || 'video';
     const path = `${VIDEO_PREFIX}${Date.now()}-${base}.${detected.ext}`;
     const url = await this.storage.upload(file.buffer, path, detected.mimetype);
+    this.usageCache = null;
     return { url, ...(await this.videoUsage()) };
   }
 

@@ -28,6 +28,46 @@ export class R2Storage {
     });
   }
 
+  /**
+   * Uso de todo el bucket agrupado por la primera carpeta de la ruta
+   * ("videos", "cursos", "items"...). Una pasada de ListObjectsV2 (1000
+   * objetos por página): quien lo llame tiene que guardarlo un rato en caché.
+   */
+  async bucketUsage(): Promise<{
+    totalBytes: number;
+    objects: number;
+    folders: { name: string; bytes: number; objects: number }[];
+  }> {
+    const byFolder = new Map<string, { bytes: number; objects: number }>();
+    let totalBytes = 0;
+    let objects = 0;
+    let token: string | undefined;
+    do {
+      const page = await this.client.send(
+        new ListObjectsV2Command({
+          Bucket: process.env.R2_BUCKET,
+          ContinuationToken: token,
+        }),
+      );
+      for (const object of page.Contents ?? []) {
+        const size = object.Size ?? 0;
+        const key = object.Key ?? '';
+        const name = key.includes('/') ? key.slice(0, key.indexOf('/')) : '(raíz)';
+        const entry = byFolder.get(name) ?? { bytes: 0, objects: 0 };
+        entry.bytes += size;
+        entry.objects += 1;
+        byFolder.set(name, entry);
+        totalBytes += size;
+        objects += 1;
+      }
+      token = page.IsTruncated ? page.NextContinuationToken : undefined;
+    } while (token);
+    const folders = [...byFolder.entries()]
+      .map(([name, v]) => ({ name, ...v }))
+      .sort((x, y) => y.bytes - x.bytes);
+    return { totalBytes, objects, folders };
+  }
+
   /** Bytes guardados bajo un prefijo (p. ej. "videos/"), para no pasarse del plan. */
   async usedBytes(prefix: string): Promise<number> {
     let total = 0;

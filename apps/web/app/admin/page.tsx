@@ -7,6 +7,7 @@ import { api } from "../../utils/api";
 import { useTranslation } from "../../src/i18n/useTranslation";
 import { Pagination } from "../../src/shared/ui";
 import AdminSimpleChart from "../../components/referrals/AdminSimpleChart";
+import StorageMeters from "../../components/admin/StorageMeters";
 
 const userActionLabelKeys: Record<string, string> = {
   GRANT_ADMIN: "admin.actionGrantAdmin",
@@ -154,6 +155,8 @@ export default function AdminDashboard() {
           {t("admin.adminDashboardDescription")}
         </p>
       </header>
+
+      <StorageMeters />
 
       <section className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
         {cards.map(([title, value, Icon]) => (

@@ -17,7 +17,7 @@ import { UploadFramesDto } from './dto/upload-frames.dto';
 import { JwtAuthGuard } from '../identity/guards/jwt.guard';
 import { RolesGuard } from '../identity/guards/roles.guard';
 import { Roles } from '../identity/decorators/roles.decorator';
-import { Get } from '@nestjs/common';
+import { Get, Query } from '@nestjs/common';
 
 const MAX_VIDEO_SIZE = 40 * 1024 * 1024;
 
@@ -84,6 +84,14 @@ export class UploadsController {
   async uploadVideo(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('File required');
     return this.uploadsService.uploadVideo(file);
+  }
+
+  /** Medidores de R2 para el panel de admin (total, videos y por carpeta). */
+  @Get('usage')
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
+  storageUsage(@Query('refresh') refresh?: string) {
+    return this.uploadsService.storageUsage(refresh === '1' || refresh === 'true');
   }
 
   /** Cuánto espacio de videos se usó de lo gratis. */
