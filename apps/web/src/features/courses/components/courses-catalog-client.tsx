@@ -298,7 +298,7 @@ export function CoursesCatalogClient({
       </div>
 
       {/* Hero dark brutal */}
-      <header className="relative pt-24 pb-20 px-6 md:px-12 border-b-8 border-[rgb(var(--border))] bg-[rgb(var(--card)/0.6)] backdrop-blur-md">
+      <header className="relative pt-36 md:pt-40 pb-20 px-6 md:px-12 border-b-8 border-[rgb(var(--border))] bg-[rgb(var(--card)/0.6)] backdrop-blur-md">
         <div className="max-w-7xl mx-auto">
           <div className="inline-block bg-[rgb(var(--button))] text-[rgb(var(--button-text))] font-black px-8 py-3 mb-10 -skew-x-12 border-4 border-[rgb(var(--border))] shadow-[8px_8px_0_0_rgba(0,0,0,0.6)]">
             {t("site.coursesDeclassifiedBadge")}
@@ -318,7 +318,7 @@ export function CoursesCatalogClient({
             href="/paths"
             className="mt-8 inline-flex items-center gap-2 border-2 border-[rgb(var(--primary))] px-5 py-3 font-mono text-sm font-bold uppercase text-[rgb(var(--primary))] transition hover:bg-[rgb(var(--primary))] hover:text-black"
           >
-            {t("site.pathsLabel")} →
+            {t("site.pathsLabel")} <ArrowRight size={16} aria-hidden="true" />
           </Link>
         </div>
       </header>

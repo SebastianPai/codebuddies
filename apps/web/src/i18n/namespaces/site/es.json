@@ -171,7 +171,7 @@
   "rewardTypeTitle": "Título",
   "noRankingEntriesTitle": "Sin datos todavía",
   "noRankingEntriesDescription": "Cuando haya actividad suficiente, este ranking mostrará a los primeros clasificados.",
-  "coursesDeclassifiedBadge": "MÓDULOS DESCLASIFICADOS",
+  "coursesDeclassifiedBadge": "CATÁLOGO DE CURSOS",
   "coursesHeroTitle1": "ELIGE TU",
   "coursesHeroTitle2": "CAMINO HACKER",
   "coursesHeroSubtitle": "> Filtra • Busca • Compila • Gana XP",
@@ -494,7 +494,7 @@
   "promoRedeemError": "No se pudo canjear el código.",
   "streakIncreasedToast": "¡Racha de {count} días!",
   "academyLesson": {
-    "backToModule": "Volver al módulo",
+    "backToModule": "Volver al curso",
     "lessonsInCourse": "Lecciones del curso",
     "lessonProgress": "{done} de {total} lecciones",
     "lessonXofY": "Lección {index} de {total}",

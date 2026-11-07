@@ -171,7 +171,7 @@
   "rewardTypeTitle": "Title",
   "noRankingEntriesTitle": "No data yet",
   "noRankingEntriesDescription": "Once there's enough activity, this leaderboard will show the top performers.",
-  "coursesDeclassifiedBadge": "DECLASSIFIED MODULES",
+  "coursesDeclassifiedBadge": "COURSE CATALOG",
   "coursesHeroTitle1": "CHOOSE YOUR",
   "coursesHeroTitle2": "HACKER PATH",
   "coursesHeroSubtitle": "> Filter • Search • Compile • Earn XP",
@@ -494,7 +494,7 @@
   "promoRedeemError": "Couldn't redeem this code.",
   "streakIncreasedToast": "{count}-day streak!",
   "academyLesson": {
-    "backToModule": "Back to module",
+    "backToModule": "Back to course",
     "lessonsInCourse": "Lessons in this course",
     "lessonProgress": "{done} of {total} lessons",
     "lessonXofY": "Lesson {index} of {total}",

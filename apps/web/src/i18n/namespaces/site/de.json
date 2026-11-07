@@ -171,7 +171,7 @@
   "rewardTypeTitle": "Titel",
   "noRankingEntriesTitle": "Noch keine Daten",
   "noRankingEntriesDescription": "Sobald genug Aktivität vorhanden ist, zeigt diese Rangliste die Besten an.",
-  "coursesDeclassifiedBadge": "FREIGEGEBENE MODULE",
+  "coursesDeclassifiedBadge": "KURSKATALOG",
   "coursesHeroTitle1": "WÄHLE DEINEN",
   "coursesHeroTitle2": "HACKER-PFAD",
   "coursesHeroSubtitle": "> Filtern • Suchen • Kompilieren • XP verdienen",
@@ -494,7 +494,7 @@
   "promoRedeemError": "Dieser Code konnte nicht eingelöst werden.",
   "streakIncreasedToast": "{count}-Tage-Serie!",
   "academyLesson": {
-    "backToModule": "Zurück zum Modul",
+    "backToModule": "Zurück zum Kurs",
     "lessonsInCourse": "Lektionen in diesem Kurs",
     "lessonProgress": "{done} von {total} Lektionen",
     "lessonXofY": "Lektion {index} von {total}",
