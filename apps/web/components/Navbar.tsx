@@ -262,9 +262,9 @@ export default function Navbar() {
       <nav
         className={`
         pointer-events-auto relative flex flex-col transition-[width,border-radius,box-shadow,transform] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]
-        backdrop-blur-xl
-        bg-[rgba(var(--card),0.65)]
-        ring-1 ring-white/10
+        backdrop-blur-xl backdrop-saturate-150
+        bg-[rgb(var(--card)/0.92)] bg-gradient-to-b from-white/[0.07] to-white/[0.01]
+        border border-[rgb(var(--border))]
         ${shapeClass}
         `}
       >
@@ -365,7 +365,7 @@ export default function Navbar() {
                   onClick={() => setIsUserMenuOpen((open) => !open)}
                   aria-haspopup="menu"
                   aria-expanded={isUserMenuOpen}
-                  className="flex items-center gap-2 px-4 py-2 bg-[rgba(var(--background),0.6)] backdrop-blur-md rounded-full hover:scale-[1.03] transition-all"
+                  className="flex items-center gap-2 px-4 py-2 bg-[rgb(var(--background)/0.7)] border border-[rgb(var(--border))] rounded-full hover:border-[rgb(var(--primary))] transition-colors"
                 >
                   <AppIcon slot="ICON_PROFILE" size={14} fallback={<User size={14} className="text-[rgb(var(--primary))]" />} />
 
@@ -420,7 +420,7 @@ export default function Navbar() {
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
               aria-label={t("navbar.theme")}
-              className="ml-4 p-2.5 bg-[rgba(var(--background),0.6)] backdrop-blur-md rounded-xl hover:scale-[1.05] transition-all"
+              className="ml-3 p-2.5 bg-[rgb(var(--background)/0.7)] border border-[rgb(var(--border))] rounded-full hover:border-[rgb(var(--primary))] transition-colors"
             >
               {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
             </button>
@@ -592,8 +592,8 @@ function StatsPill({
     <div
       data-tour={fullWidth ? undefined : "nav-stats"}
       className={`
-        hidden xl:flex items-center gap-2 px-3 py-1.5
-        bg-[rgba(var(--background),0.6)] backdrop-blur-md rounded-full
+        hidden xl:flex items-center gap-2 px-3.5 py-2
+        bg-[rgb(var(--background)/0.7)] border border-[rgb(var(--border))] rounded-full
         text-xs font-black transition-all duration-300
         ${fullWidth ? "!flex w-full justify-center" : ""}
         ${pulse ? "scale-110 ring-2 ring-yellow-400/70 shadow-[0_0_20px_rgba(250,204,21,0.4)]" : ""}
