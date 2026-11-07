@@ -146,7 +146,8 @@ const cssRules = (() => {
           if (k < 0) continue;
           const prop = decl.slice(0, k).trim().toLowerCase();
           const value = decl.slice(k + 1).trim().replace(/\s+/g, ' ').replace(/\s*!important$/i, '');
-          for (const sel of sels) out.push({ selector: sel, prop, value, media });
+          const raw = decl.slice(k + 1).trim();
+          for (const sel of sels) out.push({ selector: sel, prop, value, media, raw });
         }
       }
       i = j;
@@ -155,6 +156,59 @@ const cssRules = (() => {
   walk(src, null);
   return out;
 })();
+// Cascada simplificada para las pruebas: qué valor "gana" en un elemento.
+// Especificidad + orden + !important, herencia de las propiedades que se
+// heredan, var(--x) y media queries de ancho (opciones: { ancho: 1024 }).
+const __spec = (sel) => {
+  let s = String(sel).replace(/::?(before|after|first-line|first-letter|placeholder|marker|selection)\b/g, ' ');
+  let a = 0, b = 0, c = 0;
+  s = s.replace(/:where\([^)]*\)/g, ' ');
+  s = s.replace(/:(not|is|has)\(([^)]*)\)/g, (m, k, inner) => { const r = __spec(inner.split(',')[0]); a += r[0]; b += r[1]; c += r[2]; return ' '; });
+  s = s.replace(/#[\w-]+/g, () => { a++; return ' '; });
+  s = s.replace(/\.[\w-]+|\[[^\]]*\]|:[\w-]+(\([^)]*\))?/g, () => { b++; return ' '; });
+  s.split(/[\s>+~]+/).forEach((t) => { if (t && t !== '*') c++; });
+  return [a, b, c];
+};
+const __mediaOk = (media, ancho) => {
+  if (media === null) return true;
+  if (ancho === undefined) return false;
+  const px = (n, u) => Number(n) * (u === 'px' ? 1 : 16);
+  let ok = true, found = false;
+  media.replace(/\((min|max)-width\s*:\s*([\d.]+)(px|rem|em)\)/g, (m, k, n, u) => {
+    found = true;
+    if (k === 'min' && ancho < px(n, u)) ok = false;
+    if (k === 'max' && ancho > px(n, u)) ok = false;
+    return m;
+  });
+  return found && ok;
+};
+const __hereda = /^(color|font|font-family|font-size|font-weight|font-style|line-height|letter-spacing|text-align|text-transform|visibility|cursor|list-style|list-style-type|white-space|word-spacing|--.*)$/;
+const __mayor = (x, y) => { for (let j = 0; j < x.length; j++) { if (x[j] !== y[j]) return x[j] > y[j]; } return false; };
+const __matches = (el, sel) => { try { return el.matches(sel); } catch (e) { return false; } };
+const styleOf = (el, prop, opts) => {
+  const o = opts || {};
+  const p = String(prop).toLowerCase();
+  const resolve = (value, node, depth) => String(value).replace(/var\(\s*(--[\w-]+)\s*(?:,\s*([^)]*))?\)/g, (m, name, fb) => {
+    const v = depth < 6 ? styleOf(node, name, { ...o, __d: depth + 1 }) : null;
+    return v !== null ? v : (fb !== undefined ? fb.trim() : m);
+  });
+  for (let node = el; node && node.nodeType === 1; node = node.parentElement) {
+    let best = null;
+    cssRules.forEach((r, i) => {
+      if (r.prop !== p || !__mediaOk(r.media, o.ancho) || !__matches(node, r.selector)) return;
+      const imp = /!important/i.test(r.raw || '') ? 1 : 0;
+      const key = [imp, ...__spec(r.selector), i];
+      if (!best || __mayor(key, best.key)) best = { key, value: r.value };
+    });
+    const inline = node.getAttribute && node.getAttribute('style');
+    if (inline) {
+      inline.split(';').forEach((d) => { const k = d.indexOf(':'); if (k > 0 && d.slice(0, k).trim().toLowerCase() === p && (!best || !best.key[0])) best = { key: [0, 9, 0, 0, 0], value: d.slice(k + 1).trim().replace(/\s+/g, ' ') }; });
+    }
+    if (best) return best.value === 'inherit' ? (node.parentElement ? styleOf(node.parentElement, p, o) : null) : resolve(best.value, node, o.__d || 0);
+    if (!__hereda.test(p)) return null;
+  }
+  return null;
+};
 const css = (selector, prop, media) => {
   const sel = String(selector).trim().replace(/\s+/g, ' ').toLowerCase();
   const p = String(prop).toLowerCase();
