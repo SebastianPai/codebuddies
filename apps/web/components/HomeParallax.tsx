@@ -137,6 +137,8 @@ export function HomeParallax() {
 
   if (layers.length === 0) return null;
 
+  const edgeScale = width ? 1 + (2 * MAX_MOUSE_SHIFT_PX + 8) / width : 1.04;
+
   const background = height !== null && (
     // De borde a borde y desde el tope de la página (detrás del navbar) hasta
     // el final del hero. z-0: arriba del fondo de la página, debajo del
@@ -156,23 +158,13 @@ export function HomeParallax() {
             layerRefs.current[index] = el;
           }}
           data-depth={depth}
-          // 10% extra de ancho/alto para que al moverse nunca se vea el borde.
-          data-scale={1.1 * (asset.scale || 1)}
+          // Solo lo justo de más para que el movimiento del mouse nunca deje
+          // ver el borde (antes era 10%: agrandaba la imagen de más).
+          data-scale={edgeScale * (asset.scale || 1)}
           className="absolute inset-0 will-change-transform"
-          style={{ transform: `scale(${1.1 * (asset.scale || 1)})` }}
+          style={{ transform: `scale(${edgeScale * (asset.scale || 1)})` }}
         >
-          {asset.mode === "SPRITE" ? (
-            <SpriteCover asset={asset} boxWidth={width} boxHeight={height ?? 0} />
-          ) : (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={asset.imageUrl}
-              alt=""
-              decoding="async"
-              className="absolute inset-0 h-full w-full object-cover"
-              style={{ objectPosition: `${asset.offsetX ?? 50}% ${asset.offsetY ?? 100}%` }}
-            />
-          )}
+          <LayerImage asset={asset} boxWidth={width} boxHeight={height ?? 0} fillHeight={index === 0} />
         </div>
       ))}
       {/* Para que el texto del hero se lea encima y la última capa se funda
@@ -192,22 +184,27 @@ export function HomeParallax() {
 }
 
 /**
- * Sprite sheet horizontal (N cuadros iguales) que CUBRE el fondo como un
- * object-cover, animado solo con CSS. El tamaño del cuadro sale de la imagen
- * real, así que no hay que configurarlo a mano: basta con "Cuadros" y
- * "Velocidad" en el admin.
+ * Una capa del fondo (imagen fija, GIF/WebP o sprite sheet horizontal de N
+ * cuadros animado con CSS). Ocupa TODO el ancho de la pantalla, sin hacerle
+ * zoom para tapar el alto: así la imagen encaja entera y se apoya abajo (o
+ * donde diga el foco X/Y del admin, offsetX/offsetY; 50/100 = centrado abajo).
+ * Solo la capa de más atrás (el cielo), si no llega a tapar el alto, se
+ * agranda hasta cubrirlo, para que nunca quede un hueco.
  */
-function SpriteCover({
+function LayerImage({
   asset,
   boxWidth,
   boxHeight,
+  fillHeight,
 }: {
   asset: ResolvedThemeAsset;
   boxWidth: number;
   boxHeight: number;
+  fillHeight: boolean;
 }) {
   const [frame, setFrame] = useState<{ w: number; h: number } | null>(null);
-  const frames = Math.max(1, asset.frameCount);
+  const sprite = asset.mode === "SPRITE";
+  const frames = sprite ? Math.max(1, asset.frameCount) : 1;
 
   useEffect(() => {
     let cancelled = false;
@@ -221,16 +218,21 @@ function SpriteCover({
     };
   }, [asset.imageUrl, frames]);
 
-  if (!frame || !boxWidth || !boxHeight || !frame.h) return null;
+  if (!frame || !boxWidth || !boxHeight || !frame.h || !frame.w) return null;
 
-  // object-cover: el cuadro escala hasta tapar todo y se encuadra con el
-  // foco X/Y del admin (offsetX/offsetY, 50/100 = centrado abajo).
-  const scale = Math.max(boxWidth / frame.w, boxHeight / frame.h);
+  let scale = boxWidth / frame.w;
+  if (fillHeight && frame.h * scale < boxHeight) scale = boxHeight / frame.h;
   const w = frame.w * scale;
   const h = frame.h * scale;
   const left = (boxWidth - w) * ((asset.offsetX ?? 50) / 100);
   const top = (boxHeight - h) * ((asset.offsetY ?? 100) / 100);
 
+  if (!sprite) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={asset.imageUrl} alt="" decoding="async" className="absolute max-w-none" style={{ left, top, width: w, height: h }} />
+    );
+  }
   return (
     <div
       className="parallax-sprite absolute"

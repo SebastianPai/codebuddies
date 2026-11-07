@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useThemeAsset } from "../hooks/useThemeAsset";
+import { usePixelSnap } from "../hooks/usePixelSnap";
 import { ThemeImage, THEME_IMAGE_SPRITE_KEYFRAMES } from "./ThemeImage";
 
 // Keys compartidas con apps/game (ver SLOT_REGISTRY en
@@ -47,6 +48,8 @@ export function AppIcon({
   className?: string;
 }) {
   const asset = useThemeAsset(slot);
+  // Tamaño donde el pixel art queda nítido (ver usePixelSnap).
+  const snap = usePixelSnap(asset?.imageUrl, size);
 
   if (!asset) return <>{fallback}</>;
 
@@ -57,15 +60,14 @@ export function AppIcon({
         asset={asset}
         fallbackSrc=""
         alt={alt}
-        size={size}
+        size={snap.size}
         className={className}
         style={{
-          width: asset.mode === "SPRITE" ? undefined : size,
-          height: size,
+          width: asset.mode === "SPRITE" ? undefined : snap.size,
+          height: snap.size,
           objectFit: "contain",
           flexShrink: 0,
-          // Igual que CurrencyIcon/AchievementIcon: nítido para pixel art.
-          imageRendering: "pixelated",
+          imageRendering: snap.rendering,
         }}
       />
     </>

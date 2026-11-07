@@ -4,6 +4,7 @@ import { Coins, Gem, Trophy } from "lucide-react";
 import { classNames } from "@/shared/utils/class-names";
 import { useThemeAsset } from "../../../hooks/useThemeAsset";
 import { ThemeImage } from "../../../components/ThemeImage";
+import { usePixelSnap } from "../../../hooks/usePixelSnap";
 
 interface CurrencyIconProps {
   currency: "coins" | "gems";
@@ -25,15 +26,16 @@ const PIXEL_STYLE = { imageRendering: "pixelated" as const, objectFit: "contain"
 /** Coin/gem icon with the shared premium currency identity color. */
 export function CurrencyIcon({ currency, size = 14, className }: CurrencyIconProps) {
   const coinAsset = useThemeAsset("COIN_ICON");
+  const snap = usePixelSnap(currency === "coins" ? coinAsset?.imageUrl : null, size);
   if (currency === "coins" && coinAsset) {
     return (
       <ThemeImage
         asset={coinAsset}
         fallbackSrc=""
         alt="coins"
-        size={size}
+        size={snap.size}
         className={classNames("inline-block shrink-0 align-middle", className)}
-        style={{ ...PIXEL_STYLE, width: coinAsset.mode === "SPRITE" ? undefined : size, height: size }}
+        style={{ ...PIXEL_STYLE, imageRendering: snap.rendering, width: coinAsset.mode === "SPRITE" ? undefined : snap.size, height: snap.size }}
       />
     );
   }
@@ -44,15 +46,16 @@ export function CurrencyIcon({ currency, size = 14, className }: CurrencyIconPro
 /** Ícono de logro, administrable igual que la moneda (slot ACHIEVEMENT_ICON). */
 export function AchievementIcon({ size = 16, className }: { size?: number; className?: string }) {
   const asset = useThemeAsset("ACHIEVEMENT_ICON");
+  const snap = usePixelSnap(asset?.imageUrl, size);
   if (asset) {
     return (
       <ThemeImage
         asset={asset}
         fallbackSrc=""
         alt="achievement"
-        size={size}
+        size={snap.size}
         className={classNames("inline-block shrink-0 align-middle", className)}
-        style={{ ...PIXEL_STYLE, width: asset.mode === "SPRITE" ? undefined : size, height: size }}
+        style={{ ...PIXEL_STYLE, imageRendering: snap.rendering, width: asset.mode === "SPRITE" ? undefined : snap.size, height: snap.size }}
       />
     );
   }
