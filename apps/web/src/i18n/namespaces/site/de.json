@@ -397,6 +397,8 @@
   "codeExerciseCheckButton": "Prüfen",
   "codeExerciseCoreActivatedAlert": "CORE ERFOLGREICH AKTIVIERT!",
   "codeExerciseReviewCodeAlert": "Überprüfe deinen Code.",
+  "jsConsoleTitle": "JavaScript-Konsole",
+  "jsConsoleEmpty": "Dein Programm hat noch nichts angezeigt. Nutze console.log(...), um Ergebnisse zu sehen.",
   "codeExerciseYourHtmlHerePlaceholder": "Dein HTML hier",
   "premiumStatusError": "Wir konnten deinen Abo-Status nicht laden.",
   "premiumCheckoutError": "Wir konnten den Checkout nicht starten. Bitte versuche es in ein paar Minuten erneut.",

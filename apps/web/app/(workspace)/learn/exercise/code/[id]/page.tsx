@@ -36,7 +36,7 @@ import { PracticeInCodeStudio } from "@/features/codestudio";
 import { useReward } from "../../../../../../contexts/RewardContext";
 import { useTrackToolUsed, trackToolAction, trackCodeStarted, trackCodeResult } from "../../../../../../components/analytics/tool-tracking";
 import { MissionPanel, buildBuddyStageDoc, buildNaveStageDoc, buildPythonStageDoc } from "@/features/buddy";
-import { buddySvg } from "@codebuddies/world-objects";
+import { buddySvg, buildWebCheckDoc } from "@codebuddies/world-objects";
 
 // Ejercicios de Buddy (cursos para niños): solo JavaScript, y la vista previa
 // es el escenario con el robot en vez de una página.
@@ -54,9 +54,56 @@ type CodeTab = "html" | "css" | "js";
 // ejercicio a la pestaña correcta para no arrancar siempre en JS.
 function langToTab(lang?: string): CodeTab {
   const l = (lang || "").toLowerCase();
-  if (l === "html" || l === "markup" || l === "xml") return "html";
+  if (l === "html" || l === "markup" || l === "xml" || l === "web") return "html";
   if (l === "css") return "css";
   return "js";
+}
+
+// Página web completa (curso Full Stack): el alumno edita HTML, CSS y JS, se
+// envían los tres juntos y el servidor los verifica con un DOM real.
+const isWebLang = (lang?: string) => (lang || "").toLowerCase() === "web";
+// JS puro o página web: las pruebas corren aparte (iframe oculto para quien no
+// inició sesión; el servidor para todos). La vista previa queda en vivo.
+const usesCheckFrame = (lang?: string, solution?: string) =>
+  isWebLang(lang) || ((lang || "").toLowerCase() === "js" && /\bassert\s*\(/.test(solution || ""));
+
+type CodeFiles = { html: string; css: string; js: string };
+
+// Código inicial de cada pestaña. En "web" el starter es JSON {html, css, js}.
+function starterFiles(lang: string | undefined, starter: string): CodeFiles {
+  if (isWebLang(lang)) {
+    try {
+      const v = JSON.parse(starter || "{}");
+      return { html: String(v?.html ?? ""), css: String(v?.css ?? ""), js: String(v?.js ?? "") };
+    } catch {
+      return { html: starter || "", css: "", js: "" };
+    }
+  }
+  const tab = langToTab(lang);
+  return { html: tab === "html" ? starter : "", css: tab === "css" ? starter : "", js: tab === "js" ? starter : "" };
+}
+
+// Ejercicio de JavaScript sin HTML: la vista previa es una consola, no una
+// página en blanco con "Tu HTML aquí".
+function consoleDoc(js: string, title: string, empty: string) {
+  const safe = js.replace(/<\/(script)/gi, "<\\/$1");
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+html,body{margin:0;height:100%;background:#11131f;color:#d1fae5;font:15px/1.6 "JetBrains Mono",Consolas,monospace}
+header{padding:12px 18px;background:#1e2235;color:#fff;font:800 14px Arial,sans-serif;letter-spacing:.02em}
+#out{padding:14px 18px;white-space:pre-wrap;word-break:break-word}
+.e{color:#fca5a5}.m{color:#94a3b8}
+</style></head><body><header>${title}</header><div id="out"><div class="m">${empty}</div></div>
+<script>
+(function(){var out=document.getElementById("out"),first=true;
+function fmt(a){if(typeof a==="string")return a;if(a===undefined)return"undefined";if(typeof a==="function")return"[Function "+(a.name||"anonymous")+"]";try{var s=JSON.stringify(a);return s===undefined?String(a):s}catch(e){return String(a)}}
+function line(t,c){if(first){out.innerHTML="";first=false}var d=document.createElement("div");if(c)d.className=c;d.textContent=t;out.appendChild(d)}
+var log=function(){line(Array.prototype.map.call(arguments,fmt).join(" "))};
+console.log=console.info=console.debug=console.table=log;console.warn=console.error=function(){line(Array.prototype.map.call(arguments,fmt).join(" "),"e")};
+window.addEventListener("error",function(e){line(e.message,"e")});
+window.addEventListener("unhandledrejection",function(e){line("Promise: "+fmt(e.reason&&e.reason.message||e.reason),"e")});
+})();
+</script>
+<script>${safe}</script></body></html>`;
 }
 
 const panelClass = `
@@ -119,6 +166,7 @@ const EditorContent = memo(
     buddyMode,
     editorLanguage,
     onEditorMount,
+    exerciseLanguage,
   }: any) => {
     const t = useTranslation();
     const { resolvedTheme } = useTheme();
@@ -139,14 +187,12 @@ const EditorContent = memo(
     );
 
     const handleReset = useCallback(() => {
-      setHtmlCode("");
-      setCssCode("");
-      setJsCode("");
       // El starter vuelve a la pestaña del lenguaje del ejercicio, no a JS.
-      if (starterTab === "html") setHtmlCode(starterCode);
-      else if (starterTab === "css") setCssCode(starterCode);
-      else setJsCode(starterCode);
-    }, [starterCode, starterTab, setHtmlCode, setCssCode, setJsCode]);
+      const files = starterFiles(exerciseLanguage, starterCode);
+      setHtmlCode(files.html);
+      setCssCode(files.css);
+      setJsCode(files.js);
+    }, [starterCode, starterTab, exerciseLanguage, setHtmlCode, setCssCode, setJsCode]);
 
     // Monaco no lee las variables CSS: hay que darle su propio tema.
     const editorTheme = resolvedTheme === "light" || resolvedTheme === "pink" ? "light" : "vs-dark";
@@ -320,6 +366,8 @@ export default function FullWidthConfidentialWorkspace() {
   const [jsCode, setJsCode] = useState("");
 
   const [previewDoc, setPreviewDoc] = useState("");
+  // Iframe oculto que corre las pruebas de JS/web en el navegador (visitantes).
+  const [checkDoc, setCheckDoc] = useState("");
 
   // Profe Buddy: pistas escritas a mano, una a la vez, cuando el código falla.
   const [hints, setHints] = useState<string[]>([]);
@@ -452,10 +500,10 @@ export default function FullWidthConfidentialWorkspace() {
           setJsCode(parsed.js || "");
           setDirty(true);
         } else {
-          const starter = data.starterCode || "";
-          setHtmlCode(tab === "html" ? starter : "");
-          setCssCode(tab === "css" ? starter : "");
-          setJsCode(tab === "js" ? starter : "");
+          const files = starterFiles(data.language, data.starterCode || "");
+          setHtmlCode(files.html);
+          setCssCode(files.css);
+          setJsCode(files.js);
         }
       } catch (err: any) {
         setError(err.message || t("site.codeExerciseLoadError"));
@@ -562,7 +610,13 @@ export default function FullWidthConfidentialWorkspace() {
       // solutionCode puede ser verificaciones assert(...) o la respuesta
       // modelo (HTML/CSS/JS). Ejecutar la respuesta modelo como JS era lo que
       // mostraba "Unexpected token '<'". El servidor valida ambos casos.
-      const assertions = /\bassert\s*\(/.test(solution) ? solution : "";
+      // JS y páginas web: las pruebas corren aparte (ver checkDoc), así la
+      // vista previa queda en vivo y con temporizadores de verdad.
+      const assertions = /\bassert\s*\(/.test(solution) && !usesCheckFrame(exercise?.language, solution) ? solution : "";
+      if ((exercise?.language || "").toLowerCase() === "js" && !htmlCode.trim() && !cssCode.trim()) {
+        setPreviewDoc(consoleDoc(jsCode, t("site.jsConsoleTitle"), t("site.jsConsoleEmpty")));
+        return;
+      }
 
       const doc = `
 <!DOCTYPE html>
@@ -669,6 +723,11 @@ try {
   const submitCompletion = async () => {
     if (!exercise || completed || submitting) return;
     if (!user?.userId) {
+      if (usesCheckFrame(exercise.language, exercise.solutionCode)) {
+        guestPendingRef.current = exercise.id;
+        setCheckDoc(buildWebCheckDoc({ html: htmlCode, css: cssCode, js: jsCode }, String(exercise.solutionCode || "")) + `<!-- ${Date.now()} -->`);
+        return;
+      }
       if (!buddyMode && checkResult === "pass") {
         markGuestDone(exercise.id);
         setShowGuestSave(true);
@@ -696,8 +755,9 @@ try {
       const langTab = langToTab(exercise?.language);
       const primaryCode =
         langTab === "html" ? htmlCode : langTab === "css" ? cssCode : jsCode;
-      const submittedCode =
-        primaryCode.trim() ||
+      const submittedCode = isWebLang(exercise?.language)
+        ? JSON.stringify({ html: htmlCode, css: cssCode, js: jsCode })
+        : primaryCode.trim() ||
         jsCode.trim() ||
         htmlCode.trim() ||
         cssCode.trim() ||
@@ -899,6 +959,9 @@ try {
       <div className="flex-1 overflow-hidden rounded-b-[28px] bg-white">
         {/* La consola de Python es un iframe propio por ejercicio (key): nunca reusa uno que esté cargando otro documento. */}
         <PreviewFrame key={pythonMode ? `python-${exercise?.id}` : "preview"} srcDoc={pythonMode ? pythonDoc : previewDoc} stage={pythonMode ? "python" : undefined} />
+        {checkDoc && (
+          <iframe key={docKey(checkDoc)} srcDoc={checkDoc} sandbox="allow-scripts" aria-hidden="true" tabIndex={-1} className="hidden" title="check" />
+        )}
       </div>
     </div>
   );
@@ -939,6 +1002,7 @@ try {
                   setJsCode={setJsCode}
                   starterCode={exercise?.starterCode || ""}
                   starterTab={langToTab(exercise?.language)}
+                  exerciseLanguage={exercise?.language}
                   isMobile={isMobile}
                   onUserEdit={handleUserEdit}
                   buddyMode={buddyMode}
@@ -974,6 +1038,7 @@ try {
                   setJsCode={setJsCode}
                   starterCode={exercise?.starterCode || ""}
                   starterTab={langToTab(exercise?.language)}
+                  exerciseLanguage={exercise?.language}
                   isMobile={isMobile}
                   onUserEdit={handleUserEdit}
                   buddyMode={buddyMode}

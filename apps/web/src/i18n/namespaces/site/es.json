@@ -397,6 +397,8 @@
   "codeExerciseCheckButton": "Comprobar",
   "codeExerciseCoreActivatedAlert": "¡NUCLEO ACTIVADO CORRECTAMENTE!",
   "codeExerciseReviewCodeAlert": "Revisa el código.",
+  "jsConsoleTitle": "Consola de JavaScript",
+  "jsConsoleEmpty": "Tu programa todavía no mostró nada. Usa console.log(...) para ver resultados.",
   "codeExerciseYourHtmlHerePlaceholder": "Tu HTML aquí",
   "premiumStatusError": "No pudimos cargar el estado de tu suscripción.",
   "premiumCheckoutError": "No pudimos iniciar el pago. Intentá de nuevo en unos minutos.",

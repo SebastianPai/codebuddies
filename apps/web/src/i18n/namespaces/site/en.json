@@ -397,6 +397,8 @@
   "codeExerciseCheckButton": "Check",
   "codeExerciseCoreActivatedAlert": "CORE ACTIVATED SUCCESSFULLY!",
   "codeExerciseReviewCodeAlert": "Review your code.",
+  "jsConsoleTitle": "JavaScript console",
+  "jsConsoleEmpty": "Your program has not shown anything yet. Use console.log(...) to see results.",
   "codeExerciseYourHtmlHerePlaceholder": "Your HTML here",
   "premiumStatusError": "We could not load your subscription status.",
   "premiumCheckoutError": "We could not start checkout. Please try again in a few minutes.",

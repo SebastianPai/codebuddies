@@ -1,6 +1,6 @@
-import * as vm from 'node:vm';
-import { BUDDY_NOT_YET, BUDDY_RUNTIME, buddyFriendlyError, friendlyLang, NAVE_NOT_YET, NAVE_RUNTIME, naveFriendlyError, naveLevelFrom, PYTHON_TEXTS, pythonMsgLang, pythonResultMessage } from '@codebuddies/world-objects';
+import { splitJsChecks, BUDDY_NOT_YET, BUDDY_RUNTIME, buddyFriendlyError, friendlyLang, NAVE_NOT_YET, NAVE_RUNTIME, naveFriendlyError, naveLevelFrom, PYTHON_TEXTS, pythonMsgLang, pythonResultMessage } from '@codebuddies/world-objects';
 import { runPython } from './python-runner';
+import { runJsJob } from './js-runner';
 
 // Validación server-side de los ejercicios de código.
 //
@@ -15,7 +15,7 @@ import { runPython } from './python-runner';
 // mensaje que dice exactamente qué corregir.
 
 export type CodeResult = { description: string; passed: boolean; error?: string };
-export type CodeLang = 'html' | 'css' | 'js' | 'buddy' | 'nave' | 'python';
+export type CodeLang = 'html' | 'css' | 'js' | 'buddy' | 'nave' | 'python' | 'web';
 type Msg = 'es' | 'en' | 'de';
 
 export function normalizeLang(language?: string | null): CodeLang {
@@ -25,6 +25,7 @@ export function normalizeLang(language?: string | null): CodeLang {
   if (value === 'buddy') return 'buddy';
   if (value === 'nave') return 'nave';
   if (value === 'python' || value === 'py') return 'python';
+  if (value === 'web') return 'web';
   return 'js';
 }
 
@@ -53,47 +54,77 @@ export function describeSandboxError(error: unknown): string {
   return 'Error de ejecución';
 }
 
-function runJs(code: string): { logs: string[]; error?: string } {
-  const logs: string[] = [];
-  const log = (...args: unknown[]) => logs.push(args.map((arg) => (typeof arg === 'string' ? arg : JSON.stringify(arg))).join(' '));
-  try {
-    const context = vm.createContext({ console: { log, error: log, warn: log, info: log } });
-    new vm.Script(code).runInContext(context, { timeout: 2000 });
-    return { logs };
-  } catch (error) {
-    return { logs, error: describeSandboxError(error) };
-  }
+// Todo el JavaScript de alumnos corre en un proceso aislado (js-runner.ts).
+// Antes corría con node:vm dentro de la API y se podía salir del contexto.
+
+async function runJs(code: string): Promise<{ logs: string[]; error?: string }> {
+  const r = await runJsJob({ script: code });
+  return { logs: r.logs, ...(r.ok ? {} : { error: r.error ?? 'Error de ejecución' }) };
 }
 
-export function runAssertionBlock(studentCode: string, expectedCode: string): CodeResult[] {
-  try {
-    const context = vm.createContext({ console: { log() {}, error() {}, warn() {} } });
-    const script = new vm.Script(`
-      function assert(condition, message) {
-        if (!condition) throw new Error(message || 'Assertion failed');
-      }
-      ${studentCode}
-      ${expectedCode}
-    `);
-    script.runInContext(context, { timeout: 2000 });
-    return [{ description: 'Assertions', passed: true }];
-  } catch (error) {
-    return [{ description: 'Assertions', passed: false, error: describeSandboxError(error) }];
-  }
+// splitJsChecks: ver @codebuddies/world-objects (webcheck.ts), lo comparte la web.
+export { splitJsChecks };
+
+/**
+ * JS con verificaciones: el código del alumno corre en SU propio script (un
+ * `return` suelto es error, no un atajo para saltear las pruebas), con los
+ * prototipos básicos congelados, y después las pruebas con un assert que el
+ * alumno no puede tocar. Las pruebas pueden usar await.
+ */
+export async function runAssertionBlock(studentCode: string, expectedCode: string): Promise<CodeResult[]> {
+  const { setup, tests } = splitJsChecks(expectedCode);
+  const r = await runJsJob({ setup, student: studentCode, tests, harden: true });
+  return r.ok ? [{ description: 'Assertions', passed: true }] : [{ description: 'Assertions', passed: false, error: r.error ?? 'Assertion failed' }];
 }
 
-export function runCodeTests(studentCode: string, tests: Array<{ description: string; assertCode: string }>): CodeResult[] {
-  return tests.map((test) => {
-    try {
-      // Contexto nuevo por test: nada de estado compartido, y sin ningún
-      // global de Node (require/process/Buffer) al alcance del alumno.
-      const context = vm.createContext({ console: { log() {}, error() {}, warn() {} } });
-      const result = new vm.Script(`${studentCode}\n;(${test.assertCode})`).runInContext(context, { timeout: 2000 });
-      return { description: test.description, passed: Boolean(result) };
-    } catch (error) {
-      return { description: test.description, passed: false, error: describeSandboxError(error) };
+export async function runCodeTests(studentCode: string, tests: Array<{ description: string; assertCode: string }>): Promise<CodeResult[]> {
+  const out: CodeResult[] = [];
+  for (const test of tests) {
+    // Contexto nuevo por test: nada de estado compartido.
+    const r = await runJsJob({ script: `${studentCode}\n;(${test.assertCode})`, returnBool: true });
+    out.push(r.ok ? { description: test.description, passed: Boolean(r.value) } : { description: test.description, passed: false, error: r.error });
+  }
+  return out;
+}
+
+// ─── Páginas web (HTML + CSS + JS) verificadas en el servidor ─────────────
+// El alumno manda sus tres archivos como JSON {html, css, js}. Se arma la
+// página con un DOM real (linkedom) dentro del proceso aislado, corre su JS y
+// después las pruebas, que pueden hacer clic, escribir en campos, enviar
+// formularios y leer el CSS (css(".card", "display")).
+
+export type WebFiles = { html: string; css: string; js: string };
+
+export function parseWebFiles(code: string): WebFiles {
+  try {
+    const v = JSON.parse(code);
+    if (v && typeof v === 'object') {
+      return { html: String(v.html ?? ''), css: String(v.css ?? ''), js: String(v.js ?? '') };
     }
-  });
+  } catch {
+    /* no es JSON: se toma como HTML */
+  }
+  return { html: String(code ?? ''), css: '', js: '' };
+}
+
+export function buildWebDocument(files: WebFiles): string {
+  const html = files.html;
+  const style = files.css.trim() ? `<style>${files.css.replace(/<\/style/gi, '<\\/style')}</style>` : '';
+  if (/<html[\s>]/i.test(html)) {
+    if (/<\/head>/i.test(html)) return html.replace(/<\/head>/i, `${style}</head>`);
+    return html.replace(/<html([^>]*)>/i, `<html$1><head>${style}</head>`);
+  }
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">${style}</head><body>${html}</body></html>`;
+}
+
+export async function runWebExercise(studentCode: string, expectedCode: string, lang: Msg): Promise<CodeResult[]> {
+  const files = parseWebFiles(studentCode);
+  if (!files.html.trim() && !files.css.trim() && !files.js.trim()) {
+    return [{ description: 'Web', passed: false, error: t(lang, 'Escribe tu código en el editor.', 'Write your code in the editor.', 'Schreib deinen Code in den Editor.') }];
+  }
+  const { setup, tests } = splitJsChecks(expectedCode);
+  const r = await runJsJob({ dom: buildWebDocument(files), sources: files, setup, student: files.js, tests, harden: true });
+  return r.ok ? [{ description: 'Web', passed: true }] : [{ description: 'Web', passed: false, error: r.error ?? 'Assertion failed' }];
 }
 
 // ─── HTML ─────────────────────────────────────────────────────────────────
@@ -269,9 +300,9 @@ export function compareCss(studentCode: string, expectedCode: string, lang: Msg)
 
 // ─── JS con respuesta modelo: se compara lo que imprime ───────────────────
 
-export function compareJsOutput(studentCode: string, expectedCode: string, lang: Msg): CodeResult[] {
-  const expected = runJs(expectedCode);
-  const student = runJs(studentCode);
+export async function compareJsOutput(studentCode: string, expectedCode: string, lang: Msg): Promise<CodeResult[]> {
+  const expected = await runJs(expectedCode);
+  const student = await runJs(studentCode);
   if (student.error) return [{ description: 'JS', passed: false, error: student.error }];
   const normalize = (lines: string[]) => lines.map((line) => line.trim()).join('\n');
   if (expected.logs.length > 0 && normalize(student.logs) !== normalize(expected.logs)) {
@@ -296,11 +327,10 @@ export function compareJsOutput(studentCode: string, expectedCode: string, lang:
 // @codebuddies/world-objects, el mismo motor que anima la vista previa) y
 // las verificaciones miran cómo quedó: assert(buddy.animo === "riendo", "...").
 
-export function runBuddy(studentCode: string, expectedCode: string, lang?: string | null): CodeResult[] {
+export async function runBuddy(studentCode: string, expectedCode: string, lang?: string | null): Promise<CodeResult[]> {
   const l = friendlyLang(lang);
-  try {
-    const context = vm.createContext({});
-    new vm.Script(`
+  const r = await runJsJob({
+    script: `
       var __CB_LANG = ${JSON.stringify(l)};
       function assert(condition, message) {
         if (!condition) throw new Error(message || ${JSON.stringify(BUDDY_NOT_YET[l])});
@@ -310,22 +340,19 @@ export function runBuddy(studentCode: string, expectedCode: string, lang?: strin
         ${studentCode}
       })();
       ${expectedCode}
-    `).runInContext(context, { timeout: 2000 });
-    return [{ description: 'Buddy', passed: true }];
-  } catch (error) {
-    return [{ description: 'Buddy', passed: false, error: buddyFriendlyError(describeSandboxError(error), l) }];
-  }
+    `,
+  });
+  return r.ok ? [{ description: 'Buddy', passed: true }] : [{ description: 'Buddy', passed: false, error: buddyFriendlyError(r.error ?? '', l) }];
 }
 
 // ─── La nave (curso 2 "Crea tu juego") ───────────────────────────────────
 // Igual que Buddy, con NAVE_RUNTIME. El nivel (aliens y dónde arranca la
 // nave) sale del comentario `// nivel: {...}` de las verificaciones.
 
-export function runNave(studentCode: string, expectedCode: string, lang?: string | null): CodeResult[] {
+export async function runNave(studentCode: string, expectedCode: string, lang?: string | null): Promise<CodeResult[]> {
   const l = friendlyLang(lang);
-  try {
-    const context = vm.createContext({});
-    new vm.Script(`
+  const r = await runJsJob({
+    script: `
       var __CB_LANG = ${JSON.stringify(l)};
       var __NAVE_NIVEL = ${JSON.stringify(naveLevelFrom(expectedCode) ?? {})};
       function assert(condition, message) {
@@ -336,11 +363,9 @@ export function runNave(studentCode: string, expectedCode: string, lang?: string
         ${studentCode}
       })();
       ${expectedCode}
-    `).runInContext(context, { timeout: 2000 });
-    return [{ description: 'Nave', passed: true }];
-  } catch (error) {
-    return [{ description: 'Nave', passed: false, error: naveFriendlyError(describeSandboxError(error), l) }];
-  }
+    `,
+  });
+  return r.ok ? [{ description: 'Nave', passed: true }] : [{ description: 'Nave', passed: false, error: naveFriendlyError(r.error ?? '', l) }];
 }
 
 // ─── Código por idioma ────────────────────────────────────────────────────
@@ -360,13 +385,13 @@ export function pickCodeEntry<T extends { lang?: string | null }>(codes: unknown
 
 // ─── Punto de entrada ─────────────────────────────────────────────────────
 
-export function validateCode(input: {
+export async function validateCode(input: {
   language?: string | null;
   studentCode: string;
   expectedCode?: string | null;
   tests?: Array<{ description: string; assertCode: string }> | null;
   lang?: string | null;
-}): CodeResult[] {
+}): Promise<CodeResult[]> {
   const language = normalizeLang(input.language);
   const lang = messageLang(input.lang);
   const expectedCode = input.expectedCode?.trim() ?? '';
@@ -382,7 +407,12 @@ export function validateCode(input: {
       : [{ description: 'Código enviado', passed: input.studentCode.trim().length > 0 }];
   }
   if (language === 'python') {
-    return [{ description: 'Programa en Python', passed: false, error: 'Python se corrige con validateCodeAsync' }];
+    return runPythonExercise(input.studentCode ?? '', expectedCode, input.lang);
+  }
+  if (language === 'web') {
+    return expectedCode
+      ? runWebExercise(input.studentCode ?? '', expectedCode, lang)
+      : [{ description: 'Código enviado', passed: (input.studentCode ?? '').trim().length > 0 }];
   }
   if (input.tests?.length && language === 'js') return runCodeTests(input.studentCode, input.tests);
   if (!expectedCode) return [{ description: 'Código enviado', passed: input.studentCode.trim().length > 0 }];
@@ -411,10 +441,5 @@ export async function runPythonExercise(studentCode: string, expectedCode: strin
   return [{ description: 'Python', passed, ...(passed ? {} : { error: message ?? T.notYet }) }];
 }
 
-/** Igual que validateCode, pero también corrige Python (que es asíncrono). */
-export async function validateCodeAsync(input: Parameters<typeof validateCode>[0]): Promise<CodeResult[]> {
-  if (normalizeLang(input.language) === 'python') {
-    return runPythonExercise(input.studentCode ?? '', input.expectedCode?.trim() ?? '', input.lang);
-  }
-  return validateCode(input);
-}
+/** Alias de validateCode (antes era la única que corregía Python). */
+export const validateCodeAsync = validateCode;

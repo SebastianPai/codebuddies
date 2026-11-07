@@ -180,3 +180,14 @@ export {
   pythonTimeoutRun,
   type PythonRun,
 } from './python';
+
+// Arnés de pruebas de ejercicios de JavaScript y páginas web (api + web).
+export {
+  splitJsChecks,
+  buildWebCheckDoc,
+  jsCheckTestsScript,
+  JS_CHECK_PRELUDE,
+  JS_CHECK_HARDEN,
+  JS_CHECK_LOCK,
+  JS_CHECK_HELPERS,
+} from './webcheck';
