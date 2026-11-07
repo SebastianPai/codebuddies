@@ -8,7 +8,7 @@ import { useTranslation } from "@/i18n/useTranslation";
 // suelto: la misión grande arriba, la imagen de cómo tiene que quedar (SVG que
 // generan los scripts del curso con el motor real) y las órdenes como fichas
 // de código. El resto de los bloques se muestra igual que en la teoría.
-const ORDERS_TITLE = /^(Órdenes|Orders|Befehle)/i;
+const ORDERS_TITLE = /(órdenes|orders|commands|befehle)/i;
 
 export function MissionPanel({ doc }: { doc: LessonContentDoc }) {
   const t = useTranslation();
