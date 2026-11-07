@@ -1,4 +1,4 @@
-import { splitJsChecks, BUDDY_NOT_YET, BUDDY_RUNTIME, buddyFriendlyError, friendlyLang, NAVE_NOT_YET, NAVE_RUNTIME, naveFriendlyError, naveLevelFrom, PYTHON_TEXTS, pythonMsgLang, pythonResultMessage } from '@codebuddies/world-objects';
+import { splitJsChecks, composeWebDocument, BUDDY_NOT_YET, BUDDY_RUNTIME, buddyFriendlyError, friendlyLang, NAVE_NOT_YET, NAVE_RUNTIME, naveFriendlyError, naveLevelFrom, PYTHON_TEXTS, pythonMsgLang, pythonResultMessage } from '@codebuddies/world-objects';
 import { runPython } from './python-runner';
 import { runJsJob } from './js-runner';
 
@@ -108,13 +108,9 @@ export function parseWebFiles(code: string): WebFiles {
 }
 
 export function buildWebDocument(files: WebFiles): string {
-  const html = files.html;
+  // Igual que la web (composeWebDocument): un documento completo se respeta.
   const style = files.css.trim() ? `<style>${files.css.replace(/<\/style/gi, '<\\/style')}</style>` : '';
-  if (/<html[\s>]/i.test(html)) {
-    if (/<\/head>/i.test(html)) return html.replace(/<\/head>/i, `${style}</head>`);
-    return html.replace(/<html([^>]*)>/i, `<html$1><head>${style}</head>`);
-  }
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8">${style}</head><body>${html}</body></html>`;
+  return composeWebDocument(files.html, style, '');
 }
 
 export async function runWebExercise(studentCode: string, expectedCode: string, lang: Msg): Promise<CodeResult[]> {

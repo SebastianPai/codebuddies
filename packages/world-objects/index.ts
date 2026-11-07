@@ -185,6 +185,8 @@ export {
 export {
   splitJsChecks,
   buildWebCheckDoc,
+  buildWebPreviewDoc,
+  composeWebDocument,
   jsCheckTestsScript,
   JS_CHECK_PRELUDE,
   JS_CHECK_HARDEN,

@@ -36,7 +36,7 @@ import { PracticeInCodeStudio } from "@/features/codestudio";
 import { useReward } from "../../../../../../contexts/RewardContext";
 import { useTrackToolUsed, trackToolAction, trackCodeStarted, trackCodeResult } from "../../../../../../components/analytics/tool-tracking";
 import { MissionPanel, buildBuddyStageDoc, buildNaveStageDoc, buildPythonStageDoc } from "@/features/buddy";
-import { buddySvg, buildWebCheckDoc } from "@codebuddies/world-objects";
+import { buddySvg, buildWebCheckDoc, buildWebPreviewDoc } from "@codebuddies/world-objects";
 
 // Ejercicios de Buddy (cursos para niños): solo JavaScript, y la vista previa
 // es el escenario con el robot en vez de una página.
@@ -613,6 +613,10 @@ export default function FullWidthConfidentialWorkspace() {
       // JS y páginas web: las pruebas corren aparte (ver checkDoc), así la
       // vista previa queda en vivo y con temporizadores de verdad.
       const assertions = /\bassert\s*\(/.test(solution) && !usesCheckFrame(exercise?.language, solution) ? solution : "";
+      if (isWebLang(exercise?.language)) {
+        setPreviewDoc(buildWebPreviewDoc({ html: htmlCode, css: cssCode, js: jsCode }));
+        return;
+      }
       if ((exercise?.language || "").toLowerCase() === "js" && !htmlCode.trim() && !cssCode.trim()) {
         setPreviewDoc(consoleDoc(jsCode, t("site.jsConsoleTitle"), t("site.jsConsoleEmpty")));
         return;

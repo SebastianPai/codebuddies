@@ -177,6 +177,30 @@ const scriptSafe = (code: string) => code.replace(/<\/(script)/gi, '<\\/$1');
 const styleSafe = (code: string) => code.replace(/<\/(style)/gi, '<\\/$1');
 
 /**
+ * Arma una página con el HTML del alumno: si escribió un documento completo
+ * (<html>, <head>...) se respeta tal cual y se inyecta `head` al principio del
+ * <head> y `end` antes de </body>. Si es un fragmento, se envuelve.
+ */
+export function composeWebDocument(html: string, head: string, end: string): string {
+  if (/<html[\s>]/i.test(html)) {
+    let doc = html;
+    if (/<head[\s>]/i.test(doc)) doc = doc.replace(/<head(\s[^>]*)?>/i, (m) => m + head);
+    else doc = doc.replace(/<html(\s[^>]*)?>/i, (m) => `${m}<head>${head}</head>`);
+    if (/<\/body>/i.test(doc)) doc = doc.replace(/<\/body>(?![\s\S]*<\/body>)/i, () => `${end}</body>`);
+    else if (/<\/html>/i.test(doc)) doc = doc.replace(/<\/html>(?![\s\S]*<\/html>)/i, () => `${end}</html>`);
+    else doc += end;
+    return doc;
+  }
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">${head}</head><body>\n${html}\n${end}</body></html>`;
+}
+
+/** Vista previa en vivo de un ejercicio web (sin pruebas). */
+export function buildWebPreviewDoc(files: { html: string; css: string; js: string }, extraHead = ''): string {
+  const head = `${extraHead}<style>${styleSafe(files.css)}</style>`;
+  return composeWebDocument(files.html, head, `<script>${scriptSafe(files.js)}</script>`);
+}
+
+/**
  * Página para un iframe sandbox (allow-scripts) que corre el ejercicio web con
  * sus pruebas en el navegador y avisa al padre con
  * postMessage({ type: "exercise-result", passed, message }).
@@ -184,16 +208,15 @@ const styleSafe = (code: string) => code.replace(/<\/(style)/gi, '<\\/$1');
 export function buildWebCheckDoc(files: { html: string; css: string; js: string }, checks: string): string {
   const { setup, tests } = splitJsChecks(checks);
   const sources = JSON.stringify({ html: files.html, css: files.css, js: files.js }).replace(/</g, '\\u003c');
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  const head = `
 <script>
 var __cb_src = ${sources};
 var __cb_css = __cb_src.css, __cb_html_src = __cb_src.html, __cb_js_src = __cb_src.js, __cb_student_error = null;
 window.addEventListener('error', function (e) { if (!__cb_student_error) __cb_student_error = (e && e.message) || 'Error en tu código'; });
 ${scriptSafe(JS_CHECK_PRELUDE)}
 </script>
-<style>${styleSafe(files.css)}</style>
-</head><body>
-${files.html}
+<style>${styleSafe(files.css)}</style>`;
+  const end = `
 <script>
 try { ${scriptSafe(setup)} } catch (e) { __cb_student_error = 'Error en la preparación del ejercicio: ' + __cb_msg(e); }
 ${scriptSafe(JS_CHECK_LOCK)}
@@ -208,6 +231,6 @@ ${scriptSafe(JS_CHECK_HARDEN)}
     if (out === 'OK') done(true); else done(false, String(out).slice(4));
   }, function (e) { done(false, String(e && e.message || e)); });
 })();
-</script>
-</body></html>`;
+</script>`;
+  return composeWebDocument(files.html, head, end);
 }
