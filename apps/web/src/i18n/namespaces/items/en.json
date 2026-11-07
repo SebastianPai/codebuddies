@@ -546,5 +546,20 @@
   },
   "petAccessoryHint": "Worn on top of the pet's head (not placed in rooms). Draw it at the pet's scale, with its bottom edge resting on the head.",
   "spawnHint": "Flat 64x32 tile where players appear when they enter a room. Every room has one: it can be moved but not removed. If you sell it, players can swap theirs for this design.",
-  "spawnDefaultToggle": "Use as default (the one every room gets)"
+  "spawnDefaultToggle": "Use as default (the one every room gets)",
+  "liveTitle": "Live preview",
+  "liveDay": "Day",
+  "liveNight": "Night",
+  "liveRoomCaption": "How it looks in the room · takes {w}x{h} tiles",
+  "liveRoomTexture": "How the texture looks on the floor",
+  "liveShopTitle": "In the shop",
+  "liveNoImage": "No image yet",
+  "liveNoName": "No name",
+  "liveHiddenInShop": "Hidden from the shop",
+  "liveChecklist": "Before saving",
+  "liveCheckName": "It has a name",
+  "liveCheckImage": "It has an image",
+  "liveCheckDescription": "It has a description",
+  "liveCheckPrice": "Price between {min} and {max} coins (by rarity)",
+  "liveCheckPriceSimple": "It has a price"
 }

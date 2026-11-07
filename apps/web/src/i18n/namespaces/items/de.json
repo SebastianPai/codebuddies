@@ -546,5 +546,20 @@
   },
   "petAccessoryHint": "Wird auf dem Kopf des Haustiers getragen (nicht im Raum platziert). Im Maßstab des Haustiers zeichnen, Unterkante auf dem Kopf.",
   "spawnHint": "Flache 64x32-Kachel, auf der Spieler beim Betreten eines Raums erscheinen. Jeder Raum hat eine: verschiebbar, aber nicht entfernbar. Im Verkauf können Spieler ihre gegen dieses Design tauschen.",
-  "spawnDefaultToggle": "Als Standard verwenden (bekommt jeder Raum)"
+  "spawnDefaultToggle": "Als Standard verwenden (bekommt jeder Raum)",
+  "liveTitle": "Live-Vorschau",
+  "liveDay": "Tag",
+  "liveNight": "Nacht",
+  "liveRoomCaption": "So sieht es im Raum aus · belegt {w}x{h} Felder",
+  "liveRoomTexture": "So sieht die Textur auf dem Boden aus",
+  "liveShopTitle": "Im Shop",
+  "liveNoImage": "Noch kein Bild",
+  "liveNoName": "Ohne Namen",
+  "liveHiddenInShop": "Im Shop ausgeblendet",
+  "liveChecklist": "Vor dem Speichern",
+  "liveCheckName": "Hat einen Namen",
+  "liveCheckImage": "Hat ein Bild",
+  "liveCheckDescription": "Hat eine Beschreibung",
+  "liveCheckPrice": "Preis zwischen {min} und {max} Coins (je nach Seltenheit)",
+  "liveCheckPriceSimple": "Hat einen Preis"
 }

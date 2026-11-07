@@ -546,5 +546,20 @@
   },
   "petAccessoryHint": "Se le pone a la mascota encima de la cabeza (no se coloca en la sala). Dibújalo al tamaño de la mascota, con el borde de abajo apoyado en la cabeza.",
   "spawnHint": "Baldosa plana de 64x32 donde aparecen los jugadores al entrar a una sala. Cada sala tiene uno: se mueve pero no se quita. Si lo pones a la venta, los jugadores pueden cambiar el suyo por este diseño.",
-  "spawnDefaultToggle": "Usar como predeterminado (el que reciben todas las salas)"
+  "spawnDefaultToggle": "Usar como predeterminado (el que reciben todas las salas)",
+  "liveTitle": "Vista en vivo",
+  "liveDay": "Día",
+  "liveNight": "Noche",
+  "liveRoomCaption": "Así se ve en la sala · ocupa {w}x{h} casillas",
+  "liveRoomTexture": "Así se ve la textura en el piso",
+  "liveShopTitle": "En la tienda",
+  "liveNoImage": "Sin imagen todavía",
+  "liveNoName": "Sin nombre",
+  "liveHiddenInShop": "No se muestra en la tienda",
+  "liveChecklist": "Antes de guardar",
+  "liveCheckName": "Tiene nombre",
+  "liveCheckImage": "Tiene imagen",
+  "liveCheckDescription": "Tiene descripción",
+  "liveCheckPrice": "Precio entre {min} y {max} coins (según la rareza)",
+  "liveCheckPriceSimple": "Tiene precio"
 }

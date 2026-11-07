@@ -16,6 +16,7 @@ import FootprintEditor, {
   type SpriteOffsetSync,
 } from "./FootprintEditor";
 import AvatarItemPreview from "./AvatarItemPreview";
+import LivePreview from "./LivePreview";
 import BehaviorEditor from "./BehaviorEditor";
 import {
   draftFromBehavior,
@@ -1061,7 +1062,8 @@ export default function ItemEditor({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 rounded-[28px] border border-zinc-800 bg-[#0c0c0c] p-6">
+    <form onSubmit={handleSubmit} className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
+      <div className="min-w-0 space-y-6 rounded-[28px] border border-zinc-800 bg-[#0c0c0c] p-6">
       {errors.length > 0 && (
         <div className="rounded-2xl border border-red-900 bg-red-950/40 p-4 text-sm text-red-100">
           {errors.map((error) => (
@@ -1777,6 +1779,34 @@ export default function ItemEditor({
           {isSaving ? t("admin.savingEllipsis") : submitLabel ?? (mode === "creator" ? t("items.saveDraftButton") : t("items.saveItemButton"))}
         </button>
       )}
+      </div>
+
+      {(() => {
+        const selectedRarity = rarities.find((r) => r.id === rarity);
+        return (
+          <LivePreview
+            t={t}
+            category={category}
+            name={name}
+            description={description}
+            imageUrl={preview}
+            coinsPrice={Number(coinsPrice) || 0}
+            gemsPrice={Number(gemsPrice) || 0}
+            rarityKey={selectedRarity?.key}
+            rarityLabel={selectedRarity ? t(`items.rarity${capitalizeRarityKey(selectedRarity.key)}`) : undefined}
+            priceRange={selectedRarity ? { min: selectedRarity.minCoins, max: selectedRarity.maxCoins } : undefined}
+            frameWidth={category === "world" ? Number(width) : undefined}
+            frameHeight={category === "world" ? Number(height) : undefined}
+            footprintWidth={Number(footprintWidth) || 1}
+            footprintHeight={Number(footprintHeight) || 1}
+            colorable={colorable}
+            shopVisible={shopVisible}
+            readOnly={readOnly}
+            isSaving={isSaving}
+            submitLabel={isSaving ? t("admin.savingEllipsis") : submitLabel ?? (mode === "creator" ? t("items.saveDraftButton") : t("items.saveItemButton"))}
+          />
+        );
+      })()}
     </form>
   );
 }
