@@ -22,10 +22,10 @@ desfasado de la base de datos.
 
 ### Ramas peligrosas (NO desplegar ni fusionar tal cual)
 
-Estado al 2026-11-05: las tres apps (`codebuddies-api`, `codebuddies-web` y
-`codebuddies-game`) corren `9175d79` (curso "Programa con Buddy" en inglés y alemán: órdenes de Buddy y de la nave también en inglés y alemán, mensajes en el idioma del alumno; amigos más claros en web y juego; vista en vivo al crear items; antes: tarjetas de cursos más claras; cursos en 3 idiomas: código y pruebas por idioma en `codes[].lang`, corrector de Python con mensajes en es/en/de; `/llms.txt` y datos estructurados para IAs; curso "Python con Buddy": Python de verdad con Pyodide, corregido en la API en un proceso aislado sin variables de entorno y con permisos de Node cerrados; consola de Python con Buddy en la web; el corrector revisa el programa antes de correrlo para que no se pueda hacer trampa; pie del ejercicio arreglado en celular; SEO que dice que la web está en español, inglés y alemán). Todo es la rama `feat/curso-python`, que sale de `feat/premium-colors-parallax` (`feat/codestudio-v2` + íconos + colores
+Estado al 2026-11-07: `codebuddies-web` corre `96ca534` (vista previa de la nave arreglada, pixel art nítido y fondo parallax a todo el ancho) y `codebuddies-api` y
+`codebuddies-game` corren `9175d79` (curso "Programa con Buddy" en inglés y alemán: órdenes de Buddy y de la nave también en inglés y alemán, mensajes en el idioma del alumno; amigos más claros en web y juego; vista en vivo al crear items; antes: tarjetas de cursos más claras; cursos en 3 idiomas: código y pruebas por idioma en `codes[].lang`, corrector de Python con mensajes en es/en/de; `/llms.txt` y datos estructurados para IAs; curso "Python con Buddy": Python de verdad con Pyodide, corregido en la API en un proceso aislado sin variables de entorno y con permisos de Node cerrados; consola de Python con Buddy en la web; el corrector revisa el programa antes de correrlo para que no se pueda hacer trampa; pie del ejercicio arreglado en celular; SEO que dice que la web está en español, inglés y alemán). Todo es la rama `feat/curso-python`, que sale de `feat/premium-colors-parallax` (`feat/codestudio-v2` + íconos + colores
 premium + parallax). Es la rama base para todo trabajo nuevo. Lo que sigue en
-la tabla vale para cualquier rama que NO contenga `9175d79`:
+la tabla vale para cualquier rama que NO contenga `96ca534`:
 
 | Rama | Por qué es peligrosa |
 |---|---|
