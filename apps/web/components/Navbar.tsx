@@ -252,7 +252,7 @@ export default function Navbar() {
   const currentLang = LANGUAGES.find((l) => l.code === lang) ?? LANGUAGES[0];
 
   const shapeClass = isScrolled
-    ? "w-[95%] max-w-5xl rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.35)]"
+    ? "w-[95%] max-w-[74rem] rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.35)]"
     : isMobileOpen
       ? "w-full max-w-7xl rounded-t-[2.6rem] rounded-b-3xl shadow-[0_15px_40px_rgba(0,0,0,0.25)]"
       : "w-full max-w-7xl rounded-[2.6rem] shadow-[0_15px_40px_rgba(0,0,0,0.25)]";
@@ -262,13 +262,13 @@ export default function Navbar() {
       <nav
         className={`
         pointer-events-auto relative flex flex-col transition-[width,border-radius,box-shadow,transform] duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]
-        backdrop-blur-xl backdrop-saturate-150
-        bg-[rgb(var(--card)/0.92)] bg-gradient-to-b from-white/[0.07] to-white/[0.01]
-        border border-[rgb(var(--border))]
+        backdrop-blur-xl
+        bg-[rgba(var(--card),0.65)]
+        ring-1 ring-white/10
         ${shapeClass}
         `}
       >
-        <div className="flex justify-between items-center h-[72px] px-6 sm:px-10">
+        <div className={`flex justify-between items-center h-[72px] gap-3 ${isScrolled ? "px-5 sm:px-6" : "px-6 sm:px-10"}`}>
           <style>{THEME_IMAGE_SPRITE_KEYFRAMES}</style>
           <Link href="/" className="flex items-center gap-3 group">
             <div className="relative w-10 h-10 overflow-hidden">
@@ -450,7 +450,7 @@ export default function Navbar() {
                 variants={mobilePanelVariants}
                 initial="hidden"
                 animate="show"
-                className="flex flex-col gap-2 px-4 pb-5 pt-1 max-h-[75vh] overflow-y-auto"
+                className="flex flex-col gap-2 mx-2 mb-2 rounded-3xl bg-[rgb(var(--card)/0.97)] px-3 py-3 max-h-[75vh] overflow-y-auto"
               >
                 {isAuthenticated && user && (
                   <motion.div variants={mobileItemVariants}>
