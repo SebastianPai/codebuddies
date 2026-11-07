@@ -248,9 +248,26 @@ export function composeWebDocument(html: string, head: string, end: string): str
   return `<!DOCTYPE html><html><head><meta charset="UTF-8">${head}</head><body>\n${html}\n${end}</body></html>`;
 }
 
+// En los ejercicios, las imágenes apuntan a rutas de ejemplo (/img/...) que no
+// existen: en la vista previa se dibuja un marcador del tamaño reservado
+// (width/height) con su texto alternativo, en vez de un ícono roto.
+const IMG_PLACEHOLDER = String.raw`<script>
+document.addEventListener('error', function (e) {
+  var img = e.target;
+  if (!img || img.tagName !== 'IMG' || img.getAttribute('data-cb-ph')) return;
+  img.setAttribute('data-cb-ph', '1');
+  var w = Number(img.getAttribute('width')) || 320, h = Number(img.getAttribute('height')) || 180;
+  var t = (img.getAttribute('alt') || '').replace(/[<>&"]/g, '').slice(0, 60);
+  var fs = Math.max(9, Math.min(h / 6, (w * 0.9) / Math.max(1, t.length * 0.55)));
+  var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '"><rect width="100%" height="100%" fill="#e2e8f0"/><path d="M0 ' + h + ' L' + w * 0.35 + ' ' + h * 0.55 + ' L' + w * 0.55 + ' ' + h * 0.75 + ' L' + w * 0.75 + ' ' + h * 0.45 + ' L' + w + ' ' + h + 'Z" fill="#cbd5e1"/><circle cx="' + w * 0.78 + '" cy="' + h * 0.25 + '" r="' + Math.min(w, h) * 0.08 + '" fill="#cbd5e1"/><text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" font-family="system-ui,sans-serif" font-size="' + fs + '" fill="#475569">' + t + '</text></svg>';
+  img.removeAttribute('srcset');
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+}, true);
+</script>`;
+
 /** Vista previa en vivo de un ejercicio web (sin pruebas). */
 export function buildWebPreviewDoc(files: { html: string; css: string; js: string }, extraHead = ''): string {
-  const head = `${extraHead}<style>${styleSafe(files.css)}</style>`;
+  const head = `${IMG_PLACEHOLDER}${extraHead}<style>${styleSafe(files.css)}</style>`;
   return composeWebDocument(files.html, head, `<script>${scriptSafe(files.js)}</script>`);
 }
 
