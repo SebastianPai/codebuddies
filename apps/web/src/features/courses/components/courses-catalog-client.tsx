@@ -8,6 +8,7 @@ import { api } from "../../../../utils/api";
 import { useTranslation } from "../../../i18n/useTranslation";
 import { CachedImage, ErrorState } from "@/shared/ui";
 import { useApiLang } from "@/shared/hooks/use-api-lang";
+import { AppIcon } from "../../../../components/AppIcon";
 
 const difficultyKeyMap: Record<string, string> = {
   Todas: "site.difficultyAll",
@@ -157,7 +158,7 @@ function CourseCard({ course }: { course: Course }) {
             )}
             {typeof course.xpTotal === "number" && course.xpTotal > 0 && (
               <span className="inline-flex items-center gap-1.5">
-                <Zap size={16} className="text-[rgb(var(--primary))]" aria-hidden />
+                <AppIcon slot="ICON_XP" size={16} className="text-[rgb(var(--primary))]" fallback={<Zap size={16} className="text-[rgb(var(--primary))]" aria-hidden />} />
                 {/* Sin toLocaleString: el servidor y el navegador formatean distinto y rompía la hidratación. */}
                 {course.xpTotal} XP
               </span>

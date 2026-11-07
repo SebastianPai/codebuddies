@@ -21,6 +21,7 @@ import {
 } from "../../../../../../components/analytics/tool-tracking";
 
 import { CurrencyIcon } from "@/shared/ui/currency-icon";
+import { AppIcon } from "../../../../../../components/AppIcon";
 interface ExtendedQuizExercise extends QuizExercise {
   prevExerciseId?: string | null;
   nextExerciseId?: string | null;
@@ -578,7 +579,7 @@ export default function QuizExercisePage() {
                             className="mt-4 flex flex-wrap gap-2"
                           >
                             <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgb(var(--primary)/0.4)] bg-[rgb(var(--primary)/0.12)] px-3 py-1.5 text-sm font-black text-[rgb(var(--primary-text))]">
-                              <Zap size={14} /> +{xpGained} XP
+                              <AppIcon slot="ICON_XP" size={14} fallback={<Zap size={14} />} /> +{xpGained} XP
                             </span>
                             <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgb(var(--primary)/0.4)] bg-[rgb(var(--primary)/0.12)] px-3 py-1.5 text-sm font-black text-[rgb(var(--primary-text))]">
                               <CurrencyIcon currency="coins" size={14} /> +{coinsGained}
@@ -773,7 +774,7 @@ export default function QuizExercisePage() {
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgb(var(--primary)/0.4)] bg-[rgb(var(--primary)/0.12)] px-3 py-1.5 text-sm font-black text-[rgb(var(--primary-text))]">
-                    <Zap size={14} /> +{xpGained} XP
+                    <AppIcon slot="ICON_XP" size={14} fallback={<Zap size={14} />} /> +{xpGained} XP
                   </span>
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgb(var(--primary)/0.4)] bg-[rgb(var(--primary)/0.12)] px-3 py-1.5 text-sm font-black text-[rgb(var(--primary-text))]">
                     <CurrencyIcon currency="coins" size={14} /> +{coinsGained}

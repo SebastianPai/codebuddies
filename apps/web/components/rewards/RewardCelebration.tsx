@@ -9,6 +9,7 @@ import { useTranslation } from "../../src/i18n/useTranslation";
 import type { Celebration } from "../../contexts/RewardContext";
 
 import { AchievementIcon, CurrencyIcon } from "@/shared/ui/currency-icon";
+import { AppIcon } from "../AppIcon";
 // Aviso de recompensa/logro: una tarjeta propia con el logo de CodeBuddies
 // en vez de agrandar el navbar. Centrada arriba bajo el navbar y más grande
 // que un aviso normal (en el celular, a lo ancho con margen de 16px),
@@ -102,7 +103,7 @@ function CelebrationCard({
             <div className="mt-3 flex flex-wrap gap-2 text-sm font-black">
               {item.xp > 0 && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-[rgb(var(--primary)/0.14)] px-3 py-1.5 text-[rgb(var(--primary))]">
-                  <Zap size={14} /> +{item.xp} XP
+                  <AppIcon slot="ICON_XP" size={14} fallback={<Zap size={14} />} /> +{item.xp} XP
                 </span>
               )}
               {item.coins > 0 && (

@@ -11,6 +11,7 @@ import { getNotificationIcon } from "./notificationIcons";
 import { useReward } from "../../contexts/RewardContext";
 
 import { CurrencyIcon } from "@/shared/ui/currency-icon";
+import { AppIcon } from "../AppIcon";
 type RewardsSummary = {
   xp: number;
   coins: number;
@@ -76,7 +77,7 @@ function NotificationDescription({ notification }: { notification: RealtimeNotif
       <span className="flex flex-wrap items-center gap-2.5 text-xs font-bold">
         {rewards.xp > 0 ? (
           <span className="inline-flex items-center gap-1 text-amber-500">
-            <Zap size={14} /> +{rewards.xp} XP
+            <AppIcon slot="ICON_XP" size={14} fallback={<Zap size={14} />} /> +{rewards.xp} XP
           </span>
         ) : null}
         {rewards.coins > 0 ? (

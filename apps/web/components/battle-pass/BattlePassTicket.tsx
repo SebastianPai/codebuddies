@@ -7,9 +7,10 @@ import { BadgeLogo } from "./BadgeLogo";
 import type { BattlePassTier } from "./battle-pass-types";
 
 import { CurrencyIcon } from "@/shared/ui/currency-icon";
+import { AppIcon } from "../AppIcon";
 const REWARD_ICON: Record<string, React.ReactNode> = {
   COINS: <CurrencyIcon currency="coins" size={18} />,
-  XP: <Zap size={18} />,
+  XP: <AppIcon slot="ICON_XP" size={18} fallback={<Zap size={18} />} />,
   BADGE: <Award size={18} />,
   TITLE: <Crown size={18} />,
 };

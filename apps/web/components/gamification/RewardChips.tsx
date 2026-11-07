@@ -5,9 +5,10 @@ import type { RewardConfig } from "./gamification-types";
 import { useTranslation } from "../../src/i18n/useTranslation";
 
 import { CurrencyIcon } from "@/shared/ui/currency-icon";
+import { AppIcon } from "../AppIcon";
 const iconByType: Record<string, React.ReactNode> = {
   COINS: <CurrencyIcon currency="coins" size={14} />,
-  XP: <Zap size={14} />,
+  XP: <AppIcon slot="ICON_XP" size={14} fallback={<Zap size={14} />} />,
   ITEM: <Gift size={14} />,
   AVATAR_ITEM: <Sparkles size={14} />,
   FURNITURE: <Sofa size={14} />,

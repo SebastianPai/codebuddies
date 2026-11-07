@@ -425,7 +425,7 @@ function TabButton({
 
 const TIER_ICON: Record<string, React.ReactNode> = {
   COINS: <CurrencyIcon currency="coins" size={18} />,
-  XP: <Zap size={18} />,
+  XP: <AppIcon slot="ICON_XP" size={18} fallback={<Zap size={18} />} />,
   BADGE: <Award size={18} />,
   TITLE: <Crown size={18} />,
 };

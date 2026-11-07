@@ -31,6 +31,7 @@ import { EmptyState, ErrorState } from "@/shared/ui";
 import { CourseReviews } from "@/features/courses/components/course-reviews";
 import { CourseProjectSection } from "@/features/courses/components/course-project-section";
 import { ReferralCourseBanner } from "@/features/courses/components/referral-course-banner";
+import { AppIcon } from "../../../../components/AppIcon";
 
 interface CourseExercise {
   id: string;
@@ -552,7 +553,7 @@ export default function CourseDetailPage() {
                 {/* Nivel / Streak */}
                 <div className="flex items-center gap-5">
                   <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[rgb(var(--primary))] to-[rgb(var(--primary)/0.6)] flex items-center justify-center shadow-md">
-                    <Zap size={28} className="text-black" />
+                    <AppIcon slot="ICON_XP" size={28} className="text-black" fallback={<Zap size={28} className="text-black" />} />
                   </div>
                   <div>
                     <h4 className="font-black uppercase italic text-xl">
@@ -597,10 +598,7 @@ export default function CourseDetailPage() {
                   </div>
 
                   <div className="bg-[rgb(var(--background))] border-2 border-[rgb(var(--border))] rounded-lg p-4 text-center">
-                    <Zap
-                      size={20}
-                      className="mx-auto mb-2 text-[rgb(var(--primary))]"
-                    />
+                    <AppIcon slot="ICON_XP" size={20} className="mx-auto mb-2 text-[rgb(var(--primary))]" fallback={<Zap size={20} className="mx-auto mb-2 text-[rgb(var(--primary))]" />} />
                     <div className="text-2xl font-black">
                       {userXP.toLocaleString()}
                     </div>

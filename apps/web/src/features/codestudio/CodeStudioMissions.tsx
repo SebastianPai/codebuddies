@@ -4,6 +4,7 @@ import { ArrowRight, CheckCircle2, Gamepad2, Gift, Zap } from "lucide-react";
 import { useTranslation } from "@/i18n/useTranslation";
 import { CurrencyIcon } from "@/shared/ui/currency-icon";
 import { codeStudioLink, useCodeStudioSummary } from "./use-codestudio-summary";
+import { AppIcon } from "../../../components/AppIcon";
 
 /** Misiones diarias de CodeStudio en /missions: para que se sepa que existen. */
 export function CodeStudioMissions() {
@@ -51,7 +52,7 @@ export function CodeStudioMissions() {
               </span>
               <span className="flex items-center gap-2">
                 <span className="inline-flex items-center gap-1">
-                  <Zap size={12} /> {mission.xp}
+                  <AppIcon slot="ICON_XP" size={12} fallback={<Zap size={12} />} /> {mission.xp}
                 </span>
                 <span className="inline-flex items-center gap-1">
                   <CurrencyIcon currency="coins" size={12} /> {mission.coins}

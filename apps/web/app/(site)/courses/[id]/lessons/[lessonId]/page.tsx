@@ -35,6 +35,7 @@ import { useAuth } from "@/shared/hooks/use-auth";
 import { useReward } from "../../../../../../contexts/RewardContext";
 import { exercisePath, lessonPath } from "@/shared/utils/exercise-path";
 import { trackEvent } from "../../../../../../components/analytics/events";
+import { AppIcon } from "../../../../../../components/AppIcon";
 
 interface LessonExercise {
   id: string;
@@ -529,7 +530,7 @@ export default function LessonTheoryPage() {
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgb(var(--primary)/0.4)] bg-[rgb(var(--primary)/0.1)] px-3 py-1 text-xs font-bold text-[rgb(var(--primary-text))]">
-            <Zap size={13} />+{xp} XP
+            <AppIcon slot="ICON_XP" size={13} fallback={<Zap size={13} />} />+{xp} XP
           </span>
           <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgb(var(--border))] px-3 py-1 text-xs font-bold text-[rgb(var(--text))]">
             <CurrencyIcon currency="coins" size={13} />+{coins}

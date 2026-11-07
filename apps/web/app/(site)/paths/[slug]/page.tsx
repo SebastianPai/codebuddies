@@ -11,6 +11,7 @@ import { classNames } from "../../../../src/shared/utils/class-names";
 import { useTranslation } from "../../../../src/i18n/useTranslation";
 
 import { CurrencyIcon } from "@/shared/ui/currency-icon";
+import { AppIcon } from "../../../../components/AppIcon";
 interface LearningPathCourseNode {
   id: string;
   order: number;
@@ -215,7 +216,7 @@ function PathMapNode({
 
           <div className="mt-2 flex flex-wrap items-center gap-3 text-xs font-semibold text-[rgb(var(--secondary-text))]">
             <span className="inline-flex items-center gap-1">
-              <Zap size={13} className="text-[rgb(var(--primary))]" /> +{course.xpReward}
+              <AppIcon slot="ICON_XP" size={13} className="text-[rgb(var(--primary))]" fallback={<Zap size={13} className="text-[rgb(var(--primary))]" />} /> +{course.xpReward}
             </span>
             <span className="inline-flex items-center gap-1">
               <CurrencyIcon currency="coins" size={13} className="text-[rgb(var(--primary))]" /> +{course.coinsReward}

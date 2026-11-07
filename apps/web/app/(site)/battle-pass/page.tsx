@@ -19,6 +19,7 @@ import type { BattlePassState, BattlePassTier } from "../../../components/battle
 import { useTrackToolUsed, trackToolAction } from "../../../components/analytics/tool-tracking";
 
 import { CurrencyIcon } from "@/shared/ui/currency-icon";
+import { AppIcon } from "../../../components/AppIcon";
 const COLUMN_WIDTH = 132; // px por día en el camino (incluye separación)
 
 function useCountdown(endsAt: string | undefined) {
@@ -362,7 +363,7 @@ function RewardVisual({ tier, size = 44 }: { tier: BattlePassTier; size?: number
   }
   const icon =
     tier.rewardType === "COINS" ? <CurrencyIcon currency="coins" size={22} /> :
-    tier.rewardType === "XP" ? <Zap size={22} /> :
+    tier.rewardType === "XP" ? <AppIcon slot="ICON_XP" size={22} fallback={<Zap size={22} />} /> :
     tier.rewardType === "BADGE" ? <Award size={22} /> :
     tier.rewardType === "TITLE" ? <Crown size={22} /> :
     <Gift size={22} />;

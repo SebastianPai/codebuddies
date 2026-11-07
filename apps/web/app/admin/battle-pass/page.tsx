@@ -6,6 +6,7 @@ import { toast } from "react-toastify";
 import { api } from "../../../utils/api";
 
 import { CurrencyIcon } from "@/shared/ui/currency-icon";
+import { AppIcon } from "../../../components/AppIcon";
 type Status = "UPCOMING" | "ACTIVE" | "ENDED";
 type Track = "FREE" | "PREMIUM";
 
@@ -53,7 +54,7 @@ type RewardKind = "COINS" | "XP" | "NAME_EFFECT" | "CHAT_BUBBLE" | "AVATAR" | "W
 
 const KINDS: Array<{ kind: RewardKind; label: string; icon: React.ReactNode }> = [
   { kind: "COINS", label: "Monedas", icon: <CurrencyIcon currency="coins" size={15} /> },
-  { kind: "XP", label: "XP", icon: <Zap size={15} /> },
+  { kind: "XP", label: "XP", icon: <AppIcon slot="ICON_XP" size={15} fallback={<Zap size={15} />} /> },
   { kind: "NAME_EFFECT", label: "Nombre personalizado", icon: <Type size={15} /> },
   { kind: "CHAT_BUBBLE", label: "Burbuja de chat", icon: <MessageCircle size={15} /> },
   { kind: "AVATAR", label: "Ropa / avatar", icon: <Shirt size={15} /> },
