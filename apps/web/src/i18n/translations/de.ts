@@ -1,7 +1,7 @@
 export const de = {
   navbar: {
     home: "Start",
-    courses: "Module",
+    courses: "Kurse",
     admin: "Admin",
 
     login: "Anmelden",

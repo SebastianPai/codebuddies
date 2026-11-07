@@ -1,7 +1,7 @@
 export const en = {
   navbar: {
     home: "Home",
-    courses: "Modules",
+    courses: "Courses",
     admin: "Admin",
 
     login: "Login",

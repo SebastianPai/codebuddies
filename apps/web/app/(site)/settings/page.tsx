@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Lock } from "lucide-react";
+import { Check, CircleHelp, Lock } from "lucide-react";
+import { START_WEB_ONBOARDING } from "@/features/onboarding/WebOnboarding";
 import { getNameEffectCatalog } from "@codebuddies/visual-effects";
 import { api } from "../../../utils/api";
 import { useTranslation } from "../../../src/i18n/useTranslation";
@@ -169,6 +170,16 @@ export default function SettingsPage() {
             className="h-5 w-5"
           />
         </label>
+      </section>
+
+      <section className="mt-8 rounded-lg border border-[rgb(var(--border))] p-6">
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new Event(START_WEB_ONBOARDING))}
+          className="flex items-center gap-2 rounded-full border border-[rgb(var(--border))] px-5 py-2.5 text-sm font-bold hover:border-[rgb(var(--primary))] hover:text-[rgb(var(--primary))] transition-colors"
+        >
+          <CircleHelp size={16} /> {t("site.onboarding.replay")}
+        </button>
       </section>
     </div>
   );

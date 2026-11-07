@@ -1,9 +1,8 @@
 "use client";
 
-import { START_WEB_ONBOARDING } from "@/features/onboarding/WebOnboarding";
 import Link from "next/link";
 import { useAuth } from "../hooks/useAuth";
-import { Award, BarChart3, Bell, BookOpen, ChevronDown, CircleHelp, CreditCard, Flame, Gamepad2, Gift, Globe, GraduationCap, Home, Languages, LogIn, LogOut, Menu, MessageSquare, Moon, Settings, Shield, Sparkles, Sun, Tag, Target, Ticket, Trophy, User, UserPlus, Users, X, Zap } from "lucide-react";
+import { Award, BarChart3, Bell, ChevronDown, CreditCard, Flame, Gamepad2, Globe, GraduationCap, Languages, LogIn, LogOut, Menu, MessageSquare, Moon, Settings, Shield, Sparkles, Sun, Tag, Trophy, User, UserPlus, Users, X, Zap } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useCallback, useEffect, useState, useRef } from "react";
 import { usePathname } from "next/navigation";
@@ -243,8 +242,8 @@ export default function Navbar() {
     logout();
   };
 
+  // El logo ya lleva al inicio: el navbar solo muestra lo que se usa.
   const primaryLinks = [
-    { href: "/", label: t("navbar.home"), icon: <AppIcon slot="ICON_HOME" size={16} fallback={<Home size={16} />} /> },
     { href: "/courses", label: t("navbar.courses"), icon: <AppIcon slot="ICON_COURSES" size={16} fallback={<GraduationCap size={16} />} /> },
     { href: "/pricing", label: t("navbar.pricing"), icon: <Tag size={16} /> },
     { href: "/rankings", label: t("navbar.rankings"), icon: <AppIcon slot="ICON_RANKINGS" size={16} fallback={<BarChart3 size={16} />} /> },
@@ -640,16 +639,14 @@ function AccountMenuContent({
   handleLogout: () => void;
   t: Translate;
 }) {
+  // Menú corto: pase de batalla, misiones, logros, insignias, recompensas y
+  // referidos ya están en el botón de recompensas (RewardsHub) de cada página.
   return (
     <>
-      <DropdownSection title={t("navbar.account")} />
       <DropdownItem href="/dashboard" icon={<AppIcon slot="ICON_PROFILE" size={16} fallback={<User size={16} />} />} label={t("navbar.profile")} />
       <DropdownItem href={`/u/${username}`} icon={<AppIcon slot="ICON_PROFILE" size={16} fallback={<User size={16} />} />} label={t("navbar.publicProfile")} />
       <DropdownItem href="/certificates" icon={<AppIcon slot="ICON_BADGES" size={16} fallback={<Award size={16} />} />} label={t("navbar.certificates")} />
-      <DropdownItem href="/account/billing" icon={<CreditCard size={16} />} label={t("navbar.billing")} />
-
-      <DropdownSection title={t("navbar.preferences")} />
-      <DropdownItem href="/settings" icon={<AppIcon slot="ICON_SETTINGS" size={16} fallback={<Settings size={16} />} />} label={t("navbar.settings")} />
+      <DropdownDivider />
       <DropdownItem
         href="/notifications"
         icon={<AppIcon slot="ICON_NOTIFICATIONS" size={16} fallback={<Bell size={16} />} />}
@@ -657,26 +654,13 @@ function AccountMenuContent({
         badge={unreadCount}
         onClick={resetUnread}
       />
-      <DropdownItem href="/battle-pass" icon={<AppIcon slot="ICON_BATTLE_PASS" size={16} fallback={<Ticket size={16} />} />} label={t("navbar.battlePass")} />
-      <DropdownItem href="/missions" icon={<AppIcon slot="ICON_MISSIONS" size={16} fallback={<Target size={16} />} />} label={t("navbar.missions")} />
-      <DropdownItem href="/achievements" icon={<AppIcon slot="ACHIEVEMENT_ICON" size={16} fallback={<Trophy size={16} />} />} label={t("navbar.achievements")} />
-      <DropdownItem href="/badges" icon={<AppIcon slot="ICON_BADGES" size={16} fallback={<Award size={16} />} />} label={t("navbar.badges")} />
-      <DropdownItem href="/rewards" icon={<AppIcon slot="ICON_REWARDS" size={16} fallback={<Gift size={16} />} />} label={t("navbar.rewardCenter")} />
-      <DropdownItem href="/referrals" icon={<Users size={16} />} label={t("navbar.referrals")} />
-      {isAdmin && <DropdownItem href="/admin" icon={<Shield size={16} />} label={t("navbar.adminPanel")} />}
-
-      <DropdownSection title={t("navbar.actions")} />
-      <DropdownItem href="/friends" icon={<AppIcon slot="ICON_FRIENDS" size={16} fallback={<Users size={16} />} />} label={t("navbar.friends")} />
       <DropdownItem href="/messages" icon={<AppIcon slot="ICON_MESSAGES" size={16} fallback={<MessageSquare size={16} />} />} label={t("navbar.messages")} />
-      <DropdownItem href="/courses" icon={<AppIcon slot="ICON_COURSES" size={16} fallback={<BookOpen size={16} />} />} label={t("navbar.myCourses")} />
-      <button
-        type="button"
-        onClick={() => window.dispatchEvent(new Event(START_WEB_ONBOARDING))}
-        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-[rgb(var(--text))] hover:bg-[rgb(var(--border)/0.5)] transition-colors"
-      >
-        <CircleHelp size={16} /> {t("site.onboarding.replay")}
-      </button>
-
+      <DropdownItem href="/friends" icon={<AppIcon slot="ICON_FRIENDS" size={16} fallback={<Users size={16} />} />} label={t("navbar.friends")} />
+      <DropdownDivider />
+      <DropdownItem href="/settings" icon={<AppIcon slot="ICON_SETTINGS" size={16} fallback={<Settings size={16} />} />} label={t("navbar.settings")} />
+      <DropdownItem href="/account/billing" icon={<CreditCard size={16} />} label={t("navbar.billing")} />
+      {isAdmin && <DropdownItem href="/admin" icon={<Shield size={16} />} label={t("navbar.adminPanel")} />}
+      <DropdownDivider />
       <button
         onClick={handleLogout}
         className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-red-500 hover:bg-red-500/10 transition-colors"
@@ -714,6 +698,10 @@ function DropdownItem({
       ) : null}
     </Link>
   );
+}
+
+function DropdownDivider() {
+  return <div className="my-1 h-px bg-[rgb(var(--border))]" role="separator" />;
 }
 
 function DropdownSection({ title }: { title: string }) {
