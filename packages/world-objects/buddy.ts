@@ -47,13 +47,47 @@ export const BUDDY_MAX_STEPS = 300;
  * ({ state, steps }). El estado vive en un cierre: solo cambia con órdenes.
  * Sin dependencias ni APIs del navegador o de Node: corre igual en ambos.
  */
+// Órdenes y propiedades en inglés y alemán: alias de las de español (el
+// estado interno sigue en español). Así el mismo ejercicio se puede escribir
+// en el idioma del alumno: buddy.say("Hi") es lo mismo que buddy.decir("Hi").
+export const BUDDY_COMMANDS: Record<'en' | 'de', Record<string, string>> = {
+  en: { say: 'decir', tellJoke: 'contarChiste', jump: 'saltar', dance: 'bailar', sleep: 'dormir', wakeUp: 'despertar', eat: 'comer', walk: 'avanzar', setMood: 'ponerAnimo', isAsleep: 'estaDormido', isTired: 'estaCansado' },
+  de: { sagen: 'decir', witzMachen: 'contarChiste', springen: 'saltar', tanzen: 'bailar', schlafen: 'dormir', aufwachen: 'despertar', essen: 'comer', gehen: 'avanzar', setzeStimmung: 'ponerAnimo', istAmSchlafen: 'estaDormido', istMuede: 'estaCansado', 'istMüde': 'estaCansado' },
+};
+export const BUDDY_PROPERTIES: Record<'en' | 'de', Record<string, string>> = {
+  en: { mood: 'animo', energy: 'energia', jokes: 'chistes', laughs: 'risas', jumps: 'saltos', cakes: 'pasteles', position: 'posicion', dancing: 'bailando', asleep: 'dormido', said: 'dicho' },
+  de: { stimmung: 'animo', energie: 'energia', witze: 'chistes', lacher: 'risas', spruenge: 'saltos', 'sprünge': 'saltos', kuchen: 'pasteles', position: 'posicion', tanzt: 'bailando', schlaeft: 'dormido', 'schläft': 'dormido', gesagt: 'dicho' },
+};
+/** Nombre de cada ánimo en cada idioma (el de español es el interno). */
+export const BUDDY_MOOD_NAMES: Record<'en' | 'de', Record<BuddyMood, string>> = {
+  en: { normal: 'normal', feliz: 'happy', riendo: 'laughing', triste: 'sad', dormido: 'asleep', sorprendido: 'surprised', cansado: 'tired' },
+  de: { normal: 'normal', feliz: 'froh', riendo: 'lachend', triste: 'traurig', dormido: 'schlafend', sorprendido: 'überrascht', cansado: 'müde' },
+};
+
 export const BUDDY_RUNTIME = String.raw`
 (function (root) {
+  var L = (typeof __CB_LANG !== "undefined" && (__CB_LANG === "en" || __CB_LANG === "de")) ? __CB_LANG : "es";
+  var MSG = {
+    es: { mareado: "Buddy está mareado: ¡demasiadas órdenes! Revisa que tu bucle termine.", animo: "Buddy no conoce el ánimo", prueba: "Prueba con" },
+    en: { mareado: "Buddy is dizzy: too many commands! Check that your loop ends.", animo: "Buddy doesn't know the mood", prueba: "Try" },
+    de: { mareado: "Buddy ist schwindelig: zu viele Befehle! Prüf, ob deine Schleife endet.", animo: "Buddy kennt diese Stimmung nicht:", prueba: "Probier" }
+  }[L];
+  var CMDS = ${JSON.stringify(BUDDY_COMMANDS)};
+  var PROPS = ${JSON.stringify(BUDDY_PROPERTIES)};
+  var MOODS = ${JSON.stringify(BUDDY_MOOD_NAMES)};
+  var __BUDDY_MOODS = ["normal", "feliz", "riendo", "triste", "dormido", "sorprendido", "cansado"];
+  // Cualquier nombre de ánimo (de cualquier idioma, con o sin diéresis) al interno.
+  function __plain(x) { return String(x).toLowerCase().replace(/ü/g, "ue").replace(/ö/g, "oe").replace(/ä/g, "ae"); }
+  function __buddyMood(name) {
+    var a = __plain(name);
+    if (__BUDDY_MOODS.indexOf(a) >= 0) return a;
+    for (var lang in MOODS) for (var k in MOODS[lang]) if (__plain(MOODS[lang][k]) === a) return k;
+    return null;
+  }
   var __buddyState = { animo: "normal", energia: 5, chistes: 0, risas: 0, saltos: 0, pasteles: 0, posicion: 0, bailando: false, dormido: false, dicho: [] };
   var __buddySteps = [];
-  var __BUDDY_MOODS = ["normal", "feliz", "riendo", "triste", "dormido", "sorprendido", "cansado"];
   function __buddyPush(step) {
-    if (__buddySteps.length >= ${BUDDY_MAX_STEPS}) throw new Error("Buddy está mareado: ¡demasiadas órdenes! Revisa que tu bucle termine.");
+    if (__buddySteps.length >= ${BUDDY_MAX_STEPS}) throw new Error(MSG.mareado);
     step.animo = step.animo || __buddyState.animo;
     var line = __buddyLine();
     if (line) step.linea = line;
@@ -134,8 +168,8 @@ export const BUDDY_RUNTIME = String.raw`
       __buddyPush({ accion: "avanzar", pasos: n });
     },
     ponerAnimo: function (animo) {
-      var a = String(animo);
-      if (__BUDDY_MOODS.indexOf(a) < 0) throw new Error("Buddy no conoce el ánimo \"" + a + "\". Prueba con: " + __BUDDY_MOODS.join(", "));
+      var a = __buddyMood(animo);
+      if (!a) throw new Error(MSG.animo + " \"" + String(animo) + "\". " + MSG.prueba + ": " + (L === "es" ? __BUDDY_MOODS : __BUDDY_MOODS.map(function (m) { return MOODS[L][m]; })).join(", "));
       __buddyState.animo = a;
       __buddyState.dormido = a === "dormido";
       __buddyPush({ accion: "animo", animo: a });
@@ -147,6 +181,14 @@ export const BUDDY_RUNTIME = String.raw`
     Object.defineProperty(buddy, key, { get: function () { return __buddyState[key]; }, enumerable: true });
   });
   Object.defineProperty(buddy, "dicho", { get: function () { return __buddyState.dicho.slice(); }, enumerable: true });
+  // Los mismos nombres en inglés y alemán. El ánimo se lee en ese idioma.
+  for (var lang in CMDS) for (var name in CMDS[lang]) buddy[name] = buddy[CMDS[lang][name]];
+  for (var plang in PROPS) for (var pname in PROPS[plang]) (function (l, n, key) {
+    if (!Object.prototype.hasOwnProperty.call(buddy, n)) Object.defineProperty(buddy, n, { get: function () {
+      if (key === "animo") return MOODS[l][__buddyState.animo];
+      return key === "dicho" ? __buddyState.dicho.slice() : __buddyState[key];
+    }, enumerable: false });
+  })(plang, pname, PROPS[plang][pname]);
   Object.freeze(buddy);
   var __console = { log: function () { buddy.decir(Array.prototype.slice.call(arguments).join(" ")); }, error: function () {}, warn: function () {}, info: function () {} };
   
@@ -161,22 +203,56 @@ export const BUDDY_RUNTIME = String.raw`
 })(typeof globalThis !== "undefined" ? globalThis : this);
 `;
 
-// Errores de JavaScript en palabras para niños. Los mensajes del motor (en
-// inglés y técnicos) se traducen; lo que ya está en español pasa igual. Son
-// datos (no funciones) para poder mandarlos al iframe de la vista previa.
-// En el mensaje, $1 es lo que capturó el paréntesis de la expresión.
-export const BUDDY_FRIENDLY_ERRORS: Array<{ pattern: string; message: string }> = [
-  { pattern: 'Invalid or unexpected token|Unterminated string', message: 'Hay algo raro en tu código: ¿te falta cerrar una comilla "?' },
-  { pattern: 'missing \\) after argument list', message: 'Falta cerrar un paréntesis ). Cada ( necesita su ).' },
-  { pattern: 'Unexpected end of input', message: 'El código se termina antes de tiempo: ¿falta cerrar un paréntesis ) o una llave }?' },
-  { pattern: "Unexpected token '?([^'\\s]+)'?", message: 'Hay un «$1» que sobra o está en un lugar raro. Revisa los paréntesis y las comillas.' },
-  { pattern: 'buddy\\.(\\w+) is not a function', message: 'Buddy no sabe hacer «$1». Revisa cómo se escribe la orden.' },
-  { pattern: '(\\w+) is not defined', message: 'No conozco «$1». ¿Lo escribiste bien? Las órdenes empiezan con buddy.' },
-  { pattern: 'Cannot read propert(?:y|ies) of (?:undefined|null)', message: 'Estás usando algo que no existe. Revisa que esté bien escrito.' },
-];
+// Errores de JavaScript en palabras simples, en el idioma del alumno. Los
+// mensajes del motor (en inglés y técnicos) se traducen; los del propio motor
+// ya vienen en el idioma. Son datos (no funciones) para poder mandarlos al
+// iframe de la vista previa. En el mensaje, $1 es lo que capturó el paréntesis.
+export type FriendlyLang = 'es' | 'en' | 'de';
+export const friendlyLang = (lang?: string | null): FriendlyLang => {
+  const v = String(lang ?? '').toLowerCase();
+  return v.startsWith('en') ? 'en' : v.startsWith('de') ? 'de' : 'es';
+};
 
-export function buddyFriendlyError(message: string): string {
-  for (const rule of BUDDY_FRIENDLY_ERRORS) {
+export const BUDDY_FRIENDLY_ERRORS_BY_LANG: Record<FriendlyLang, Array<{ pattern: string; message: string }>> = {
+  es: [
+    { pattern: 'Invalid or unexpected token|Unterminated string', message: 'Hay algo raro en tu código: ¿te falta cerrar una comilla "?' },
+    { pattern: 'missing \\) after argument list', message: 'Falta cerrar un paréntesis ). Cada ( necesita su ).' },
+    { pattern: 'Unexpected end of input', message: 'El código se termina antes de tiempo: ¿falta cerrar un paréntesis ) o una llave }?' },
+    { pattern: "Unexpected token '?([^'\\s]+)'?", message: 'Hay un «$1» que sobra o está en un lugar raro. Revisa los paréntesis y las comillas.' },
+    { pattern: 'buddy\\.(\\w+) is not a function', message: 'Buddy no sabe hacer «$1». Revisa cómo se escribe la orden.' },
+    { pattern: '(\\w+) is not defined', message: 'No conozco «$1». ¿Lo escribiste bien? Las órdenes empiezan con buddy.' },
+    { pattern: 'Cannot read propert(?:y|ies) of (?:undefined|null)', message: 'Estás usando algo que no existe. Revisa que esté bien escrito.' },
+  ],
+  en: [
+    { pattern: 'Invalid or unexpected token|Unterminated string', message: 'Something is odd in your code: are you missing a closing quote "?' },
+    { pattern: 'missing \\) after argument list', message: 'A parenthesis ) is missing. Every ( needs its ).' },
+    { pattern: 'Unexpected end of input', message: 'The code ends too early: is a parenthesis ) or a brace } missing?' },
+    { pattern: "Unexpected token '?([^'\\s]+)'?", message: 'There is a “$1” that is extra or in a strange place. Check the parentheses and the quotes.' },
+    { pattern: 'buddy\\.(\\w+) is not a function', message: 'Buddy doesn’t know how to “$1”. Check how the command is spelled.' },
+    { pattern: '(\\w+) is not defined', message: 'I don’t know “$1”. Did you spell it right? Commands start with buddy.' },
+    { pattern: 'Cannot read propert(?:y|ies) of (?:undefined|null)', message: 'You are using something that doesn’t exist. Check that it is spelled right.' },
+  ],
+  de: [
+    { pattern: 'Invalid or unexpected token|Unterminated string', message: 'Etwas stimmt nicht in deinem Code: Fehlt ein schließendes Anführungszeichen "?' },
+    { pattern: 'missing \\) after argument list', message: 'Eine Klammer ) fehlt. Jede ( braucht ihre ).' },
+    { pattern: 'Unexpected end of input', message: 'Der Code hört zu früh auf: Fehlt eine Klammer ) oder eine geschweifte Klammer }?' },
+    { pattern: "Unexpected token '?([^'\\s]+)'?", message: 'Da ist ein „$1“ zu viel oder an einer seltsamen Stelle. Prüf die Klammern und die Anführungszeichen.' },
+    { pattern: 'buddy\\.(\\w+) is not a function', message: 'Buddy kann „$1“ nicht. Prüf, wie der Befehl geschrieben wird.' },
+    { pattern: '(\\w+) is not defined', message: '„$1“ kenne ich nicht. Hast du es richtig geschrieben? Befehle fangen mit buddy. an.' },
+    { pattern: 'Cannot read propert(?:y|ies) of (?:undefined|null)', message: 'Du benutzt etwas, das es nicht gibt. Prüf, ob es richtig geschrieben ist.' },
+  ],
+};
+export const BUDDY_FRIENDLY_ERRORS = BUDDY_FRIENDLY_ERRORS_BY_LANG.es;
+
+/** Mensaje de la verificación cuando el ejercicio no trae uno propio. */
+export const BUDDY_NOT_YET: Record<FriendlyLang, string> = {
+  es: 'Buddy todavía no está como pide el ejercicio',
+  en: 'Buddy is not quite how the exercise asks yet',
+  de: 'Buddy ist noch nicht so, wie die Aufgabe es verlangt',
+};
+
+export function buddyFriendlyError(message: string, lang?: string | null): string {
+  for (const rule of BUDDY_FRIENDLY_ERRORS_BY_LANG[friendlyLang(lang)]) {
     const match = message.match(new RegExp(rule.pattern, 'i'));
     if (match) return rule.message.replace('$1', match[1] ?? '');
   }

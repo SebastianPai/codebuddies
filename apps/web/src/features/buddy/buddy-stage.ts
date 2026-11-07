@@ -1,4 +1,4 @@
-import { BUDDY_CSS, BUDDY_FRIENDLY_ERRORS, BUDDY_MOODS, BUDDY_RUNTIME, buddySvg } from "@codebuddies/world-objects";
+import { BUDDY_CSS, BUDDY_FRIENDLY_ERRORS_BY_LANG, BUDDY_MOODS, BUDDY_NOT_YET, BUDDY_RUNTIME, buddySvg, friendlyLang } from "@codebuddies/world-objects";
 
 // Documento del iframe de vista previa para los ejercicios de Buddy: corre el
 // código del alumno con el mismo motor que usa la API para corregir y después
@@ -29,7 +29,16 @@ const ICONS = {
 // el alumno cerraría la etiqueta antes de tiempo: se escapa la barra.
 const asScriptString = (code: string) => JSON.stringify(code).replace(/<\/(script)/gi, "<\\/$1");
 
-export function buildBuddyStageDoc(studentCode: string, assertions: string, labels: BuddyStageLabels) {
+// Lo que Buddy "dice" en el escenario al reírse o al fallar, por idioma.
+const FX = {
+  es: { ja: "¡JA!", jajaja: "¡JAJAJA!", ups: "¡Ups!" },
+  en: { ja: "HA!", jajaja: "HAHAHA!", ups: "Oops!" },
+  de: { ja: "HA!", jajaja: "HAHAHA!", ups: "Hoppla!" },
+};
+
+export function buildBuddyStageDoc(studentCode: string, assertions: string, labels: BuddyStageLabels, lang?: string) {
+  const l = friendlyLang(lang);
+  const fxText = FX[l];
   // Una cara por ánimo, ya dibujadas: la reproducción solo cambia cuál se ve.
   const faces = Object.fromEntries(BUDDY_MOODS.map((mood) => [mood, buddySvg(mood, 150)]));
   return `<!DOCTYPE html>
@@ -75,11 +84,12 @@ export function buildBuddyStageDoc(studentCode: string, assertions: string, labe
   <div class="stage"><div class="buddy" id="buddy"><div class="bubble" id="bubble"></div><div id="face" class="buddy-idle"></div></div></div>
   <div class="status" id="status">${escapeHtml(labels.ready)}</div>
 <script>
+var __CB_LANG = ${JSON.stringify(l)};
 ${BUDDY_RUNTIME}
 </script>
 <script>
 var FACES = ${JSON.stringify(faces)};
-var FRIENDLY = ${JSON.stringify(BUDDY_FRIENDLY_ERRORS)};
+var FRIENDLY = ${JSON.stringify(BUDDY_FRIENDLY_ERRORS_BY_LANG[l])};
 function friendly(message) {
   for (var k = 0; k < FRIENDLY.length; k++) {
     var m = message.match(new RegExp(FRIENDLY[k].pattern, "i"));
@@ -134,7 +144,7 @@ ${
   assertions.trim()
     ? `if (!error) {
   try {
-    new Function("assert", ${asScriptString(assertions)})(function (c, m) { if (!c) throw new Error(m || "Buddy todavía no está como pide el ejercicio"); });
+    new Function("assert", ${asScriptString(assertions)})(function (c, m) { if (!c) throw new Error(m || ${JSON.stringify(BUDDY_NOT_YET[l])}); });
     result = { passed: true };
   } catch (e) { result = { passed: false, message: e && e.message ? e.message : String(e) }; }
 } else { result = { passed: false, message: error }; }`
@@ -151,7 +161,7 @@ function next() {
   setFace(step.animo);
   switch (step.accion) {
     case "decir": say(step.texto); talk(); break;
-    case "chiste": laughs = step.risas; anim("laugh"); fx("¡JA!", "#d97706"); if (step.risas >= 3) fx("¡JAJAJA!", "#dc2626"); energy = Math.max(0, energy - 1); break;
+    case "chiste": laughs = step.risas; anim("laugh"); fx(${JSON.stringify(fxText.ja)}, "#d97706"); if (step.risas >= 3) fx(${JSON.stringify(fxText.jajaja)}, "#dc2626"); energy = Math.max(0, energy - 1); break;
     case "saltar": anim("jump"); energy = Math.max(0, energy - 1); break;
     case "bailar": anim("dance"); fx("", "", ${JSON.stringify(ICONS.note)}); break;
     case "dormir": fx("Zzz", "#475569"); energy = 5; break;
@@ -172,7 +182,7 @@ function finish() {
   laughsEl.textContent = String(report.state.risas);
   if (error) {
     setFace("sorprendido");
-    say("¡Ups!");
+    say(${JSON.stringify(fxText.ups)});
     statusEl.className = "status bad";
     statusEl.textContent = ${JSON.stringify(labels.error)} + " " + error;
   } else if (result) {

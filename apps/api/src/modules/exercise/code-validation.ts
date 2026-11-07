@@ -1,5 +1,5 @@
 import * as vm from 'node:vm';
-import { BUDDY_RUNTIME, buddyFriendlyError, NAVE_RUNTIME, naveFriendlyError, naveLevelFrom, PYTHON_TEXTS, pythonMsgLang, pythonResultMessage } from '@codebuddies/world-objects';
+import { BUDDY_NOT_YET, BUDDY_RUNTIME, buddyFriendlyError, friendlyLang, NAVE_NOT_YET, NAVE_RUNTIME, naveFriendlyError, naveLevelFrom, PYTHON_TEXTS, pythonMsgLang, pythonResultMessage } from '@codebuddies/world-objects';
 import { runPython } from './python-runner';
 
 // Validación server-side de los ejercicios de código.
@@ -296,12 +296,14 @@ export function compareJsOutput(studentCode: string, expectedCode: string, lang:
 // @codebuddies/world-objects, el mismo motor que anima la vista previa) y
 // las verificaciones miran cómo quedó: assert(buddy.animo === "riendo", "...").
 
-export function runBuddy(studentCode: string, expectedCode: string): CodeResult[] {
+export function runBuddy(studentCode: string, expectedCode: string, lang?: string | null): CodeResult[] {
+  const l = friendlyLang(lang);
   try {
     const context = vm.createContext({});
     new vm.Script(`
+      var __CB_LANG = ${JSON.stringify(l)};
       function assert(condition, message) {
-        if (!condition) throw new Error(message || 'Buddy todavía no está como pide el ejercicio');
+        if (!condition) throw new Error(message || ${JSON.stringify(BUDDY_NOT_YET[l])});
       }
       ${BUDDY_RUNTIME}
       ;(function () {
@@ -311,7 +313,7 @@ export function runBuddy(studentCode: string, expectedCode: string): CodeResult[
     `).runInContext(context, { timeout: 2000 });
     return [{ description: 'Buddy', passed: true }];
   } catch (error) {
-    return [{ description: 'Buddy', passed: false, error: buddyFriendlyError(describeSandboxError(error)) }];
+    return [{ description: 'Buddy', passed: false, error: buddyFriendlyError(describeSandboxError(error), l) }];
   }
 }
 
@@ -319,13 +321,15 @@ export function runBuddy(studentCode: string, expectedCode: string): CodeResult[
 // Igual que Buddy, con NAVE_RUNTIME. El nivel (aliens y dónde arranca la
 // nave) sale del comentario `// nivel: {...}` de las verificaciones.
 
-export function runNave(studentCode: string, expectedCode: string): CodeResult[] {
+export function runNave(studentCode: string, expectedCode: string, lang?: string | null): CodeResult[] {
+  const l = friendlyLang(lang);
   try {
     const context = vm.createContext({});
     new vm.Script(`
+      var __CB_LANG = ${JSON.stringify(l)};
       var __NAVE_NIVEL = ${JSON.stringify(naveLevelFrom(expectedCode) ?? {})};
       function assert(condition, message) {
-        if (!condition) throw new Error(message || 'La nave todavía no está como pide el ejercicio');
+        if (!condition) throw new Error(message || ${JSON.stringify(NAVE_NOT_YET[l])});
       }
       ${NAVE_RUNTIME}
       ;(function () {
@@ -335,7 +339,7 @@ export function runNave(studentCode: string, expectedCode: string): CodeResult[]
     `).runInContext(context, { timeout: 2000 });
     return [{ description: 'Nave', passed: true }];
   } catch (error) {
-    return [{ description: 'Nave', passed: false, error: naveFriendlyError(describeSandboxError(error)) }];
+    return [{ description: 'Nave', passed: false, error: naveFriendlyError(describeSandboxError(error), l) }];
   }
 }
 
@@ -369,12 +373,12 @@ export function validateCode(input: {
 
   if (language === 'buddy') {
     return expectedCode
-      ? runBuddy(input.studentCode, expectedCode)
+      ? runBuddy(input.studentCode, expectedCode, input.lang)
       : [{ description: 'Código enviado', passed: input.studentCode.trim().length > 0 }];
   }
   if (language === 'nave') {
     return expectedCode
-      ? runNave(input.studentCode, expectedCode)
+      ? runNave(input.studentCode, expectedCode, input.lang)
       : [{ description: 'Código enviado', passed: input.studentCode.trim().length > 0 }];
   }
   if (language === 'python') {

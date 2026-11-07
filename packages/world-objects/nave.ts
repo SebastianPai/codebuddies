@@ -14,6 +14,34 @@ export const NAVE_ROWS = 5;
 export const NAVE_MAX_STEPS = 300;
 export const NAVE_KEYS = ['izquierda', 'derecha', 'espacio', 'arriba', 'abajo'] as const;
 
+// Los mismos nombres en inglés y alemán (alias de los de español, que son los
+// internos): ship.shoot() es lo mismo que nave.disparar().
+export const NAVE_GLOBALS: Record<'en' | 'de', { nave: string; juego: string; repetir: string }> = {
+  en: { nave: 'ship', juego: 'game', repetir: 'repeat' },
+  de: { nave: 'schiff', juego: 'spiel', repetir: 'wiederholen' },
+};
+export const NAVE_COMMANDS: Record<'en' | 'de', Record<string, string>> = {
+  en: { right: 'derecha', left: 'izquierda', shoot: 'disparar', seesEnemy: 'hayEnemigo', say: 'decir', paint: 'pintar' },
+  de: { rechts: 'derecha', links: 'izquierda', schiessen: 'disparar', 'schießen': 'disparar', siehtGegner: 'hayEnemigo', sagen: 'decir', malen: 'pintar' },
+};
+export const NAVE_PROPERTIES: Record<'en' | 'de', Record<string, string>> = {
+  en: { column: 'columna', points: 'puntos', shots: 'disparos', misses: 'fallados', destroyed: 'destruidos', lives: 'vidas', color: 'color', enemies: 'enemigos', said: 'dicho' },
+  de: { spalte: 'columna', punkte: 'puntos', schuesse: 'disparos', 'schüsse': 'disparos', fehlschuesse: 'fallados', 'fehlschüsse': 'fallados', abgeschossen: 'destruidos', leben: 'vidas', farbe: 'color', gegner: 'enemigos', gesagt: 'dicho' },
+};
+export const NAVE_GAME_COMMANDS: Record<'en' | 'de', Record<string, string>> = {
+  en: { onKey: 'alTocar', onDestroy: 'alDestruir', press: 'tocar' },
+  de: { beiTaste: 'alTocar', beiAbschuss: 'alDestruir', druecken: 'tocar', 'drücken': 'tocar' },
+};
+/** Nombre de cada tecla en cada idioma (el de español es el interno). */
+export const NAVE_KEY_NAMES: Record<'en' | 'de', Record<string, string>> = {
+  en: { izquierda: 'left', derecha: 'right', espacio: 'space', arriba: 'up', abajo: 'down' },
+  de: { izquierda: 'links', derecha: 'rechts', espacio: 'leertaste', arriba: 'hoch', abajo: 'runter' },
+};
+export const NAVE_COLOR_NAMES: Record<'en' | 'de', Record<string, string>> = {
+  en: { red: 'rojo', blue: 'azul', green: 'verde', yellow: 'amarillo', purple: 'morado', orange: 'naranja', pink: 'rosa', white: 'blanco' },
+  de: { rot: 'rojo', blau: 'azul', gruen: 'verde', 'grün': 'verde', gelb: 'amarillo', lila: 'morado', orange: 'naranja', rosa: 'rosa', weiss: 'blanco', 'weiß': 'blanco' },
+};
+
 export type NaveLevel = { nave?: number; enemigos?: Array<[number, number] | [number, number, number]> };
 
 export type NaveStep =
@@ -44,6 +72,26 @@ export function naveLevelFrom(source: string | null | undefined): NaveLevel | nu
  */
 export const NAVE_RUNTIME = String.raw`
 (function (root) {
+  var L = (typeof __CB_LANG !== "undefined" && (__CB_LANG === "en" || __CB_LANG === "de")) ? __CB_LANG : "es";
+  var GLOBALS = ${JSON.stringify(NAVE_GLOBALS)};
+  var CMDS = ${JSON.stringify(NAVE_COMMANDS)};
+  var PROPS = ${JSON.stringify(NAVE_PROPERTIES)};
+  var GAME = ${JSON.stringify(NAVE_GAME_COMMANDS)};
+  var KEYNAMES = ${JSON.stringify(NAVE_KEY_NAMES)};
+  var COLORNAMES = ${JSON.stringify(NAVE_COLOR_NAMES)};
+  var N = L === "es" ? { nave: "nave", juego: "juego", repetir: "repetir", alTocar: "alTocar", alDestruir: "alDestruir" } : { nave: GLOBALS[L].nave, juego: GLOBALS[L].juego, repetir: GLOBALS[L].repetir, alTocar: L === "en" ? "onKey" : "beiTaste", alDestruir: L === "en" ? "onDestroy" : "beiAbschuss" };
+  var MSG = {
+    es: { muchas: "¡Demasiadas órdenes! Revisa que tu repetir termine.", color: "No conozco el color", tecla: "La tecla", noExiste: "no existe. Usa", prueba: "Prueba con", funcion: "Después de la tecla va una función: function () { ... }", destruir: " necesita una función: function () { ... }", repetir: " necesita cuántas veces y una función: " },
+    en: { muchas: "Too many commands! Check that your repeat ends.", color: "I don't know the color", tecla: "The key", noExiste: "doesn't exist. Use", prueba: "Try", funcion: "After the key comes a function: function () { ... }", destruir: " needs a function: function () { ... }", repetir: " needs how many times and a function: " },
+    de: { muchas: "Zu viele Befehle! Prüf, ob dein wiederholen endet.", color: "Diese Farbe kenne ich nicht:", tecla: "Die Taste", noExiste: "gibt es nicht. Benutze", prueba: "Probier", funcion: "Nach der Taste kommt eine Funktion: function () { ... }", destruir: " braucht eine Funktion: function () { ... }", repetir: " braucht, wie oft, und eine Funktion: " }
+  }[L];
+  function plain(x) { return String(x).toLowerCase().replace(/ü/g, "ue").replace(/ö/g, "oe").replace(/ä/g, "ae").replace(/ß/g, "ss"); }
+  // Una tecla de cualquier idioma a su nombre interno (o null).
+  function teclaInterna(t) {
+    var k = plain(t);
+    for (var lang in KEYNAMES) for (var es in KEYNAMES[lang]) if (es === k || KEYNAMES[lang][es] === k) return es;
+    return null;
+  }
   var ANCHO = ${NAVE_COLUMNS}, ALTO = ${NAVE_ROWS};
   var nivel = (typeof __NAVE_NIVEL !== "undefined" && __NAVE_NIVEL) || {};
   var COLORES = { rojo: "#ef4444", azul: "#3b82f6", verde: "#22c55e", amarillo: "#facc15", morado: "#a855f7", naranja: "#f97316", rosa: "#ec4899", blanco: "#f8fafc" };
@@ -55,7 +103,7 @@ export const NAVE_RUNTIME = String.raw`
     return m ? Math.max(1, Number(m[1]) - 2) : null;
   }
   function push(step) {
-    if (!enJuego && steps.length >= ${NAVE_MAX_STEPS}) throw new Error("¡Demasiadas órdenes! Revisa que tu repetir termine.");
+    if (!enJuego && steps.length >= ${NAVE_MAX_STEPS}) throw new Error(MSG.muchas);
     var l = linea();
     if (l) step.linea = l;
     steps.push(step);
@@ -87,9 +135,10 @@ export const NAVE_RUNTIME = String.raw`
     hayEnemigo: function () { return vivos().some(function (e) { return e.col === st.columna; }); },
     decir: function (texto) { var t = String(texto); st.dicho.push(t); push({ accion: "decir", texto: t }); },
     pintar: function (color) {
-      var c = String(color).toLowerCase();
+      var c = plain(color);
+      for (var lang in COLORNAMES) if (COLORNAMES[lang][c]) c = COLORNAMES[lang][c];
       var valor = COLORES[c] || (/^#[0-9a-f]{3,6}$/.test(c) ? c : null);
-      if (!valor) throw new Error("No conozco el color \"" + color + "\". Prueba con: " + Object.keys(COLORES).join(", "));
+      if (!valor) throw new Error(MSG.color + " \"" + color + "\". " + MSG.prueba + ": " + (L === "es" ? Object.keys(COLORES) : Object.keys(COLORNAMES[L]).filter(function (n) { return n !== "gruen" && n !== "weiss"; })).join(", "));
       st.color = valor;
       push({ accion: "pintar", color: valor });
     }
@@ -99,25 +148,32 @@ export const NAVE_RUNTIME = String.raw`
   });
   Object.defineProperty(nave, "enemigos", { get: function () { return vivos().length; }, enumerable: true });
   Object.defineProperty(nave, "dicho", { get: function () { return st.dicho.slice(); }, enumerable: true });
+  for (var cl in CMDS) for (var cn in CMDS[cl]) nave[cn] = nave[CMDS[cl][cn]];
+  for (var pl in PROPS) for (var pn in PROPS[pl]) (function (n, key) {
+    if (!Object.prototype.hasOwnProperty.call(nave, n)) Object.defineProperty(nave, n, { get: function () { return key === "enemigos" ? vivos().length : key === "dicho" ? st.dicho.slice() : st[key]; }, enumerable: false });
+  })(pn, PROPS[pl][pn]);
   Object.freeze(nave);
   var TECLAS = ${JSON.stringify(NAVE_KEYS)};
   var juego = {
     alTocar: function (tecla, accion) {
-      var k = String(tecla).toLowerCase();
-      if (TECLAS.indexOf(k) < 0) throw new Error("La tecla \"" + tecla + "\" no existe. Usa: " + TECLAS.join(", "));
-      if (typeof accion !== "function") throw new Error("Después de la tecla va una función: function () { ... }");
+      var k = teclaInterna(tecla);
+      if (!k) throw new Error(MSG.tecla + " \"" + tecla + "\" " + MSG.noExiste + ": " + (L === "es" ? TECLAS : TECLAS.map(function (t) { return KEYNAMES[L][t]; })).join(", "));
+      if (typeof accion !== "function") throw new Error(MSG.funcion);
       teclas[k] = accion;
     },
     alDestruir: function (accion) {
-      if (typeof accion !== "function") throw new Error("juego.alDestruir necesita una función: function () { ... }");
+      if (typeof accion !== "function") throw new Error(N.juego + "." + N.alDestruir + MSG.destruir);
       alDestruir = accion;
     },
-    tocar: function (tecla) { var f = teclas[String(tecla).toLowerCase()]; if (f) f(); return !!f; }
+    tocar: function (tecla) { var f = teclas[teclaInterna(tecla) || ""]; if (f) f(); return !!f; }
   };
   Object.defineProperty(juego, "teclas", { get: function () { return Object.keys(teclas); }, enumerable: true });
+  for (var gl in GAME) for (var gn in GAME[gl]) juego[gn] = juego[GAME[gl][gn]];
+  Object.defineProperty(juego, "keys", { get: function () { return Object.keys(teclas).map(function (t) { return KEYNAMES.en[t]; }); }, enumerable: false });
+  Object.defineProperty(juego, "tasten", { get: function () { return Object.keys(teclas).map(function (t) { return KEYNAMES.de[t]; }); }, enumerable: false });
   Object.freeze(juego);
   function repetir(veces, accion) {
-    if (typeof accion !== "function") throw new Error("repetir necesita cuántas veces y una función: repetir(3, function () { ... });");
+    if (typeof accion !== "function") throw new Error(N.repetir + MSG.repetir + N.repetir + "(3, function () { ... });");
     var n = Math.min(100, Math.max(0, Math.trunc(Number(veces)) || 0));
     for (var i = 1; i <= n; i++) accion(i);
   }
@@ -138,6 +194,7 @@ export const NAVE_RUNTIME = String.raw`
   fijo("nave", nave);
   fijo("juego", juego);
   fijo("repetir", repetir);
+  for (var g in GLOBALS) { fijo(GLOBALS[g].nave, nave); fijo(GLOBALS[g].juego, juego); fijo(GLOBALS[g].repetir, repetir); }
   fijo("console", __console);
   fijo("__naveReport", report);
   fijo("__naveModoJuego", function () { enJuego = true; });
@@ -145,19 +202,48 @@ export const NAVE_RUNTIME = String.raw`
 })(typeof globalThis !== "undefined" ? globalThis : this);
 `;
 
-// Errores de JavaScript en palabras simples, como en buddy.ts.
-export const NAVE_FRIENDLY_ERRORS: Array<{ pattern: string; message: string }> = [
-  { pattern: 'Invalid or unexpected token|Unterminated string', message: 'Hay algo raro en tu código: ¿te falta cerrar una comilla "?' },
-  { pattern: 'missing \\) after argument list', message: 'Falta cerrar un paréntesis ). Cada ( necesita su ).' },
-  { pattern: 'Unexpected end of input', message: 'El código se termina antes de tiempo: ¿falta cerrar un paréntesis ) o una llave }?' },
-  { pattern: "Unexpected token '?([^'\\s]+)'?", message: 'Hay un «$1» que sobra o está en un lugar raro. Revisa los paréntesis, las llaves y las comillas.' },
-  { pattern: '(?:nave|juego)\\.(\\w+) is not a function', message: 'La nave no sabe hacer «$1». Revisa cómo se escribe la orden.' },
-  { pattern: '(\\w+) is not defined', message: 'No conozco «$1». ¿Lo escribiste bien? Las órdenes empiezan con nave.' },
-  { pattern: 'Cannot read propert(?:y|ies) of (?:undefined|null)', message: 'Estás usando algo que no existe. Revisa que esté bien escrito.' },
-];
+// Errores de JavaScript en palabras simples, como en buddy.ts (por idioma).
+export const NAVE_FRIENDLY_ERRORS_BY_LANG: Record<'es' | 'en' | 'de', Array<{ pattern: string; message: string }>> = {
+  es: [
+    { pattern: 'Invalid or unexpected token|Unterminated string', message: 'Hay algo raro en tu código: ¿te falta cerrar una comilla "?' },
+    { pattern: 'missing \\) after argument list', message: 'Falta cerrar un paréntesis ). Cada ( necesita su ).' },
+    { pattern: 'Unexpected end of input', message: 'El código se termina antes de tiempo: ¿falta cerrar un paréntesis ) o una llave }?' },
+    { pattern: "Unexpected token '?([^'\\s]+)'?", message: 'Hay un «$1» que sobra o está en un lugar raro. Revisa los paréntesis, las llaves y las comillas.' },
+    { pattern: '(?:nave|juego|ship|game|schiff|spiel)\\.(\\w+) is not a function', message: 'La nave no sabe hacer «$1». Revisa cómo se escribe la orden.' },
+    { pattern: '(\\w+) is not defined', message: 'No conozco «$1». ¿Lo escribiste bien? Las órdenes empiezan con nave.' },
+    { pattern: 'Cannot read propert(?:y|ies) of (?:undefined|null)', message: 'Estás usando algo que no existe. Revisa que esté bien escrito.' },
+  ],
+  en: [
+    { pattern: 'Invalid or unexpected token|Unterminated string', message: 'Something is odd in your code: are you missing a closing quote "?' },
+    { pattern: 'missing \\) after argument list', message: 'A parenthesis ) is missing. Every ( needs its ).' },
+    { pattern: 'Unexpected end of input', message: 'The code ends too early: is a parenthesis ) or a brace } missing?' },
+    { pattern: "Unexpected token '?([^'\\s]+)'?", message: 'There is a “$1” that is extra or in a strange place. Check the parentheses, the braces and the quotes.' },
+    { pattern: '(?:nave|juego|ship|game|schiff|spiel)\\.(\\w+) is not a function', message: 'The ship doesn’t know how to “$1”. Check how the command is spelled.' },
+    { pattern: '(\\w+) is not defined', message: 'I don’t know “$1”. Did you spell it right? Commands start with ship.' },
+    { pattern: 'Cannot read propert(?:y|ies) of (?:undefined|null)', message: 'You are using something that doesn’t exist. Check that it is spelled right.' },
+  ],
+  de: [
+    { pattern: 'Invalid or unexpected token|Unterminated string', message: 'Etwas stimmt nicht in deinem Code: Fehlt ein schließendes Anführungszeichen "?' },
+    { pattern: 'missing \\) after argument list', message: 'Eine Klammer ) fehlt. Jede ( braucht ihre ).' },
+    { pattern: 'Unexpected end of input', message: 'Der Code hört zu früh auf: Fehlt eine Klammer ) oder eine geschweifte Klammer }?' },
+    { pattern: "Unexpected token '?([^'\\s]+)'?", message: 'Da ist ein „$1“ zu viel oder an einer seltsamen Stelle. Prüf die Klammern und die Anführungszeichen.' },
+    { pattern: '(?:nave|juego|ship|game|schiff|spiel)\\.(\\w+) is not a function', message: 'Das Schiff kann „$1“ nicht. Prüf, wie der Befehl geschrieben wird.' },
+    { pattern: '(\\w+) is not defined', message: '„$1“ kenne ich nicht. Hast du es richtig geschrieben? Befehle fangen mit schiff. an.' },
+    { pattern: 'Cannot read propert(?:y|ies) of (?:undefined|null)', message: 'Du benutzt etwas, das es nicht gibt. Prüf, ob es richtig geschrieben ist.' },
+  ],
+};
+export const NAVE_FRIENDLY_ERRORS = NAVE_FRIENDLY_ERRORS_BY_LANG.es;
 
-export function naveFriendlyError(message: string): string {
-  for (const rule of NAVE_FRIENDLY_ERRORS) {
+export const NAVE_NOT_YET: Record<'es' | 'en' | 'de', string> = {
+  es: 'La nave todavía no está como pide el ejercicio',
+  en: 'The ship is not quite how the exercise asks yet',
+  de: 'Das Schiff ist noch nicht so, wie die Aufgabe es verlangt',
+};
+
+export function naveFriendlyError(message: string, lang?: string | null): string {
+  const v = String(lang ?? '').toLowerCase();
+  const l = v.startsWith('en') ? 'en' : v.startsWith('de') ? 'de' : 'es';
+  for (const rule of NAVE_FRIENDLY_ERRORS_BY_LANG[l]) {
     const match = message.match(new RegExp(rule.pattern, 'i'));
     if (match) return rule.message.replace('$1', match[1] ?? '');
   }

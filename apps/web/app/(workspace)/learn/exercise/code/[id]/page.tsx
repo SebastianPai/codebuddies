@@ -537,7 +537,7 @@ export default function FullWidthConfidentialWorkspace() {
           passed: t("site.naveStagePassed"),
           play: t("site.naveStagePlay"),
           over: t("site.naveStageOver"),
-        }),
+        }, apiLang),
       );
       return;
     }
@@ -546,11 +546,11 @@ export default function FullWidthConfidentialWorkspace() {
         ready: t("site.buddyStageReady"),
         error: t("site.buddyStageError"),
         passed: t("site.buddyStagePassed"),
-      }),
+      }, apiLang),
     );
     // Solo al ejecutar (o al cargar el ejercicio): no con cada tecla.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [buddyMode, pythonMode, buddyRun, exercise?.solutionCode, exercise?.language]);
+  }, [buddyMode, pythonMode, buddyRun, exercise?.solutionCode, exercise?.language, apiLang]);
 
   useEffect(() => {
     // Hasta saber el lenguaje del ejercicio no se arma nada: si se cargaba la

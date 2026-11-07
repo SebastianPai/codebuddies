@@ -1,6 +1,8 @@
 import {
   NAVE_COLUMNS,
-  NAVE_FRIENDLY_ERRORS,
+  NAVE_FRIENDLY_ERRORS_BY_LANG,
+  NAVE_NOT_YET,
+  friendlyLang,
   NAVE_ROWS,
   NAVE_RUNTIME,
   alienSvg,
@@ -44,7 +46,15 @@ const STARS = Array.from({ length: 40 }, (_, i) => {
   return `<i style="left:${x}%;top:${y}%;width:${r}px;height:${r}px;opacity:${0.35 + (i % 4) * 0.15}"></i>`;
 }).join("");
 
-export function buildNaveStageDoc(studentCode: string, assertions: string, levelSource: string, labels: NaveStageLabels) {
+const PAD = {
+  es: { left: "izquierda", fire: "disparar", right: "derecha" },
+  en: { left: "left", fire: "shoot", right: "right" },
+  de: { left: "links", fire: "schießen", right: "rechts" },
+};
+
+export function buildNaveStageDoc(studentCode: string, assertions: string, levelSource: string, labels: NaveStageLabels, lang?: string) {
+  const l = friendlyLang(lang);
+  const pad = PAD[l];
   const level = naveLevelFrom(levelSource) ?? {};
   return `<!DOCTYPE html>
 <html>
@@ -84,18 +94,19 @@ export function buildNaveStageDoc(studentCode: string, assertions: string, level
 <body tabindex="0">
   <div class="stars">${STARS}</div>
   <div class="meter"><span>${ICONS.star}<b id="points">0</b></span><span>${alienSvg(16)}<b id="left">0</b></span><span id="lives" style="display:none">${ICONS.heart}<b id="livesN">3</b></span></div>
-  <div class="pad" id="pad"><button data-k="izquierda" aria-label="izquierda">${ICONS.left}</button><button data-k="espacio" aria-label="disparar">${ICONS.fire}</button><button data-k="derecha" aria-label="derecha">${ICONS.right}</button></div>
+  <div class="pad" id="pad"><button data-k="izquierda" aria-label="${pad.left}">${ICONS.left}</button><button data-k="espacio" aria-label="${pad.fire}">${ICONS.fire}</button><button data-k="derecha" aria-label="${pad.right}">${ICONS.right}</button></div>
   <div class="board" id="board">
     <div class="ship" id="ship"><div class="bubble" id="bubble"></div><div id="shipArt"></div></div>
   </div>
   <div class="status" id="status">${escapeHtml(labels.ready)}</div>
 <script>
+var __CB_LANG = ${JSON.stringify(l)};
 var __NAVE_NIVEL = ${JSON.stringify(level)};
 ${NAVE_RUNTIME}
 </script>
 <script>
 var COLS = ${NAVE_COLUMNS}, ROWS = ${NAVE_ROWS}, H = ROWS + 1.3;
-var FRIENDLY = ${JSON.stringify(NAVE_FRIENDLY_ERRORS)};
+var FRIENDLY = ${JSON.stringify(NAVE_FRIENDLY_ERRORS_BY_LANG[l])};
 var ALIEN = ${JSON.stringify(alienSvg(72, 1))}, ALIEN2 = ${JSON.stringify(alienSvg(72, 2))}, BOOM = ${JSON.stringify(boomSvg(90))};
 var SHIP = ${JSON.stringify(naveSvg("__COLOR__", 96))};
 function friendly(message) {
@@ -202,7 +213,7 @@ ${
   assertions.trim()
     ? `if (!error) {
   try {
-    new Function("assert", ${asScriptString(assertions)})(function (c, m) { if (!c) throw new Error(m || "La nave todavía no está como pide el ejercicio"); });
+    new Function("assert", ${asScriptString(assertions)})(function (c, m) { if (!c) throw new Error(m || ${JSON.stringify(NAVE_NOT_YET[l])}); });
     result = { passed: true };
   } catch (e) { result = { passed: false, message: friendly(e && e.message ? e.message : String(e)) }; }
 } else { result = { passed: false, message: error }; }`

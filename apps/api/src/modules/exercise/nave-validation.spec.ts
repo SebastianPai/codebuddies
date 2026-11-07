@@ -74,3 +74,20 @@ describe('validateCode con lenguaje nave', () => {
     expect(run('try { nave = { puntos: 10 }; } catch (e) {}', check).passed).toBe(false);
   });
 });
+
+describe('validateCode nave en inglés y alemán', () => {
+  const level = (json: object) => `// nivel: ${JSON.stringify(json)}\n`;
+  it('ship/game/repeat y schiff/spiel/wiederholen son la misma nave', () => {
+    const en = validateCode({ language: 'nave', lang: 'en', studentCode: 'repeat(2, function () { ship.right(); }); if (ship.seesEnemy()) ship.shoot(); game.onKey("space", function () { ship.shoot(); });', expectedCode: level({ nave: 3, enemigos: [[5, 0]] }) + 'assert(ship.enemies === 0 && ship.column === 5); assert(game.keys[0] === "space");' })[0];
+    expect(en.passed).toBe(true);
+    const de = validateCode({ language: 'nave', lang: 'de', studentCode: 'wiederholen(2, function () { schiff.links(); }); schiff.schießen(); schiff.malen("grün");', expectedCode: level({ nave: 3, enemigos: [[1, 0]] }) + 'assert(schiff.gegner === 0 && schiff.farbe === "#22c55e");' })[0];
+    expect(de.passed).toBe(true);
+  });
+
+  it('los mensajes salen en el idioma del alumno', () => {
+    const [en] = validateCode({ language: 'nave', lang: 'en', studentCode: 'game.onKey("enter", function () {});', expectedCode: 'assert(true)' });
+    expect(en.error).toMatch(/The key "enter" doesn't exist/);
+    const [de] = validateCode({ language: 'nave', lang: 'de', studentCode: 'schiff.rechts();', expectedCode: level({ nave: 3 }) + 'assert(schiff.spalte === 6)' });
+    expect(de.error).toBe('Das Schiff ist noch nicht so, wie die Aufgabe es verlangt');
+  });
+});

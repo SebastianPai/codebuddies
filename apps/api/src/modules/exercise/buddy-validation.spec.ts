@@ -48,3 +48,26 @@ describe('validateCode buddy: sin atajos', () => {
     }
   });
 });
+
+describe('validateCode buddy en inglés y alemán', () => {
+  it('las órdenes en inglés y alemán mueven al mismo Buddy', () => {
+    const en = validateCode({ language: 'buddy', lang: 'en', studentCode: 'buddy.tellJoke(); buddy.tellJoke(); buddy.tellJoke(); buddy.say("Hi");', expectedCode: 'assert(buddy.mood === "laughing", "Make Buddy laugh"); assert(buddy.said[0] === "Hi");' });
+    expect(en[0].passed).toBe(true);
+    const de = validateCode({ language: 'buddy', lang: 'de', studentCode: 'buddy.springen(); buddy.springen(); buddy.gehen(2);', expectedCode: 'assert(buddy.spruenge === 2 && buddy.position === 2);' });
+    expect(de[0].passed).toBe(true);
+  });
+
+  it('los mensajes salen en el idioma del alumno', () => {
+    const [en] = validateCode({ language: 'buddy', lang: 'en', studentCode: 'buddy.fly();', expectedCode: 'assert(true)' });
+    expect(en.error).toMatch(/Buddy doesn’t know how to “fly”/);
+    const [de] = validateCode({ language: 'buddy', lang: 'de', studentCode: 'buddy.springen();', expectedCode: 'assert(buddy.spruenge === 3)' });
+    expect(de.error).toBe('Buddy ist noch nicht so, wie die Aufgabe es verlangt');
+    const [loop] = validateCode({ language: 'buddy', lang: 'en', studentCode: 'while (true) buddy.jump();', expectedCode: 'assert(true)' });
+    expect(loop.error).toMatch(/too many commands/);
+  });
+
+  it('los alias tampoco dejan pisar el estado', () => {
+    const [result] = validateCode({ language: 'buddy', lang: 'en', studentCode: 'try { buddy.mood = "laughing"; buddy.say = function () {}; } catch (e) {}', expectedCode: 'assert(buddy.mood === "laughing")' });
+    expect(result.passed).toBe(false);
+  });
+});
