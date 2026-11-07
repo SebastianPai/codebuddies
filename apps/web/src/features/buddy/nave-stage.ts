@@ -116,11 +116,13 @@ function friendly(message) {
   }
   return message;
 }
-var board = document.getElementById("board"), ship = document.getElementById("ship"), shipArt = document.getElementById("shipArt");
+// shipEl y no "ship": ship (y schiff, game, spiel...) son las órdenes en inglés y alemán
+// que define NAVE_RUNTIME como globales fijas; una variable con ese nombre no las pisa.
+var board = document.getElementById("board"), shipEl = document.getElementById("ship"), shipArt = document.getElementById("shipArt");
 var bubble = document.getElementById("bubble"), statusEl = document.getElementById("status");
 var pointsEl = document.getElementById("points"), leftEl = document.getElementById("left");
 function paintShip(color) { shipArt.innerHTML = SHIP.replace("__COLOR__", color); }
-function placeShip(col) { ship.style.left = (col * 100 / COLS) + "%"; }
+function placeShip(col) { shipEl.style.left = (col * 100 / COLS) + "%"; }
 function topOf(fila) { return (fila * 100 / H) + "%"; }
 
 // Aliens en pantalla: una celda por alien, por clave "col:fila".
@@ -160,7 +162,7 @@ function laser(col, fila) {
 }
 var sayTimer = null;
 function say(text) { bubble.textContent = text; bubble.classList.add("show"); clearTimeout(sayTimer); sayTimer = setTimeout(function () { bubble.classList.remove("show"); }, 1400); }
-function bump() { ship.classList.remove("bump"); void ship.offsetWidth; ship.classList.add("bump"); }
+function bump() { shipEl.classList.remove("bump"); void shipEl.offsetWidth; shipEl.classList.add("bump"); }
 
 // Una orden en pantalla.
 function show(step) {
