@@ -10,7 +10,7 @@ import { useReward } from "../../../../../../contexts/RewardContext";
 import { QuizExercise } from "../../../../../../src/types/exercise";
 import { useTranslation } from "../../../../../../src/i18n/useTranslation";
 import { ContentDiscussion } from "@/features/courses/components/content-discussion";
-import { CalloutBlock, ExerciseLockedState, SignupToSave, markGuestDone } from "@/features/academy";
+import { CalloutBlock, CodeBlock, ExerciseLockedState, SignupToSave, markGuestDone } from "@/features/academy";
 import { classNames } from "@/shared/utils/class-names";
 import { exercisePath, nextStepPath } from "@/shared/utils/exercise-path";
 import { trackEvent } from "../../../../../../components/analytics/events";
@@ -27,6 +27,24 @@ interface ExtendedQuizExercise extends QuizExercise {
 }
 
 const SAVED_KEY = "cb:quiz:saved";
+
+// Texto con `código` entre comillas invertidas: el código va en monoespaciado.
+function InlineCode({ text }: { text: string }) {
+  const parts = String(text ?? "").split(/(`[^`]+`)/g);
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.length > 2 && part.startsWith("`") && part.endsWith("`") ? (
+          <code key={i} className="rounded-md bg-[rgb(var(--border)/0.45)] px-1.5 py-0.5 font-mono text-[0.88em] font-semibold">
+            {part.slice(1, -1)}
+          </code>
+        ) : (
+          <span key={i}>{part}</span>
+        ),
+      )}
+    </>
+  );
+}
 
 export default function QuizExercisePage() {
   const { id } = useParams<{ id: string }>();
@@ -343,9 +361,17 @@ export default function QuizExercisePage() {
                   exit={{ opacity: 0, x: -14 }}
                   transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
                 >
-                  <h1 className="mt-4 text-2xl font-black leading-tight tracking-tight text-[rgb(var(--text))] sm:text-3xl md:text-[2.05rem]">
-                    {currentQuestion.question}
+                  <h1
+                    className={classNames(
+                      "mt-4 font-black leading-tight tracking-tight text-[rgb(var(--text))]",
+                      currentQuestion.code ? "text-xl sm:text-2xl" : "text-2xl sm:text-3xl md:text-[2.05rem]",
+                    )}
+                  >
+                    <InlineCode text={currentQuestion.question} />
                   </h1>
+                  {currentQuestion.code && (
+                    <CodeBlock className="mt-4" code={currentQuestion.code} language={currentQuestion.codeLanguage || "javascript"} />
+                  )}
                   <p className="mt-2 text-sm text-[rgb(var(--secondary-text))]">
                     {isMultiple
                       ? t("site.academyQuiz.selectMultiplePrompt")
@@ -433,7 +459,7 @@ export default function QuizExercisePage() {
 
                           {/* Texto de la opción */}
                           <span className="min-w-0 flex-1 text-[15px] font-medium leading-snug text-[rgb(var(--text))] md:text-base">
-                            {option}
+                            <InlineCode text={option} />
                           </span>
 
                           {/* Indicador de selección / resultado */}

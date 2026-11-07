@@ -81,6 +81,11 @@ export class ExerciseService {
       correct: completed && Array.isArray(q.correct) ? q.correct : [],
       isMultiple: q.isMultiple ?? false,
       explanation: completed ? q.explanation || '' : '',
+      // Fragmento de código opcional (preguntas de "¿qué muestra?" o "¿dónde
+      // está el error?"). Es parte del enunciado, no de la respuesta.
+      ...(typeof q.code === 'string' && q.code.trim()
+        ? { code: q.code.slice(0, 4000), codeLanguage: typeof q.codeLanguage === 'string' ? q.codeLanguage.slice(0, 20) : 'javascript' }
+        : {}),
     }));
   }
 

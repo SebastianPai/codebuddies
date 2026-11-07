@@ -34,6 +34,8 @@ export interface QuizQuestion {
   correct: number[]; // índices de las respuestas correctas (puede ser varios)
   isMultiple: boolean; // true = selección múltiple permitida
   explanation: string; // explicación/retroalimentación al responder
+  code?: string; // fragmento de código que acompaña la pregunta (opcional)
+  codeLanguage?: string; // lenguaje del fragmento (javascript, markup, css, sql...)
 }
 
 // Ejercicio tipo QUIZ (soporta múltiples preguntas)
