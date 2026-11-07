@@ -114,18 +114,15 @@ export class FriendshipsService {
       orderBy: { updatedAt: 'desc' },
     });
 
-    return friendships.map((friendship) => ({
-      ...friendship,
-      friend:
+    return friendships.map((friendship) => {
+      const friend =
         friendship.requesterId === userId
           ? friendship.addressee
-          : friendship.requester,
-      online: this.realtimeService.isOnline(
-        friendship.requesterId === userId
-          ? friendship.addresseeId
-          : friendship.requesterId,
-      ),
-    }));
+          : friendship.requester;
+      const online = this.realtimeService.isOnline(friend.id);
+      // El estado en línea va también dentro de `friend` (es lo que pinta la web).
+      return { ...friendship, friend: { ...friend, online }, online };
+    });
   }
 
   requests(userId: string) {
@@ -278,8 +275,8 @@ export class FriendshipsService {
 
   private friendshipUsers() {
     return {
-      requester: { select: { id: true, username: true, avatarUrl: true, nameEffectId: true } },
-      addressee: { select: { id: true, username: true, avatarUrl: true, nameEffectId: true } },
+      requester: { select: { id: true, username: true, avatarUrl: true, nameEffectId: true, level: true } },
+      addressee: { select: { id: true, username: true, avatarUrl: true, nameEffectId: true, level: true } },
     };
   }
 

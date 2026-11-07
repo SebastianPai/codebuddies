@@ -335,6 +335,15 @@ export default function MessagesPage() {
     void load();
   }, [load]);
 
+  // Desde Amigos: /messages?to=<id> abre (o crea) la conversación con esa persona.
+  useEffect(() => {
+    const to = new URLSearchParams(window.location.search).get("to");
+    if (!to) return;
+    window.history.replaceState(null, "", "/messages");
+    void startChat({ id: to } as UserLite);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function startChat(friend: UserLite) {
     try {
       const response = await api.post<{

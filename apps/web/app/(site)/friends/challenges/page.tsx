@@ -76,6 +76,15 @@ export default function FriendChallengesPage() {
     void load();
   }, [load]);
 
+  // Desde Amigos: /friends/challenges?rival=<usuario> abre el reto con ese amigo elegido.
+  useEffect(() => {
+    const rival = new URLSearchParams(window.location.search).get("rival");
+    if (!rival) return;
+    window.history.replaceState(null, "", "/friends/challenges");
+    void openModal().then(() => setSelectedFriend(rival));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const openModal = async () => {
     setModalOpen(true);
     try {
