@@ -22,14 +22,13 @@ desfasado de la base de datos.
 
 ### Ramas peligrosas (NO desplegar ni fusionar tal cual)
 
-Estado al 2026-11-07: `codebuddies-web` corre `96ca534` (vista previa de la nave arreglada, pixel art nítido y fondo parallax a todo el ancho) y `codebuddies-api` y
-`codebuddies-game` corren `9175d79` (curso "Programa con Buddy" en inglés y alemán: órdenes de Buddy y de la nave también en inglés y alemán, mensajes en el idioma del alumno; amigos más claros en web y juego; vista en vivo al crear items; antes: tarjetas de cursos más claras; cursos en 3 idiomas: código y pruebas por idioma en `codes[].lang`, corrector de Python con mensajes en es/en/de; `/llms.txt` y datos estructurados para IAs; curso "Python con Buddy": Python de verdad con Pyodide, corregido en la API en un proceso aislado sin variables de entorno y con permisos de Node cerrados; consola de Python con Buddy en la web; el corrector revisa el programa antes de correrlo para que no se pueda hacer trampa; pie del ejercicio arreglado en celular; SEO que dice que la web está en español, inglés y alemán). Todo es la rama `feat/curso-python`, que sale de `feat/premium-colors-parallax` (`feat/codestudio-v2` + íconos + colores
-premium + parallax). Es la rama base para todo trabajo nuevo. Lo que sigue en
-la tabla vale para cualquier rama que NO contenga `96ca534`:
+Estado al 2026-11-07 (tarde): las 3 apps (`codebuddies-api`, `codebuddies-web` y `codebuddies-game`) corren `cc5ea30`, rama `feat/curso-fullstack` (sale de `feat/curso-python`). Trae: el JavaScript de los alumnos (ejercicios JS, Buddy y nave) corre en un proceso aislado sin variables de entorno, con permisos de Node y sin generación de código (antes con node:vm se podían leer las claves de producción); lenguaje de ejercicio `web` (HTML+CSS+JS verificado con DOM real en el servidor y en el navegador); pruebas JS async con `// @pruebas`; consola de JavaScript en la vista previa; preguntas de quiz con código. Es la rama base para todo trabajo nuevo. Lo que sigue en
+la tabla vale para cualquier rama que NO contenga `cc5ea30`:
 
 | Rama | Por qué es peligrosa |
 |---|---|
-| `main` | Está más de 85 commits atrás de producción. |
+| `main` | Está más de 90 commits atrás de producción. |
+| `feat/curso-python` | Le falta el proceso aislado de JavaScript (arreglo de seguridad) y el lenguaje `web`, ya en producción. |
 | `feat/premium-colors-parallax` | Le falta el curso de Python (motor de Python en la API y en la web) que ya está en producción. |
 | `feat/codestudio-v2` y `deploy/icons-on-codestudio-v2` | Les faltan los commits de colores y parallax que ya están en producción (y sus migraciones). |
 | `feat/academy-content-prefill` | "Snapshot antes de formatear el equipo" sobre una base vieja: desplegarla revierte muchos commits. Ya se revisó (2026-10-20): no trae trabajo que falte en producción, solo 2 scripts `scratch-*.mjs`. Se puede archivar. |
