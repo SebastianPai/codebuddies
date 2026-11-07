@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
+import { MoreHorizontal } from "lucide-react";
 import styles from "./PersonRow.module.css";
 import UserBadges from "../shared/UserBadges";
 import RarityText from "../shared/RarityText";
@@ -18,6 +20,9 @@ type Props = {
   online?: boolean;
   subtitle?: string;
   actions?: PersonRowAction[];
+  /** Acciones secundarias (ver perfil, eliminar, bloquear) en un menú "más opciones". */
+  menu?: PersonRowAction[];
+  menuLabel?: string;
   onClick?: () => void;
 };
 
@@ -28,8 +33,20 @@ export default function PersonRow({
   online,
   subtitle,
   actions = [],
+  menu = [],
+  menuLabel = "...",
   onClick,
 }: Props) {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const close = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [open]);
   return (
     <div
       className={`${styles.row} ${onClick ? styles.clickable : ""}`}
@@ -56,7 +73,7 @@ export default function PersonRow({
         {subtitle && <div className={styles.subtitle}>{subtitle}</div>}
       </div>
 
-      {actions.length > 0 && (
+      {(actions.length > 0 || menu.length > 0) && (
         <div className={styles.actions} onClick={(event) => event.stopPropagation()}>
           {actions.map((action) => (
             <button
@@ -68,6 +85,34 @@ export default function PersonRow({
               {action.label}
             </button>
           ))}
+          {menu.length > 0 && (
+            <div className={styles.menuWrap} ref={menuRef}>
+              <button
+                className={`${styles.actionBtn} ${styles.ghost} ${styles.moreBtn}`}
+                aria-label={menuLabel}
+                title={menuLabel}
+                aria-expanded={open}
+                onClick={() => setOpen((v) => !v)}
+              >
+                <MoreHorizontal size={16} />
+              </button>
+              {open && (
+                <div className={styles.menu} role="menu">
+                  {menu.map((item) => (
+                    <button
+                      key={item.label}
+                      role="menuitem"
+                      className={`${styles.menuItem} ${item.tone === "danger" ? styles.menuDanger : ""}`}
+                      disabled={item.disabled}
+                      onClick={() => { setOpen(false); item.onClick(); }}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>

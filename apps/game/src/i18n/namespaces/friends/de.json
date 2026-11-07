@@ -50,5 +50,10 @@
     "present": "heute",
     "users": "{count} Nutzer",
     "closed": "Geschlossen"
-  }
+  },
+  "onlineCount": "{count} online",
+  "moreOptions": "Weitere Optionen",
+  "viewProfile": "Profil ansehen",
+  "emptyFriendsCta": "Vorschläge ansehen",
+  "searchResultsLabel": "ERGEBNISSE"
 }

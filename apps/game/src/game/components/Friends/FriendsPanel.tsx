@@ -11,7 +11,7 @@ import {
   FriendRequest,
   SearchResult,
   acceptFriendRequest,
-  blockFriendship,
+  blockUser,
   getFriendRequests,
   getFriends,
   getSentRequests,
@@ -30,7 +30,7 @@ import { useTranslation } from "../../../i18n/useTranslation";
 import chromeStyles from "../shared/windowChrome.module.css";
 import tabsOverflow from "../shared/tabsOverflow.module.css";
 
-type TabType = "friends" | "requests" | "suggestions" | "search";
+type TabType = "friends" | "requests" | "suggestions";
 
 type Props = {
   onClose: () => void;
@@ -91,7 +91,7 @@ export default function FriendsPanel({ onClose }: Props) {
 
   // Búsqueda con debounce (mismo criterio que apps/web/app/(site)/friends/page.tsx).
   useEffect(() => {
-    if (activeTab !== "search" || !search.trim()) {
+    if (search.trim().length < 2) {
       setSearchResults([]);
       return;
     }
@@ -109,7 +109,7 @@ export default function FriendsPanel({ onClose }: Props) {
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [search, activeTab]);
+  }, [search]);
 
   // Tiempo real: nuevas solicitudes / aceptaciones / presencia.
   useEffect(() => {
@@ -191,7 +191,9 @@ export default function FriendsPanel({ onClose }: Props) {
     }
   };
 
-  const handleBlock = async (friendshipId: string, username: string) => {
+  // Se bloquea por usuario (POST /friendships/blocks): bloquear "la amistad"
+  // solo funcionaba si el otro había mandado la solicitud.
+  const handleBlock = async (userId: string, username: string) => {
     const confirmed = await requestGameConfirm({
       title: t("friends.blockConfirmTitle"),
       message: t("friends.blockConfirmMessage", { username }),
@@ -202,11 +204,26 @@ export default function FriendsPanel({ onClose }: Props) {
     if (!confirmed) return;
 
     try {
-      await blockFriendship(friendshipId);
+      await blockUser(userId);
       await loadAll();
     } catch {
       await showGameAlert({
         title: t("friends.blockFailedTitle"),
+        message: t("common.actionFailedMessage"),
+        confirmLabel: t("common.understood"),
+        tone: "danger",
+      });
+    }
+  };
+
+  // Cancelar una solicitud enviada = borrarla (rechazar solo lo puede hacer quien la recibe).
+  const handleCancel = async (friendshipId: string) => {
+    try {
+      await removeFriendship(friendshipId);
+      await loadAll();
+    } catch {
+      await showGameAlert({
+        title: t("friends.removeFailedTitle"),
         message: t("common.actionFailedMessage"),
         confirmLabel: t("common.understood"),
         tone: "danger",
@@ -258,8 +275,45 @@ export default function FriendsPanel({ onClose }: Props) {
   };
 
   const requestsBadge = received.length;
+  // Los conectados primero.
+  const sortedFriends = useMemo(
+    () => [...friends].sort((a, b) => Number(Boolean(b.online)) - Number(Boolean(a.online)) || a.friend.username.localeCompare(b.friend.username)),
+    [friends],
+  );
+  const onlineCount = friends.filter((f) => f.online).length;
+  const searchingNow = search.trim().length >= 2;
 
   const content = useMemo(() => {
+    // Con algo escrito en el buscador, se muestran los resultados (en cualquier pestaña).
+    if (searchingNow) {
+      if (searching) {
+        return (
+          <>
+            <div className={styles.skeleton} />
+            <div className={styles.skeleton} />
+          </>
+        );
+      }
+      if (!searchResults.length) return <div className={styles.empty}>{t("friends.noUsersFound")}</div>;
+      return (
+        <>
+          <div className={styles.sectionLabel}>{t("friends.searchResultsLabel")}</div>
+          {searchResults.map((result) => (
+            <PersonRow
+              key={result.id}
+              username={result.username}
+              avatarUrl={result.avatarUrl}
+              nameEffectId={result.nameEffectId}
+              online={result.online}
+              subtitle={result.mutualCount > 0 ? t("friends.mutualFriendsCount", { count: result.mutualCount }) : undefined}
+              onClick={() => openProfile(result.username)}
+              actions={[searchActionFor(result)]}
+            />
+          ))}
+        </>
+      );
+    }
+
     if (activeTab === "friends") {
       if (loading) {
         return (
@@ -270,9 +324,18 @@ export default function FriendsPanel({ onClose }: Props) {
         );
       }
       if (!friends.length) {
-        return <div className={styles.empty}>{t("friends.emptyFriends")}</div>;
+        return (
+          <div className={styles.empty}>
+            {t("friends.emptyFriends")}
+            <div>
+              <button className={styles.emptyCta} onClick={() => setActiveTab("suggestions")}>
+                {t("friends.emptyFriendsCta")}
+              </button>
+            </div>
+          </div>
+        );
       }
-      return friends.map((entry) => (
+      return sortedFriends.map((entry) => (
         <PersonRow
           key={entry.id}
           username={entry.friend.username}
@@ -288,16 +351,12 @@ export default function FriendsPanel({ onClose }: Props) {
               onClick: () =>
                 openChat(entry.friend.id, entry.friend.username, entry.friend.avatarUrl, entry.friend.nameEffectId),
             },
-            {
-              label: t("common.delete"),
-              tone: "ghost",
-              onClick: () => void handleRemove(entry.id, entry.friend.username),
-            },
-            {
-              label: t("friends.blockConfirmButton"),
-              tone: "danger",
-              onClick: () => void handleBlock(entry.id, entry.friend.username),
-            },
+          ]}
+          menuLabel={t("friends.moreOptions")}
+          menu={[
+            { label: t("friends.viewProfile"), onClick: () => openProfile(entry.friend.username) },
+            { label: t("common.delete"), onClick: () => void handleRemove(entry.id, entry.friend.username) },
+            { label: t("friends.blockConfirmButton"), tone: "danger", onClick: () => void handleBlock(entry.friend.id, entry.friend.username) },
           ]}
         />
       ));
@@ -331,7 +390,7 @@ export default function FriendsPanel({ onClose }: Props) {
               avatarUrl={request.addressee.avatarUrl}
               nameEffectId={request.addressee.nameEffectId}
               subtitle={t("friends.pendingLabel")}
-              actions={[{ label: t("common.cancel"), tone: "ghost", onClick: () => void handleReject(request.id) }]}
+              actions={[{ label: t("common.cancel"), tone: "ghost", onClick: () => void handleCancel(request.id) }]}
             />
           ))}
         </>
@@ -364,40 +423,17 @@ export default function FriendsPanel({ onClose }: Props) {
       ));
     }
 
-    // search
-    if (!search.trim()) {
-      return <div className={styles.empty}>{t("friends.searchPrompt")}</div>;
-    }
-    if (searching) {
-      return (
-        <>
-          <div className={styles.skeleton} />
-          <div className={styles.skeleton} />
-        </>
-      );
-    }
-    if (!searchResults.length) {
-      return <div className={styles.empty}>{t("friends.noUsersFound")}</div>;
-    }
-    return searchResults.map((result) => (
-      <PersonRow
-        key={result.id}
-        username={result.username}
-        avatarUrl={result.avatarUrl}
-        nameEffectId={result.nameEffectId}
-        online={result.online}
-        subtitle={result.mutualCount > 0 ? t("friends.mutualFriendsCount", { count: result.mutualCount }) : undefined}
-        onClick={() => openProfile(result.username)}
-        actions={[searchActionFor(result)]}
-      />
-    ));
+    return null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, loading, friends, received, sent, search, searching, searchResults, loadingSuggestions, suggestions]);
+  }, [activeTab, loading, friends, sortedFriends, received, sent, searchingNow, searching, searchResults, loadingSuggestions, suggestions]);
 
   const panel = (
     <div ref={nodeRef} className={`${styles.window} ${isSheet ? styles.sheet : ""}`}>
       <div className={styles.windowHeader}>
-        <span className={styles.title}>{t("friends.title")}</span>
+        <span className={styles.title}>
+          {t("friends.title")}
+          {onlineCount > 0 && <span className={styles.headerSub}>{t("friends.onlineCount", { count: onlineCount })}</span>}
+        </span>
         <button
           className={`${styles.closeBtn} ${chromeStyles.closeHitArea}`}
           aria-label={t("friends.closeAriaLabel")}
@@ -427,24 +463,17 @@ export default function FriendsPanel({ onClose }: Props) {
           >
             <Sparkles size={14} /> {t("friends.tabSuggestions")}
           </button>
-          <button
-            className={`${styles.tab} ${activeTab === "search" ? styles.active : ""}`}
-            onClick={() => setActiveTab("search")}
-          >
-            <Search size={14} /> {t("common.search")}
-          </button>
         </div>
 
-        {activeTab === "search" && (
-          <div className={styles.searchBox}>
-            <input
-              placeholder={t("friends.searchInputPlaceholder")}
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              autoFocus
-            />
-          </div>
-        )}
+      <div className={styles.searchTop}>
+        <Search size={16} />
+        <input
+          placeholder={t("friends.searchInputPlaceholder")}
+          aria-label={t("common.search")}
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+      </div>
 
       <div className={styles.list}>{content}</div>
     </div>
