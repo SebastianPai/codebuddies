@@ -889,7 +889,7 @@ try {
 
   const InstructionsContent = () => (
     <div className={`${panelClass} h-full overflow-y-auto`}>
-      <div className="px-6 py-5 border-b border-[rgb(var(--border))]">
+      <div className={`px-6 py-5 border-b border-[rgb(var(--border))] ${isMobile ? "hidden" : ""}`}>
         <div className="flex items-center gap-3">
           <BookOpen className="text-yellow-400" size={20} />
 
@@ -956,13 +956,15 @@ try {
 
   const PreviewContent = () => (
     <div className={`${panelClass} h-full flex flex-col`}>
-      <div className="px-6 py-5 border-b border-[rgb(var(--border))] flex items-center gap-3">
+      {/* En celular la pestaña ya dice "Resultado": sin este encabezado el
+          escenario gana alto (el globo de Buddy se cortaba arriba). */}
+      <div className={`px-6 py-5 border-b border-[rgb(var(--border))] items-center gap-3 ${isMobile ? "hidden" : "flex"}`}>
         <Eye className="text-yellow-400" size={18} />
 
         <h2 className="text-[rgb(var(--text))] font-semibold text-lg">{t("site.codeExerciseResultTitle")}</h2>
       </div>
 
-      <div className="flex-1 overflow-hidden rounded-b-[28px] bg-white">
+      <div className={`flex-1 overflow-hidden bg-white ${isMobile ? "rounded-[28px]" : "rounded-b-[28px]"}`}>
         {/* La consola de Python es un iframe propio por ejercicio (key): nunca reusa uno que esté cargando otro documento. */}
         <PreviewFrame key={pythonMode ? `python-${exercise?.id}` : "preview"} srcDoc={pythonMode ? pythonDoc : previewDoc} stage={pythonMode ? "python" : undefined} />
       </div>
