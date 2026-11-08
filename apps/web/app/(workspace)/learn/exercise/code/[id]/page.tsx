@@ -877,6 +877,7 @@ try {
   const guestSave =
     showGuestSave && !user?.userId ? (
       <SignupToSave
+        compact={isMobile}
         next={
           exercise.nextExerciseId && exercise.nextExerciseType
             ? { href: exercisePath(exercise.nextExerciseId, exercise.nextExerciseType), kind: "exercise" }
@@ -1071,7 +1072,7 @@ try {
             resultado: el aviso de crear cuenta va acá, siempre a la vista
             (antes el visitante resolvía y nunca veía cómo registrarse). */}
         {guestSave && isMobile && (
-          <div className="shrink-0 max-h-[45%] overflow-y-auto">{guestSave}</div>
+          <div className="shrink-0">{guestSave}</div>
         )}
 
         {/* FOOTER */}

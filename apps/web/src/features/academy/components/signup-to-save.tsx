@@ -17,13 +17,42 @@ import { useTranslation } from "@/i18n/useTranslation";
 export function SignupToSave({
   variant = "save",
   next,
+  compact = false,
 }: {
   variant?: "save" | "continue";
   next?: { href: string; kind: "exercise" | "lesson" } | null;
+  // Celular, debajo del resultado: título + botones, sin tapar la vista previa.
+  compact?: boolean;
 }) {
   const t = useTranslation();
   const here = typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : "/courses";
   const canGoOn = variant === "save" && next;
+  if (compact) {
+    const btn = "flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-sm font-black";
+    return (
+      <div className="rounded-2xl border-2 border-emerald-400/60 bg-emerald-400/10 p-3">
+        <div className="flex items-center gap-3">
+          <div className="shrink-0" dangerouslySetInnerHTML={{ __html: buddySvg("feliz", 36) }} />
+          <p className="text-sm font-black leading-tight text-[rgb(var(--text))]">
+            {canGoOn ? t("site.guestDoneTitle") : t("site.guestSaveTitle")}
+          </p>
+        </div>
+        <div className="mt-2.5 flex gap-2">
+          <Link href={`/register?redirect=${encodeURIComponent(here)}`} className={`${btn} bg-emerald-700 text-white`}>
+            <UserPlus size={15} /> {t("site.guestRegister")}
+          </Link>
+          {canGoOn && (
+            <Link href={next.href} className={`${btn} border border-[rgb(var(--border))] text-[rgb(var(--text))]`}>
+              {next.kind === "exercise" ? t("site.guestNextExercise") : t("site.guestNextLesson")} <ArrowRight size={15} />
+            </Link>
+          )}
+        </div>
+        <Link href={`/login?redirect=${encodeURIComponent(here)}`} className="mt-2 block text-center text-xs font-bold text-[rgb(var(--secondary-text))] underline">
+          {t("site.guestLogin")}
+        </Link>
+      </div>
+    );
+  }
   return (
     <div className="rounded-2xl border-2 border-emerald-400/60 bg-emerald-400/10 p-5">
       <div className="flex items-center gap-4">
