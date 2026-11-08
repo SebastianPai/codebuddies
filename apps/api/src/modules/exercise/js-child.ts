@@ -70,6 +70,30 @@ const DOM_SETUP = String.raw`
   w.localStorage = G.localStorage;
   G.alert = function (m) { console.log(String(m)); };
   w.alert = G.alert;
+  // linkedom no trae form.reset(): vuelve cada campo a su valor inicial, como el navegador.
+  try {
+    var FP = Object.getPrototypeOf(w.document.createElement('form'));
+    // En linkedom, asignar .value también cambia el atributo: se guardan los
+    // valores iniciales al cargar la página para poder volver a ellos.
+    var iniciales = new WeakMap();
+    var todos = w.document.querySelectorAll('input, textarea');
+    for (var j = 0; j < todos.length; j++) {
+      var t = todos[j];
+      iniciales.set(t, t.localName === 'textarea' ? (t.textContent || '') : (t.getAttribute('value') || ''));
+    }
+    if (FP && typeof FP.reset !== 'function') {
+      FP.reset = function () {
+        var campos = this.querySelectorAll('input, textarea, select');
+        for (var i = 0; i < campos.length; i++) {
+          var c = campos[i], tipo = String(c.getAttribute('type') || '').toLowerCase();
+          if (tipo === 'checkbox' || tipo === 'radio') c.checked = c.hasAttribute('checked');
+          else if (c.localName === 'select') { var sel = c.querySelector('option[selected]') || c.querySelector('option'); c.value = sel ? (sel.getAttribute('value') ?? sel.textContent) : ''; }
+          else c.value = iniciales.has(c) ? iniciales.get(c) : '';
+        }
+        this.dispatchEvent(new w.Event('reset', { bubbles: true }));
+      };
+    }
+  } catch (e) {}
 })(globalThis);
 `;
 

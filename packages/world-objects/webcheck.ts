@@ -290,8 +290,16 @@ document.addEventListener('error', function (e) {
 </script>`;
 
 /** Vista previa en vivo de un ejercicio web (sin pruebas). */
+/**
+ * Un iframe sandbox sin allow-same-origin lanza SecurityError al tocar
+ * localStorage. La vista previa y la corrección del navegador usan entonces
+ * un almacenamiento en memoria (igual que el servidor, js-child.ts).
+ */
+const STORAGE_SHIM = `<script>(function(){function mem(){var d={};return{getItem:function(k){k=String(k);return Object.prototype.hasOwnProperty.call(d,k)?d[k]:null;},setItem:function(k,v){d[String(k)]=String(v);},removeItem:function(k){delete d[String(k)];},clear:function(){d={};},key:function(i){return Object.keys(d)[i]||null;},get length(){return Object.keys(d).length;}};}
+['localStorage','sessionStorage'].forEach(function(n){var ok=false;try{ok=!!window[n];window[n].getItem('x');}catch(e){ok=false;}if(!ok){try{Object.defineProperty(window,n,{value:mem(),configurable:true});}catch(e){}}});})();</script>`;
+
 export function buildWebPreviewDoc(files: { html: string; css: string; js: string }, extraHead = ''): string {
-  const head = `${IMG_PLACEHOLDER}${extraHead}<style>${styleSafe(files.css)}</style>`;
+  const head = `${STORAGE_SHIM}${IMG_PLACEHOLDER}${extraHead}<style>${styleSafe(files.css)}</style>`;
   return composeWebDocument(files.html, head, `<script>${scriptSafe(files.js)}</script>`);
 }
 
@@ -303,7 +311,7 @@ export function buildWebPreviewDoc(files: { html: string; css: string; js: strin
 export function buildWebCheckDoc(files: { html: string; css: string; js: string }, checks: string): string {
   const { setup, tests } = splitJsChecks(checks);
   const sources = JSON.stringify({ html: files.html, css: files.css, js: files.js }).replace(/</g, '\\u003c');
-  const head = `
+  const head = `${STORAGE_SHIM}
 <script>
 var __cb_src = ${sources};
 var __cb_css = __cb_src.css, __cb_html_src = __cb_src.html, __cb_js_src = __cb_src.js, __cb_student_error = null;
