@@ -735,7 +735,6 @@ try {
       if (!buddyMode && checkResult === "pass") {
         markGuestDone(exercise.id);
         setShowGuestSave(true);
-        if (isMobile) setMobileView("instructions");
       } else {
         // La vista previa vuelve a correr; si aprueba, se muestra el aviso.
         guestPendingRef.current = exercise.id;
@@ -813,10 +812,10 @@ try {
   // un botón Ejecutar aparte: dos botones para lo mismo). Ya completado, solo
   // vuelve a mostrar la animación.
   const handleCheckSolution = () => {
-    if (buddyMode) {
-      setBuddyRun((n) => n + 1);
-      if (isMobile) setMobileView("preview");
-    }
+    if (buddyMode) setBuddyRun((n) => n + 1);
+    // En celular se ve una vista a la vez: Comprobar muestra el resultado
+    // (también en web/JS, donde antes se quedaba en el código sin respuesta).
+    if (isMobile) setMobileView("preview");
     if (completed) return;
     void submitCompletion();
   };
@@ -966,9 +965,6 @@ try {
       <div className="flex-1 overflow-hidden rounded-b-[28px] bg-white">
         {/* La consola de Python es un iframe propio por ejercicio (key): nunca reusa uno que esté cargando otro documento. */}
         <PreviewFrame key={pythonMode ? `python-${exercise?.id}` : "preview"} srcDoc={pythonMode ? pythonDoc : previewDoc} stage={pythonMode ? "python" : undefined} />
-        {checkDoc && (
-          <iframe key={docKey(checkDoc)} srcDoc={checkDoc} sandbox="allow-scripts" aria-hidden="true" tabIndex={-1} className="hidden" title="check" />
-        )}
       </div>
     </div>
   );
@@ -994,7 +990,33 @@ try {
       <div className="relative z-10 h-full flex flex-col p-5 gap-5 overflow-hidden">
         <main className="flex-1 min-h-0 overflow-hidden">
           {isMobile ? (
-            <div className="h-full">
+            <div className="h-full flex flex-col gap-3">
+              {/* En celular se ve una vista a la vez: sin estas pestañas no había
+                  forma de leer la consigna ni de volver al código tras Comprobar. */}
+              <div role="tablist" className="shrink-0 grid grid-cols-3 gap-1 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card)/0.85)] p-1">
+                {(
+                  [
+                    ["instructions", t("site.codeExerciseInstructionsTitle")],
+                    ["code", t("site.codeExerciseYourCodeTitle")],
+                    ["preview", t("site.codeExerciseResultTitle")],
+                  ] as const
+                ).map(([view, label]) => (
+                  <button
+                    key={view}
+                    role="tab"
+                    aria-selected={mobileView === view}
+                    onClick={() => setMobileView(view)}
+                    className={`rounded-xl px-1.5 py-2 text-[10.5px] font-black uppercase truncate transition-colors ${
+                      mobileView === view
+                        ? "bg-yellow-400 text-black"
+                        : "text-[rgb(var(--secondary-text))] hover:text-[rgb(var(--text))]"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <div className="flex-1 min-h-0">
               {mobileView === "instructions" && <InstructionsContent />}
 
               {mobileView === "code" && (
@@ -1023,7 +1045,10 @@ try {
                 />
               )}
 
-              {mobileView === "preview" && PreviewContent()}
+              {/* Montada siempre (solo se oculta): así Python/Buddy no se vuelven
+                  a cargar cada vez que se cambia de pestaña o se comprueba. */}
+              <div className={mobileView === "preview" ? "h-full" : "hidden"}>{PreviewContent()}</div>
+              </div>
             </div>
           ) : (
             <Group orientation="horizontal" className="h-full min-h-0 gap-5">
@@ -1067,6 +1092,12 @@ try {
             </Group>
           )}
         </main>
+
+        {/* Corrección de visitante (web): fuera de la vista previa para que corra
+            aunque en celular se esté mirando el código o la consigna. */}
+        {checkDoc && (
+          <iframe key={docKey(checkDoc)} srcDoc={checkDoc} sandbox="allow-scripts" aria-hidden="true" tabIndex={-1} className="hidden" title="check" />
+        )}
 
         {/* En celular el panel de instrucciones queda oculto al ver el
             resultado: el aviso de crear cuenta va acá, siempre a la vista
