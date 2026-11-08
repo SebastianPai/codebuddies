@@ -90,8 +90,34 @@ export function ThemeImage({
     );
   }
 
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src={asset.imageUrl} alt={alt} className={className} style={style} />;
+  // Las imágenes del admin suben tal cual (el LOGO pesaba 1,3 MB y se ve a
+  // 40 px en todas las páginas): pasan por el optimizador de Next, que las
+  // achica al tamaño real (x2 para pantallas retina) y las sirve en WebP/AVIF.
+  // Si el optimizador falla, se cae a la original.
+  return <OptimizedImg src={asset.imageUrl} size={size} alt={alt} className={className} style={style} />;
+}
+
+// Anchos que acepta /_next/image por defecto (imageSizes + deviceSizes).
+const NEXT_WIDTHS = [16, 32, 48, 64, 96, 128, 256, 384, 640, 750, 828, 1080, 1200, 1920];
+function optimizedUrl(src: string, px: number): string {
+  const w = NEXT_WIDTHS.find((n) => n >= px) ?? 1920;
+  return `/_next/image?url=${encodeURIComponent(src)}&w=${w}&q=75`;
+}
+
+function OptimizedImg({ src, size, alt, className, style }: { src: string; size: number; alt: string; className?: string; style?: CSSProperties }) {
+  const [failed, setFailed] = useState(false);
+  const usable = !failed && /^https:\/\//.test(src);
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={usable ? optimizedUrl(src, size * 2) : src}
+      srcSet={usable ? `${optimizedUrl(src, size)} 1x, ${optimizedUrl(src, size * 2)} 2x, ${optimizedUrl(src, size * 3)} 3x` : undefined}
+      onError={() => setFailed(true)}
+      alt={alt}
+      className={className}
+      style={style}
+    />
+  );
 }
 
 export const THEME_IMAGE_SPRITE_KEYFRAMES = `
