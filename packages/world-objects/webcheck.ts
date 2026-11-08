@@ -94,8 +94,32 @@ var __cb_logs = [];
 export const JS_CHECK_HARDEN = String.raw`
 (function () {
   var list = [Object, Array, String, Number, Boolean, Function, Promise, Map, Set, WeakMap, WeakSet, RegExp, Error, TypeError, RangeError, SyntaxError, ReferenceError, Symbol];
+  // "Override mistake": con un prototipo congelado, asignar en un objeto propio
+  // una propiedad que el prototipo tiene (this.name en una clase que hereda de
+  // Error, obj.toString = ...) lanza TypeError en modo estricto. Como en SES,
+  // cada propiedad de datos del prototipo pasa a ser getter/setter: el setter
+  // crea la propiedad en el objeto del alumno, y en el prototipo mismo falla.
+  var dp = Object.defineProperty, gopd = Object.getOwnPropertyDescriptor, keys = Reflect.ownKeys;
+  function tame(proto) {
+    var ks = keys(proto);
+    for (var k = 0; k < ks.length; k++) {
+      var key = ks[k], d = gopd(proto, key);
+      if (!d || !('value' in d) || !d.writable || !d.configurable) continue;
+      (function (key, value, enumerable) {
+        dp(proto, key, {
+          get: function () { return value; },
+          set: function (v) {
+            if (this === proto) throw new TypeError('No se puede modificar ' + String(key) + ' del prototipo');
+            dp(this, key, { value: v, writable: true, enumerable: true, configurable: true });
+          },
+          enumerable: enumerable,
+          configurable: false,
+        });
+      })(key, d.value, d.enumerable);
+    }
+  }
   for (var i = 0; i < list.length; i++) {
-    try { Object.freeze(list[i].prototype); Object.freeze(list[i]); } catch (e) {}
+    try { tame(list[i].prototype); Object.freeze(list[i].prototype); Object.freeze(list[i]); } catch (e) {}
   }
   try { Object.freeze(JSON); Object.freeze(Math); Object.freeze(Reflect); } catch (e) {}
   try { Object.freeze(Object.getPrototypeOf(async function () {}).prototype); } catch (e) {}

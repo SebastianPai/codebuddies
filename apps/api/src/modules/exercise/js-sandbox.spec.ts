@@ -72,6 +72,20 @@ describe('no se puede aprobar sin resolver', () => {
     const [r] = await validateCode({ language: 'js', studentCode: 'function sumar(a, b) { return a + b; }', expectedCode: tests });
     expect(r).toEqual({ description: 'Assertions', passed: true });
   });
+
+  it('un error propio puede asignar this.name aunque Error.prototype esté congelado', async () => {
+    const student = 'class StockError extends Error { constructor(sku) { super("sin stock " + sku); this.name = "StockError"; this.sku = sku; } } function reservar() { throw new StockError("BN-1"); }';
+    const checks = 'let e; try { reservar(); } catch (x) { e = x; } assert(e instanceof StockError, "tipo"); assert(e instanceof Error, "hereda"); assert(e.name === "StockError", "name"); assert(e.message === "sin stock BN-1", "message"); assert(Error.prototype.name === "Error", "el prototipo no cambió");';
+    const [r] = await validateCode({ language: 'js', studentCode: student, expectedCode: checks });
+    expect(r).toEqual({ description: 'Assertions', passed: true });
+  });
+
+  it('el alumno puede definir toString en sus objetos, pero no tocar el prototipo', async () => {
+    const own = await validateCode({ language: 'js', studentCode: 'const p = { sku: "A" }; p.toString = function () { return "SKU " + this.sku; };', expectedCode: 'assert(String(p) === "SKU A", "toString propio"); assert(String({}) === "[object Object]", "prototipo intacto");' });
+    expect(own[0].passed).toBe(true);
+    const cheat = await validateCode({ language: 'js', studentCode: 'Object.prototype.toString = () => "5"; function sumar() { return 0; }', expectedCode: tests });
+    expect(cheat[0].passed).toBe(false);
+  });
 });
 
 describe('JS asíncrono con preparación (// @pruebas)', () => {
