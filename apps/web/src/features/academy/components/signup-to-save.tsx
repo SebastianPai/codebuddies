@@ -47,7 +47,7 @@ export function SignupToSave({
           </Link>
         )}
         <Link
-          href="/register"
+          href={`/register?redirect=${encodeURIComponent(here)}`}
           className={
             canGoOn
               ? "inline-flex items-center gap-2 rounded-xl border border-[rgb(var(--border))] px-5 py-3 text-sm font-bold text-[rgb(var(--text))] hover:bg-[rgb(var(--border)/0.4)]"

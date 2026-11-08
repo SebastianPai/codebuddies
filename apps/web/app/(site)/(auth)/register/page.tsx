@@ -10,6 +10,7 @@ import { useTranslation } from "../../../../src/i18n/useTranslation";
 import { useThemeAsset } from "../../../../hooks/useThemeAsset";
 import { ThemeFramedPhoto } from "../../../../components/ThemeFramedPhoto";
 import { trackEvent } from "../../../../components/analytics/events";
+import { getCampaign, safeInternalPath } from "../../../../utils/campaign";
 import {
   AuthField,
   PasswordField,
@@ -113,12 +114,16 @@ export default function RegisterPage() {
         formData.password,
         formData.referralCode.trim() || undefined,
         { acceptLegal, marketingOptIn },
+        getCampaign(),
       );
       trackEvent("sign_up", {
         method: "email",
         referred: Boolean(formData.referralCode.trim()),
       });
-      router.push("/dashboard");
+      // Si venía de una lección (visitante sin cuenta), vuelve al ejercicio
+      // para tocar Comprobar y cobrar la recompensa; si no, al panel.
+      const back = safeInternalPath(new URLSearchParams(window.location.search).get("redirect"));
+      router.push(back ?? "/dashboard");
     } catch (err) {
       const message = err instanceof Error ? err.message : "";
       setError(message || t("auth.registerError"));

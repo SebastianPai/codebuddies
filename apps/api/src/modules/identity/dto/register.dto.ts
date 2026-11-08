@@ -54,6 +54,14 @@ export class RegisterDto {
   @MaxLength(64)
   referralCode?: string;
 
+  // Código de campaña ("tiktok:c2:v1"). Validación estricta para que no
+  // entre basura ni datos personales: letras, números, "_", "-", ":", ".".
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  @Matches(/^[a-z0-9_:.-]{1,80}$/i)
+  signupSource?: string;
+
   // Casilla obligatoria del registro: acepta Términos y Política de
   // privacidad y autoriza el tratamiento de datos (Ley 1581 exige
   // autorización previa, expresa e informada). Si es menor, declara contar

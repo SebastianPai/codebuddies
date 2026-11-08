@@ -617,6 +617,9 @@ model User {
   // Marketing solo con consentimiento expreso (opt-in): Ley 1581 y RGPD.
   marketingEmailsEnabled Boolean   @default(false)
   marketingEmailOptedAt  DateTime  @default(now())
+  // Código de campaña del primer toque al registrarse (utm: "tiktok:c2:v1").
+  // Solo para medir de dónde llegan las cuentas; sin datos personales.
+  signupSource           String?
   // Prueba de la aceptación de Términos + autorización de tratamiento de
   // datos (Decreto 1377/2013 art. 7: debe poder consultarse después).
   legalAcceptedAt        DateTime?

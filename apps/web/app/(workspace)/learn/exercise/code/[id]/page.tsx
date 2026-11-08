@@ -873,6 +873,20 @@ try {
     );
   }
 
+  // Aviso para el visitante sin cuenta que acaba de resolver el ejercicio.
+  const guestSave =
+    showGuestSave && !user?.userId ? (
+      <SignupToSave
+        next={
+          exercise.nextExerciseId && exercise.nextExerciseType
+            ? { href: exercisePath(exercise.nextExerciseId, exercise.nextExerciseType), kind: "exercise" }
+            : exercise.courseId && exercise.nextLessonId
+              ? { href: lessonPath(exercise.courseId, exercise.nextLessonId), kind: "lesson" }
+              : null
+        }
+      />
+    ) : null;
+
   const InstructionsContent = () => (
     <div className={`${panelClass} h-full overflow-y-auto`}>
       <div className="px-6 py-5 border-b border-[rgb(var(--border))]">
@@ -903,19 +917,7 @@ try {
             {t("site.academyLesson.noContentYet")}
           </p>
         )}
-        {showGuestSave && !user?.userId && (
-          <div className="mb-6">
-            <SignupToSave
-              next={
-                exercise.nextExerciseId && exercise.nextExerciseType
-                  ? { href: exercisePath(exercise.nextExerciseId, exercise.nextExerciseType), kind: "exercise" }
-                  : exercise.courseId && exercise.nextLessonId
-                    ? { href: lessonPath(exercise.courseId, exercise.nextLessonId), kind: "lesson" }
-                    : null
-              }
-            />
-          </div>
-        )}
+        {guestSave && !isMobile && <div className="mb-6">{guestSave}</div>}
         {hints.length > 0 && !completed && (checkResult === "fail" || hintsShown > 0) && (
           <div className="mt-6 rounded-2xl border-2 border-emerald-400/60 bg-emerald-400/10 p-4">
             <div className="flex items-center gap-3">
@@ -1064,6 +1066,13 @@ try {
             </Group>
           )}
         </main>
+
+        {/* En celular el panel de instrucciones queda oculto al ver el
+            resultado: el aviso de crear cuenta va acá, siempre a la vista
+            (antes el visitante resolvía y nunca veía cómo registrarse). */}
+        {guestSave && isMobile && (
+          <div className="shrink-0 max-h-[45%] overflow-y-auto">{guestSave}</div>
+        )}
 
         {/* FOOTER */}
         {/* En celular: el mensaje arriba y los botones abajo, a todo el ancho

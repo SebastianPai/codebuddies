@@ -124,6 +124,7 @@ export class IdentityService {
             legalVersion: LEGAL_VERSION,
             marketingEmailsEnabled: dto.marketingOptIn === true,
             marketingEmailOptedAt: now,
+            signupSource: dto.signupSource ?? null,
           },
           select: this.authUserSelect(),
         });

@@ -78,12 +78,14 @@ export async function register(
     acceptLegal: false,
     marketingOptIn: false,
   },
+  signupSource?: string,
 ): Promise<AuthResponse> {
   const data = await api.post<AuthResponse>("/identity/register", {
     username,
     email,
     password,
     referralCode,
+    signupSource,
     acceptLegal: consent.acceptLegal,
     marketingOptIn: consent.marketingOptIn,
   });

@@ -97,7 +97,8 @@ export default function LoginPage() {
         );
         return;
       }
-      router.push(redirect?.startsWith("/") ? redirect : "/dashboard");
+      // "//otro-sitio" también empieza con "/": solo rutas internas.
+      router.push(redirect && /^\/(?![/\\])/.test(redirect) ? redirect : "/dashboard");
     } catch (err) {
       const message = err instanceof Error ? err.message : "";
       setError(message || t("auth.loginError"));

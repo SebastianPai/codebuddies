@@ -18,6 +18,7 @@ import {
 } from "../components/analytics/GoogleTagManager";
 import CookieBanner from "../components/consent/CookieBanner";
 import { GtmRouteTracker } from "../components/analytics/GtmRouteTracker";
+import { CampaignCapture } from "../components/analytics/CampaignCapture";
 import { AdSenseLoader } from "../components/ads/AdSenseLoader";
 
 // Íconos (favicon.ico, icon.png, apple-icon.png) e imagen para compartir
@@ -119,6 +120,7 @@ export default function RootLayout({
         />
         <GoogleTagManagerBody />
         <GtmRouteTracker />
+        <CampaignCapture />
         <AdSenseLoader />
         <ThemeProvider attribute="data-theme" defaultTheme="dark">
           {/* LanguageProvider va por fuera: RewardProvider pinta las tarjetas
