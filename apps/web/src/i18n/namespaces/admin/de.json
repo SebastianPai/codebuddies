@@ -305,6 +305,8 @@
   "storageVideosHint": "eigenes Limit, damit immer Platz für Bilder bleibt",
   "storageByFolder": "Nach Ordner",
   "storageCheckedAt": "Gemessen: {time} · alle 10 Minuten neu berechnet",
+  "lessonSection": "Modul (optional)",
+  "lessonSectionPlaceholder": "z. B. Modul 1: Wie das Web funktioniert",
   "adminDashboardTitle": "Admin-Dashboard",
   "adminDashboardDescription": "Plattform-Zustand, Lerner-Aktivität und audit-sichere Zugriffsverwaltung.",
   "actionGrantAdmin": "ADMIN GEWÄHREN",

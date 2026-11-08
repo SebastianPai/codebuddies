@@ -28,6 +28,12 @@ export class CreateLessonTranslationDto {
   @MaxLength(2000)
   description?: string;
 
+  /** Módulo del curso al que pertenece la lección (vacío = sin módulo). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  section?: string;
+
   @IsOptional()
   @MaxJsonSize(MAX_CONTENT_BYTES)
   content?: unknown; // JSON con el contenido traducido (markdown, bloques, etc.)

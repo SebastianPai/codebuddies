@@ -17,6 +17,23 @@ export interface CourseRequester {
   bypassLocks?: boolean;
 }
 
+/**
+ * Idiomas en los que un curso está COMPLETO: el curso y todas sus lecciones
+ * tienen traducción. La web lo usa para avisar con tacto cuando el curso solo
+ * existe en otro idioma (si no, se muestra el español sin explicar por qué).
+ */
+export function completeLanguages(course: {
+  translations: { language: { code: string } }[];
+  lessons: { translations: { language: { code: string } }[] }[];
+}): string[] {
+  let codes = new Set(course.translations.map((t) => t.language.code));
+  for (const lesson of course.lessons) {
+    const own = new Set(lesson.translations.map((t) => t.language.code));
+    codes = new Set([...codes].filter((c) => own.has(c)));
+  }
+  return [...codes];
+}
+
 @Injectable()
 export class CourseService {
   constructor(
@@ -212,6 +229,7 @@ export class CourseService {
         },
 
         categories: course.categories.map((c) => ({ id: c.id, slug: c.slug, name: c.name })),
+        languages: completeLanguages(course),
 
         xpTotal,
         coinsTotal,
@@ -228,6 +246,7 @@ export class CourseService {
             type: lesson.type,
             title: lessonTranslation?.title ?? null,
             description: lessonTranslation?.description ?? null,
+            section: lessonTranslation?.section ?? null,
           };
         }),
       };
@@ -324,6 +343,7 @@ export class CourseService {
       freeLimit: course.freeLimit,
       imageUrl: course.imageUrl,
       status: course.status,
+      languages: completeLanguages(course),
 
       module: {
         id: course.module?.id,
@@ -361,6 +381,7 @@ export class CourseService {
           type: lesson.type,
           title: lessonTranslation?.title ?? null,
           description: lessonTranslation?.description ?? null,
+          section: lessonTranslation?.section ?? null,
           locked,
           lockedReason,
           // Solo con sesión: permite pintar el camino (teoría -> ejercicios)

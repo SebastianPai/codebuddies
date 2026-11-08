@@ -9,6 +9,7 @@ import { useTranslation } from "../../../i18n/useTranslation";
 import { CachedImage, ErrorState } from "@/shared/ui";
 import { useApiLang } from "@/shared/hooks/use-api-lang";
 import { AppIcon } from "../../../../components/AppIcon";
+import { CourseLanguagePill } from "./course-language";
 
 const difficultyKeyMap: Record<string, string> = {
   Todas: "site.difficultyAll",
@@ -39,6 +40,7 @@ export interface Course {
   xpTotal?: number | null;
   lessons?: unknown[];
   categories?: CourseCategory[];
+  languages?: string[];
 }
 
 // La API manda la dificultad como enum (EASY/MEDIUM/HARD); el filtro y la
@@ -134,9 +136,9 @@ function CourseCard({ course }: { course: Course }) {
           {course.description}
         </p>
 
-        {course.categories && course.categories.length > 0 && (
+        {((course.categories && course.categories.length > 0) || course.languages) && (
           <div className="mt-4 flex flex-wrap gap-2">
-            {course.categories.map((category) => (
+            {course.categories?.map((category) => (
               <span
                 key={category.id}
                 className="rounded-full border border-[rgb(var(--border))] px-2.5 py-0.5 text-xs font-semibold text-[rgb(var(--secondary-text))]"
@@ -144,6 +146,7 @@ function CourseCard({ course }: { course: Course }) {
                 {category.name}
               </span>
             ))}
+            <CourseLanguagePill languages={course.languages} />
           </div>
         )}
 

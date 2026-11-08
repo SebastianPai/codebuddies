@@ -2069,6 +2069,9 @@ model LessonTranslation {
   title       String
   description String?
   content     Json?
+  /// Módulo/sección del curso (p. ej. "Módulo 1: Cómo funciona la web").
+  /// Las lecciones seguidas con la misma sección se agrupan en el índice.
+  section     String?
 
   lesson   Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   language Language @relation(fields: [languageId], references: [id], onDelete: Cascade)

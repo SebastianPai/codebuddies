@@ -305,6 +305,8 @@
   "storageVideosHint": "tope propio para que siempre quede lugar para imágenes",
   "storageByFolder": "Por carpeta",
   "storageCheckedAt": "Medido: {time} · se recalcula cada 10 minutos",
+  "lessonSection": "Módulo (opcional)",
+  "lessonSectionPlaceholder": "Ej.: Módulo 1: Cómo funciona la web",
   "adminDashboardTitle": "Admin Dashboard",
   "adminDashboardDescription": "Platform health, learner activity, and audit-safe access management.",
   "actionGrantAdmin": "GRANT ADMIN",

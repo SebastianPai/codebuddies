@@ -47,6 +47,7 @@ export function toLessonFormValues(lesson: LessonDetails): LessonFormValues {
       languageCode: translation.language.code,
       title: translation.title,
       description: translation.description ?? "",
+      section: translation.section ?? "",
       content: normalizeLessonContent(translation.content),
     })),
   };
@@ -66,6 +67,7 @@ export function toLessonPayload(
       languageCode: translation.languageCode,
       title: translation.title,
       description: translation.description,
+      section: translation.section ?? "",
       content: serializeLessonContent(translation.content),
     })),
   };

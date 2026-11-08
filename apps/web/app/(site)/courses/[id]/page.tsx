@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { Fragment, useState, useEffect, useMemo, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -32,6 +32,8 @@ import { CourseReviews } from "@/features/courses/components/course-reviews";
 import { CourseProjectSection } from "@/features/courses/components/course-project-section";
 import { ReferralCourseBanner } from "@/features/courses/components/referral-course-banner";
 import { AppIcon } from "../../../../components/AppIcon";
+import { useApiLang } from "@/shared/hooks/use-api-lang";
+import { CourseLanguageNotice } from "@/features/courses/components/course-language";
 
 interface CourseExercise {
   id: string;
@@ -53,6 +55,7 @@ interface CertificateStatus {
 export default function CourseDetailPage() {
   const { id } = useParams<{ id: string }>();
   const t = useTranslation();
+  const apiLang = useApiLang();
 
   const [course, setCourse] = useState<any>(null);
   const [loadError, setLoadError] = useState(false);
@@ -75,7 +78,7 @@ export default function CourseDetailPage() {
       const userId = localStorage.getItem("userId");
       setIsLoggedIn(!!token);
 
-      const lang = localStorage.getItem("lang") || "es";
+      const lang = apiLang;
       const data = await fetcher(`/courses/${id}?lang=${lang}`);
       setCourse(data);
 
@@ -108,7 +111,7 @@ export default function CourseDetailPage() {
       console.error("Error cargando curso", err);
       setLoadError(true);
     }
-  }, [id]);
+  }, [id, apiLang]);
 
   useEffect(() => {
     loadData();
@@ -300,13 +303,19 @@ export default function CourseDetailPage() {
             </div>
           </header>
 
+          <CourseLanguageNotice languages={course.languages} />
+
           {/* Lista de lecciones – tarjetas más pulidas */}
           {!course.lessons || course.lessons.length === 0 ? (
             <EmptyState title={t.courseDetail.noLessons} />
           ) : (
           <div className="space-y-5">
-            {course.lessons?.map((lesson: any) => {
+            {course.lessons?.map((lesson: any, index: number) => {
               const isOpen = openLesson === lesson.id;
+              // Las lecciones seguidas con el mismo módulo van bajo un solo título.
+              const sectionStart =
+                Boolean(lesson.section) &&
+                lesson.section !== course.lessons[index - 1]?.section;
               // El backend ya calcula esto (course.service.ts) contra la
               // suscripción premium real del usuario — antes acá se
               // re-derivaba solo mirando isLoggedIn, así que cualquier
@@ -326,8 +335,13 @@ export default function CourseDetailPage() {
               const lessonDone = isLoggedIn && completedCount === totalInLesson;
 
               return (
+                <Fragment key={lesson.id}>
+                {sectionStart && (
+                  <h2 className="pt-6 first:pt-0 text-sm font-black uppercase tracking-widest text-[rgb(var(--primary-text))]">
+                    {lesson.section}
+                  </h2>
+                )}
                 <div
-                  key={lesson.id}
                   className={`group rounded-xl overflow-hidden border-4 border-[rgb(var(--border))] bg-[rgb(var(--card))] transition-all duration-300 hover:border-[rgb(var(--primary)/0.6)] hover:shadow-xl hover:shadow-[rgb(var(--primary)/0.08)] ${
                     isLocked ? "opacity-60 saturate-50" : ""
                   }`}
@@ -513,6 +527,7 @@ export default function CourseDetailPage() {
                     )}
                   </AnimatePresence>
                 </div>
+                </Fragment>
               );
             })}
           </div>

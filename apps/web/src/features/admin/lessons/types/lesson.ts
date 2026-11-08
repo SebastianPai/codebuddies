@@ -5,6 +5,7 @@ export interface LessonTranslation {
   languageCode: string;
   title: string;
   description: string;
+  section?: string;
   // Documento de bloques de teoría (LessonContentDoc). Se guarda como JSON y
   // el backend lo persiste tal cual en LessonTranslation.content (Json?).
   // `unknown` acá para casar con el <TranslationsForm> compartido; los
@@ -44,6 +45,7 @@ export interface LessonDetails {
   translations: Array<{
     title: string;
     description?: string | null;
+    section?: string | null;
     language: { code: string };
     // JSON crudo: doc de bloques nuevo, `{ markdown }` viejo, o null.
     content?: unknown;

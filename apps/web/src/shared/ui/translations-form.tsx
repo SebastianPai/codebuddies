@@ -14,6 +14,8 @@ export interface Translation {
   languageCode: string;
   title: string;
   description: string;
+  // Módulo del curso (solo lecciones, con showSection).
+  section?: string;
   content?: unknown;
 }
 
@@ -44,6 +46,8 @@ interface TranslationsFormProps {
   onChange: (translations: Translation[]) => void;
   availableLanguages?: LanguageOption[];
   showContent?: boolean;
+  // Campo "Módulo" por idioma (lecciones: agrupa el índice del curso).
+  showSection?: boolean;
   renderContentField?: RenderContentField;
   // Rótulo encima del contenido (por defecto "Contenido (Markdown)").
   contentLabel?: string;
@@ -77,6 +81,7 @@ export function TranslationsForm({
   onChange,
   availableLanguages = DEFAULT_LANGUAGES,
   showContent = false,
+  showSection = false,
   renderContentField,
   contentLabel,
   onActiveLanguageChange,
@@ -353,6 +358,22 @@ export function TranslationsForm({
               required
             />
           </div>
+
+          {showSection && (
+            <div>
+              <label className="mb-1 block text-xs text-[rgb(var(--secondary-text))]">
+                {t("admin.lessonSection")}
+              </label>
+              <Input
+                value={translation.section ?? ""}
+                onChange={(event) =>
+                  updateTranslation(active, "section", event.target.value)
+                }
+                placeholder={t("admin.lessonSectionPlaceholder")}
+                maxLength={120}
+              />
+            </div>
+          )}
 
           <div>
             <label className="mb-1 block text-xs text-[rgb(var(--secondary-text))]">

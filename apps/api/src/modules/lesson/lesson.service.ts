@@ -48,6 +48,7 @@ export class LessonService {
             },
             title: t.title,
             description: t.description ?? null,
+            section: t.section?.trim() || null,
             content: (t.content as Prisma.InputJsonValue) ?? undefined, // null está permitido en Json?
           })),
         },
@@ -310,6 +311,9 @@ export class LessonService {
           update: {
             title: t.title,
             description: t.description ?? null,
+            // Sin "section" en el pedido se conserva la que había (los scripts
+            // que solo cambian el contenido no la borran); "" la quita.
+            section: t.section === undefined ? undefined : t.section.trim() || null,
             content: (t.content as Prisma.InputJsonValue) ?? undefined,
           },
           create: {
@@ -317,6 +321,7 @@ export class LessonService {
             languageId: language.id,
             title: t.title,
             description: t.description ?? null,
+            section: t.section?.trim() || null,
             content: (t.content as Prisma.InputJsonValue) ?? undefined,
           },
         });
