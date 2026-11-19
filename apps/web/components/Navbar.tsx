@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useAuth } from "../hooks/useAuth";
-import { Award, BarChart3, Bell, ChevronDown, CreditCard, Flame, Gamepad2, Globe, GraduationCap, Languages, LogIn, LogOut, Menu, MessageSquare, Moon, Settings, Shield, Sparkles, Sun, Tag, Trophy, User, UserPlus, Users, X, Zap } from "lucide-react";
+import { Award, BarChart3, Bell, Building2, ChevronDown, CreditCard, Flame, Gamepad2, Globe, GraduationCap, Languages, LogIn, LogOut, Menu, MessageSquare, Moon, Settings, Shield, Sparkles, Sun, Tag, Trophy, User, UserPlus, Users, X, Zap } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useCallback, useEffect, useState, useRef } from "react";
 import { usePathname } from "next/navigation";
@@ -19,6 +19,7 @@ import { RainbowButton } from "@/shared/ui/rainbow-button";
 import { BoostMultiplierChip } from "@/features/boosts/BoostBanner";
 import { CurrencyIcon } from "@/shared/ui/currency-icon";
 import { RarityText } from "@/shared/ui/rarity-text";
+import { codeStudioLink } from "@/features/codestudio/use-codestudio-summary";
 
 const INACTIVE_MS = 5 * 60 * 1000;
 const PRESENCE_SESSION_KEY = "codebuddies:presence-session-id";
@@ -245,6 +246,7 @@ export default function Navbar() {
   // El logo ya lleva al inicio: el navbar solo muestra lo que se usa.
   const primaryLinks = [
     { href: "/courses", label: t("navbar.courses"), icon: <AppIcon slot="ICON_COURSES" size={16} fallback={<GraduationCap size={16} />} /> },
+    { href: codeStudioLink("guide"), label: t("navbar.codestudio"), icon: <Building2 size={16} /> },
     { href: "/pricing", label: t("navbar.pricing"), icon: <Tag size={16} /> },
     { href: "/rankings", label: t("navbar.rankings"), icon: <AppIcon slot="ICON_RANKINGS" size={16} fallback={<BarChart3 size={16} />} /> },
   ];

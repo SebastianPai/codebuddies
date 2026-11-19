@@ -22,6 +22,9 @@
 //   quality      reduce la probabilidad de bugs al publicar y la deuda técnica
 //   security     protege contra incidentes de seguridad
 //   cacDiscount  abarata el costo por usuario de las campañas
+//   userCost     $ extra por usuario activo por día (tokens de IA, APIs que
+//                cobran por uso): es un COSTO, crece con tus usuarios
+//   fixedCost    $ fijos por día (operar más servicios, como microservicios)
 
 export type FeatureEffects = {
   growth?: number;
@@ -37,9 +40,11 @@ export type FeatureEffects = {
   quality?: number;
   security?: number;
   cacDiscount?: number;
+  userCost?: number;
+  fixedCost?: number;
 };
 
-export type FeatureBranch = 'producto' | 'monetizacion' | 'crecimiento' | 'calidad' | 'escala' | 'seguridad' | 'ia';
+export type FeatureBranch = 'producto' | 'monetizacion' | 'crecimiento' | 'calidad' | 'escala' | 'seguridad' | 'ia' | 'arquitectura';
 
 export type FeatureDefinition = {
   slug: string;
@@ -65,6 +70,7 @@ export const FEATURE_BRANCHES: Array<{ key: FeatureBranch; name: string; descrip
   { key: 'escala', name: 'Rendimiento', description: 'Aguantar más usuarios sin caerse.' },
   { key: 'seguridad', name: 'Seguridad', description: 'Proteger a tus usuarios y sus datos.' },
   { key: 'ia', name: 'Inteligencia artificial', description: 'Automatizar y personalizar a escala.' },
+  { key: 'arquitectura', name: 'Arquitectura', description: 'Cómo se organiza tu sistema por dentro.' },
 ];
 
 export const FEATURES: FeatureDefinition[] = [
@@ -597,8 +603,8 @@ export const FEATURES: FeatureDefinition[] = [
     cost: 1200,
     devSeconds: 190,
     difficulty: 3,
-    effects: { satisfaction: 5, retention: 0.04 },
-    description: 'Un asistente que responde las dudas frecuentes 24/7.',
+    effects: { satisfaction: 5, retention: 0.04, userCost: 0.002 },
+    description: 'Un asistente que responde las dudas frecuentes 24/7. Cada respuesta gasta tokens que pagas.',
     lesson: 'La IA resuelve lo repetitivo; los casos raros todavía necesitan una persona.',
   },
   {
@@ -610,9 +616,126 @@ export const FEATURES: FeatureDefinition[] = [
     cost: 5000,
     devSeconds: 400,
     difficulty: 5,
-    effects: { retention: 0.15, conversion: 0.15, load: 0.2 },
+    effects: { retention: 0.15, conversion: 0.15, load: 0.2, userCost: 0.003 },
     description: 'Modelos que predicen qué quiere cada usuario antes de que lo busque.',
     lesson: 'Los modelos cuestan caro de correr: más carga en servidores por cada usuario.',
+  },
+  {
+    slug: 'llm-assistant',
+    name: 'Asistente con un modelo de IA',
+    branch: 'ia',
+    minStage: 3,
+    requires: ['core-feature', 'rest-api'],
+    cost: 1500,
+    devSeconds: 150,
+    difficulty: 3,
+    effects: { satisfaction: 6, retention: 0.03, userCost: 0.006 },
+    description: 'Tus usuarios le preguntan a una IA dentro de la app. Cada respuesta consume tokens que pagas tú.',
+    lesson: 'La IA por API se paga por uso: con muchos usuarios, la factura de tokens puede ser tu gasto más grande. Respuestas más cortas y límites por usuario la bajan.',
+  },
+  {
+    slug: 'rest-api',
+    name: 'API REST propia',
+    branch: 'arquitectura',
+    minStage: 3,
+    requires: ['core-feature'],
+    cost: 900,
+    devSeconds: 120,
+    difficulty: 2,
+    effects: { satisfaction: 2, growth: 2 },
+    description: 'Un backend con endpoints claros que usan tu web, tu app móvil y hasta otras empresas.',
+    lesson: 'Una API bien diseñada (recursos, verbos HTTP, códigos de estado) deja que distintos clientes usen el mismo producto.',
+  },
+  {
+    slug: 'external-apis',
+    name: 'Conectar APIs externas',
+    branch: 'arquitectura',
+    minStage: 3,
+    requires: ['rest-api'],
+    cost: 700,
+    devSeconds: 90,
+    difficulty: 2,
+    effects: { conversion: 0.06, satisfaction: 2, userCost: 0.0005 },
+    description: 'Pagos, mapas o envío de emails con servicios de otras empresas, en vez de construirlos tú.',
+    lesson: 'No reinventes la rueda: integrar un servicio confiable es más rápido, pero pagas por uso y dependes de que funcione.',
+  },
+  {
+    slug: 'webhooks',
+    name: 'Webhooks',
+    branch: 'arquitectura',
+    minStage: 3,
+    requires: ['external-apis'],
+    cost: 500,
+    devSeconds: 70,
+    difficulty: 2,
+    effects: { stability: 2, quality: 0.04 },
+    description: 'Los servicios externos te avisan cuando pasa algo (un pago aprobado) en vez de que preguntes a cada rato.',
+    lesson: 'Escuchar eventos es más eficiente que preguntar todo el tiempo (polling). Y cada aviso puede llegar dos veces: procésalo una sola.',
+  },
+  {
+    slug: 'first-microservice',
+    name: 'Primer microservicio: pagos',
+    branch: 'arquitectura',
+    minStage: 6,
+    requires: ['webhooks', 'job-queue'],
+    cost: 6000,
+    devSeconds: 260,
+    difficulty: 4,
+    effects: { capacity: 0.25, stability: 3, latency: 10, fixedCost: 40 },
+    description: 'Separas el cobro en su propio servicio: si falla otra parte de la app, los pagos siguen andando.',
+    lesson: 'Separa primero lo que más crece o lo que más riesgo tiene, no todo de golpe. Cada servicio nuevo cuesta operarlo.',
+  },
+  {
+    slug: 'api-gateway',
+    name: 'API gateway y microservicios',
+    branch: 'arquitectura',
+    minStage: 7,
+    requires: ['first-microservice', 'observability'],
+    cost: 15000,
+    devSeconds: 380,
+    difficulty: 5,
+    effects: { capacity: 0.45, quality: 0.06, latency: 15, fixedCost: 120 },
+    description: 'Una puerta de entrada única y cada equipo despliega su servicio sin esperar al resto.',
+    lesson: 'Los microservicios dan independencia y escala, pero suman servidores, errores de red y necesitan observabilidad. Hechos muy temprano, cuestan más de lo que dan.',
+  },
+  {
+    slug: 'squads',
+    name: 'Equipos con líder (squads)',
+    branch: 'calidad',
+    minStage: 6,
+    requires: ['ci-cd', 'feature-flags'],
+    cost: 8000,
+    devSeconds: 240,
+    difficulty: 3,
+    effects: { quality: 0.06, stability: 2, fixedCost: 80 },
+    description: 'Con 30 personas ya no alcanza un solo equipo: armas squads chicos, cada uno con su líder y su parte del producto.',
+    lesson: 'Los equipos de 5 a 8 personas se coordinan mejor. Más personas en un mismo equipo no lo hacen más rápido (ley de Brooks).',
+  },
+  {
+    slug: 'internationalization',
+    name: 'Abrir otros países',
+    branch: 'crecimiento',
+    minStage: 7,
+    requires: ['cdn', 'compliance'],
+    cost: 20000,
+    devSeconds: 360,
+    difficulty: 4,
+    effects: { growth: 60, satisfaction: 2, latency: -10, fixedCost: 150 },
+    description: 'Traduces la app, pones servidores cerca de cada región y cumples las leyes de datos de cada país.',
+    lesson: 'Crecer afuera es más que traducir: monedas, horarios, leyes de privacidad y soporte en otro idioma.',
+  },
+  {
+    slug: 'second-product',
+    name: 'Un segundo producto',
+    branch: 'producto',
+    minStage: 8,
+    requires: ['api-gateway', 'analytics'],
+    cost: 40000,
+    devSeconds: 480,
+    difficulty: 5,
+    effects: { growth: 80, retention: 0.05, conversion: 0.1, quality: -0.04, fixedCost: 250 },
+    description: 'Lanzas otra app para los mismos usuarios. Creces más, pero tu equipo se divide entre dos productos.',
+    lesson: 'Reusar usuarios, login y pagos abarata el segundo producto, pero cada producto nuevo reparte la atención del equipo.',
   },
 ];
 
@@ -625,3 +748,59 @@ export const MONETIZATION_SLUGS = new Set(['ads', 'payments', 'subscriptions', '
 // existentes. No se muestran en el árbol, pero no pueden romper el motor —
 // cualquier slug que no esté en FEATURE_BY_SLUG aporta este efecto chico.
 export const LEGACY_FEATURE_EFFECTS: FeatureEffects = { growth: 0.5, satisfaction: 0.5 };
+
+// "En la vida real": con qué herramientas se hace cada función fuera del
+// juego. Solo nombres (sin logos ni precios): los proveedores que se pagan
+// dentro de la simulación siguen siendo inventados.
+export const FEATURE_TOOLS: Record<string, string[]> = {
+  landing: ['Next.js', 'Astro', 'Webflow'],
+  auth: ['Auth0', 'Firebase Auth', 'Clerk'],
+  'core-feature': ['React', 'Node.js', 'PostgreSQL'],
+  profiles: ['PostgreSQL', 'Amazon S3', 'Cloudinary'],
+  onboarding: ['Appcues', 'Intercom', 'Userpilot'],
+  search: ['Elasticsearch', 'Algolia', 'Meilisearch'],
+  'mobile-app': ['React Native', 'Flutter', 'Swift', 'Kotlin'],
+  personalization: ['Segment', 'Amplitude', 'Redis'],
+  ads: ['Google AdSense', 'Google Ad Manager'],
+  payments: ['Stripe', 'Mercado Pago', 'PayPal'],
+  subscriptions: ['Stripe Billing', 'Paddle', 'Chargebee'],
+  'free-trial': ['Stripe Billing', 'Paddle'],
+  'annual-plans': ['Stripe Billing', 'Paddle'],
+  'teams-plan': ['Stripe Billing', 'WorkOS'],
+  seo: ['Google Search Console', 'Ahrefs', 'Semrush'],
+  'email-notifications': ['SendGrid', 'Amazon SES', 'Resend'],
+  'social-sharing': ['Open Graph', 'Twitter Cards'],
+  analytics: ['Google Analytics', 'Mixpanel', 'PostHog'],
+  referrals: ['ReferralCandy', 'Viral Loops'],
+  'ab-testing': ['Optimizely', 'GrowthBook', 'LaunchDarkly'],
+  push: ['Firebase Cloud Messaging', 'OneSignal'],
+  community: ['Discord', 'Discourse'],
+  'error-tracking': ['Sentry', 'Bugsnag', 'Rollbar'],
+  'automated-tests': ['Jest', 'Playwright', 'Cypress', 'pytest'],
+  'ci-cd': ['GitHub Actions', 'GitLab CI', 'Jenkins'],
+  'feature-flags': ['LaunchDarkly', 'Unleash', 'GrowthBook'],
+  observability: ['Datadog', 'Grafana', 'Prometheus', 'OpenTelemetry'],
+  'db-indexes': ['PostgreSQL', 'MySQL'],
+  'connection-pool': ['PgBouncer', 'HikariCP'],
+  cdn: ['Cloudflare', 'Fastly', 'Amazon CloudFront'],
+  cache: ['Redis', 'Memcached'],
+  'job-queue': ['RabbitMQ', 'BullMQ', 'Amazon SQS', 'Kafka'],
+  'db-replicas': ['PostgreSQL', 'Amazon RDS', 'Google Cloud SQL'],
+  autoscaling: ['Kubernetes', 'AWS Auto Scaling', 'Google Cloud Run'],
+  'password-hashing': ['bcrypt', 'Argon2'],
+  backups: ['AWS Backup', 'pgBackRest'],
+  'rate-limiting': ['Cloudflare', 'NGINX', 'Redis'],
+  'two-factor': ['Google Authenticator', 'Twilio Verify', 'Authy'],
+  compliance: ['Vanta', 'Drata', 'OneTrust'],
+  'support-bot': ['OpenAI API', 'Anthropic API', 'Intercom Fin'],
+  'ai-recommendations': ['TensorFlow', 'PyTorch', 'Amazon Personalize'],
+  'llm-assistant': ['OpenAI API', 'Anthropic API', 'Google Gemini API'],
+  'rest-api': ['Express', 'NestJS', 'FastAPI', 'Spring Boot'],
+  'external-apis': ['Stripe', 'Google Maps Platform', 'Twilio', 'SendGrid'],
+  webhooks: ['Stripe Webhooks', 'GitHub Webhooks', 'Svix'],
+  'first-microservice': ['Docker', 'Kubernetes', 'gRPC'],
+  'api-gateway': ['Kong', 'Amazon API Gateway', 'NGINX', 'Kubernetes'],
+  squads: ['Jira', 'Linear', 'Notion'],
+  internationalization: ['i18next', 'Crowdin', 'Lokalise'],
+  'second-product': ['Turborepo', 'Nx', 'Stripe'],
+};

@@ -63,6 +63,18 @@ export const getCodeStudioCompany = (companyId: string) => request<CompanyView>(
 
 export const getCodeStudioRanking = () => request<RankingRow[]>("/codestudio/ranking");
 
+// Reto de la semana (todos empiezan igual).
+export type ChallengeState = {
+  week: string;
+  endsInMinutes: number;
+  startingCash: number;
+  appType: { id: string; slug: string; name: string } | null;
+  myCompanyId: string | null;
+  leaderboard: Array<{ id: string; name: string; valuation: number; activeUsers: number; stage: number; user: { username: string } | null }>;
+};
+export const getCodeStudioChallenge = () => request<ChallengeState>("/codestudio/challenge");
+export const joinCodeStudioChallenge = () => post<CompanyView>("/codestudio/challenge");
+
 export const createCodeStudioCompany = (appTypeId: string, name: string) =>
   post<CompanyView>("/codestudio/companies", { appTypeId, name });
 
@@ -140,6 +152,8 @@ export const chooseCodeStudioDecision = (companyId: string, eventId: string, cho
   post<CompanyView>(`/codestudio/companies/${companyId}/decisions/${eventId}`, { choice });
 
 export const raiseCodeStudioFunding = (companyId: string) => post<CompanyView>(`/codestudio/companies/${companyId}/funding`);
+export const exitCodeStudioCompany = (companyId: string, type: "sale" | "ipo") =>
+  post<CompanyView>(`/codestudio/companies/${companyId}/exit`, { type });
 
 // ─── Oficina ─────────────────────────────────────────────────────────────
 export type OfficeLayout = { id: string; name: string; previewImageUrl: string | null; width: number; height: number; price: number };

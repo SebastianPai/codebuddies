@@ -2,7 +2,7 @@
 
 import type { OfficeState } from "../../network/codestudio";
 import type { ReactNode } from "react";
-import type { Catalog, CompanyView, FeatureEffects, Severity, StageGoal, ViewKey } from "./types";
+import type { Catalog, CatalogFeature, CompanyView, FeatureEffects, Severity, StageGoal, ViewKey } from "./types";
 
 type TFn = (key: string, params?: Record<string, string | number>) => string;
 
@@ -55,6 +55,22 @@ export function goalProgress(goal: StageGoal) {
   if (goal.met) return 100;
   if (goal.kind === "min") return Math.max(0, Math.min(99, (goal.target / Math.max(goal.current, 0.0001)) * 100));
   return Math.max(0, Math.min(99, (goal.current / Math.max(goal.target, 0.0001)) * 100));
+}
+
+// Avance hacia la próxima etapa (0-100). La meta "función principal" es de
+// sí/no, pero el camino tiene 3 piezas (landing, registro, función
+// principal): se cuentan, para que construir la landing ya se note.
+const MVP_PIECES = ["landing", "auth", "core-feature"];
+export function stageProgress(company: CompanyView) {
+  const goals = company.stage.goals;
+  if (!company.stage.next || goals.length === 0) return 100;
+  const installed = new Set(company.tree.filter((node) => node.state === "installed").map((node) => node.slug));
+  const each = goals.map((goal) => {
+    if (goal.met) return 100;
+    if (goal.key === "core-feature") return Math.min(99, (MVP_PIECES.filter((slug) => installed.has(slug)).length / MVP_PIECES.length) * 100);
+    return goalProgress(goal);
+  });
+  return Math.round(each.reduce((sum, value) => sum + value, 0) / each.length);
 }
 
 // ─── Piezas chicas ──────────────────────────────────────────────────────
@@ -117,6 +133,11 @@ export function Stars({ value, max = 5 }: { value: number; max?: number }) {
 
 const round = (value: number, digits = 0) => Number(value.toFixed(digits));
 
+// $0,006 (hasta 4 decimales, sin ceros de más).
+function perUser(value: number) {
+  return `$${Number(value.toFixed(4)).toString().replace(".", ",")}`;
+}
+
 export function effectLines(effects: FeatureEffects, fit: number, t: TFn): Array<{ text: string; good: boolean }> {
   const lines: Array<{ text: string; good: boolean }> = [];
   const boost = (value: number, isBenefit: boolean) => (isBenefit ? value * fit : value);
@@ -133,51 +154,72 @@ export function effectLines(effects: FeatureEffects, fit: number, t: TFn): Array
   if (e.satisfaction) push(e.satisfaction > 0 ? "satisfactionUp" : "satisfactionDown", e.satisfaction, e.satisfaction > 0, { value: round(Math.abs(boost(e.satisfaction, e.satisfaction > 0)), 1) });
   if (e.load) push("load", e.load, false, { value: round(e.load * 100) });
   if (e.capacity) push("capacity", e.capacity, true, { value: round(boost(e.capacity, true) * 100) });
-  if (e.latency) push("latency", e.latency, e.latency < 0, { value: round(Math.abs(boost(e.latency, e.latency < 0))) });
+  if (e.latency) push(e.latency < 0 ? "latency" : "latencyUp", e.latency, e.latency < 0, { value: round(Math.abs(boost(e.latency, e.latency < 0))) });
   if (e.stability) push("stability", e.stability, true, { value: round(boost(e.stability, true), 1) });
   if (e.quality) push("quality", e.quality, true, { value: round(boost(e.quality, true) * 100) });
   if (e.security) push("security", e.security, true, { value: round(boost(e.security, true), 1) });
   if (e.cacDiscount) push("cacDiscount", e.cacDiscount, true, { value: round(boost(e.cacDiscount, true) * 100) });
+  // Costos (no se escalan con el fit): tokens/uso por usuario y operación fija.
+  if (e.userCost) push("userCost", e.userCost, false, { value: perUser(e.userCost) });
+  if (e.fixedCost) push("fixedCost", e.fixedCost, false, { value: money(e.fixedCost) });
   return lines;
 }
 
 // ─── "¿Qué hago ahora?" ────────────────────────────────────────────────
 
-export type NextStep = { text: string; view: ViewKey; tone: "bad" | "warn" | "accent" | "good" };
+export type NextStep = {
+  /** Tipo de paso (clave de codestudio.next.*): da el "por qué" en el Panel. */
+  key: string;
+  text: string;
+  view: ViewKey;
+  tone: "bad" | "warn" | "accent" | "good";
+  /** Si el paso es construir algo del árbol: esa función (para construirla desde el Panel). */
+  feature?: CatalogFeature;
+};
+
+// Segundos reales que tardaría el equipo en construir una función ahora
+// (el poder de desarrollo se reparte entre lo que ya se está construyendo).
+// La misma cuenta que muestra el Árbol.
+export function buildEstimate(company: CompanyView, feature: Pick<CatalogFeature, "devSeconds">) {
+  const m = company.metrics;
+  const sharing = Math.min(m.maxParallel, company.development.length + 1);
+  return feature.devSeconds / Math.max(0.1, m.devPower / Math.max(1, sharing));
+}
 
 // Una sola recomendación, la más urgente. Es lo que evita que el jugador
 // se sienta perdido: siempre hay un próximo paso claro.
 export function nextStep(company: CompanyView, catalog: Catalog, t: TFn, office: OfficeState | null = null): NextStep {
   const m = company.metrics;
   const installed = new Set(company.tree.filter((node) => node.state === "installed").map((node) => node.slug));
-  if (company.pendingDecision) return { text: t("codestudio.next.decision", { title: company.pendingDecision.title }), view: "panel", tone: "warn" };
+  if (company.canExit) return { key: "exit", text: t("codestudio.next.exit"), view: "panel", tone: "good" };
+  if (company.pendingDecision) return { key: "decision", text: t("codestudio.next.decision", { title: company.pendingDecision.title }), view: "panel", tone: "warn" };
   if (company.daysUntilBankruptcy !== null)
-    return { text: t("codestudio.next.debt", { days: company.daysUntilBankruptcy.toFixed(1) }), view: "finance", tone: "bad" };
+    return { key: "debt", text: t("codestudio.next.debt", { days: company.daysUntilBankruptcy.toFixed(1) }), view: "finance", tone: "bad" };
   // Montar la oficina es obligatorio: sala y un puesto por persona (tú incluido).
-  if (office && !office.room && office.layouts.length > 0) return { text: t("codestudio.next.office"), view: "office", tone: "warn" };
+  if (office && !office.room && office.layouts.length > 0) return { key: "office", text: t("codestudio.next.office"), view: "office", tone: "warn" };
   if (office?.room && office.furnitureAvailable) {
     const missing = company.employees.length + 1 - Math.min(office.counts?.desk ?? 0, office.counts?.chair ?? 0, office.counts?.pc ?? 0);
     if (missing > 0) {
-      if (office.kit.available && office.kit.pending > 0) return { text: t("codestudio.next.officeKit"), view: "office", tone: "warn" };
-      return { text: t("codestudio.next.officeFurniture", { count: missing }), view: "office", tone: "warn" };
+      if (office.kit.available && office.kit.pending > 0) return { key: "officeKit", text: t("codestudio.next.officeKit"), view: "office", tone: "warn" };
+      return { key: "officeFurniture", text: t("codestudio.next.officeFurniture", { count: missing }), view: "office", tone: "warn" };
     }
   }
   const waitingBug = company.bugs.find((bug) => !bug.assignedEmployeeId);
-  if (waitingBug) return { text: t("codestudio.next.bug", { title: waitingBug.title }), view: "bugs", tone: "bad" };
-  if (installed.has("core-feature") && company.hosting.length === 0) return { text: t("codestudio.next.server"), view: "infra", tone: "warn" };
-  if (m.utilization > 0.85) return { text: t("codestudio.next.capacity", { value: Math.round(m.utilization * 100) }), view: "infra", tone: "warn" };
-  if (company.stage.index >= 2 && m.arpu === 0) return { text: t("codestudio.next.monetize"), view: "tree", tone: "warn" };
-  if (m.supportGap >= 1) return { text: t("codestudio.next.support", { count: Math.ceil(m.supportGap) }), view: "team", tone: "warn" };
+  if (waitingBug) return { key: "bug", text: t("codestudio.next.bug", { title: waitingBug.title }), view: "bugs", tone: "bad" };
+  if (installed.has("core-feature") && company.hosting.length === 0) return { key: "server", text: t("codestudio.next.server"), view: "infra", tone: "warn" };
+  if (m.utilization > 0.85) return { key: "capacity", text: t("codestudio.next.capacity", { value: Math.round(m.utilization * 100) }), view: "infra", tone: "warn" };
+  if (company.stage.index >= 2 && m.arpu === 0) return { key: "monetize", text: t("codestudio.next.monetize"), view: "tree", tone: "warn" };
+  if (m.supportGap >= 1) return { key: "support", text: t("codestudio.next.support", { count: Math.ceil(m.supportGap) }), view: "team", tone: "warn" };
   if (company.development.length === 0) {
     const available = company.tree.filter((node) => node.state === "available");
     const byPath = ["landing", "auth", "core-feature"].find((slug) => available.some((node) => node.slug === slug));
     const suggestion = byPath ?? available.sort((a, b) => b.fit - a.fit)[0]?.slug;
     const feature = catalog.features.find((entry) => entry.slug === suggestion);
-    if (feature) return { text: t("codestudio.next.build", { name: feature.name }), view: "tree", tone: "accent" };
+    if (feature) return { key: "build", text: t("codestudio.next.build", { name: feature.name }), view: "tree", tone: "accent", feature };
   }
-  if (company.employees.length === 0 && company.cash > 1500) return { text: t("codestudio.next.hire"), view: "team", tone: "accent" };
-  if (company.funding?.available) return { text: t("codestudio.next.funding", { name: company.funding.name }), view: "finance", tone: "good" };
+  if (company.employees.length === 0 && company.cash > 1500) return { key: "hire", text: t("codestudio.next.hire"), view: "team", tone: "accent" };
+  if (company.funding?.available) return { key: "funding", text: t("codestudio.next.funding", { name: company.funding.name }), view: "finance", tone: "good" };
   const goal = company.stage.goals.find((entry) => !entry.met);
-  if (goal) return { text: t("codestudio.next.goal", { goal: goal.label, value: goalValue(goal, goal.target) }), view: "panel", tone: "accent" };
-  return { text: t("codestudio.next.keepGrowing"), view: "marketing", tone: "good" };
+  if (goal) return { key: "goal", text: t("codestudio.next.goal", { goal: goal.label, value: goalValue(goal, goal.target) }), view: "panel", tone: "accent" };
+  return { key: "keepGrowing", text: t("codestudio.next.keepGrowing"), view: "marketing", tone: "good" };
 }

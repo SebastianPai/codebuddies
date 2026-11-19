@@ -312,6 +312,146 @@ export const PASSIVE_EVENTS: PassiveEvent[] = [
       ),
     }),
   },
+  // ── Crisis a gran escala (Fase 3): no se arreglan pagando en el momento,
+  // solo si te preparaste antes. El tiempo de desarrollo no se compra.
+  {
+    key: 'region-outage',
+    name: L('Se cae una región de la nube', 'A cloud region goes down', 'Eine Cloud-Region fällt aus'),
+    weight: 5,
+    eligible: (ctx) => ctx.stage >= 6 && ctx.activeUsers >= 20_000,
+    resolve: (ctx) =>
+      has(ctx, 'db-replicas') && has(ctx, 'autoscaling')
+        ? {
+            tone: 'good',
+            reputation: 3,
+            message: L(
+              'Se cayó una región entera de tu nube. Tus réplicas en otra región tomaron el tráfico y el autoscaling sumó servidores: casi nadie lo notó.',
+              'A whole region of your cloud went down. Your replicas in another region took the traffic and autoscaling added servers: almost nobody noticed.',
+              'Eine ganze Region deiner Cloud ist ausgefallen. Deine Replikas in einer anderen Region haben den Verkehr übernommen und Autoscaling hat Server ergänzt: Fast niemand hat es gemerkt.',
+            ),
+          }
+        : {
+            tone: 'bad',
+            users: -pct(ctx.activeUsers, 0.12),
+            reputation: -8,
+            satisfaction: -12,
+            message: L(
+              'Se cayó la región de tu nube y todo tu sistema estaba ahí: horas fuera de línea. Las empresas grandes tienen réplicas en otra región y autoscaling para esto.',
+              'Your cloud region went down and your whole system lived there: hours offline. Big companies keep replicas in another region and autoscaling for exactly this.',
+              'Deine Cloud-Region ist ausgefallen und dein ganzes System lag dort: stundenlang offline. Große Firmen haben dafür Replikas in einer anderen Region und Autoscaling.',
+            ),
+          },
+  },
+  {
+    key: 'ai-bill-spike',
+    name: L('La factura de IA se dispara', 'The AI bill explodes', 'Die KI-Rechnung explodiert'),
+    weight: 6,
+    eligible: (ctx) => ctx.activeUsers >= 5_000 && (has(ctx, 'llm-assistant') || has(ctx, 'support-bot') || has(ctx, 'ai-recommendations')),
+    resolve: (ctx) => {
+      const bill = Math.round(ctx.activeUsers * 0.02);
+      return has(ctx, 'rate-limiting') && has(ctx, 'observability')
+        ? {
+            tone: 'good',
+            message: L(
+              'Unos usuarios empezaron a usar tu IA sin parar. Tus métricas lo detectaron y el límite por usuario cortó el abuso: la factura de tokens siguió normal.',
+              'Some users started using your AI nonstop. Your metrics caught it and the per-user limit stopped the abuse: the token bill stayed normal.',
+              'Einige Nutzer haben deine KI pausenlos benutzt. Deine Metriken haben es bemerkt und das Limit pro Nutzer hat den Missbrauch gestoppt: Die Token-Rechnung blieb normal.',
+            ),
+          }
+        : {
+            tone: 'bad',
+            cash: -bill,
+            spawnBugKey: 'ai-cost-spike',
+            message: L(
+              `Unos usuarios usaron tu IA sin parar y nadie lo vio a tiempo: factura extra de tokens de ${$(bill)}. Rate limiting y observabilidad evitan esto.`,
+              `Some users hammered your AI and nobody noticed in time: an extra token bill of ${$(bill)}. Rate limiting and observability prevent this.`,
+              `Einige Nutzer haben deine KI pausenlos benutzt und niemand hat es rechtzeitig gemerkt: Token-Mehrkosten von ${$(bill)}. Rate Limiting und Observability verhindern das.`,
+            ),
+          };
+    },
+  },
+  {
+    key: 'competitor-copy',
+    name: L('Un competidor copia tu mejor función', 'A competitor copies your best feature', 'Ein Konkurrent kopiert deine beste Funktion'),
+    weight: 5,
+    eligible: (ctx) => ctx.stage >= 7,
+    resolve: (ctx) =>
+      ctx.rating >= 4.3
+        ? {
+            tone: 'good',
+            reputation: 2,
+            message: L(
+              'Un competidor copió tu mejor función, pero tus usuarios te quieren: casi nadie se fue. La calidad es difícil de copiar.',
+              'A competitor copied your best feature, but your users love you: almost nobody left. Quality is hard to copy.',
+              'Ein Konkurrent hat deine beste Funktion kopiert, aber deine Nutzer lieben dich: Fast niemand ist gegangen. Qualität lässt sich schwer kopieren.',
+            ),
+          }
+        : {
+            tone: 'bad',
+            users: -pct(ctx.activeUsers, 0.08),
+            message: L(
+              'Un competidor copió tu mejor función y la ofrece más barata. Como tu rating no es alto, parte de tus usuarios se fue. Sube la satisfacción para que no te cambien.',
+              'A competitor copied your best feature and sells it cheaper. Since your rating is not high, some users left. Raise satisfaction so they stay.',
+              'Ein Konkurrent hat deine beste Funktion kopiert und bietet sie billiger an. Da deine Bewertung nicht hoch ist, sind einige Nutzer gegangen. Erhöhe die Zufriedenheit, damit sie bleiben.',
+            ),
+          },
+  },
+  {
+    key: 'microservice-cascade',
+    name: L('Fallo en cascada', 'Cascading failure', 'Kaskadenausfall'),
+    weight: 6,
+    eligible: (ctx) => has(ctx, 'first-microservice'),
+    resolve: (ctx) =>
+      has(ctx, 'observability')
+        ? {
+            tone: 'good',
+            message: L(
+              'Un servicio empezó a responder lento y arrastraba a los demás. Con trazas y métricas encontraste el culpable en minutos y lo aislaste.',
+              'One service started responding slowly and dragged the others down. With traces and metrics you found the culprit in minutes and isolated it.',
+              'Ein Dienst hat langsam geantwortet und die anderen mitgerissen. Mit Traces und Metriken hast du den Schuldigen in Minuten gefunden und isoliert.',
+            ),
+          }
+        : {
+            tone: 'bad',
+            satisfaction: -10,
+            techDebt: 6,
+            spawnBugKey: 'server-overload',
+            message: L(
+              'Un microservicio lento tumbó a los demás en cadena y nadie sabía cuál era: horas buscando. Con microservicios, la observabilidad no es opcional.',
+              'One slow microservice knocked down the others in a chain and nobody knew which one it was: hours searching. With microservices, observability is not optional.',
+              'Ein langsamer Microservice hat die anderen nacheinander mitgerissen und niemand wusste, welcher es war: stundenlange Suche. Mit Microservices ist Observability Pflicht.',
+            ),
+          },
+  },
+  {
+    key: 'duplicate-webhooks',
+    name: L('Cobros duplicados', 'Duplicate charges', 'Doppelte Abbuchungen'),
+    weight: 5,
+    eligible: (ctx) => has(ctx, 'payments') && has(ctx, 'external-apis') && ctx.activeUsers >= 1_000,
+    resolve: (ctx) => {
+      const refunds = Math.max(100, Math.round(ctx.dailyRevenue * 0.5));
+      return has(ctx, 'webhooks')
+        ? {
+            tone: 'good',
+            message: L(
+              'El proveedor de pagos mandó el mismo aviso dos veces. Tus webhooks procesan cada aviso una sola vez: ningún cliente pagó doble.',
+              'The payment provider sent the same notice twice. Your webhooks process each notice only once: no customer paid twice.',
+              'Der Zahlungsanbieter hat dieselbe Meldung zweimal geschickt. Deine Webhooks verarbeiten jede Meldung nur einmal: Kein Kunde hat doppelt bezahlt.',
+            ),
+          }
+        : {
+            tone: 'bad',
+            cash: -refunds,
+            reputation: -4,
+            spawnBugKey: 'duplicate-charge',
+            message: L(
+              `El proveedor de pagos repitió avisos y cobraste dos veces a varios clientes. Devolviste ${$(refunds)} y pediste disculpas. Unos webhooks bien hechos lo evitan.`,
+              `The payment provider repeated notices and you charged several customers twice. You refunded ${$(refunds)} and apologized. Proper webhooks prevent this.`,
+              `Der Zahlungsanbieter hat Meldungen wiederholt und du hast mehrere Kunden doppelt belastet. Du hast ${$(refunds)} erstattet und dich entschuldigt. Richtige Webhooks verhindern das.`,
+            ),
+          };
+    },
+  },
 ];
 
 export type DecisionChoice = { key: string; label: Localized; hint: Localized };

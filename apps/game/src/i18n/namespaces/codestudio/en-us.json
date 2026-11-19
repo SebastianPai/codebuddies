@@ -11,7 +11,8 @@
     "ranking": "Ranking",
     "settings": "Settings",
     "guide": "Guide",
-    "office": "Office"
+    "office": "Office",
+    "repo": "Repository"
   },
   "common": {
     "loading": "Loading CodeStudio…",
@@ -34,7 +35,8 @@
     "levelHint": "Your account level: the same one as the platform. Level up by studying and playing to unlock app types and more starting cash.",
     "navigation": "CodeStudio sections",
     "tutorial": "Show tutorial",
-    "videoMode": "Video mode: hides tips and tutorial for recording"
+    "videoMode": "Video mode: hides tips and tutorial for recording",
+    "towards": "Toward {name}"
   },
   "welcome": {
     "title": "Build your startup from scratch",
@@ -69,7 +71,12 @@
     "goalDone": "Done",
     "goalPending": "Pending",
     "heroProgress": "{value}% to {name}",
-    "heroMaxed": "You reached the top"
+    "heroMaxed": "You reached the top",
+    "nextEyebrow": "Your next step",
+    "nextGo": "Let's go",
+    "nextBuild": "Build for {amount}",
+    "nextTime": "{time} with your team",
+    "nextSeeTree": "See the tree"
   },
   "next": {
     "decision": "You have a pending decision: {title}",
@@ -86,7 +93,26 @@
     "keepGrowing": "Keep growing: try new marketing campaigns",
     "office": "Create your company's office: the smallest room is free.",
     "officeKit": "Claim your office's free basic kit (desk, chair and PC).",
-    "officeFurniture": "Place a desk, a chair and a PC in your office: {count} workstation(s) missing."
+    "officeFurniture": "Place a desk, a chair and a PC in your office: {count} workstation(s) missing.",
+    "why": {
+      "decision": "An important decision is waiting for you. If you don't choose in time, it gets decided for you.",
+      "debt": "You are spending more than you earn. If you don't get back to positive, the company goes bankrupt.",
+      "office": "Your team needs a place to work. The office is a real game room you can decorate.",
+      "officeKit": "You have furniture ready to place. Without a desk, chair and PC nobody works at full speed.",
+      "officeFurniture": "Everyone needs a desk, a chair and a PC. Without their spot, they work slower.",
+      "bug": "A bug nobody owns lowers your users' satisfaction every day.",
+      "server": "Your app already does something useful, but without a server nobody can use it.",
+      "capacity": "Your servers are almost full. If they fill up, the app gets slow and bugs appear.",
+      "monetize": "You have users, but you are not earning from them yet. Time to choose how to charge.",
+      "support": "More questions arrive than your team can answer, and users leave when nobody replies.",
+      "build": "Every new feature brings your app closer to the next stage.",
+      "hire": "Alone you move slowly: with one more person on the team you build much faster.",
+      "funding": "Investors are interested. Their money lets you grow faster, in exchange for part of your company.",
+      "goal": "It is what you still need to reach the next stage.",
+      "keepGrowing": "You are doing well: more users raise your valuation and bring the next stage closer.",
+      "exit": "Becoming a Unicorn is not the end: choose how your founder story continues."
+    },
+    "exit": "You are a Unicorn: decide whether to go public or sell your startup."
   },
   "kpi": {
     "cash": "Cash",
@@ -108,7 +134,7 @@
     "subtitle": "{installed} of {total} built. Each branch unlocks in order and by stage.",
     "devPower": "Dev power {value}",
     "parallel": "{value} in parallel",
-    "emptyQueue": "Your team is free. Pick an available feature (blue border).",
+    "emptyQueue": "Your team is free: pick what to build. Every new feature earns you XP.",
     "waiting": "Queued: waiting for someone to be free",
     "remaining": "≈ {time} left",
     "cancel": "Cancel (you get back {amount})",
@@ -137,7 +163,16 @@
     "upgradeHint": "v{version} performs better: more effect on users, satisfaction or revenue. It joins the development queue.",
     "upgrade": "Upgrade to v{version} ({amount})",
     "maxVersion": "Already at its best version.",
-    "justBuilt": "Done!"
+    "justBuilt": "Done!",
+    "modeSimple": "What you can do",
+    "modeFull": "Full tree",
+    "nowTitle": "You can build now",
+    "nowEmpty": "Nothing new to build right now: wait for what is being built or reach the next stage.",
+    "builtTitle": "Already built ({count})",
+    "laterTitle": "Next",
+    "seeAll": "See all {count} features by branch",
+    "open": "View and build",
+    "realWorld": "In real life it is done with"
   },
   "effects": {
     "growth": "+{value} new users per day",
@@ -153,7 +188,10 @@
     "stability": "+{value} stability",
     "quality": "−{value}% bugs when shipping",
     "security": "+{value} security",
-    "cacDiscount": "Campaigns {value}% cheaper"
+    "cacDiscount": "Campaigns {value}% cheaper",
+    "latencyUp": "{value} ms slower (more network hops)",
+    "userCost": "Costs {value} per user every day (tokens or usage)",
+    "fixedCost": "Costs {value} per day to run"
   },
   "severity": {
     "LOW": "Low",
@@ -368,7 +406,10 @@
     "title": "Today's missions ({done}/{total})",
     "resets": "New ones in {hours}h {minutes}m",
     "bonus": "Complete all 3: +{xp} XP and {coins} extra coins",
-    "bonusDone": "Daily bonus collected! Come back tomorrow for more."
+    "bonusDone": "Daily bonus collected! Come back tomorrow for more.",
+    "streak": "Streak: {days} days",
+    "streakToday": "You played today. Come back tomorrow to add one.",
+    "streakKeep": "Play today to add a day. One rest day won't break it."
   },
   "firstSteps": {
     "title": "First steps",
@@ -755,5 +796,100 @@
   },
   "stageUp": {
     "title": "New stage!"
+  },
+  "navGroup": {
+    "app": "My app",
+    "team": "Team",
+    "business": "Business",
+    "more": "More"
+  },
+  "navLock": {
+    "bugs": "Opens when you publish your first feature.",
+    "infra": "Opens when your core feature is ready.",
+    "online": "Opens when your app is on a server.",
+    "new": "New",
+    "title": "{name} is not open yet",
+    "goNext": "See my next step",
+    "what": {
+      "bugs": "Here you fix the bugs that show up when you publish: diagnosing them yourself earns XP.",
+      "infra": "Here you pick the servers your app runs on and make sure they don't fill up.",
+      "marketing": "Here you launch campaigns to get users and see what each one costs you.",
+      "finance": "Here you set your price, see where the money goes and raise money from investors.",
+      "repo": "Here you see how your team works with Git: commits, pull requests and reviews."
+    },
+    "unlocked": "{name} is now open!",
+    "unlockedText": "You can now use this section of the menu.",
+    "repo": "Opens when your team builds its first feature."
+  },
+  "repo": {
+    "subtitle": "Commits on main: {commits} · Open pull requests: {prs}",
+    "flowLabel": "How a team works with Git",
+    "flow": {
+      "branch": {
+        "title": "Branch",
+        "text": "Every task is done on its own branch, without touching main."
+      },
+      "commit": {
+        "title": "Commit",
+        "text": "You save small changes with a message that explains what you did."
+      },
+      "pr": {
+        "title": "Pull request",
+        "text": "You ask someone on the team to review your code."
+      },
+      "merge": {
+        "title": "Review and merge",
+        "text": "If it looks good, it joins main and ships."
+      }
+    },
+    "openPrs": "Open pull requests ({count})",
+    "noPrs": "Nothing is being built. Pick a feature in the Tree and it will show up here as a pull request.",
+    "draft": "Draft",
+    "inProgress": "In progress",
+    "prBy": "Opened by {name}",
+    "reviewBy": "Reviewed by {name}",
+    "noReviewer": "No reviewer",
+    "reviewTip": "With two or more developers, one reviews the other's code: fewer bugs slip through, just like in real teams.",
+    "history": "main history",
+    "noCommits": "No commits yet: build your first feature.",
+    "historyNote": "Every feature that reaches production is a merge into main.",
+    "issues": "Open issues: {count}",
+    "seeIssues": "See bugs",
+    "contributors": "People who code: {count}",
+    "seeTeam": "See team",
+    "you": "You",
+    "now": "now",
+    "minutesAgo": "{count} min ago",
+    "hoursAgo": "{count} h ago",
+    "daysAgo": "{count} days ago",
+    "reviewOn": "Code review is on: another teammate reviews every pull request, so fewer bugs ship."
+  },
+  "exit": {
+    "eyebrow": "You are a Unicorn",
+    "title": "What do you do with your startup now?",
+    "text": "You reached the top. Just like in real life, you can go public and keep growing, or sell the company and start another one with an edge.",
+    "ipo": "Go public",
+    "ipoHelp": "You keep running it. Every quarter investors expect at least 10% growth: hit it and you earn XP; miss it and your reputation drops.",
+    "ipoCta": "Go public",
+    "sale": "Sell it",
+    "saleHelp": "You collect your reward and the startup becomes a trophy. Your next startup starts with more cash as a serial founder.",
+    "saleCta": "Sell the startup",
+    "soldTitle": "You sold this startup",
+    "soldText": "It stays as a trophy in your showcase (sold at a {valuation} valuation). Found another one with the + button to keep going.",
+    "ipoTitle": "Public company",
+    "ipoQuarter": "Quarter: day {day} of {total}",
+    "ipoGrowth": "Quarter growth: {growth}% (target: {target}%)",
+    "ipoRecord": "Quarters beaten: {won} · missed: {lost}",
+    "trophies": "Trophy showcase ({count})",
+    "trophySale": "Sold",
+    "trophyIpo": "Public"
+  },
+  "challenge": {
+    "eyebrow": "Weekly challenge · {week}",
+    "title": "Found a {app} app",
+    "text": "Everyone starts equal: the same app type and {cash} in cash, no level or sale bonuses. Whoever reaches the highest valuation by the end of the week wins.",
+    "ends": "Ends in {days} d {hours} h",
+    "join": "Join the challenge",
+    "continue": "Keep playing my challenge company"
   }
 }

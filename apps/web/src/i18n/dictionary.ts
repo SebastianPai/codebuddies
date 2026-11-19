@@ -47,9 +47,12 @@ import pricingDe from "./namespaces/pricing/de.json";
 import battlePassEs from "./namespaces/battlePass/es.json";
 import battlePassEn from "./namespaces/battlePass/en.json";
 import battlePassDe from "./namespaces/battlePass/de.json";
+import homeEs from "./namespaces/home/es.json";
+import homeEn from "./namespaces/home/en.json";
+import homeDe from "./namespaces/home/de.json";
 
 export const dictionary = {
-  es: { ...es, common: commonEs, admin: adminEs, dashboard: dashboardEs, app: appEs, auth: authEs, gamification: gamificationEs, chat: chatEs, referrals: referralsEs, animations: animationsEs, items: itemsEs, editor: editorEs, site: siteEs, navbar: { ...es.navbar, ...navbarEs }, pricing: pricingEs, battlePass: battlePassEs },
-  "en-us": { ...en, common: commonEn, admin: adminEn, dashboard: dashboardEn, app: appEn, auth: authEn, gamification: gamificationEn, chat: chatEn, referrals: referralsEn, animations: animationsEn, items: itemsEn, editor: editorEn, site: siteEn, navbar: { ...en.navbar, ...navbarEn }, pricing: pricingEn, battlePass: battlePassEn },
-  de: { ...de, common: commonDe, admin: adminDe, dashboard: dashboardDe, app: appDe, auth: authDe, gamification: gamificationDe, chat: chatDe, referrals: referralsDe, animations: animationsDe, items: itemsDe, editor: editorDe, site: siteDe, navbar: { ...de.navbar, ...navbarDe }, pricing: pricingDe, battlePass: battlePassDe },
+  es: { ...es, common: commonEs, admin: adminEs, dashboard: dashboardEs, app: appEs, auth: authEs, gamification: gamificationEs, chat: chatEs, referrals: referralsEs, animations: animationsEs, items: itemsEs, editor: editorEs, site: siteEs, navbar: { ...es.navbar, ...navbarEs }, pricing: pricingEs, battlePass: battlePassEs, home: homeEs },
+  "en-us": { ...en, common: commonEn, admin: adminEn, dashboard: dashboardEn, app: appEn, auth: authEn, gamification: gamificationEn, chat: chatEn, referrals: referralsEn, animations: animationsEn, items: itemsEn, editor: editorEn, site: siteEn, navbar: { ...en.navbar, ...navbarEn }, pricing: pricingEn, battlePass: battlePassEn, home: homeEn },
+  de: { ...de, common: commonDe, admin: adminDe, dashboard: dashboardDe, app: appDe, auth: authDe, gamification: gamificationDe, chat: chatDe, referrals: referralsDe, animations: animationsDe, items: itemsDe, editor: editorDe, site: siteDe, navbar: { ...de.navbar, ...navbarDe }, pricing: pricingDe, battlePass: battlePassDe, home: homeDe },
 };

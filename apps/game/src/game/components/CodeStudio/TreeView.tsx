@@ -10,6 +10,7 @@ import {
   Coins,
   Hammer,
   Lock,
+  Network,
   Server,
   ShieldCheck,
   Sparkles,
@@ -20,8 +21,9 @@ import {
 } from "lucide-react";
 import Modal from "../shared/Modal";
 import type { Catalog, CatalogFeature, CompanyView } from "./types";
-import { ProgressBar, Stars, duration, effectLines, money } from "./ui";
+import { ProgressBar, Stars, duration, effectLines, money, buildEstimate } from "./ui";
 import { useTranslation } from "../../../i18n/useTranslation";
+import TreeSimple from "./TreeSimple";
 
 type Props = {
   company: CompanyView;
@@ -43,13 +45,34 @@ const BRANCH_LOOK: Record<string, { icon: LucideIcon; color: string }> = {
   escala: { icon: Server, color: "#ff9f0a" },
   seguridad: { icon: ShieldCheck, color: "#ff453a" },
   ia: { icon: Bot, color: "#bf5af2" },
+  arquitectura: { icon: Network, color: "#2dd4bf" },
 };
 const DEFAULT_LOOK = { icon: Boxes, color: "#a1a1a6" };
 const JUST_BUILT_MS = 2600;
+const MODE_KEY = "cs-tree-mode";
+type TreeMode = "simple" | "full";
+
+function readMode(): TreeMode {
+  try {
+    return window.localStorage.getItem(MODE_KEY) === "full" ? "full" : "simple";
+  } catch {
+    return "simple";
+  }
+}
 
 export default function TreeView({ company, catalog, busy, onBuild, onCancel }: Props) {
   const t = useTranslation();
   const [selected, setSelected] = useState<CatalogFeature | null>(null);
+  // Vista simple (lo que puedes hacer ya) o árbol completo por ramas.
+  const [mode, setModeState] = useState<TreeMode>(readMode);
+  const setMode = (next: TreeMode) => {
+    setModeState(next);
+    try {
+      window.localStorage.setItem(MODE_KEY, next);
+    } catch {
+      // Sin storage: la preferencia dura hasta cerrar CodeStudio.
+    }
+  };
   const nodeBySlug = useMemo(() => new Map(company.tree.map((node) => [node.slug, node])), [company.tree]);
   const featureBySlug = useMemo(() => new Map(catalog.features.map((feature) => [feature.slug, feature])), [catalog.features]);
   const installedCount = company.tree.filter((node) => node.state === "installed").length;
@@ -84,10 +107,7 @@ export default function TreeView({ company, catalog, busy, onBuild, onCancel }: 
     if (node.state === "locked") return t("codestudio.tree.lockedRequires", { names: node.missing.map((slug) => featureBySlug.get(slug)?.name ?? slug).join(", ") });
     return "";
   };
-  const estimate = (feature: CatalogFeature) => {
-    const sharing = Math.min(m.maxParallel, company.development.length + 1);
-    return feature.devSeconds / Math.max(0.1, m.devPower / Math.max(1, sharing));
-  };
+  const estimate = (feature: CatalogFeature) => buildEstimate(company, feature);
   const buildBlocked = (feature: CatalogFeature) => {
     const node = nodeBySlug.get(feature.slug);
     if (!node || node.state !== "available") return lockReason(feature) || t("codestudio.tree.notAvailable");
@@ -141,6 +161,25 @@ export default function TreeView({ company, catalog, busy, onBuild, onCancel }: 
         )}
       </section>
 
+      <div className="cs2-segmented cs2-tree-mode" role="tablist" aria-label={t("codestudio.tree.title")}>
+        {(["simple", "full"] as const).map((key) => (
+          <button key={key} type="button" role="tab" aria-selected={mode === key} className={mode === key ? "active" : ""} onClick={() => setMode(key)}>
+            {t(key === "simple" ? "codestudio.tree.modeSimple" : "codestudio.tree.modeFull")}
+          </button>
+        ))}
+      </div>
+
+      {mode === "simple" ? (
+        <TreeSimple
+          company={company}
+          catalog={catalog}
+          look={(branch) => BRANCH_LOOK[branch] ?? DEFAULT_LOOK}
+          estimate={estimate}
+          lockReason={lockReason}
+          onOpen={setSelected}
+          onShowAll={() => setMode("full")}
+        />
+      ) : (
       <div className="cs2-tree" role="list">
         {branches.map((branch) => {
           const look = BRANCH_LOOK[branch.key] ?? DEFAULT_LOOK;
@@ -202,6 +241,7 @@ export default function TreeView({ company, catalog, busy, onBuild, onCancel }: 
           );
         })}
       </div>
+      )}
 
       {company.legacyFeatures.length > 0 && (
         <p className="cs2-muted">{t("codestudio.tree.legacy", { count: company.legacyFeatures.length })}</p>
@@ -262,6 +302,17 @@ export default function TreeView({ company, catalog, busy, onBuild, onCancel }: 
               <span>{t("codestudio.tree.lesson")}</span>
               <p>{selected.lesson}</p>
             </div>
+            {(selected.tools?.length ?? 0) > 0 && (
+              // "En la vida real": con qué se hace fuera del juego (solo nombres).
+              <div className="cs2-realworld">
+                <span>{t("codestudio.tree.realWorld")}</span>
+                <p>
+                  {selected.tools!.map((tool) => (
+                    <b key={tool}>{tool}</b>
+                  ))}
+                </p>
+              </div>
+            )}
             {selectedNode.state === "installed" ? (
               <>
                 <p className="cs2-done">

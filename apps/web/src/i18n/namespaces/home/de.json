@@ -1,0 +1,148 @@
+{
+  "hero": {
+    "eyebrow": "Programmierkurse von null an",
+    "title": "Lerne programmieren",
+    "titleAccent": "durch Üben.",
+    "text": "Kurse zu Python, JavaScript und Webentwicklung mit kurzen Lektionen und Übungen, die sofort geprüft werden. Was du beim Lernen verdienst, nutzt du in einer Welt, in der du mit anderen spielst.",
+    "ctaPrimary": "Kostenlos starten",
+    "ctaSecondary": "Kurse ansehen",
+    "note": "Die erste Lektion jedes Kurses geht ohne Konto.",
+    "worldAlt": "Modernes Haus aus Blöcken in der isometrischen Welt von CodeBuddies",
+    "exerciseAlt": "Echte Kursübung: Der Code wird geschrieben, Prüfen wird gedrückt und der Roboter Buddy reagiert",
+    "worldCaption": "Was du verdienst, in deiner Welt",
+    "exerciseCaption": "Echte Übung: du schreibst, prüfst und Buddy reagiert"
+  },
+  "courses": {
+    "eyebrow": "Kurse",
+    "title": "Entdecke, was du lernen kannst",
+    "text": "Komplette Kurse von null bis zu echten Projekten, mit Schritt-für-Schritt-Erklärungen und Übungen, die sich selbst prüfen.",
+    "lessons": "{count} Lektionen",
+    "modules": "{count} Module",
+    "xp": "{xp} XP",
+    "view": "Kurs ansehen",
+    "tryFirst": "Lektion 1 testen",
+    "all": "Alle Kurse ansehen",
+    "featured": "Empfohlen für den Einstieg",
+    "empty": "Die Kurse konnten gerade nicht geladen werden.",
+    "emptyCta": "Katalog öffnen"
+  },
+  "paths": {
+    "eyebrow": "Lerne auf deine Art",
+    "title": "Wähle deinen Einstieg",
+    "text": "Noch nie Code geschrieben? Fang bei null an. Kennst du die Grundlagen schon? Dann direkt zum Profi-Niveau.",
+    "levels": {
+      "EASY": {
+        "title": "Von null an",
+        "text": "Für alle, die noch nie programmiert haben. Schritt für Schritt, in einfachen Worten."
+      },
+      "MEDIUM": {
+        "title": "Profi-Niveau",
+        "text": "Für alle, die beruflich Websites und Web-Apps bauen wollen."
+      },
+      "HARD": {
+        "title": "Fortgeschritten",
+        "text": "Für alle, die schon programmieren und weiterkommen wollen."
+      }
+    },
+    "methodTitle": "So funktioniert jede Lektion",
+    "steps": {
+      "read": {
+        "title": "Die Idee verstehen",
+        "text": "Eine kurze Erklärung mit Beispielen, bevor du den Code anfasst."
+      },
+      "write": {
+        "title": "Echten Code schreiben",
+        "text": "Direkt im Editor im Browser. Nichts zu installieren."
+      },
+      "check": {
+        "title": "Sofort geprüft",
+        "text": "Du weißt sofort, ob es funktioniert, und bekommst XP und Münzen."
+      }
+    }
+  },
+  "game": {
+    "eyebrow": "Spielend lernen",
+    "title": "Eine Welt, die du selbst baust",
+    "text": "CodeBuddies hat ein eingebautes isometrisches Spiel. Was du beim Lernen verdienst, nutzt du hier: Du baust mit Blöcken, richtest deinen Raum ein und teilst ihn mit Freunden.",
+    "screenAlt": "Der Avatar läuft um eine Burg, die ein Spieler gebaut hat; links Level, XP und Münzen",
+    "nightAlt": "Ein modernes Haus wechselt vom Tag in die Nacht und die Laternen gehen an",
+    "pcAlt": "Der PC im Raum öffnet sich und darin CodeStudio mit dem Startup Pixel Pizza",
+    "nightCaption": "Nachts gehen die Lichter an",
+    "pcCaption": "In deinem Raum steht ein PC: dort wohnt CodeStudio",
+    "realCaption": "Echte Screenshots aus dem Spiel",
+    "features": {
+      "build": {
+        "title": "Block für Block bauen",
+        "text": "Häuser, Burgen oder was du dir vorstellst, mit Teilen zum Stapeln und Bemalen."
+      },
+      "avatar": {
+        "title": "Dein Avatar, dein Stil",
+        "text": "Eine Garderobe mit Kleidung, Frisuren und Farben."
+      },
+      "rooms": {
+        "title": "Räume mit Freunden",
+        "text": "Besuche öffentliche Räume, chatte und lade ein, wen du willst."
+      },
+      "shop": {
+        "title": "Shop und Haustier",
+        "text": "Kauf Gegenstände mit den Münzen aus den Lektionen."
+      }
+    },
+    "cta": "Welt betreten",
+    "buildAlt": "Ein modernes Haus entsteht Block für Block in der Spielwelt",
+    "buildCaption": "Block für Block bauen",
+    "screenCaption": "Lauf durch deine Welt, Level, XP und Münzen immer im Blick"
+  },
+  "studio": {
+    "eyebrow": "CodeStudio",
+    "title": "Vom Lernen bis zum eigenen Startup",
+    "text": "Im Spiel steckt ein Simulator: Du wählst deine App, baust ihre Funktionen, stellst dein Team ein, behebst Bugs und trittst im globalen Ranking an.",
+    "points": {
+      "tree": {
+        "title": "Produktbaum",
+        "text": "Landingpage, Registrierung, Zahlungen, SEO, Tests: Jede Funktion wird der Reihe nach freigeschaltet, wie bei einem echten Produkt."
+      },
+      "team": {
+        "title": "Dein Team",
+        "text": "Stell Junior-, Mid- und Senior-Profile ein. Die Teamchemie verändert die Leistung."
+      },
+      "ops": {
+        "title": "Bugs, Server und Marketing",
+        "text": "Wächst die App, werden die Server voll und Bugs tauchen auf. Du entscheidest, wie du das löst."
+      }
+    },
+    "cta": "CodeStudio öffnen",
+    "clipAlt": "In CodeStudio wird das Startup Pixel Pizza gegründet, der Produktbaum erscheint und die erste Funktion öffnet sich",
+    "clipCaption": "Echte Aufnahme: ein Startup gründen und die erste Funktion wählen"
+  },
+  "progress": {
+    "eyebrow": "Dein Fortschritt",
+    "title": "Alles, was du tust, zählt",
+    "text": "Lektionen, Missionen und CodeStudio erhöhen dasselbe Level.",
+    "tabs": {
+      "missions": {
+        "label": "Missionen",
+        "text": "Tägliche und wöchentliche Missionen mit extra XP und Münzen.",
+        "alt": "Missionsseite mit den täglichen CodeStudio-Missionen"
+      },
+      "pass": {
+        "label": "Saisonpass",
+        "text": "Komm jeden Tag vorbei und schalte Belohnungen frei. Verpasst du einen Tag, machst du einfach weiter.",
+        "alt": "Saisonpass mit der Belohnung für jeden Tag"
+      },
+      "achievements": {
+        "label": "Erfolge",
+        "text": "Einer für jeden Meilenstein: dein erstes Startup, dein erster behobener Bug, dein erster Angestellter.",
+        "alt": "Freigeschaltete Erfolge mit XP und Münzen"
+      }
+    },
+    "more": "Außerdem gibt es Ranglisten, Abzeichen und ein Zertifikat, wenn du einen Kurs abschließt.",
+    "rankings": "Ranglisten ansehen"
+  },
+  "final": {
+    "title": "Deine erste Codezeile ist nur einen Klick entfernt",
+    "text": "Mach die erste Lektion ohne Konto. Wenn es dir gefällt, speicherst du deinen Fortschritt und betrittst die Welt.",
+    "primary": "Kostenloses Konto erstellen",
+    "secondary": "Ich habe schon ein Konto"
+  }
+}

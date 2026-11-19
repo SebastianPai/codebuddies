@@ -110,8 +110,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" suppressHydrationWarning>
-      <ConsentDefaults />
-      <GoogleTagManagerHead />
+      {/* Dentro de <head>: sueltos en <html> React avisaba "<script> cannot
+          be a child of <html>" y regeneraba el árbol al hidratar. */}
+      <head>
+        <ConsentDefaults />
+        <GoogleTagManagerHead />
+      </head>
       <body>
         <script
           type="application/ld+json"

@@ -11,8 +11,7 @@ import {
   Trophy,
   Award,
   Users,
-  type LucideIcon,
-} from "lucide-react";
+  type LucideIcon, GitPullRequest } from "lucide-react";
 
 // Espejo de la respuesta de la API (codestudio.service.ts → buildView y
 // codestudio-catalog.service.ts → catalog). Si cambias uno, cambia el otro.
@@ -33,7 +32,9 @@ export type FeatureEffects = Partial<
     | "stability"
     | "quality"
     | "security"
-    | "cacDiscount",
+    | "cacDiscount"
+    | "userCost"
+    | "fixedCost",
     number
   >
 >;
@@ -52,6 +53,8 @@ export type CatalogFeature = {
   minStage: number;
   xp: number;
   effects: FeatureEffects;
+  /** "En la vida real": herramientas con las que se hace (puede faltar en APIs viejas). */
+  tools?: string[];
 };
 
 export type Catalog = {
@@ -118,6 +121,10 @@ export type Profile = {
   bestValuation: number;
   milestones: Array<{ key: string; at: string }>;
   totalMilestones: number;
+  /** Racha de días jugados (puede faltar si la API todavía no la manda). */
+  streak?: { days: number; activeToday: boolean };
+  /** Vitrina: empresas vendidas o en bolsa. */
+  exits?: Array<{ type: "sale" | "ipo"; companyId: string; name: string; valuation: number; at: string }>;
   daily: {
     day: string;
     missions: Array<{ key: string; label: string; target: number; progress: number; done: boolean; xp: number; coins: number }>;
@@ -225,9 +232,22 @@ export type ActivityEvent = {
   coins?: number;
 };
 
+export type CompanyExit = {
+  type: "sale" | "ipo";
+  at: string;
+  valuation: number;
+  quarterBase?: number;
+  quarterStartDay?: number;
+  quartersWon?: number;
+  quartersLost?: number;
+};
+
 export type CompanyView = {
   id: string;
   name: string;
+  /** Salida (Fase 3): puede faltar si la API todavía no la manda. */
+  exit?: CompanyExit | null;
+  canExit?: boolean;
   status: "IDEA" | "BUILDING" | "LIVE" | "PAUSED" | "FAILED";
   appType: { id: string; slug: string; name: string; color: string | null; icon: string | null; description: string | null };
   cash: number;
@@ -317,20 +337,49 @@ export type BugFixResult =
   | { assigned: true; seconds: number }
   | { paid: number };
 
-export type ViewKey = "panel" | "guide" | "tree" | "bugs" | "team" | "office" | "infra" | "marketing" | "finance" | "career" | "ranking" | "settings";
+export type ViewKey = "panel" | "guide" | "tree" | "bugs" | "team" | "office" | "repo" | "infra" | "marketing" | "finance" | "career" | "ranking" | "settings";
 
 // labelKey y no texto: CodeStudio.tsx lo resuelve con t() al renderizar.
-export const nav: Array<{ key: ViewKey; labelKey: string; icon: LucideIcon }> = [
-  { key: "panel", labelKey: "codestudio.nav.panel", icon: LayoutDashboard },
-  { key: "guide", labelKey: "codestudio.nav.guide", icon: BookOpen },
-  { key: "tree", labelKey: "codestudio.nav.tree", icon: GitBranch },
-  { key: "bugs", labelKey: "codestudio.nav.bugs", icon: Bug },
-  { key: "team", labelKey: "codestudio.nav.team", icon: Users },
-  { key: "office", labelKey: "codestudio.nav.office", icon: Building2 },
-  { key: "infra", labelKey: "codestudio.nav.infra", icon: Server },
-  { key: "marketing", labelKey: "codestudio.nav.marketing", icon: Megaphone },
-  { key: "finance", labelKey: "codestudio.nav.finance", icon: DollarSign },
-  { key: "career", labelKey: "codestudio.nav.career", icon: Award },
-  { key: "ranking", labelKey: "codestudio.nav.ranking", icon: Trophy },
-  { key: "settings", labelKey: "codestudio.nav.settings", icon: Settings },
+export type NavGroup = "app" | "team" | "business" | "more";
+
+// Menú agrupado (Mi app, Equipo, Negocio, Más). El orden de este arreglo es
+// el orden en pantalla.
+export const nav: Array<{ key: ViewKey; labelKey: string; icon: LucideIcon; group: NavGroup }> = [
+  { key: "panel", labelKey: "codestudio.nav.panel", icon: LayoutDashboard, group: "app" },
+  { key: "tree", labelKey: "codestudio.nav.tree", icon: GitBranch, group: "app" },
+  { key: "bugs", labelKey: "codestudio.nav.bugs", icon: Bug, group: "app" },
+  { key: "infra", labelKey: "codestudio.nav.infra", icon: Server, group: "app" },
+  { key: "team", labelKey: "codestudio.nav.team", icon: Users, group: "team" },
+  { key: "office", labelKey: "codestudio.nav.office", icon: Building2, group: "team" },
+  { key: "repo", labelKey: "codestudio.nav.repo", icon: GitPullRequest, group: "team" },
+  { key: "marketing", labelKey: "codestudio.nav.marketing", icon: Megaphone, group: "business" },
+  { key: "finance", labelKey: "codestudio.nav.finance", icon: DollarSign, group: "business" },
+  { key: "guide", labelKey: "codestudio.nav.guide", icon: BookOpen, group: "more" },
+  { key: "career", labelKey: "codestudio.nav.career", icon: Award, group: "more" },
+  { key: "ranking", labelKey: "codestudio.nav.ranking", icon: Trophy, group: "more" },
+  { key: "settings", labelKey: "codestudio.nav.settings", icon: Settings, group: "more" },
 ];
+
+export const NAV_GROUPS: NavGroup[] = ["app", "team", "business", "more"];
+
+// Secciones que se abren con el progreso (no con la etapa: la oficina, el
+// equipo y el árbol hacen falta desde el primer minuto). Devuelve la razón
+// del bloqueo (clave de codestudio.navLock.*) o null si está abierta.
+export function navLock(company: CompanyView, key: ViewKey): string | null {
+  const installed = company.tree.filter((node) => node.state === "installed");
+  const online = company.hosting.length > 0;
+  switch (key) {
+    case "bugs":
+      return installed.length > 0 || company.bugs.length > 0 ? null : "bugs";
+    case "repo":
+      return installed.length > 0 || company.development.length > 0 ? null : "repo";
+    case "infra":
+      return online || installed.some((node) => node.slug === "core-feature") ? null : "infra";
+    case "marketing":
+      return online || company.marketing.summary.some((entry) => entry.runs > 0) ? null : "online";
+    case "finance":
+      return online || company.stage.index >= 1 ? null : "online";
+    default:
+      return null;
+  }
+}

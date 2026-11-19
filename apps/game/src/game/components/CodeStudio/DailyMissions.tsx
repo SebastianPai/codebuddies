@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarCheck, Check, Gift } from "lucide-react";
+import { CalendarCheck, Check, Flame, Gift } from "lucide-react";
 import type { Profile } from "./types";
 import { ProgressBar, num } from "./ui";
 import { CoinIcon } from "../shared/ThemeIcons";
@@ -8,7 +8,15 @@ import { useTranslation } from "../../../i18n/useTranslation";
 
 // Misiones del día: 3 metas chicas (fácil, media, difícil) y un bono por
 // completarlas todas. Se cumplen jugando cualquiera de tus empresas.
-export default function DailyMissions({ daily, compact = false }: { daily: Profile["daily"]; compact?: boolean }) {
+export default function DailyMissions({
+  daily,
+  streak,
+  compact = false,
+}: {
+  daily: Profile["daily"];
+  streak?: Profile["streak"];
+  compact?: boolean;
+}) {
   const t = useTranslation();
   const hours = Math.floor(daily.resetsInMinutes / 60);
   const minutes = daily.resetsInMinutes % 60;
@@ -22,6 +30,14 @@ export default function DailyMissions({ daily, compact = false }: { daily: Profi
         </h3>
         <span className="cs2-chip">{t("codestudio.daily.resets", { hours, minutes })}</span>
       </div>
+      {streak && streak.days > 0 && (
+        // Racha amable: un día de descanso no la corta y nunca quita nada.
+        <p className={`cs2-streak ${streak.activeToday ? "today" : ""}`}>
+          <Flame size={16} aria-hidden="true" />
+          <b>{t("codestudio.daily.streak", { days: streak.days })}</b>
+          <span>{streak.activeToday ? t("codestudio.daily.streakToday") : t("codestudio.daily.streakKeep")}</span>
+        </p>
+      )}
       <ul className="cs2-daily-list">
         {daily.missions.map((mission) => (
           <li key={mission.key} className={mission.done ? "done" : ""}>

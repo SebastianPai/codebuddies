@@ -3,7 +3,7 @@
 import { Flag, TrendingUp, Users, Gem } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { Catalog, CompanyView } from "./types";
-import { goalProgress, money, num } from "./ui";
+import { money, num, stageProgress } from "./ui";
 import { useTranslation } from "../../../i18n/useTranslation";
 
 // Portada del Panel: lo primero que se ve y lo que sale en un video. Pocos
@@ -26,8 +26,13 @@ function useCountUp(target: number) {
 
   useEffect(() => {
     if (prefersReducedMotion()) {
-      setShown(target);
-      return;
+      // Sin animación: el valor final en el próximo cuadro (no dentro del
+      // efecto, para no encadenar renders).
+      const frame = requestAnimationFrame(() => {
+        from.current = target;
+        setShown(target);
+      });
+      return () => cancelAnimationFrame(frame);
     }
     const start = performance.now();
     const origin = from.current;
@@ -99,8 +104,7 @@ export default function StartupHero({ company, catalog }: { company: CompanyView
   const t = useTranslation();
   const m = company.metrics;
   const color = company.appType.color && HEX_COLOR.test(company.appType.color) ? company.appType.color : FALLBACK_COLOR;
-  const goals = company.stage.goals;
-  const progress = goals.length ? Math.round(goals.reduce((sum, goal) => sum + goalProgress(goal), 0) / goals.length) : 100;
+  const progress = stageProgress(company);
 
   return (
     <section className="cs2-hero" style={{ ["--hero" as string]: color }}>

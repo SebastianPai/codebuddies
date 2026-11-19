@@ -190,6 +190,8 @@ export function sumEffects(features: EngineFeature[], fit: Record<string, number
     quality: 0,
     security: 0,
     cacDiscount: 0,
+    userCost: 0,
+    fixedCost: 0,
   };
   for (const feature of features) {
     const effects = effectiveEffects(feature, fit);
@@ -222,10 +224,22 @@ export function teamDevPower(employees: EngineEmployee[]) {
   return { devPower: raw * pmMultiplier, maxParallel: Math.min(4, 1 + Math.floor(builders / 2)) };
 }
 
+// Revisión de código (pull requests): con dos personas que programan, una
+// revisa el código de la otra antes del merge, y se cuelan menos bugs. Es lo
+// que muestra la sección Repositorio.
+export const CODE_REVIEW_QUALITY = 0.08;
+const CODER_ROLES = ['frontend', 'backend', 'fullstack', 'mobile'];
+
+export function hasCodeReview(employees: EngineEmployee[]) {
+  const roles = countRoles(employees);
+  return CODER_ROLES.reduce((sum, slug) => sum + (roles[slug] ?? 0), 0) >= 2;
+}
+
 export function qualityScore(features: EngineFeature[], employees: EngineEmployee[], fit: Record<string, number> = {}) {
   const roles = countRoles(employees);
   const fx = sumEffects(features, fit);
-  return clamp(fx.quality + (roles.qa ?? 0) * 0.12 + Math.min(2, roles['product-manager'] ?? 0) * 0.05, 0, 0.85);
+  const review = hasCodeReview(employees) ? CODE_REVIEW_QUALITY : 0;
+  return clamp(fx.quality + (roles.qa ?? 0) * 0.12 + Math.min(2, roles['product-manager'] ?? 0) * 0.05 + review, 0, 0.85);
 }
 
 // Probabilidad de que publicar una feature traiga un bug: más difícil =
@@ -267,7 +281,8 @@ export class CodeStudioEngineService {
     const devopsDiscount = Math.min(0.3, role('devops') * 0.08);
     const dailyInfra = (monthlyInfra * profile.infraCostMultiplier * (1 - devopsDiscount)) / 30;
     const dailySalaries = input.employees.reduce((sum, employee) => sum + employee.salary, 0) / 30;
-    const fixedDailyCosts = dailySalaries + dailyInfra + BASE_DAILY_OVERHEAD;
+    // fixedCost: operar servicios extra (p. ej. microservicios), $ por día.
+    const fixedDailyCosts = dailySalaries + dailyInfra + BASE_DAILY_OVERHEAD + Math.max(0, fx.fixedCost);
     const hasSupportBot = input.features.some((feature) => feature.slug === 'support-bot');
     // Rendimientos decrecientes: las primeras features suben mucho la
     // satisfacción, la feature 30 casi nada.
@@ -393,7 +408,8 @@ export class CodeStudioEngineService {
       const dailyRevenue = users * arpu;
       // Costos variables: servidores/almacenamiento por usuario y 3% de
       // comisión de la pasarela de pagos sobre lo que cobras.
-      const dailyCosts = fixedDailyCosts + users * 0.002 + dailyRevenue * 0.03 + (launched ? adBudget : 0);
+      // userCost: tokens de IA y APIs que cobran por uso, $ por usuario por día.
+      const dailyCosts = fixedDailyCosts + users * (0.002 + Math.max(0, fx.userCost)) + dailyRevenue * 0.03 + (launched ? adBudget : 0);
       revenueTotal += dailyRevenue * days;
       costsTotal += dailyCosts * days;
       cashFloat += (dailyRevenue - dailyCosts) * days;

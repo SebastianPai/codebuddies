@@ -19,14 +19,15 @@ import {
   installCodeStudioInfrastructure,
   launchCodeStudioCampaign,
   raiseCodeStudioFunding,
+  exitCodeStudioCompany,
   setCodeStudioPricing,
   setCodeStudioAdBudget,
   startCodeStudioDevelopment,
   type OfficeState,
 } from "../../network/codestudio";
 import "./CodeStudio.css";
-import { nav, type ActivityEvent, type BugFixResult, type CompanyView, type StudioState, type ViewKey } from "./types";
-import { ProgressBar, money } from "./ui";
+import { nav, navLock, type ActivityEvent, type BugFixResult, type CompanyView, type StudioState, type ViewKey } from "./types";
+import { ProgressBar, money, stageProgress } from "./ui";
 import PanelView from "./PanelView";
 import TreeView from "./TreeView";
 import BugsView from "./BugsView";
@@ -43,7 +44,9 @@ import DecisionModal from "./DecisionModal";
 import Tour, { TOUR_STEPS, tourSeen } from "./Tour";
 import GuideView from "./GuideView";
 import OfficeView from "./OfficeView";
+import RepoView from "./RepoView";
 import StageUpOverlay, { type StageUp } from "./StageUpOverlay";
+import CodeStudioNav, { LockedView } from "./CodeStudioNav";
 import { useTranslation } from "../../../i18n/useTranslation";
 import { useLanguage } from "../../../i18n/LanguageContext";
 import { celebrate } from "../Rewards/celebrate";
@@ -302,6 +305,9 @@ export default function CodeStudio({ initialView }: { initialView?: string }) {
   const levelSpan = Math.max(1, profile.nextLevelXp - profile.levelXp);
   const failed = company?.status === "FAILED";
   const failedAllowed: ViewKey[] = ["guide", "career", "ranking", "settings"];
+  // Con el tutorial abierto (o la empresa quebrada) no se bloquea nada del menú.
+  const navAllOpen = tourStep !== null || failed;
+  const lockedReason = company && !navAllOpen ? navLock(company, view) : null;
 
   return (
     <div className={`cs2-shell ${videoMode ? "cs2-video" : ""}`.trim()}>
@@ -339,6 +345,21 @@ export default function CodeStudio({ initialView }: { initialView?: string }) {
               <Wallet size={14} /> {money(company.cash)}
             </span>
             <span className="cs2-stage-chip">{company.stage.name}</span>
+            {company.stage.next && !failed && (
+              // "Te falta poco": avance a la próxima etapa, visible desde cualquier sección.
+              <button
+                type="button"
+                className="cs2-stage-progress"
+                onClick={() => setView("panel")}
+                title={t("codestudio.header.towards", { name: company.stage.next.name })}
+              >
+                <span>{t("codestudio.header.towards", { name: company.stage.next.name })}</span>
+                <i aria-hidden="true">
+                  <b style={{ width: `${stageProgress(company)}%` }} />
+                </i>
+                <strong>{stageProgress(company)}%</strong>
+              </button>
+            )}
           </div>
         )}
 
@@ -375,18 +396,7 @@ export default function CodeStudio({ initialView }: { initialView?: string }) {
       </header>
 
       {company && (
-        <nav className="cs2-nav" aria-label={t("codestudio.header.navigation")}>
-          {nav.map((item) => {
-            const badge = item.key === "bugs" ? company.bugs.length : item.key === "panel" && company.pendingDecision ? 1 : 0;
-            return (
-              <button key={item.key} type="button" className={`${view === item.key ? "active" : ""} ${tourView === item.key ? "tour-target" : ""}`.trim()} onClick={() => setView(item.key)}>
-                <item.icon size={16} />
-                <span>{t(item.labelKey)}</span>
-                {badge > 0 && <em>{badge}</em>}
-              </button>
-            );
-          })}
-        </nav>
+        <CodeStudioNav company={company} view={view} tourView={tourView} allOpen={navAllOpen} onSelect={setView} />
       )}
 
       <main className="cs2-main">
@@ -420,9 +430,22 @@ export default function CodeStudio({ initialView }: { initialView?: string }) {
           )
         ) : failed && !failedAllowed.includes(view) ? (
           <FailedView company={company} onFoundNew={() => setShowFound(true)} />
+        ) : lockedReason ? (
+          <LockedView viewKey={view} reason={lockedReason} onGoPanel={() => setView("panel")} />
         ) : (
           <>
-            {view === "panel" && <PanelView company={company} catalog={studio.catalog} office={office} onNavigate={setView} onOpenDecision={() => setShowDecision(true)} />}
+            {view === "panel" && (
+              <PanelView
+                company={company}
+                catalog={studio.catalog}
+                office={office}
+                onNavigate={setView}
+                onOpenDecision={() => setShowDecision(true)}
+                busy={busy}
+                onBuild={(featureId) => void act(() => startCodeStudioDevelopment(company.id, featureId))}
+                onExit={(type) => void act(() => exitCodeStudioCompany(company.id, type))}
+              />
+            )}
             {view === "tree" && (
               <TreeView
                 company={company}
@@ -445,6 +468,7 @@ export default function CodeStudio({ initialView }: { initialView?: string }) {
               />
             )}
             {view === "office" && <OfficeView company={company} onChange={reloadOffice} />}
+            {view === "repo" && <RepoView company={company} catalog={studio.catalog} onNavigate={setView} />}
             {view === "infra" && (
               <InfraView company={company} catalog={studio.catalog} busy={busy} onInstall={(typeId, provider) => void act(() => installCodeStudioInfrastructure(company.id, typeId, provider))} />
             )}
@@ -467,7 +491,16 @@ export default function CodeStudio({ initialView }: { initialView?: string }) {
               />
             )}
             {view === "career" && <CareerView profile={profile} catalog={studio.catalog} />}
-            {view === "ranking" && <RankingView companyId={company.id} catalog={studio.catalog} />}
+            {view === "ranking" && (
+              <RankingView
+                companyId={company.id}
+                catalog={studio.catalog}
+                onOpenCompany={(id) => {
+                  setView("panel");
+                  void loadStudio(id);
+                }}
+              />
+            )}
             {view === "settings" && (
               <SettingsView
                 company={company}
@@ -507,6 +540,18 @@ export default function CodeStudio({ initialView }: { initialView?: string }) {
 const CELEBRATION_KINDS = { milestone: "achievement", stage: "stage", "level-up": "level" } as const;
 
 function toast(event: ActivityEvent) {
+  // Función terminada ("En producción: X"): recompensa visible con su XP, no
+  // un aviso más. El XP viene en el texto "(+N XP)" igual en los 3 idiomas.
+  if (event.kind === "release" && event.tone === "good") {
+    const match = event.description?.match(/\(\+(\d+) XP\)\s*$/);
+    celebrate({
+      kind: "reward",
+      title: event.title,
+      subtitle: event.description?.replace(/\s*\(\+\d+ XP\)\s*$/, "") || null,
+      xp: match ? Number(match[1]) : undefined,
+    });
+    return;
+  }
   const kind = CELEBRATION_KINDS[event.kind as keyof typeof CELEBRATION_KINDS];
   if (kind) {
     // La descripción del logro ya trae "+X XP · +Y coins": los chips lo muestran mejor.

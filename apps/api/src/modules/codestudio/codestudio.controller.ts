@@ -12,6 +12,7 @@ import { LaunchCampaignDto } from './dto/launch-campaign.dto';
 import { ChooseDecisionDto } from './dto/choose-decision.dto';
 import { SetPricingDto } from './dto/set-pricing.dto';
 import { CreateOfficeDto } from './dto/create-office.dto';
+import { ExitCompanyDto } from './dto/exit-company.dto';
 import { langFromHeader } from './content/i18n';
 import { SetDepartmentDto, SetSeatDto } from './dto/team-settings.dto';
 
@@ -65,6 +66,23 @@ export class CodeStudioController {
   @Get('companies/:id/office')
   office(@CurrentUser() user: AuthUser, @Param('id') id: string, @Query('lang') lang?: string) {
     return this.codeStudio.getOffice(user.userId, id, langFromHeader(lang));
+  }
+
+  // Fase 3: reto de la semana (todos empiezan igual).
+  @Get('challenge')
+  challenge(@CurrentUser() user: AuthUser, @Query('lang') lang?: string) {
+    return this.codeStudio.challenge(user.userId, langFromHeader(lang));
+  }
+
+  @Post('challenge')
+  joinChallenge(@CurrentUser() user: AuthUser, @Query('lang') lang?: string) {
+    return this.codeStudio.joinChallenge(user.userId, langFromHeader(lang));
+  }
+
+  // Fase 3: al ser Unicornio, vender la startup o salir a bolsa.
+  @Post('companies/:id/exit')
+  exitCompany(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() dto: ExitCompanyDto, @Query('lang') lang?: string) {
+    return this.codeStudio.exitCompany(user.userId, id, dto.type, langFromHeader(lang));
   }
 
   @Post('companies/:id/office')

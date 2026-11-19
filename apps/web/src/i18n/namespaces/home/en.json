@@ -1,0 +1,148 @@
+{
+  "hero": {
+    "eyebrow": "Coding courses from zero",
+    "title": "Learn to code",
+    "titleAccent": "by doing it.",
+    "text": "Python, JavaScript and web development courses with short lessons and exercises that are checked instantly. And what you earn while learning is used in a world you play in with other people.",
+    "ctaPrimary": "Start for free",
+    "ctaSecondary": "Browse courses",
+    "note": "The first lesson of every course works without an account.",
+    "worldAlt": "Modern house built from blocks in the CodeBuddies isometric world",
+    "exerciseAlt": "Real course exercise: the code is typed, Check is pressed and Buddy the robot responds",
+    "worldCaption": "What you earn, in your world",
+    "exerciseCaption": "Real exercise: you write, you check, Buddy responds"
+  },
+  "courses": {
+    "eyebrow": "Courses",
+    "title": "Explore what you can learn",
+    "text": "Complete courses that take you from zero to real projects, with step-by-step explanations and exercises that check themselves.",
+    "lessons": "{count} lessons",
+    "modules": "{count} modules",
+    "xp": "{xp} XP",
+    "view": "View course",
+    "tryFirst": "Try lesson 1",
+    "all": "See all courses",
+    "featured": "Recommended to start",
+    "empty": "We could not load the courses right now.",
+    "emptyCta": "Open the catalog"
+  },
+  "paths": {
+    "eyebrow": "Learn your way",
+    "title": "Choose where to start",
+    "text": "Never written code? Start from zero. Already know the basics? Go straight to the professional track.",
+    "levels": {
+      "EASY": {
+        "title": "From zero",
+        "text": "For people who have never coded. Step by step, in plain words."
+      },
+      "MEDIUM": {
+        "title": "Professional track",
+        "text": "For people who want to work building websites and web apps."
+      },
+      "HARD": {
+        "title": "Advanced",
+        "text": "For people who already code and want to go further."
+      }
+    },
+    "methodTitle": "How every lesson works",
+    "steps": {
+      "read": {
+        "title": "Get the idea",
+        "text": "A short explanation with examples before you touch the code."
+      },
+      "write": {
+        "title": "Write real code",
+        "text": "Right in the browser editor. Nothing to install."
+      },
+      "check": {
+        "title": "Instant feedback",
+        "text": "You know right away if it works, and you earn XP and coins."
+      }
+    }
+  },
+  "game": {
+    "eyebrow": "Learn by playing",
+    "title": "A world you build yourself",
+    "text": "CodeBuddies comes with a built-in isometric game. What you earn while learning is used here: build with blocks, decorate your room and share it with your friends.",
+    "screenAlt": "The avatar walks around a castle built by a player; on the left, their level, XP and coins",
+    "nightAlt": "A modern house goes from day to night and its lanterns light up",
+    "pcAlt": "The room PC opens and, inside it, CodeStudio with the Pixel Pizza startup",
+    "nightCaption": "At night, the lights come on",
+    "pcCaption": "Your room has a PC: that is where CodeStudio lives",
+    "realCaption": "Real in-game screenshots",
+    "features": {
+      "build": {
+        "title": "Build block by block",
+        "text": "Houses, castles or anything you imagine, with pieces you stack and paint."
+      },
+      "avatar": {
+        "title": "Your avatar, your style",
+        "text": "A wardrobe with clothes, hair and colors."
+      },
+      "rooms": {
+        "title": "Rooms with friends",
+        "text": "Visit public rooms, chat and invite anyone you want."
+      },
+      "shop": {
+        "title": "Shop and pet",
+        "text": "Buy items with the coins you earn in lessons."
+      }
+    },
+    "cta": "Enter the world",
+    "buildAlt": "A modern house appearing block by block in the game world",
+    "buildCaption": "Build block by block",
+    "screenCaption": "Walk your world with your level, XP and coins in view"
+  },
+  "studio": {
+    "eyebrow": "CodeStudio",
+    "title": "From learning concepts to founding your startup",
+    "text": "Inside the game there is a simulator: pick the app you want to build, ship its features, hire your team, fix bugs and compete in the global ranking.",
+    "points": {
+      "tree": {
+        "title": "Product tree",
+        "text": "Landing page, sign-up, payments, SEO, tests: each feature unlocks in order, just like a real product."
+      },
+      "team": {
+        "title": "Your team",
+        "text": "Hire junior, mid and senior profiles. Team chemistry changes performance."
+      },
+      "ops": {
+        "title": "Bugs, servers and marketing",
+        "text": "When the app grows, servers get overloaded and bugs show up. You decide how to fix it."
+      }
+    },
+    "cta": "Open CodeStudio",
+    "clipAlt": "In CodeStudio the Pixel Pizza startup is founded, the product tree appears and the first feature opens",
+    "clipCaption": "Real capture: founding a startup and picking its first feature"
+  },
+  "progress": {
+    "eyebrow": "Your progress",
+    "title": "Everything you do counts",
+    "text": "Lessons, missions and CodeStudio all raise the same level.",
+    "tabs": {
+      "missions": {
+        "label": "Missions",
+        "text": "Daily and weekly missions with extra XP and coins.",
+        "alt": "Missions page with the daily CodeStudio missions"
+      },
+      "pass": {
+        "label": "Season pass",
+        "text": "Come in every day and unlock rewards. Miss a day and you continue where you left off.",
+        "alt": "Season pass with the reward for each day"
+      },
+      "achievements": {
+        "label": "Achievements",
+        "text": "One for every milestone: your first startup, your first fixed bug, your first employee.",
+        "alt": "Unlocked achievements with their XP and coins"
+      }
+    },
+    "more": "There are also rankings, badges and a certificate when you finish a course.",
+    "rankings": "See rankings"
+  },
+  "final": {
+    "title": "Your first line of code is one click away",
+    "text": "Do the first lesson without an account. If you like it, save your progress and enter the world.",
+    "primary": "Create a free account",
+    "secondary": "I already have an account"
+  }
+}

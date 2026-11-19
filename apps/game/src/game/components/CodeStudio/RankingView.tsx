@@ -5,9 +5,18 @@ import { getCodeStudioRanking, type RankingRow } from "../../network/codestudio"
 import type { Catalog } from "./types";
 import { money, num } from "./ui";
 import { useTranslation } from "../../../i18n/useTranslation";
+import ChallengeCard from "./ChallengeCard";
 
 // Ranking global: solo empresas vivas, por valuación.
-export default function RankingView({ companyId, catalog }: { companyId: string; catalog: Catalog }) {
+export default function RankingView({
+  companyId,
+  catalog,
+  onOpenCompany,
+}: {
+  companyId: string;
+  catalog: Catalog;
+  onOpenCompany?: (companyId: string) => void;
+}) {
   const t = useTranslation();
   const [rows, setRows] = useState<RankingRow[] | null>(null);
   const [error, setError] = useState("");
@@ -23,6 +32,8 @@ export default function RankingView({ companyId, catalog }: { companyId: string;
   }, []);
 
   return (
+    <div className="cs2-stack">
+    <ChallengeCard onOpen={(id) => onOpenCompany?.(id)} />
     <section className="cs2-card">
       <h3>{t("codestudio.ranking.title")}</h3>
       <p className="cs2-muted">{t("codestudio.ranking.subtitle")}</p>
@@ -46,5 +57,6 @@ export default function RankingView({ companyId, catalog }: { companyId: string;
         ))}
       </ol>
     </section>
+    </div>
   );
 }

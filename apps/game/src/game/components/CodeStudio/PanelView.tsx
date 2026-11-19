@@ -1,8 +1,8 @@
 "use client";
 
-import { AlertTriangle, ArrowRight, Check, Flag, Gift, Lock, Scale, Star } from "lucide-react";
+import { AlertTriangle, Check, Flag, Gift, Lock, Scale, Star } from "lucide-react";
 import type { Catalog, CompanyView, ViewKey } from "./types";
-import { ProgressBar, Sparkline, Stat, goalProgress, goalValue, money, nextStep, num, pct } from "./ui";
+import { ProgressBar, Sparkline, Stat, goalProgress, goalValue, money, nextStep, pct } from "./ui";
 import DailyMissions from "./DailyMissions";
 import FirstSteps from "./FirstSteps";
 import { ActiveBoosts, GrowthCeiling, WhileAway } from "./GrowthCeiling";
@@ -10,6 +10,8 @@ import type { OfficeState } from "../../network/codestudio";
 import { useState } from "react";
 import GoalGuide, { hasGoalGuide } from "./GoalGuide";
 import StartupHero from "./StartupHero";
+import NextStepCard from "./NextStepCard";
+import { ExitCard } from "./ExitCard";
 import { useTranslation } from "../../../i18n/useTranslation";
 
 type Props = {
@@ -18,9 +20,12 @@ type Props = {
   office?: OfficeState | null;
   onNavigate: (view: ViewKey) => void;
   onOpenDecision: () => void;
+  busy?: boolean;
+  onBuild?: (featureId: string) => void;
+  onExit?: (type: "sale" | "ipo") => void;
 };
 
-export default function PanelView({ company, catalog, office = null, onNavigate, onOpenDecision }: Props) {
+export default function PanelView({ company, catalog, office = null, onNavigate, onOpenDecision, busy = false, onBuild, onExit }: Props) {
   const t = useTranslation();
   const m = company.metrics;
   const step = nextStep(company, catalog, t, office);
@@ -32,6 +37,17 @@ export default function PanelView({ company, catalog, office = null, onNavigate,
 
   return (
     <div className="cs2-stack">
+      {/* Unicornio: vender o salir a bolsa (y luego, su estado). */}
+      <ExitCard company={company} busy={busy} onExit={(type) => onExit?.(type)} />
+      {/* Primero, qué hacer ahora (antes era un botón al final de las etapas). */}
+      <NextStepCard
+        key={`${step.key}:${step.text}`}
+        company={company}
+        step={step}
+        busy={busy}
+        onBuild={(featureId) => onBuild?.(featureId)}
+        onGo={() => (company.pendingDecision ? onOpenDecision() : onNavigate(step.view))}
+      />
       <StartupHero company={company} catalog={catalog} />
       <WhileAway company={company} />
       {/* Camino: las etapas de la startup, siempre a la vista. */}
@@ -105,19 +121,13 @@ export default function PanelView({ company, catalog, office = null, onNavigate,
         )}
       </section>
 
-      <button type="button" className={`cs2-next cs2-next-${step.tone}`} onClick={() => (company.pendingDecision ? onOpenDecision() : onNavigate(step.view))}>
-        <span>{t("codestudio.panel.whatNow")}</span>
-        <b>{step.text}</b>
-        <ArrowRight size={18} />
-      </button>
-
       <ActiveBoosts company={company} />
 
       {company.stage.index <= 1 && <FirstSteps company={company} onNavigate={onNavigate} />}
 
       <GrowthCeiling company={company} onNavigate={onNavigate} />
 
-      <DailyMissions daily={company.profile.daily} compact />
+      <DailyMissions daily={company.profile.daily} streak={company.profile.streak} compact />
 
       {company.pendingDecision && (
         <section className="cs2-card cs2-decision-teaser">

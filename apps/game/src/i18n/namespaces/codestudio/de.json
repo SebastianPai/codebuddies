@@ -11,7 +11,8 @@
     "ranking": "Rangliste",
     "settings": "Einstellungen",
     "guide": "Anleitung",
-    "office": "Büro"
+    "office": "Büro",
+    "repo": "Repository"
   },
   "common": {
     "loading": "CodeStudio wird geladen…",
@@ -34,7 +35,8 @@
     "levelHint": "Dein Kontolevel: dasselbe wie auf der Plattform. Steig durch Lernen und Spielen auf und schalte App-Typen und mehr Startkapital frei.",
     "navigation": "CodeStudio-Bereiche",
     "tutorial": "Tutorial ansehen",
-    "videoMode": "Videomodus: blendet Hilfen und Tutorial zum Aufnehmen aus"
+    "videoMode": "Videomodus: blendet Hilfen und Tutorial zum Aufnehmen aus",
+    "towards": "Richtung {name}"
   },
   "welcome": {
     "title": "Bau dein Startup von null auf",
@@ -69,7 +71,12 @@
     "goalDone": "Erledigt",
     "goalPending": "Offen",
     "heroProgress": "{value}% bis {name}",
-    "heroMaxed": "Du bist ganz oben"
+    "heroMaxed": "Du bist ganz oben",
+    "nextEyebrow": "Dein nächster Schritt",
+    "nextGo": "Los geht's",
+    "nextBuild": "Bauen für {amount}",
+    "nextTime": "{time} mit deinem Team",
+    "nextSeeTree": "Baum ansehen"
   },
   "next": {
     "decision": "Eine Entscheidung wartet: {title}",
@@ -86,7 +93,26 @@
     "keepGrowing": "Wachse weiter: probiere neue Marketingkampagnen",
     "office": "Erstelle das Büro deiner Firma: der kleinste Raum ist gratis.",
     "officeKit": "Hol dir das gratis Basis-Set für dein Büro (Schreibtisch, Stuhl und PC).",
-    "officeFurniture": "Stell Schreibtisch, Stuhl und PC in dein Büro: es fehlen {count} Arbeitsplatz/plätze."
+    "officeFurniture": "Stell Schreibtisch, Stuhl und PC in dein Büro: es fehlen {count} Arbeitsplatz/plätze.",
+    "why": {
+      "decision": "Eine wichtige Entscheidung wartet auf dich. Wenn du nicht rechtzeitig wählst, wird sie für dich getroffen.",
+      "debt": "Du gibst mehr aus, als du verdienst. Kommst du nicht ins Plus zurück, geht die Firma pleite.",
+      "office": "Dein Team braucht einen Arbeitsplatz. Das Büro ist ein echter Raum im Spiel, den du einrichten kannst.",
+      "officeKit": "Du hast Möbel zum Aufstellen. Ohne Schreibtisch, Stuhl und PC arbeitet niemand mit voller Kraft.",
+      "officeFurniture": "Jede Person braucht Schreibtisch, Stuhl und PC. Ohne eigenen Platz arbeitet sie langsamer.",
+      "bug": "Ein Bug ohne Zuständige senkt jeden Tag die Zufriedenheit deiner Nutzer.",
+      "server": "Deine App kann schon etwas Nützliches, aber ohne Server kann sie niemand benutzen.",
+      "capacity": "Deine Server sind fast voll. Wenn sie voll laufen, wird die App langsam und es gibt Bugs.",
+      "monetize": "Du hast Nutzer, verdienst aber noch nichts an ihnen. Zeit zu entscheiden, wie du Geld verlangst.",
+      "support": "Es kommen mehr Anfragen, als dein Team beantworten kann, und Nutzer gehen, wenn niemand antwortet.",
+      "build": "Jede neue Funktion bringt deine App der nächsten Etappe näher.",
+      "hire": "Allein kommst du langsam voran: Mit einer weiteren Person im Team baust du viel schneller.",
+      "funding": "Investoren sind interessiert. Ihr Geld lässt dich schneller wachsen, im Tausch gegen einen Teil deiner Firma.",
+      "goal": "Das fehlt dir noch für die nächste Etappe.",
+      "keepGrowing": "Es läuft gut: Mehr Nutzer erhöhen deine Bewertung und bringen dich der nächsten Etappe näher.",
+      "exit": "Ein Einhorn zu werden ist nicht das Ende: Wähle, wie deine Gründergeschichte weitergeht."
+    },
+    "exit": "Du bist ein Einhorn: Entscheide, ob du an die Börse gehst oder dein Startup verkaufst."
   },
   "kpi": {
     "cash": "Kasse",
@@ -108,7 +134,7 @@
     "subtitle": "{installed} von {total} gebaut. Jeder Zweig wird der Reihe nach und nach Stufe freigeschaltet.",
     "devPower": "Entwicklungskraft {value}",
     "parallel": "{value} parallel",
-    "emptyQueue": "Dein Team ist frei. Wähle ein verfügbares Feature (blauer Rand).",
+    "emptyQueue": "Dein Team ist frei: Wähle, was du baust. Jede neue Funktion bringt dir XP.",
     "waiting": "In der Warteschlange: wartet auf freie Leute",
     "remaining": "Noch ≈ {time}",
     "cancel": "Abbrechen (du bekommst {amount} zurück)",
@@ -137,7 +163,16 @@
     "upgradeHint": "v{version} leistet mehr: mehr Wirkung auf Nutzer, Zufriedenheit oder Umsatz. Kommt in die Entwicklungs-Warteschlange.",
     "upgrade": "Auf v{version} verbessern ({amount})",
     "maxVersion": "Schon in der besten Version.",
-    "justBuilt": "Fertig!"
+    "justBuilt": "Fertig!",
+    "modeSimple": "Was du tun kannst",
+    "modeFull": "Ganzer Baum",
+    "nowTitle": "Jetzt baubar",
+    "nowEmpty": "Gerade gibt es nichts Neues zu bauen: Warte, bis das Laufende fertig ist, oder erreiche die nächste Etappe.",
+    "builtTitle": "Schon gebaut ({count})",
+    "laterTitle": "Danach",
+    "seeAll": "Alle {count} Funktionen nach Zweig ansehen",
+    "open": "Ansehen und bauen",
+    "realWorld": "Im echten Leben macht man das mit"
   },
   "effects": {
     "growth": "+{value} neue Nutzer pro Tag",
@@ -153,7 +188,10 @@
     "stability": "+{value} Stabilität",
     "quality": "−{value}% Bugs beim Veröffentlichen",
     "security": "+{value} Sicherheit",
-    "cacDiscount": "Kampagnen {value}% günstiger"
+    "cacDiscount": "Kampagnen {value}% günstiger",
+    "latencyUp": "{value} ms langsamer (mehr Netzwerk-Sprünge)",
+    "userCost": "Kostet {value} pro Nutzer und Tag (Tokens oder Nutzung)",
+    "fixedCost": "Kostet {value} pro Tag im Betrieb"
   },
   "severity": {
     "LOW": "Niedrig",
@@ -368,7 +406,10 @@
     "title": "Heutige Missionen ({done}/{total})",
     "resets": "Neue in {hours} Std. {minutes} Min.",
     "bonus": "Schaffe alle 3: +{xp} XP und {coins} Extra-Coins",
-    "bonusDone": "Tagesbonus kassiert! Komm morgen für mehr wieder."
+    "bonusDone": "Tagesbonus kassiert! Komm morgen für mehr wieder.",
+    "streak": "Serie: {days} Tage",
+    "streakToday": "Du hast heute gespielt. Komm morgen wieder, um einen Tag dazuzuholen.",
+    "streakKeep": "Spiel heute, um einen Tag dazuzuholen. Ein Ruhetag unterbricht sie nicht."
   },
   "firstSteps": {
     "title": "Erste Schritte",
@@ -755,5 +796,100 @@
   },
   "stageUp": {
     "title": "Neue Stufe!"
+  },
+  "navGroup": {
+    "app": "Meine App",
+    "team": "Team",
+    "business": "Geschäft",
+    "more": "Mehr"
+  },
+  "navLock": {
+    "bugs": "Öffnet sich, wenn du deine erste Funktion veröffentlichst.",
+    "infra": "Öffnet sich, wenn deine Hauptfunktion fertig ist.",
+    "online": "Öffnet sich, wenn deine App auf einem Server läuft.",
+    "new": "Neu",
+    "title": "{name} ist noch nicht geöffnet",
+    "goNext": "Meinen nächsten Schritt ansehen",
+    "what": {
+      "bugs": "Hier behebst du die Fehler, die beim Veröffentlichen auftauchen: Selbst diagnostizieren bringt XP.",
+      "infra": "Hier wählst du die Server für deine App und achtest darauf, dass sie nicht voll laufen.",
+      "marketing": "Hier startest du Kampagnen, um Nutzer zu gewinnen, und siehst, was dich jeder kostet.",
+      "finance": "Hier legst du den Preis fest, siehst deine Ausgaben und holst Geld von Investoren.",
+      "repo": "Hier siehst du, wie dein Team mit Git arbeitet: Commits, Pull Requests und Reviews."
+    },
+    "unlocked": "{name} ist jetzt offen!",
+    "unlockedText": "Du kannst diesen Menübereich jetzt benutzen.",
+    "repo": "Öffnet sich, wenn dein Team seine erste Funktion baut."
+  },
+  "repo": {
+    "subtitle": "Commits auf main: {commits} · Offene Pull Requests: {prs}",
+    "flowLabel": "So arbeitet ein Team mit Git",
+    "flow": {
+      "branch": {
+        "title": "Branch",
+        "text": "Jede Aufgabe entsteht auf einem eigenen Branch, ohne main anzufassen."
+      },
+      "commit": {
+        "title": "Commit",
+        "text": "Du speicherst kleine Änderungen mit einer Nachricht, was du gemacht hast."
+      },
+      "pr": {
+        "title": "Pull Request",
+        "text": "Du bittest jemanden im Team, deinen Code zu prüfen."
+      },
+      "merge": {
+        "title": "Review und Merge",
+        "text": "Passt alles, kommt es in main und wird veröffentlicht."
+      }
+    },
+    "openPrs": "Offene Pull Requests ({count})",
+    "noPrs": "Gerade wird nichts gebaut. Wähle eine Funktion im Baum, dann erscheint sie hier als Pull Request.",
+    "draft": "Entwurf",
+    "inProgress": "In Arbeit",
+    "prBy": "Geöffnet von {name}",
+    "reviewBy": "Review von {name}",
+    "noReviewer": "Kein Reviewer",
+    "reviewTip": "Ab zwei Entwicklern prüft einer den Code des anderen: So rutschen weniger Bugs durch, wie in echten Teams.",
+    "history": "Verlauf von main",
+    "noCommits": "Noch keine Commits: Bau deine erste Funktion.",
+    "historyNote": "Jede Funktion, die live geht, ist ein Merge in main.",
+    "issues": "Offene Issues: {count}",
+    "seeIssues": "Bugs ansehen",
+    "contributors": "Personen, die programmieren: {count}",
+    "seeTeam": "Team ansehen",
+    "you": "Du",
+    "now": "jetzt",
+    "minutesAgo": "vor {count} Min.",
+    "hoursAgo": "vor {count} Std.",
+    "daysAgo": "vor {count} Tagen",
+    "reviewOn": "Code-Review ist aktiv: Jemand anderes im Team prüft jeden Pull Request, so gehen weniger Bugs live."
+  },
+  "exit": {
+    "eyebrow": "Du bist ein Einhorn",
+    "title": "Was machst du jetzt mit deinem Startup?",
+    "text": "Du bist ganz oben. Wie im echten Leben kannst du an die Börse gehen und weiterwachsen oder die Firma verkaufen und mit Vorsprung eine neue gründen.",
+    "ipo": "An die Börse gehen",
+    "ipoHelp": "Du führst sie weiter. Jedes Quartal erwarten Investoren mindestens 10% Wachstum: Schaffst du es, gibt es XP; sonst sinkt dein Ruf.",
+    "ipoCta": "An die Börse gehen",
+    "sale": "Verkaufen",
+    "saleHelp": "Du kassierst deine Belohnung und das Startup wird zur Trophäe. Dein nächstes Startup startet als Serien-Gründer mit mehr Geld.",
+    "saleCta": "Startup verkaufen",
+    "soldTitle": "Du hast dieses Startup verkauft",
+    "soldText": "Es bleibt als Trophäe in deiner Vitrine (verkauft mit einer Bewertung von {valuation}). Gründe mit dem + ein neues, um weiterzumachen.",
+    "ipoTitle": "An der Börse",
+    "ipoQuarter": "Quartal: Tag {day} von {total}",
+    "ipoGrowth": "Wachstum im Quartal: {growth}% (Ziel: {target}%)",
+    "ipoRecord": "Quartale geschafft: {won} · verfehlt: {lost}",
+    "trophies": "Trophäen-Vitrine ({count})",
+    "trophySale": "Verkauft",
+    "trophyIpo": "An der Börse"
+  },
+  "challenge": {
+    "eyebrow": "Wochen-Challenge · {week}",
+    "title": "Gründe eine App vom Typ {app}",
+    "text": "Alle starten gleich: derselbe App-Typ und {cash} Startkapital, ohne Level- oder Verkaufsboni. Wer am Ende der Woche die höchste Bewertung hat, gewinnt.",
+    "ends": "Endet in {days} T {hours} Std.",
+    "join": "An der Challenge teilnehmen",
+    "continue": "Meine Challenge-Firma weiterspielen"
   }
 }

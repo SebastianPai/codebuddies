@@ -58,7 +58,8 @@ async function bootstrap() {
       process.env.CORS_ORIGINS ?? 'http://localhost:3000,http://localhost:3002'
     ).split(','),
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: 'Content-Type, Authorization, Accept',
+    // x-admin-bypass-locks: el modo admin "saltar bloqueos" (/admin/settings).
+    allowedHeaders: 'Content-Type, Authorization, Accept, x-admin-bypass-locks',
     credentials: true,
   });
 

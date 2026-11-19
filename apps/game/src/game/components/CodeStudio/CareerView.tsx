@@ -5,6 +5,7 @@ import type { Catalog, Profile } from "./types";
 import { ProgressBar, Stat, money } from "./ui";
 import DailyMissions from "./DailyMissions";
 import ReferralsCard from "./ReferralsCard";
+import { ExitTrophies } from "./ExitCard";
 import { CoinIcon } from "../shared/ThemeIcons";
 import { useTranslation } from "../../../i18n/useTranslation";
 
@@ -33,7 +34,9 @@ export default function CareerView({ profile, catalog }: { profile: Profile; cat
         </div>
       </section>
 
-      <DailyMissions daily={profile.daily} />
+      <ExitTrophies exits={profile.exits} />
+
+      <DailyMissions daily={profile.daily} streak={profile.streak} />
 
       <ReferralsCard />
 

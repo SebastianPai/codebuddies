@@ -102,7 +102,12 @@ export default function LessonTheoryPage() {
   const [loadError, setLoadError] = useState(false);
   const [completing, setCompleting] = useState(false);
 
+  // El idioma arranca en "es" y cambia al guardado al hidratar: salen dos
+  // pedidos (?lang=es y ?lang=en) y si el de español llegaba último pisaba
+  // la lección traducida. Solo se usa la respuesta del pedido más reciente.
+  const requestRef = useRef(0);
   const load = useCallback(async () => {
+    const requestId = ++requestRef.current;
     setLoadError(false);
     try {
       const [lessonData, courseData] = await Promise.all([
@@ -111,9 +116,11 @@ export default function LessonTheoryPage() {
           .get<CourseResponse>(`/courses/${courseId}?lang=${apiLang}`)
           .catch(() => null),
       ]);
+      if (requestId !== requestRef.current) return;
       setLesson(lessonData);
       setCourse(courseData);
     } catch {
+      if (requestId !== requestRef.current) return;
       setLoadError(true);
       return;
     }

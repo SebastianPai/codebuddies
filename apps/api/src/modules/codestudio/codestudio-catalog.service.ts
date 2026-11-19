@@ -2,7 +2,7 @@ import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { APP_TYPES, CAMPAIGN_BUDGET_MULTIPLIERS, CHANNELS, HOSTING, ROLES } from './content/economy';
-import { FEATURES, FEATURE_BRANCHES } from './content/features';
+import { FEATURES, FEATURE_BRANCHES, FEATURE_TOOLS } from './content/features';
 import { FUNDING_ROUNDS, GAME_XP_FACTOR, MILESTONES, STAGES } from './content/progression';
 import { PRICE_LEVELS } from './content/events';
 import { Lang, contentFor, milestoneText, pick, stageText } from './content/i18n';
@@ -13,7 +13,9 @@ import { Lang, contentFor, milestoneText, pick, stageText } from './content/i18n
 // `prisma migrate deploy`). Cada fila guarda metadata.contentVersion: si un
 // admin la edita desde /admin/codestudio, su cambio se respeta hasta que se
 // suba CONTENT_VERSION acá.
-export const CONTENT_VERSION = 1;
+// Subirla vuelve a copiar el contenido a la base (efectos, textos, ramas).
+// 2: rama Arquitectura, IA que paga tokens (userCost) y costos fijos (fixedCost).
+export const CONTENT_VERSION = 2;
 
 const CATALOG_TTL_MS = 60_000;
 
@@ -248,6 +250,8 @@ export class CodeStudioCatalogService implements OnApplicationBootstrap {
           // XP real que da (ya regulado: el XP del juego cuenta a la mitad).
           xp: Math.round(module.difficulty ** 2 * 4 * GAME_XP_FACTOR),
           effects: module.effects ?? {},
+          // "En la vida real": herramientas con las que se hace (solo nombres).
+          tools: FEATURE_TOOLS[module.slug] ?? [],
         };
       }),
       roles: employees.map((type) => ({

@@ -56,6 +56,8 @@ import {
 } from './content/economy';
 import { FEATURES } from './content/features';
 import { FUNDING_MIN_RATING, GAME_XP_FACTOR, MAX_STAGE, STAGES, StageMetrics, startingCashBonus } from './content/progression';
+import { CHALLENGE_STARTING_CASH, challengeAppSlug, challengeEndsInMinutes, challengeOf, weekKey } from './content/challenge';
+import { CompanyExit, EXIT_MSG, ExitType, IPO_QUARTER_DAYS, IPO_QUARTER_GROWTH, IPO_QUARTER_MISS_REPUTATION, IPO_QUARTER_XP, exitOf, isSold, serialFounderBonus } from './content/exit';
 import {
   BUG_SCENARIO_BY_KEY,
   BUG_SEVERITY_WEIGHT,
@@ -255,9 +257,26 @@ export class CodeStudioService {
           founderEquity: true,
           appType: { select: { name: true, color: true, slug: true } },
           user: { select: { username: true, avatarUrl: true } },
+          metadata: true,
         },
       });
-      this.rankingCache = { at: Date.now(), rows };
+      // Las empresas del reto semanal tienen su propio ranking.
+      this.rankingCache = {
+        at: Date.now(),
+        // Campos explícitos: metadata (oficina, salida…) no sale en el ranking público.
+        rows: rows
+          .filter((row) => !challengeOf(row.metadata))
+          .map((row) => ({
+            id: row.id,
+            name: row.name,
+            valuation: row.valuation,
+            activeUsers: row.activeUsers,
+            stage: row.stage,
+            founderEquity: row.founderEquity,
+            appType: row.appType,
+            user: row.user,
+          })),
+      };
     }
     const t = contentFor(lang);
     return (this.rankingCache.rows as Array<{ appType: { name: string; slug: string; color: string | null } }>).map((row) => ({
@@ -266,9 +285,57 @@ export class CodeStudioService {
     }));
   }
 
+  // ─── Reto de la semana (Fase 3) ─────────────────────────────────────────
+
+  private challengeCache: { week: string; at: number; rows: unknown[] } | null = null;
+
+  private async challengeAppType() {
+    const types = await this.prisma.codeStudioAppType.findMany({ where: { active: true }, select: { id: true, slug: true, simulationProfile: true } });
+    const open = types.filter((type) => Number((type.simulationProfile as Record<string, any> | null)?.minFounderLevel ?? 1) <= 1);
+    const slug = challengeAppSlug(weekKey(), open.map((type) => type.slug));
+    return open.find((type) => type.slug === slug) ?? null;
+  }
+
+  async challenge(userId: string, lang: Lang = 'es') {
+    const week = weekKey();
+    const [appType, mine] = await Promise.all([
+      this.challengeAppType(),
+      this.prisma.codeStudioCompany.findFirst({ where: { userId, metadata: { path: ['challenge'], equals: week } }, select: { id: true } }),
+    ]);
+    // Ranking del reto: cacheado 30 s (todos lo piden al abrir Ranking).
+    if (!this.challengeCache || this.challengeCache.week !== week || Date.now() - this.challengeCache.at >= 30_000) {
+      const rows = await this.prisma.codeStudioCompany.findMany({
+        where: { metadata: { path: ['challenge'], equals: week } },
+        orderBy: [{ valuation: 'desc' }, { activeUsers: 'desc' }],
+        take: 10,
+        select: { id: true, name: true, valuation: true, activeUsers: true, stage: true, user: { select: { username: true } } },
+      });
+      this.challengeCache = { week, at: Date.now(), rows };
+    }
+    const t = contentFor(lang);
+    return {
+      week,
+      endsInMinutes: challengeEndsInMinutes(),
+      startingCash: CHALLENGE_STARTING_CASH,
+      appType: appType ? { id: appType.id, slug: appType.slug, name: t?.appTypes[appType.slug]?.name ?? appType.slug } : null,
+      myCompanyId: mine?.id ?? null,
+      leaderboard: this.challengeCache.rows,
+    };
+  }
+
+  async joinChallenge(userId: string, lang: Lang = 'es') {
+    const week = weekKey();
+    const existing = await this.prisma.codeStudioCompany.findFirst({ where: { userId, metadata: { path: ['challenge'], equals: week } }, select: { id: true } });
+    if (existing) return this.buildView(userId, existing.id, lang);
+    const appType = await this.challengeAppType();
+    if (!appType) throw new BadRequestException(pick(MSG.appTypeUnavailable(), lang));
+    this.challengeCache = null;
+    return this.createCompany(userId, { appTypeId: appType.id, name: `Reto ${week}` }, lang, { challenge: week });
+  }
+
   // ─── Crear / borrar ─────────────────────────────────────────────────────
 
-  async createCompany(userId: string, dto: CreateCodeStudioCompanyDto, lang: Lang = 'es') {
+  async createCompany(userId: string, dto: CreateCodeStudioCompanyDto, lang: Lang = 'es', options: { challenge?: string } = {}) {
     const name = dto.name.trim();
     if (name.length < 3 || name.length > 40) throw new BadRequestException(pick(MSG.nameLength(), lang));
     const appType = await this.prisma.codeStudioAppType.findUnique({ where: { id: dto.appTypeId } });
@@ -281,13 +348,25 @@ export class CodeStudioService {
       const appName = contentFor(lang)?.appTypes[appType.slug]?.name ?? appType.name;
       throw new BadRequestException(pick(MSG.appTypeLocked(appName, minLevel, profile.level), lang));
     }
-    const alive = await this.prisma.codeStudioCompany.count({ where: { userId, status: { not: CodeStudioCompanyStatus.FAILED } } });
-    if (alive >= MAX_ALIVE_COMPANIES) throw new BadRequestException(pick(MSG.tooManyCompanies(MAX_ALIVE_COMPANIES), lang));
+    // Las vendidas quedan como trofeo y no ocupan lugar (se filtran acá: son
+    // pocas filas por usuario y así no dependemos de filtros sobre JSON).
+    const aliveRows = await this.prisma.codeStudioCompany.findMany({
+      where: { userId, status: { not: CodeStudioCompanyStatus.FAILED } },
+      select: { metadata: true },
+    });
+    // Las del reto semanal tampoco ocupan lugar.
+    const alive = aliveRows.filter((row) => !isSold(row.metadata) && !challengeOf(row.metadata)).length;
+    if (!options.challenge && alive >= MAX_ALIVE_COMPANIES) throw new BadRequestException(pick(MSG.tooManyCompanies(MAX_ALIVE_COMPANIES), lang));
 
     // Primera startup de alguien invitado por un amigo: arranca con ventaja.
     const firstCompany = (await this.prisma.codeStudioCompany.count({ where: { userId } })) === 0;
     const referredBonus = firstCompany && (await this.referrals.referrerOf(userId)) ? REFERRED_STARTING_BONUS : 0;
-    const cash = Number(appProfile.startingCash ?? 6000) + startingCashBonus(profile.level) + referredBonus;
+    // Fundador en serie: caja extra por cada startup vendida antes.
+    const serialBonus = serialFounderBonus(await this.rewards.salesCount(this.prisma, userId));
+    // En el reto todos arrancan igual: sin bonos de nivel, ventas ni invitación.
+    const cash = options.challenge
+      ? CHALLENGE_STARTING_CASH
+      : Number(appProfile.startingCash ?? 6000) + startingCashBonus(profile.level) + referredBonus + serialBonus;
     const company = await this.prisma.$transaction(async (tx) => {
       const created = await tx.codeStudioCompany.create({
         data: {
@@ -304,6 +383,7 @@ export class CodeStudioService {
           simVersion: 2,
           nextEventDay: 8,
           lastSimulatedAt: new Date(),
+          ...(options.challenge ? { metadata: { challenge: options.challenge } } : {}),
         },
       });
       await this.log(tx, created.id, MSG.welcomeTitle(), MSG.welcomeText(cash), 'info', 'neutral', lang);
@@ -877,11 +957,77 @@ export class CodeStudioService {
     return this.getCompany(userId, companyId, lang);
   }
 
+  // ─── Salida (Fase 3): vender o salir a bolsa ────────────────────────────
+
+  async exitCompany(userId: string, companyId: string, type: ExitType, lang: Lang = 'es') {
+    const company = await this.requireAlive(userId, companyId, lang);
+    if (company.stage < MAX_STAGE) throw new BadRequestException(pick(EXIT_MSG.notReady(), lang));
+    if (exitOf(company.metadata)) throw new BadRequestException(pick(EXIT_MSG.already(), lang));
+    const exit: CompanyExit = {
+      type,
+      at: new Date().toISOString(),
+      valuation: company.valuation,
+      ...(type === 'ipo' ? { quarterBase: company.valuation, quarterStartDay: company.gameDays, quartersWon: 0, quartersLost: 0 } : {}),
+    };
+    const metadata = { ...((company.metadata ?? {}) as Record<string, unknown>), exit };
+    await this.prisma.$transaction(async (tx) => {
+      await tx.codeStudioCompany.update({ where: { id: companyId }, data: { metadata: metadata as Prisma.InputJsonValue } });
+      if (type === 'sale') {
+        const nextBonus = serialFounderBonus((await this.rewards.salesCount(tx, userId)) + 1);
+        await this.rewards.grantExit(tx, userId, companyId, 'sale', pick(EXIT_MSG.saleTitle(company.name), lang), pick(EXIT_MSG.saleText(nextBonus), lang), lang);
+      } else {
+        await this.rewards.grantExit(tx, userId, companyId, 'ipo', pick(EXIT_MSG.ipoTitle(company.name), lang), pick(EXIT_MSG.ipoText(), lang), lang);
+      }
+    });
+    return this.buildView(userId, companyId, lang);
+  }
+
+  // En bolsa: cada IPO_QUARTER_DAYS días de juego se compara la valuación con
+  // la del inicio del trimestre. Crecer un 10% paga XP; no llegar baja la
+  // reputación. Se evalúa al pedir la empresa (barato: solo lee metadata).
+  private async checkIpoQuarter(userId: string, companyId: string, lang: Lang) {
+    const company = await this.prisma.codeStudioCompany.findUnique({ where: { id: companyId }, select: { metadata: true, gameDays: true, valuation: true, reputation: true, status: true } });
+    const exit = company ? exitOf(company.metadata) : null;
+    if (!company || !exit || exit.type !== 'ipo' || company.status === CodeStudioCompanyStatus.FAILED) return;
+    const start = exit.quarterStartDay ?? company.gameDays;
+    if (company.gameDays - start < IPO_QUARTER_DAYS) return;
+    const base = Math.max(1, exit.quarterBase ?? company.valuation);
+    const won = company.valuation >= base * IPO_QUARTER_GROWTH;
+    const growth = Math.round((company.valuation / base - 1) * 100);
+    const nextExit: CompanyExit = {
+      ...exit,
+      quarterBase: company.valuation,
+      quarterStartDay: company.gameDays,
+      quartersWon: (exit.quartersWon ?? 0) + (won ? 1 : 0),
+      quartersLost: (exit.quartersLost ?? 0) + (won ? 0 : 1),
+    };
+    const metadata = { ...((company.metadata ?? {}) as Record<string, unknown>), exit: nextExit };
+    await this.prisma.$transaction(async (tx) => {
+      // Solo una petición aplica el trimestre: la condición sobre gameDays
+      // ya cambió para la segunda (updateMany con el inicio viejo).
+      const applied = await tx.codeStudioCompany.updateMany({
+        where: { id: companyId, metadata: { path: ['exit', 'quarterStartDay'], equals: start } },
+        data: { metadata: metadata as Prisma.InputJsonValue, ...(won ? {} : { reputation: Math.max(0, company.reputation - IPO_QUARTER_MISS_REPUTATION) }) },
+      });
+      if (applied.count === 0) return;
+      if (won) await this.rewards.addXp(tx, userId, IPO_QUARTER_XP, companyId, {}, lang, false);
+      await tx.codeStudioEventLog.create({
+        data: {
+          companyId,
+          title: pick(won ? EXIT_MSG.quarterWonTitle() : EXIT_MSG.quarterLostTitle(), lang),
+          description: pick(won ? EXIT_MSG.quarterWonText(growth) : EXIT_MSG.quarterLostText(growth), lang),
+          effects: { kind: won ? 'milestone' : 'market', tone: won ? 'good' : 'bad' },
+        },
+      });
+    });
+  }
+
   // ─── Simulación ─────────────────────────────────────────────────────────
 
   private async simulateCompany(userId: string, companyId: string, lang: Lang) {
     const company = await this.requireOwned(userId, companyId, lang);
-    if (company.status === CodeStudioCompanyStatus.FAILED) return;
+    // Quebrada o vendida (queda como trofeo): ya no se simula.
+    if (company.status === CodeStudioCompanyStatus.FAILED || isSold(company.metadata)) return;
     if (company.simVersion < 2) {
       await this.convertLegacyCompany(company, lang);
       return;
@@ -1261,7 +1407,14 @@ export class CodeStudioService {
   // ─── Vista para el cliente ──────────────────────────────────────────────
 
   private async buildView(userId: string, companyId: string, lang: Lang) {
-    const company = await this.requireOwned(userId, companyId, lang);
+    let company = await this.requireOwned(userId, companyId, lang);
+    // En bolsa y con el trimestre cumplido: se evalúa y se recarga. Para el
+    // resto no cuesta nada (se mira la metadata que ya vino con la empresa).
+    const listed = exitOf(company.metadata);
+    if (listed?.type === 'ipo' && company.gameDays - (listed.quarterStartDay ?? company.gameDays) >= IPO_QUARTER_DAYS) {
+      await this.checkIpoQuarter(userId, companyId, lang);
+      company = await this.requireOwned(userId, companyId, lang);
+    }
     const [events, snapshots, catalog, profile, campaignSummary] = await Promise.all([
       this.prisma.codeStudioEventLog.findMany({ where: { companyId }, orderBy: { createdAt: 'desc' }, take: 30 }),
       this.prisma.codeStudioAnalyticsSnapshot.findMany({ where: { companyId }, orderBy: { createdAt: 'desc' }, take: 40 }),
@@ -1335,10 +1488,14 @@ export class CodeStudioService {
     const wardrobe = await this.employeeWardrobe();
     await this.officeCountsFor(company);
 
+    const exit = exitOf(company.metadata);
     return {
       id: company.id,
       name: company.name,
       status: company.status,
+      // Salida (Fase 3): null si todavía no salió. canExit = es Unicornio.
+      exit,
+      canExit: !exit && company.stage >= MAX_STAGE && company.status !== CodeStudioCompanyStatus.FAILED,
       appType: {
         id: company.appType.id,
         slug: company.appType.slug,
@@ -2531,6 +2688,7 @@ export class CodeStudioService {
       company = await this.requireOwned(userId, companyId, lang);
     }
     if (company.status === CodeStudioCompanyStatus.FAILED) throw new BadRequestException(pick(MSG.companyFailed(), lang));
+    if (isSold(company.metadata)) throw new BadRequestException(pick(EXIT_MSG.sold(), lang));
     return company;
   }
 

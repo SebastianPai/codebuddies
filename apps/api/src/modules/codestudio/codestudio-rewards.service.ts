@@ -14,6 +14,7 @@ import {
 } from './content/progression';
 import { DAILY_BONUS, DailyCounter, dailyKey, dailyMilestoneKey, minutesUntilReset, missionsFor } from './content/daily';
 import { Lang, MSG, milestoneText, pick } from './content/i18n';
+import { EXIT_REWARDS, ExitType } from './content/exit';
 
 type Tx = Prisma.TransactionClient;
 type Stats = Partial<Record<'bugsDiagnosed' | 'bugsFirstTry' | 'companiesFounded' | 'bankruptcies', number>>;
@@ -33,6 +34,31 @@ const XP_COUNTER = 'xp';
 // - Misiones diarias (content/daily.ts): contadores por día en
 //   CodeStudioDailyCounter; el pago usa la misma tabla de logros con clave
 //   "daily:<día>:<misión>", así tampoco se puede cobrar dos veces.
+const DAY_MS = 24 * 60 * 60 * 1000;
+const STREAK_WINDOW_DAYS = 60;
+const STREAK_CACHE_MS = 60_000;
+
+// Racha de días jugados (con actividad en CodeStudio). Es amable a
+// propósito: un solo día sin jugar no la corta (dos seguidos sí), y nunca
+// quita nada: solo deja de sumar. Si hoy todavía no jugaste, la racha de
+// ayer sigue viva ("juega hoy para sumar").
+export function streakFrom(active: Set<string>, now = Date.now()) {
+  const today = dailyKey(now);
+  let days = 0;
+  let misses = 0;
+  for (let back = 0; back < STREAK_WINDOW_DAYS; back++) {
+    const key = dailyKey(now - back * DAY_MS);
+    if (active.has(key)) {
+      days++;
+      misses = 0;
+    } else if (back > 0) {
+      misses++;
+      if (misses >= 2) break;
+    }
+  }
+  return { days, activeToday: active.has(today) };
+}
+
 @Injectable()
 export class CodeStudioRewardsService {
   constructor(
@@ -42,7 +68,7 @@ export class CodeStudioRewardsService {
 
   async getProfile(userId: string, lang: Lang = 'es', client: Tx | PrismaService = this.prisma) {
     const day = dailyKey();
-    const [user, profile, milestones, counters] = await Promise.all([
+    const [user, profile, milestones, counters, activeDays] = await Promise.all([
       client.user.findUnique({ where: { id: userId }, select: { experience: true } }),
       client.codeStudioProfile.findUnique({ where: { userId } }),
       // Los diarios se acumulan (~4 por día): solo interesan los de hoy.
@@ -51,6 +77,9 @@ export class CodeStudioRewardsService {
         select: { key: true, createdAt: true },
       }),
       client.codeStudioDailyCounter.findMany({ where: { userId, day } }),
+      // Días con actividad (para la racha): cacheado 1 minuto por usuario,
+      // porque el perfil se pide en cada actualización (cada 10 s).
+      this.activeDays(userId, client),
     ]);
     const xp = user?.experience ?? 0;
     const level = levelForXp(xp);
@@ -82,6 +111,9 @@ export class CodeStudioRewardsService {
       // Solo logros "de verdad" (los diarios tienen su propia sección).
       milestones: milestones.filter((entry) => MILESTONE_BY_KEY.has(entry.key)).map((entry) => ({ key: entry.key, at: entry.createdAt })),
       totalMilestones: MILESTONES.length,
+      streak: streakFrom(activeDays),
+      // Vitrina de salidas (empresas vendidas o en bolsa).
+      exits: await this.exitsOf(milestones, client),
       daily: {
         day,
         missions,
@@ -89,6 +121,70 @@ export class CodeStudioRewardsService {
         resetsInMinutes: minutesUntilReset(),
       },
     };
+  }
+
+  private streakCache = new Map<string, { day: string; at: number; days: Set<string> }>();
+
+  private async activeDays(userId: string, client: Tx | PrismaService) {
+    const day = dailyKey();
+    const cached = this.streakCache.get(userId);
+    if (cached && cached.day === day && Date.now() - cached.at < STREAK_CACHE_MS) return cached.days;
+    const rows = await client.codeStudioDailyCounter.findMany({
+      where: { userId, day: { gte: dailyKey(Date.now() - STREAK_WINDOW_DAYS * DAY_MS) }, value: { gt: 0 } },
+      select: { day: true },
+      distinct: ['day'],
+    });
+    const days = new Set(rows.map((entry) => entry.day));
+    // Hoy ya cuenta en cuanto el jugador hace algo (aunque la caché sea vieja).
+    if (this.streakCache.size > 5000) this.streakCache.clear();
+    this.streakCache.set(userId, { day, at: Date.now(), days });
+    return days;
+  }
+
+  // Salidas guardadas como logros "exit:sale:<empresa>" / "exit:ipo:<empresa>".
+  // Solo consulta nombres si hay alguna (lo normal es que no haya).
+  private async exitsOf(milestones: Array<{ key: string; createdAt: Date }>, client: Tx | PrismaService) {
+    const exits = milestones
+      .map((entry) => {
+        const match = /^exit:(sale|ipo):(.+)$/.exec(entry.key);
+        return match ? { type: match[1] as ExitType, companyId: match[2], at: entry.createdAt } : null;
+      })
+      .filter((entry): entry is { type: ExitType; companyId: string; at: Date } => entry !== null);
+    if (exits.length === 0) return [];
+    const companies = await client.codeStudioCompany.findMany({
+      where: { id: { in: exits.map((entry) => entry.companyId) } },
+      select: { id: true, name: true, valuation: true },
+    });
+    const byId = new Map(companies.map((company) => [company.id, company]));
+    return exits.map((entry) => ({ ...entry, name: byId.get(entry.companyId)?.name ?? '', valuation: byId.get(entry.companyId)?.valuation ?? 0 }));
+  }
+
+  // Premio de la salida: una vez por empresa. La primera salida de cada tipo
+  // paga coins y el XP completo; las siguientes, solo una parte del XP.
+  async grantExit(tx: Tx, userId: string, companyId: string, type: ExitType, title: string, description: string, lang: Lang = 'es') {
+    const created = await tx.codeStudioMilestone.createMany({ data: [{ userId, key: `exit:${type}:${companyId}`, companyId }], skipDuplicates: true });
+    if (created.count === 0) return false;
+    const first = (await tx.codeStudioMilestone.createMany({ data: [{ userId, key: `exit:first-${type}`, companyId }], skipDuplicates: true })).count > 0;
+    const reward = EXIT_REWARDS[type];
+    const coins = first ? reward.coins : 0;
+    if (coins > 0) {
+      await this.gamification.grantRewards(tx, userId, RewardSourceType.CODESTUDIO, `exit:${type}:${companyId}`, `CodeStudio: ${title}`, [{ type: 'COINS', amount: coins }]);
+    }
+    const { xp } = await this.addXp(tx, userId, first ? reward.xp : reward.repeatXp, companyId, {}, lang, false);
+    await tx.codeStudioEventLog.create({
+      data: {
+        companyId,
+        title,
+        description: `${description}${pick(MSG.rewardSuffix(xp, coins), lang)}`.trim(),
+        effects: { kind: 'milestone', tone: 'good', key: `exit:${type}`, xp, coins },
+      },
+    });
+    return true;
+  }
+
+  // Cuántas empresas vendió el usuario (para el bono de fundador en serie).
+  async salesCount(client: Tx | PrismaService, userId: string) {
+    return client.codeStudioMilestone.count({ where: { userId, key: { startsWith: 'exit:sale:' } } });
   }
 
   // Logros de CodeStudio para la web (/achievements): livianos, sin

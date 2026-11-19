@@ -1,0 +1,148 @@
+{
+  "hero": {
+    "eyebrow": "Cursos de programación desde cero",
+    "title": "Aprende a programar",
+    "titleAccent": "practicando.",
+    "text": "Cursos de Python, JavaScript y desarrollo web con lecciones cortas y ejercicios que se corrigen al instante. Y lo que ganas aprendiendo lo usas en un mundo para jugar con otras personas.",
+    "ctaPrimary": "Empezar gratis",
+    "ctaSecondary": "Ver los cursos",
+    "note": "La primera lección de cada curso se hace sin cuenta.",
+    "worldAlt": "Casa moderna construida con bloques en el mundo isométrico de CodeBuddies",
+    "exerciseAlt": "Ejercicio real del curso: se escribe el código, se pulsa Comprobar y el robot Buddy responde",
+    "worldCaption": "Lo que ganas, en tu mundo",
+    "exerciseCaption": "Ejercicio real: escribes, compruebas y Buddy responde"
+  },
+  "courses": {
+    "eyebrow": "Cursos",
+    "title": "Explora lo que puedes aprender",
+    "text": "Cursos completos que van de cero a proyectos reales, con explicaciones paso a paso y ejercicios que se corrigen solos.",
+    "lessons": "{count} lecciones",
+    "modules": "{count} módulos",
+    "xp": "{xp} XP",
+    "view": "Ver curso",
+    "tryFirst": "Probar la lección 1",
+    "all": "Ver todos los cursos",
+    "featured": "Recomendado para empezar",
+    "empty": "No pudimos cargar los cursos ahora mismo.",
+    "emptyCta": "Abrir el catálogo"
+  },
+  "paths": {
+    "eyebrow": "Aprende a tu manera",
+    "title": "Elige por dónde empezar",
+    "text": "Si nunca escribiste código, empieza desde cero. Si ya sabes lo básico, ve directo al nivel profesional.",
+    "levels": {
+      "EASY": {
+        "title": "Desde cero",
+        "text": "Para quien nunca programó. Paso a paso y con palabras simples."
+      },
+      "MEDIUM": {
+        "title": "Nivel profesional",
+        "text": "Para quien quiere trabajar creando sitios y aplicaciones web."
+      },
+      "HARD": {
+        "title": "Avanzado",
+        "text": "Para quien ya programa y quiere ir más lejos."
+      }
+    },
+    "methodTitle": "Así funciona cada lección",
+    "steps": {
+      "read": {
+        "title": "Entiende la idea",
+        "text": "Una explicación corta, con ejemplos, antes de tocar el código."
+      },
+      "write": {
+        "title": "Escribe código de verdad",
+        "text": "En el editor del navegador. No hay nada que instalar."
+      },
+      "check": {
+        "title": "Se corrige al instante",
+        "text": "Sabes en el momento si funciona y ganas XP y monedas."
+      }
+    }
+  },
+  "game": {
+    "eyebrow": "Aprende jugando",
+    "title": "Un mundo que construyes tú",
+    "text": "CodeBuddies trae un videojuego isométrico integrado. Lo que ganas aprendiendo lo usas aquí: construyes con bloques, decoras tu sala y la compartes con tus amigos.",
+    "screenAlt": "El avatar camina alrededor de un castillo construido por un jugador; a la izquierda, su nivel, XP y monedas",
+    "nightAlt": "Una casa moderna pasa del día a la noche y se encienden sus faroles",
+    "pcAlt": "Se abre el PC de la sala y, dentro, CodeStudio con la startup Pixel Pizza",
+    "nightCaption": "De noche, las luces se encienden",
+    "pcCaption": "En tu sala hay un PC: ahí vive CodeStudio",
+    "realCaption": "Capturas reales del juego",
+    "features": {
+      "build": {
+        "title": "Construye bloque a bloque",
+        "text": "Casas, castillos o lo que imagines, con piezas que apilas y pintas."
+      },
+      "avatar": {
+        "title": "Tu avatar, tu estilo",
+        "text": "Un vestidor con ropa, cabello y colores."
+      },
+      "rooms": {
+        "title": "Salas con amigos",
+        "text": "Visita salas públicas, chatea e invita a quien quieras."
+      },
+      "shop": {
+        "title": "Tienda y mascota",
+        "text": "Compra objetos con las monedas que ganas en las lecciones."
+      }
+    },
+    "cta": "Entrar al mundo",
+    "buildAlt": "Una casa moderna apareciendo bloque a bloque en el mundo del juego",
+    "buildCaption": "Construye bloque a bloque",
+    "screenCaption": "Camina por tu mundo con tu nivel, XP y monedas a la vista"
+  },
+  "studio": {
+    "eyebrow": "CodeStudio",
+    "title": "De aprender conceptos a fundar tu startup",
+    "text": "Dentro del juego hay un simulador: eliges qué app crear, construyes sus funciones, contratas a tu equipo, arreglas bugs y compites en el ranking global.",
+    "points": {
+      "tree": {
+        "title": "Árbol de producto",
+        "text": "Landing, registro, pagos, SEO, tests: cada función se desbloquea en orden, como en un producto real."
+      },
+      "team": {
+        "title": "Tu equipo",
+        "text": "Contratas perfiles junior, semi-senior y senior. La química del equipo cambia el rendimiento."
+      },
+      "ops": {
+        "title": "Bugs, servidores y marketing",
+        "text": "Si la app crece, los servidores se saturan y aparecen bugs. Tú decides cómo resolverlo."
+      }
+    },
+    "cta": "Abrir CodeStudio",
+    "clipAlt": "En CodeStudio se funda la startup Pixel Pizza, aparece el árbol de producto y se abre la primera función",
+    "clipCaption": "Captura real: fundar una startup y elegir su primera función"
+  },
+  "progress": {
+    "eyebrow": "Tu progreso",
+    "title": "Todo lo que haces suma",
+    "text": "Lecciones, misiones y CodeStudio suben el mismo nivel.",
+    "tabs": {
+      "missions": {
+        "label": "Misiones",
+        "text": "Misiones diarias y semanales con XP y monedas extra.",
+        "alt": "Página de misiones con las misiones diarias de CodeStudio"
+      },
+      "pass": {
+        "label": "Pase de temporada",
+        "text": "Entra cada día y desbloquea premios. Si faltas un día, sigues donde ibas.",
+        "alt": "Pase de temporada con los premios de cada día"
+      },
+      "achievements": {
+        "label": "Logros",
+        "text": "Un logro por cada hito: tu primera startup, tu primer bug resuelto, tu primer empleado.",
+        "alt": "Logros desbloqueados con su XP y monedas"
+      }
+    },
+    "more": "También hay rankings, insignias y certificado al terminar un curso.",
+    "rankings": "Ver rankings"
+  },
+  "final": {
+    "title": "Tu primera línea de código está a un clic",
+    "text": "Haz la primera lección sin crear cuenta. Si te gusta, guarda tu progreso y entra al mundo.",
+    "primary": "Crear cuenta gratis",
+    "secondary": "Ya tengo cuenta"
+  }
+}
